@@ -1,0 +1,36 @@
+# Dependencies (bun installs here, incl. the isolated .bun store)
+node_modules/
+
+# Build output — every package ships a freshly built dist/, never a committed one
+dist/
+*.tsbuildinfo
+
+# Test coverage (vitest / v8)
+coverage/
+*.lcov
+
+# Turbo local task cache
+.turbo/
+
+# Packing artifacts from `bun pm pack` / `npm pack`
+*.tgz
+
+# Environment: never commit real env files; the checked-in template is the exception
+.env
+.env.*
+!.env.example
+
+# Scratch space for planning docs, notes, and throwaway experiments — the folder is
+# tracked (via .keep) but its contents never are.
+/tmp/*
+!/tmp/.keep
+
+# Editor / OS cruft
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.log

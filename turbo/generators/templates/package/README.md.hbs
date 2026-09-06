@@ -1,0 +1,24 @@
+# @plainworks/{{name}}
+
+> {{{description}}}
+
+Part of the [plainworks](../../README.md) kit.
+
+## Install
+
+```sh
+bun add @plainworks/{{name}}
+```
+
+## Usage
+
+```ts
+import { hello } from "@plainworks/{{name}}"
+```
+{{#if hasClient}}
+Client-only bindings (`"use client"`) live under the `./client` entry:
+
+```ts
+import { helloClient } from "@plainworks/{{name}}/client"
+```
+{{/if}}

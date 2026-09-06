@@ -1,0 +1,9 @@
+// @vitest-environment jsdom
+// Client tests opt into jsdom per file; the package default stays `node` so the server-safe entry
+// can never lean on DOM globals unnoticed.
+import { expect, test } from "vitest"
+import { helloClient } from "./hello-client"
+
+test("helloClient greets by name", () => {
+  expect(helloClient("plainworks")).toBe("hello, plainworks")
+})

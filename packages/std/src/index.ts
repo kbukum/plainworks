@@ -3,9 +3,52 @@ export { assert, assertNever } from "./assert"
 export type { PlainErrorOptions } from "./errors"
 export { ensureError, getErrorMessage, PlainError } from "./errors"
 export { hasProperty, isDefined, isNonEmptyString, isRecord } from "./guards"
-export { randomId } from "./id"
+export { idempotencyKey, randomId } from "./id"
+export type { Handler, Interceptor } from "./pipeline"
+export { composeInterceptors, pipeValues } from "./pipeline"
 export type { RandomSource } from "./random"
-export { createSeededRandom } from "./random"
+export { createSeededRandom, systemRandom } from "./random"
+export type { RedactOptions } from "./redact"
+export { redact } from "./redact"
+export type {
+  BackoffPolicy,
+  BoundedQueue,
+  CircuitBreaker,
+  CircuitBreakerOptions,
+  CircuitState,
+  Classification,
+  Deadline,
+  Delay,
+  FailureCategory,
+  FailureDisposition,
+  JitterStrategy,
+  OverflowPolicy,
+  RetryDeps,
+  RetryPolicy,
+} from "./resilience"
+export {
+  AbortError,
+  CircuitOpenError,
+  classifyError,
+  classifyStatus,
+  combineSignals,
+  createBoundedQueue,
+  createCircuitBreaker,
+  createDeadline,
+  defaultBackoff,
+  isRetryable,
+  NetworkError,
+  nextBackoff,
+  QueueClosedError,
+  QueueFullError,
+  QueueWaitersFullError,
+  RetryError,
+  runWithRetry,
+  StatusError,
+  systemDelay,
+  TimeoutError,
+  withTimeout,
+} from "./resilience"
 export type { Err, Ok, Result } from "./result"
 export { err, isErr, isOk, ok, unwrap, unwrapOr } from "./result"
 export type { AuthHeaderProvider, AuthHeaders } from "./seam/auth"

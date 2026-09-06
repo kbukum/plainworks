@@ -1,6 +1,5 @@
 /**
- * Seeded pseudo-randomness. The canonical {@link RandomSource} lives here in `std` so any layer
- * (testkit, mocks, and later packages) shares one implementation instead of drifting copies.
+ * Seeded pseudo-randomness. The canonical {@link RandomSource} lives here in `std` so every higher layer shares one implementation instead of drifting copies.
  */
 
 /** A stream of uniform floats in the half-open range `[0, 1)`. */
@@ -10,9 +9,14 @@ export interface RandomSource {
 }
 
 /**
- * Build a seeded {@link RandomSource} (mulberry32): tiny, fast, and stable across runs and
- * platforms — same seed, same sequence. Not cryptographically secure; for deterministic fixtures
- * and tests, never for security purposes (use `randomId` / Web Crypto there).
+ * The default {@link RandomSource}, backed by `Math.random`. Non-deterministic — inject a seeded source ({@link createSeededRandom}) in tests so jitter and sampling are reproducible. Not cryptographically secure; use Web Crypto (`randomId`) for security-sensitive values.
+ */
+export const systemRandom: RandomSource = {
+  next: () => Math.random(),
+}
+
+/**
+ * Build a seeded {@link RandomSource} (mulberry32): tiny, fast, and stable across runs and platforms — same seed, same sequence. Not cryptographically secure; for deterministic fixtures and tests, never for security purposes (use `randomId` / Web Crypto there).
  */
 export function createSeededRandom(seed: number): RandomSource {
   let state = seed >>> 0

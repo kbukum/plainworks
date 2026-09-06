@@ -30,6 +30,8 @@ bun add @plainworks/std
 - **Shared seams** — the single source of truth higher layers implement:
   - `AuthHeaderProvider` / `AuthHeaders` — the header-only auth seam.
   - `PlainEvent` / `Listener` / `Subscription` — the event and teardown shapes.
+  - `StandardSchemaV1` — the [Standard Schema](https://standardschema.dev) validation seam (owned structurally, so any Zod/Valibot/ArkType schema fits without a dependency), with `validateWithSchema` (validation → `Result`) and the audited `unsafePassthrough<T>()` opt-out. Transports (`http`, and future `rest`/`graphql`) turn an untrusted decoded `unknown` into a typed value through it.
+- **Web-platform types** — self-contained structural types (`WebFetch`, `WebResponse`, `WebHeaders`, `WebRequestInit`, `WebAbortSignal`, `WebURL`, `WebReadableStream`, `WebTextDecoder`, …) that let a neutral package name `fetch`/`Headers`/`Response`/`URL` in its public API and ship a `.d.ts` that typechecks standalone against the ES lib — no DOM or `@types/node` dependency imposed on consumers.
 
 ## Usage
 

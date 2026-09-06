@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 import { createRequire } from "node:module"
 import { dirname, resolve } from "node:path"
@@ -82,6 +83,25 @@ test("import cycles trip the no-circular rule", async () => {
 })
 
 /**
+ * The one deliberate upward exception: test files may import @plainworks/testkit (shared fakes), but
+ * production source may not. Both halves are proven from fixtures so a regression in the carve-out —
+ * either forbidding a legitimate test import or letting production pull in test tooling — fails here.
+ */
+test("test files may import testkit, but production source may not", async () => {
+  const violations = await cruiseFixtures()
+  // The production edge (`state/src/uses-testkit.ts` -> testkit) must trip the dedicated rule...
+  const production = violations.find(
+    (v) =>
+      v.from.endsWith("state/src/uses-testkit.ts") &&
+      v.rule.name === "no-production-testkit-import",
+  )
+  expect(production).toBeDefined()
+  // ...while the test-file edge (`state/src/uses-testkit.test.ts` -> testkit) must trip no rule.
+  const testEdge = violations.find((v) => v.from.endsWith("state/src/uses-testkit.test.ts"))
+  expect(testEdge).toBeUndefined()
+})
+
+/**
  * The whole TS-AST toolchain (dependency-cruiser) can only parse on the TypeScript 6 Compiler API.
  * If someone bumps the catalog `typescript` to 7, dependency-cruiser silently stops extracting
  * dependencies and every layer rule goes green for the wrong reason. This asserts the catalog stays
@@ -96,4 +116,37 @@ test("catalog typescript stays on the TS6 line so the boundary gate keeps parsin
     range,
     `catalog typescript is "${range}"; the layer gate only runs on TS6 - see docs/architecture.md Governance before raising it`,
   ).toMatch(/^\^6\.\d+\.\d+$/)
+})
+
+/**
+ * The portability gate is the shared ES2023-only compile config (`tsconfig.base.json`: no DOM/Node
+ * lib, `types: []`) plus the explicit `types/universal-web.d.ts` global shim — enforced at
+ * `typecheck` on every package, not a dependency-cruiser rule. These fixtures prove it bites in both
+ * directions using the real compiler (no regex heuristic): a neutral entry touching only the
+ * universal Web value globals compiles, while one reaching for a DOM-only global (`document`) fails.
+ */
+function typechecksUnderGate(project: string): { ok: boolean; output: string } {
+  const cwd = resolve(fixtures, "portability")
+  try {
+    execFileSync(process.execPath, [require.resolve("typescript/bin/tsc"), "-p", project], {
+      cwd,
+      encoding: "utf8",
+      stdio: "pipe",
+    })
+    return { ok: true, output: "" }
+  } catch (error) {
+    const shell = error as { stdout?: string; stderr?: string }
+    return { ok: false, output: `${shell.stdout ?? ""}${shell.stderr ?? ""}` }
+  }
+}
+
+test("the portability gate compiles a neutral entry using only universal Web globals", () => {
+  expect(typechecksUnderGate("tsconfig.ok.json").ok).toBe(true)
+})
+
+test("the portability gate rejects a neutral entry referencing a DOM-only global", () => {
+  const result = typechecksUnderGate("tsconfig.bad.json")
+  expect(result.ok).toBe(false)
+  // The failure names the offending DOM global, so the gate points at the real portability breach.
+  expect(result.output).toContain("document")
 })

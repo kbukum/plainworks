@@ -3,5 +3,8 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["test"]
+  "include": ["test"],
+  // The portability fixtures are compiled by their own tsconfigs from the gate test (one deliberately
+  // fails to compile a DOM global), so they must stay out of this package's own typecheck.
+  "exclude": ["test/fixtures/portability"]
 }

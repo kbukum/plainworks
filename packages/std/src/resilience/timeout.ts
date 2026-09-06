@@ -1,9 +1,10 @@
 import { PlainError } from "../errors"
+import type { WebAbortSignal } from "../web"
 
 /**
  * A cancellable delay: resolve after `ms`, or reject with an {@link AbortError} if `signal` aborts first. Injected so retry/timeout logic is deterministic under test (a fake delay resolves instantly); production uses {@link systemDelay}.
  */
-export type Delay = (ms: number, signal?: AbortSignal) => Promise<void>
+export type Delay = (ms: number, signal?: WebAbortSignal) => Promise<void>
 
 /** Raised when an operation exceeds its per-attempt time budget. Retryable under the classifier. */
 export class TimeoutError extends PlainError<"std/timeout"> {
@@ -12,14 +13,14 @@ export class TimeoutError extends PlainError<"std/timeout"> {
   }
 }
 
-/** Raised when a caller/deadline `AbortSignal` cancels an operation. Fatal under the classifier. */
+/** Raised when a caller/deadline `WebAbortSignal` cancels an operation. Fatal under the classifier. */
 export class AbortError extends PlainError<"std/aborted"> {
   constructor(options?: { cause?: unknown }) {
     super("std/aborted", "Operation aborted", options)
   }
 }
 
-function toAbortError(signal: AbortSignal): AbortError {
+function toAbortError(signal: WebAbortSignal): AbortError {
   return new AbortError({ cause: signal.reason })
 }
 
@@ -47,30 +48,56 @@ export const systemDelay: Delay = (ms, signal) =>
     }, ms)
     const onAbort = () => {
       clearTimeout(timer)
-      reject(toAbortError(signal as AbortSignal))
+      reject(toAbortError(signal as WebAbortSignal))
     }
     signal?.addEventListener("abort", onAbort, { once: true })
   })
 
 /**
- * Combine several `AbortSignal`s into one that aborts as soon as any input does. Ignores `undefined` inputs; with none, returns a signal that never aborts. Built on the standard `AbortSignal.any`.
+ * Combine several `WebAbortSignal`s into one that aborts as soon as any input does, forwarding the reason of the first input to abort. Ignores `undefined` inputs; a lone signal is passed through unchanged; with none, returns a signal that never aborts.
+ *
+ * Built on the universal `AbortController` surface rather than the newer `AbortSignal.any` (absent on older runtimes), and it removes its input listeners the moment the combined signal settles, so a long-lived input signal never retains a reference to a short-lived combined one.
  */
-export function combineSignals(...signals: ReadonlyArray<AbortSignal | undefined>): AbortSignal {
-  const present = signals.filter((signal): signal is AbortSignal => signal !== undefined)
+export function combineSignals(
+  ...signals: ReadonlyArray<WebAbortSignal | undefined>
+): WebAbortSignal {
+  const present = signals.filter((signal): signal is WebAbortSignal => signal !== undefined)
+  const [only] = present
   if (present.length === 0) {
     return new AbortController().signal
   }
-  const [only] = present
   if (present.length === 1 && only !== undefined) {
     return only
   }
-  return AbortSignal.any(present)
+  const controller = new AbortController()
+  const links = present.map((source) => ({
+    source,
+    onAbort: () => controller.abort(source.reason),
+  }))
+  const unlink = () => {
+    for (const link of links) {
+      link.source.removeEventListener("abort", link.onAbort)
+    }
+  }
+  for (const link of links) {
+    if (link.source.aborted) {
+      controller.abort(link.source.reason)
+      break
+    }
+    link.source.addEventListener("abort", link.onAbort, { once: true })
+  }
+  if (controller.signal.aborted) {
+    unlink()
+  } else {
+    controller.signal.addEventListener("abort", unlink, { once: true })
+  }
+  return controller.signal
 }
 
 /** A disposable deadline: the abort signal plus explicit teardown for the backing timer. */
 export interface Deadline {
   /** Aborts with an {@link AbortError} once the deadline elapses — fatal under the classifier. */
-  readonly signal: AbortSignal
+  readonly signal: WebAbortSignal
   /** Clear the backing timer; the signal never fires after disposal. Idempotent. */
   dispose(): void
 }
@@ -107,9 +134,9 @@ export function createDeadline(ms: number): Deadline {
  * Run `operation` under a time budget. It receives a signal that aborts on timeout **or** on the caller's `signal`, so a well-behaved operation (e.g. `fetch`) cancels its own work; if the budget elapses first the returned promise rejects with a retryable {@link TimeoutError}, while a caller abort rejects immediately with a fatal {@link AbortError} — even if the operation ignores cancellation. `delay` is injectable for deterministic tests. The timeout timer and the caller listener are always torn down once the call settles.
  */
 export function withTimeout<T>(
-  operation: (signal: AbortSignal) => Promise<T>,
+  operation: (signal: WebAbortSignal) => Promise<T>,
   ms: number,
-  options?: { signal?: AbortSignal; delay?: Delay },
+  options?: { signal?: WebAbortSignal; delay?: Delay },
 ): Promise<T> {
   const delay = options?.delay ?? systemDelay
   const callerSignal = options?.signal
@@ -127,22 +154,26 @@ export function withTimeout<T>(
       reject(error)
       return
     }
-    function settle(settleWith: () => void): void {
+    function settle(finalize: () => void, abortReason?: unknown): void {
       if (settled) {
         return
       }
       settled = true
       callerSignal?.removeEventListener("abort", onCallerAbort)
       timerController.abort()
-      settleWith()
+      // Abort the private timeout controller on EVERY settlement — a normal resolve included — so the
+      // combined operation signal settles and `combineSignals` runs its teardown, removing the
+      // `onAbort` listener it attached to the (possibly long-lived) caller signal. Without this a
+      // completed call would leak one listener per invocation onto the caller signal. On the
+      // timeout/abort paths `abortReason` carries the reason so a still-pending operation is cancelled
+      // with it; on success it is `undefined`, an inert abort of an already-settled operation.
+      timeoutController.abort(abortReason)
+      finalize()
     }
     function onCallerAbort(): void {
       // A caller abort is fatal, not a retryable timeout, and wins even over a pending operation.
-      const error = toAbortError(callerSignal as AbortSignal)
-      settle(() => {
-        timeoutController.abort(error)
-        reject(error)
-      })
+      const error = toAbortError(callerSignal as WebAbortSignal)
+      settle(() => reject(error), error)
     }
     if (callerSignal?.aborted) {
       onCallerAbort()
@@ -160,18 +191,12 @@ export function withTimeout<T>(
     }
 
     delayPromise.then(
-      () =>
-        settle(() => {
-          const error = new TimeoutError(ms)
-          timeoutController.abort(error)
-          reject(error)
-        }),
+      () => {
+        const error = new TimeoutError(ms)
+        settle(() => reject(error), error)
+      },
       // The expected post-settle cancellation no-ops inside `settle`; a delay that fails while the operation is still pending cancels the operation and settles the outer promise.
-      (error: unknown) =>
-        settle(() => {
-          timeoutController.abort(error)
-          reject(error)
-        }),
+      (error: unknown) => settle(() => reject(error), error),
     )
 
     let result: Promise<T>

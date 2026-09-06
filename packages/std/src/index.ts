@@ -9,7 +9,7 @@ export { composeInterceptors, pipeValues } from "./pipeline"
 export type { RandomSource } from "./random"
 export { createSeededRandom, systemRandom } from "./random"
 export type { RedactOptions } from "./redact"
-export { redact } from "./redact"
+export { isSensitiveKey, redact } from "./redact"
 export type {
   BackoffPolicy,
   BoundedQueue,
@@ -51,7 +51,35 @@ export {
 } from "./resilience"
 export type { Err, Ok, Result } from "./result"
 export { err, isErr, isOk, ok, unwrap, unwrapOr } from "./result"
-export type { AuthHeaderProvider, AuthHeaders } from "./seam/auth"
+export type { AuthContext, AuthHeaderProvider, AuthHeaders } from "./seam/auth"
 export type { Listener, PlainEvent, Subscription } from "./seam/events"
+export type {
+  InferSchemaOutput,
+  StandardSchemaFailure,
+  StandardSchemaIssue,
+  StandardSchemaPathSegment,
+  StandardSchemaProps,
+  StandardSchemaResult,
+  StandardSchemaSuccess,
+  StandardSchemaTypes,
+  StandardSchemaV1,
+} from "./seam/schema"
+export { unsafePassthrough, validateWithSchema } from "./seam/schema"
 export type { Clock } from "./time"
 export { systemClock } from "./time"
+export type {
+  WebAbortController,
+  WebAbortSignal,
+  WebBodyInit,
+  WebFetch,
+  WebHeaders,
+  WebHeadersInit,
+  WebReadableStream,
+  WebReadableStreamDefaultReader,
+  WebRequestInit,
+  WebResponse,
+  WebResponseInit,
+  WebTextDecoder,
+  WebURL,
+  WebURLSearchParams,
+} from "./web"

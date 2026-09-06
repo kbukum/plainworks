@@ -1,5 +1,21 @@
 import { expect, test } from "vitest"
-import { redact } from "./redact"
+import { isSensitiveKey, redact } from "./redact"
+
+test("isSensitiveKey matches the vocabulary separator-insensitively as a substring", () => {
+  expect(isSensitiveKey("X-Api-Key")).toBe(true)
+  expect(isSensitiveKey("api_key")).toBe(true)
+  expect(isSensitiveKey("apiKey")).toBe(true)
+  expect(isSensitiveKey("authorization")).toBe(true)
+  expect(isSensitiveKey("sessionId")).toBe(true)
+  expect(isSensitiveKey("refresh_token")).toBe(true)
+  expect(isSensitiveKey("page")).toBe(false)
+  expect(isSensitiveKey("include")).toBe(false)
+})
+
+test("isSensitiveKey honors extra caller-supplied names", () => {
+  expect(isSensitiveKey("x-tenant-pin", ["pin"])).toBe(true)
+  expect(isSensitiveKey("x-tenant-pin")).toBe(false)
+})
 
 test("masks values under sensitive keys", () => {
   const result = redact({
@@ -133,4 +149,34 @@ test("inerts a callable value so a surviving toJSON hook cannot re-emit a secret
   // The redacted copy carries no executable hook, so JSON serialization cannot run it.
   expect(JSON.parse(JSON.stringify(result))).toEqual({ label: "safe", toJSON: "[Function]" })
   expect(redact(() => "******")).toBe("[Function]")
+})
+
+test("masks embedded key=value credentials inside a larger string", () => {
+  expect(redact("access_token=live-secret&page=2")).toBe("access_token=[REDACTED]&page=2")
+  expect(redact("password: live-secret")).toBe("password: [REDACTED]")
+  expect(redact({ message: "failed for api_key=abc123 while count=5" })).toEqual({
+    message: "failed for api_key=[REDACTED] while count=5",
+  })
+})
+
+test("leaves embedded non-sensitive pairs and bare URLs intact", () => {
+  expect(redact("https://api.test/v1?page=2&limit=10")).toBe("https://api.test/v1?page=2&limit=10")
+  expect(redact("count=5")).toBe("count=5")
+})
+
+test("masks only the credential inside a URL query, preserving the rest", () => {
+  expect(redact("https://api.test/v1?access_token=live-secret&page=2")).toBe(
+    "https://api.test/v1?access_token=[REDACTED]&page=2",
+  )
+})
+
+test("masks an embedded scheme+token credential, not just the scheme", () => {
+  // The generic key=value matcher would stop at the first space and leave the token exposed
+  // (`Authorization: [REDACTED] abc.def.ghi`); the scheme matcher masks the whole run instead.
+  expect(redact("Authorization: Bearer abc.def.ghi")).toBe("Authorization: [REDACTED]")
+  expect(redact({ error: "refused Authorization: Bearer abc.def.ghi from client" })).toEqual({
+    error: "refused Authorization: [REDACTED] from client",
+  })
+  expect(redact("DPoP header.payload.signature")).toBe("[REDACTED]")
+  expect(redact({ note: "used Basic dXNlcjpwYXNz here" })).toEqual({ note: "used [REDACTED] here" })
 })

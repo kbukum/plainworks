@@ -44,4 +44,8 @@ import { createFixtureSources, createTaskFactory, parseApiParams } from "@plainw
 const tasks = createTaskFactory(createFixtureSources(7, "tasks")).createMany(3)
 ```
 
-Request bodies and query params are validated at the boundary (400 on malformed input); latency is off by default for deterministic tests — enable it per server via `createMockApi({ latency })` or at runtime through the `/mock/latency` endpoint. Handlers match on any origin, so the same set intercepts same-origin requests and the absolute URLs used by `msw/node`.
+A few behaviors worth knowing:
+
+- **Input is validated at the boundary** — a malformed body or query param returns `400`.
+- **Latency is off by default** for deterministic tests; enable it per server via `createMockApi({ latency })` or at runtime through the `/mock/latency` endpoint.
+- **Handlers match any origin**, so the same set intercepts both same-origin requests and the absolute URLs `msw/node` uses.

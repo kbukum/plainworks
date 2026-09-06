@@ -1,0 +1,38 @@
+{
+  "name": "@plainworks/http",
+  "version": "0.1.0-alpha.1",
+  "description": "Host-independent typed fetch client (interceptors, auth-header injection, safe URL building, codec seam) that rest and graphql build on.",
+  "type": "module",
+  "sideEffects": false,
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage",
+    "lint": "biome check ."
+  },
+  "dependencies": {
+    "@plainworks/std": "workspace:*"
+  },
+  "devDependencies": {
+    "@plainworks/testkit": "workspace:*",
+    "@plainworks/tsdown-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

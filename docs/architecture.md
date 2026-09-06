@@ -1,75 +1,167 @@
 # plainworks architecture
 
-This document is the canonical statement of the plainworks **taxonomy**, **layer map**, and the **two axes** that shape every decision.
+This is the canonical reference for how plainworks is organized: its **naming**, its **layers**, the **two axes** every package is placed against, and the **invariants** the gates enforce. Read it once to understand the shape; come back to it when a change needs to know where it belongs.
 
-## The two axes
+## At a glance
 
-Every package is placed against two independent axes.
+plainworks is a stack of small packages. Each one owns a single concern, sits in a numbered layer, and may only depend **downward**.
 
-### Axis 1 — Distribution
-
-How a consumer takes the code.
-
-- **npm (versioned dependency)** — infrastructure you don't fork: `std`, the connection/auth/query engines, adapters, testkit. Semver'd, imported, upgraded. **This repo.**
-- **registry (copy-in), later** — the *ownable* surface: UI, hooks, presets, templates. A shadcn-style copy-in (more capable, for complex components) that users edit and own. A **parked**, future deliverable — not part of the foundation.
-
-### Axis 2 — Host-independence
-
-Where the code can run. The kit **assumes no host**: Next.js, a Vite SPA, Astro, TanStack Start, Remix — or a runtime that doesn't exist yet — all *plug in*.
-
-- Every package ships a **server-safe `.` entry**: no React, no DOM, RSC/edge-safe.
-- Interactive packages add an optional **client `./client` entry** carrying a per-module `"use client"` directive. Client is **never** the default import.
-- Framework glue lives in thin, optional adapters the consumer opts into — never in a core.
-
-The server/client split is an **import boundary**, enforced at build (tsdown emits the two entries from per-module directives) and, for token-custody code like auth, at review: a server-only module must never be pulled into a `"use client"` graph.
-
-## Taxonomy
-
-One concern, one plain word, the **same word everywhere**. Banned names: `core`, `engine`, `foundation`, and junk-drawer `utils`. The bottom module is **`std`** (`@plainworks/std`) — a charter-guarded, zero-dependency, host-independent standard library. Anything with a real concern graduates to its own one-word package.
-
-## Layer map
-
-```
-L0  std                                   errors/result/guards/contracts (seams), no React
-L1  state (seam + zustand adapter) · ui   (registry later)
-L2  connection (+sse/ws) · connect (RPC) · query (TanStack wiring)
-L3  auth (core + oidc/jwt/apikey/BYO adapters, server/client split)
-L4  app (providers, harness) · testkit · mocks     (route tree stays app-local)
+```mermaid
+flowchart TD
+  subgraph L4["L4 · composition & tooling"]
+    app[app] ~~~ testkit[testkit] ~~~ mocks[mocks]
+  end
+  subgraph L3["L3 · auth"]
+    auth[auth]
+  end
+  subgraph L2["L2 · transport & data"]
+    connection[connection] ~~~ connect[connect] ~~~ query[query]
+  end
+  subgraph L1["L1 · client & I/O"]
+    state[state] ~~~ http[http] ~~~ ui[ui]
+  end
+  subgraph L0["L0 · std"]
+    std[std]
+  end
+  L4 --> L3 --> L2 --> L1 --> L0
 ```
 
-**The rule:** a package in `Ln` may import `@plainworks` packages only in a **strictly lower** layer. Same-layer ("sideways") and upward imports are forbidden. When a higher layer needs to plug into a lower one, **define the seam in the lower layer and implement it higher** (the gokit/rskit rule) — e.g. the `AuthHeaderProvider` seam and event shapes live once in `std`; connection/auth implement against them. No cross-boundary reach, no duplicated seam copies to drift.
+*Arrows are the only allowed import direction — a package never imports its own layer or above.*
 
-Enforcement: **dependency-cruiser** — configured in the dedicated [`@plainworks/boundaries`](../internal/boundaries) package ([`.dependency-cruiser.cjs`](../internal/boundaries/.dependency-cruiser.cjs)) — encodes this map from a single `LAYERS` table and fails CI on any upward/sideways import or cycle, naming the offending file and rule. A fixture-backed test in that package proves the gate actually rejects an upward import (so it can never go vacuously green).
+Two independent questions decide where each package lives and how it ships:
 
-## Architecture invariants
+- **How does a consumer get the code?** — the *distribution* axis.
+- **Where can the code run?** — the *host-independence* axis.
 
-These hold for every package and are checked in review + gates:
+## Axis 1 — Distribution
 
-- **No import-time side effects.** Adapters (auth, connection transports) register via an explicit `register()` / `createX({...})`; importing a module never dials the network or reads env.
-- **No module-level singletons.** Stores, clients, and sessions are created by **per-request factories** (SSR/RSC-safe), never a package-level mutable global.
-- **Explicit adapter registration** via an injected registry — no global registry, no service-locator lookup by string.
-- **Header-only auth** — no token in a URL/query string.
-- **Typed errors** — no thrown strings; **no `any`** in public APIs.
-- **Accessible & responsive by default** — interactive `./client` code meets WCAG 2.2 AA (semantic roles, keyboard/focus, contrast, target size), is mobile-first and fluid (no fixed-pixel traps; container queries for component adaptivity), and honors `prefers-reduced-motion` / `prefers-color-scheme`; each component test carries an axe assertion.
-- **ESM-only**, `exports`/`types`/`files` discipline; each package ships a real `dist` (tsdown), `typecheck` is a separate script from `build`.
+How a consumer takes the code. Two modes, and only the first is built today.
+
+| Mode | What it covers | Consumer relationship | Status |
+|---|---|---|---|
+| **npm** (versioned dependency) | Infrastructure you don't fork: `std`, the connection/auth/query engines, adapters, `testkit`. | Import it, upgrade it via semver. | **This repo.** |
+| **registry** (copy-in) | The *ownable* surface: UI, hooks, presets, templates — a shadcn-style copy-in for complex components. | You paste it in, then own and edit it. | **Parked** — a later deliverable, not part of the foundation. |
+
+## Axis 2 — Host-independence
+
+Where the code can run. The kit **assumes no host** — Next.js, a Vite SPA, Astro, TanStack Start, Remix, Electron, React Native, or a runtime that doesn't exist yet all *plug in*.
+
+The precise promise is narrower and more honest than "runs anywhere": a package runs anywhere its **runtime primitives** exist. Everything is written against the web platform (`fetch`, `AbortController`, `WebSocket`, Streams, Web Crypto), never against a framework.
+
+### The primitive contract
+
+A package sorts every platform primitive it needs into one of two tiers.
+
+| Tier | Rule | Examples |
+|---|---|---|
+| **Universal** | Present on every target (Node, Deno, Bun, browsers, edge, workers, React Native) as a pure, deterministic value type. Use it directly. | `AbortController`/`AbortSignal`, `Headers`, `URL`/`URLSearchParams`, `Response`, `TextDecoder` (the WHATWG value types the shim binds) |
+| **Non-universal** | Has real host variance, or needs test substitution. Take it through an **injected seam** with a platform default — never a hard import. | `fetch`, SSE / `WebSocket`, `crypto.subtle`, token storage |
+
+This is the same rule the layer map uses for packages — *define the seam, inject the implementation* — pointed at the platform instead. A host that has the primitive gets the default for free; a host that lacks it supplies its own. The reference implementation already ships: `http` takes its `fetch` as `options.fetch`.
+
+### Three environment buckets
+
+Every entry point falls into exactly one bucket. The old "server vs client" split hid a third case — React that runs without a DOM.
+
+```mermaid
+flowchart LR
+  N["Neutral · <code>.</code><br/>no React, no DOM"] --> S[Server / edge / workers / RSC]
+  N --> RN[React Native]
+  D["DOM client · <code>./client</code><br/>use client + browser DOM"] --> B[Browser SPA / Next.js]
+  D --> E[Electron renderer]
+```
+
+1. **Neutral (`.`)** — no React, no DOM. The default import and the widest target: server, edge, workers, RSC, and inside React Native.
+2. **DOM client (`./client`)** — React plus browser DOM, marked per-module with `"use client"`. Browser SPAs, Next.js client components, the Electron renderer. `ui` and anything touching `document` or CSS lives here.
+3. **React-without-DOM** — React Native and Expo: React renders, but there is no DOM, no cookies, and Web Crypto needs a polyfill. DOM `ui` is out of scope here, but the *hooks* in `state`, `query`, `connection`, and `auth` stay DOM-free so RN can still use them.
+
+### Where each runtime lands
+
+| Runtime | Neutral `.` | DOM `./client` | Note |
+|---|:---:|:---:|---|
+| Node · Deno · Bun | ✅ | — | server & tooling |
+| Edge · Web / Service Workers | ✅ | — | no `EventSource` in workers → SSE seam |
+| Browser SPA · Next.js client | ✅ | ✅ | full DOM |
+| **Electron** | ✅ | ✅ | Chromium + Node; BFF cookie ⇒ in-memory auth adapter |
+| **React Native · Expo** | ✅ (with polyfills) | ❌ | inject crypto + storage + SSE; DOM `ui` out of scope |
+
+### How it's enforced
+
+Two boundaries keep the promise from decaying into a convention:
+
+- **Server/client split** — a server-only module (especially auth token custody) is never pulled into a `"use client"` graph. Enforced at build and in review.
+- **Portability gate** — the neutral `.` entry may reference no DOM global (`document`, `window`, `localStorage`, `navigator`, `EventSource`) and no Node builtin. This is enforced at compile time, not by a lint heuristic: the shared **ES2023-only** config (`tsconfig.base.json` — no DOM/Node lib, `types: []`) plus the explicit `types/universal-web.d.ts` shim means any host-only name is simply undeclared and fails `typecheck`, and fixtures in `@plainworks/boundaries` prove the gate rejects a DOM global while accepting a universal-only entry. The web-platform surface a neutral entry *does* name in its public API (`fetch`, `Headers`, `Response`, `URL`) is typed against the self-contained structural `Web*` types owned by `std` (`std/web`), not the DOM or `@types/node` libs — so a shipped `.d.ts` typechecks standalone against the ES lib and a consumer is never forced to install host type libs to use the kit.
+
+## Naming
+
+One concern, one plain word, the **same word everywhere**. Names like `core`, `engine`, `foundation`, and junk-drawer `utils` are banned.
+
+The bottom of the stack is **`std`** (`@plainworks/std`) — a charter-guarded, zero-dependency, host-independent standard library. Anything with a real concern of its own graduates to its own one-word package.
+
+## Layers
+
+Each package sits in a numbered layer and may import `@plainworks` packages only from a **strictly lower** one. Sideways and upward imports are forbidden.
+
+| Layer | Packages | Concern |
+|---|---|---|
+| **L0** | `std` | Errors, result, guards, contracts (seams incl. Standard Schema validation), resilience, structural web-platform types. No React. |
+| **L1** | `state` · `http` · `ui` | Client state, the typed fetch client, components. |
+| **L2** | `connection` · `connect` · `query` | Streaming transport, RPC, TanStack wiring. |
+| **L3** | `auth` | Core plus `oidc` / `jwt` / `apikey` / BYO adapters; server/client split. |
+| **L4** | `app` · `testkit` · `mocks` | Composition, providers, harnesses, test tooling. |
+
+### Seams point down, implementations live up
+
+When a higher layer needs to plug into a lower one, the **seam is defined in the lower layer and implemented higher**. The `AuthHeaderProvider` seam and the event shapes live once in `std`; `connection` and `auth` implement against them. No package reaches across a boundary, and no seam is copied twice to drift apart.
+
+```mermaid
+flowchart TD
+  auth["auth (L3)<br/>implements the seam"] -. injects .-> seam
+  seam["AuthHeaderProvider seam<br/>defined in std (L0)"]
+  http["http (L1)<br/>consumes the seam"] --> seam
+```
+
+*The contract lives at the bottom; the two ends meet at composition, not through a cross-layer import.*
+
+### Enforcement
+
+**dependency-cruiser**, isolated in [`@plainworks/boundaries`](../internal/boundaries), encodes the map from a single `LAYERS` table ([`.dependency-cruiser.cjs`](../internal/boundaries/.dependency-cruiser.cjs)) and fails CI on any upward or sideways import or cycle, naming the offending file and rule. The gate **fails closed**: a package absent from `LAYERS` may import nothing, so it can never go vacuously green. A fixture-backed test proves the gate actually rejects a bad import.
+
+## Invariants
+
+Every package holds to these; review and the gates check them.
+
+| Invariant | What it means |
+|---|---|
+| **No import-time side effects** | Importing a module never dials the network or reads env. Adapters register via an explicit `register()` / `createX({...})`. |
+| **No module-level singletons** | Stores, clients, and sessions come from per-request factories, so they are SSR/RSC-safe. |
+| **Explicit adapter registration** | Adapters go into an injected registry — no global registry, no string-based service locator. |
+| **Header-only auth** | A token never rides in a URL or query string. |
+| **Runtime primitive contract** | Universal primitives used directly; non-universal ones injected as seams; the neutral `.` entry stays DOM- and Node-builtin-free. |
+| **Typed errors, no `any`** | Errors are typed values, never thrown strings; public APIs expose no `any`. |
+| **Accessible & responsive by default** | Interactive `./client` code meets WCAG 2.2 AA, is mobile-first and fluid, honors `prefers-reduced-motion` / `prefers-color-scheme`, and carries an axe assertion per component. |
+| **ESM-only, real `dist`** | Correct `exports` / `types` / `files`; each package ships a tsdown `dist`; `typecheck` is separate from `build`. |
 
 ## Governance
 
 | Concern | Tool |
 |---|---|
 | Task runner / caching | Turborepo |
-| Package generator | `@turbo/gen` via `bun run gen` (golden template; CI regenerates both variants and runs every gate on the output) |
+| Package generator | `@turbo/gen` via `bun run gen` (golden template; CI regenerates and re-gates the output) |
 | Build | tsdown (ESM-only, per-module `"use client"`, ships `dist`) |
 | Lint / format | Biome |
 | Layer boundaries + cycles | dependency-cruiser (in `@plainworks/boundaries`) |
-| Version sync (single catalog) | Syncpack `catalog` policy (gate + fix) + Sherif (cross-package divergence) |
-| Tests / coverage | Vitest — generated default ≥ 80% per package; security-critical packages (e.g. `auth`) raise their own threshold to ≥ 85% |
+| Runtime primitive contract | ES2023-only compile config (no DOM/Node lib) + `types/universal-web.d.ts` shim, enforced at `typecheck`; portability fixtures in `@plainworks/boundaries` |
+| Version sync | Syncpack (`catalog` policy) + Sherif (cross-package divergence) |
+| Tests / coverage | Vitest — ≥ 80% per package, ≥ 85% for security-critical packages like `auth` |
 | Releases | Changesets |
 
-Dependency versions are pinned in **one place** — the bun **catalog** in the root `package.json`. Every package — including the `react` / `react-dom` peer ranges of publishable packages — references `catalog:` rather than an inline version. This is enforced, not just conventional: Syncpack's `catalog` version group fails CI (`NotUsingCatalog` / `MissingFromCatalog`) if any package inlines a version or names a dependency absent from the catalog, and Sherif additionally flags any dependency that resolves to different versions across packages. Together they keep the single source honest.
+### One version list
 
-### TypeScript: 6 now, 7 later (do not bump blind)
+Dependency versions are pinned in **one place** — the bun **catalog** in the root `package.json`. Every package references `catalog:` instead of an inline version, peer ranges included. Syncpack fails CI if a package inlines a version or names a dependency missing from the catalog, and Sherif flags any dependency that resolves to different versions across packages.
 
-The catalog pins **`typescript` at `^6.0.3`** deliberately. TypeScript 7 (the native Go `tsgo` compiler) does **not** yet ship a JavaScript Compiler API (planned for 7.1+), so the entire TS-AST tooling layer this repo depends on — **dependency-cruiser** (the boundary/cycle gate), `typescript-eslint`, and friends — cannot run on TS7 today. Bumping `typescript` to 7 would make dependency-cruiser silently stop extracting imports and **disable the layer gate** rather than fail loudly — so a test in `@plainworks/boundaries` asserts the catalog `typescript` stays on the 6 line and **fails CI** the moment someone raises it. That is the enforcement; the sentence below is why.
+### TypeScript: 6 now, 7 later
 
-The migration is pre-wired to be a one-file flip. The only consumer of the TS Compiler API, dependency-cruiser, is isolated in **`@plainworks/boundaries`** together with its own `typescript` dependency. When the Compiler API lands on TS7, adopt it by aliasing `typescript` → `@typescript/typescript6` **in that package's `package.json` only** (or moving the rest of the repo to 7 while boundaries stays on the 6-compatible shim), then relax the guard. No repo-wide churn, no other package touched. Until then: **do not raise the catalog `typescript` past 6** without re-homing the gate first.
+The catalog pins **`typescript` at `^6.0.3`** on purpose. TypeScript 7 (the native Go `tsgo` compiler) does not yet ship a JavaScript Compiler API, so the TS-AST tooling this repo depends on — **dependency-cruiser**, the boundary and cycle gate — cannot run on it. Bumping to 7 would make dependency-cruiser silently stop reading imports and **disable the layer gate** instead of failing loudly. A test in `@plainworks/boundaries` asserts the catalog stays on the 6 line and fails CI the moment someone raises it.
+
+The migration is pre-wired to be a one-file flip. dependency-cruiser is the only consumer of the TS Compiler API and is isolated in `@plainworks/boundaries` with its own `typescript` dependency. When the Compiler API lands on TS7, alias `typescript` → `@typescript/typescript6` in that one package and relax the guard — no other package moves. Until then, **do not raise the catalog `typescript` past 6** without re-homing the gate first.

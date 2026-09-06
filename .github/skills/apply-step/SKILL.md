@@ -36,7 +36,7 @@ Apply the current step's actions **test-first**, honoring the baseline in [`../.
 - **Composition.** No import-time side effects, no module-level singletons — per-request factories; adapters register explicitly into an injected registry.
 - **Typed & minimal.** No `any` in public surfaces; typed errors preserving cause; timeout + cancellation on remote calls.
 - **Root-cause, no shims.** Redesign cleanly; remove the old path (pre-stable, no back-compat).
-- **Readable files.** Split by concern; a barrel `index.ts` re-exports only, holds no logic. When you touch a file that has grown over-long and mixes distinct concerns, promote it to concern-named modules **in this step** — don't defer the reorg.
+- **Organize by concern; self-documenting by path.** Group related modules into a **concern folder** with a re-export-only `index.ts` barrel plus concern-named files (as `rskit` groups `retry/{backoff,policy}.rs` under a barrel-only `mod.rs`); a single concern is one clearly named file. No junk-drawer `utils`/`helpers`/`core`, no bare verb modules/exports (`compose`, `classify`) — qualify by concern (`pipeline/interceptor.ts` → `composeInterceptors`). Fold **proactively** when a second sub-concern appears — never pile several concerns flat in `src/`. A barrel `index.ts` re-exports only, holds no logic. When you touch a file that already mixes distinct concerns, promote it **in this step** — don't defer the reorg.
 
 Keep the edit scoped to *this* step's `Files touched`; if the step is mis-scoped, report it rather than silently expanding.
 

@@ -3,6 +3,6 @@
   "compilerOptions": {
     "noEmit": true
   },
-  "include": ["packages/*/src", "apps/*/src", "internal/*/src"],
+  "include": ["packages/*/src", "apps/*/src", "internal/*/src", "types/universal-web.d.ts"],
   "exclude": ["node_modules", "**/dist/**"]
 }

@@ -10,7 +10,7 @@ export default defineConfig({
       provider: "v8",
       include: ["src/**/*.{ts,tsx}"],
       // Barrels carry no testable logic.
-      exclude: ["src/**/*.test.{ts,tsx}", "src/index.ts"],
+      exclude: ["src/**/*.test.{ts,tsx}", "src/**/index.ts"],
       thresholds: {
         lines: 80,
         functions: 80,

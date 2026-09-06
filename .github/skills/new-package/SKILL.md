@@ -58,7 +58,7 @@ Update the boundaries fixture test if the new layer relationship needs coverage 
 
 ## Step 5 — Build the capability test-first
 
-Follow the [`apply-step`](../apply-step/SKILL.md) discipline: failing vitest test → minimal code → refactor while green. Split by concern from the start — `src/index.ts` re-exports only; put logic in concern-named modules. Reuse `@plainworks/std` (errors, result, guards, contracts) rather than re-owning a concern. Security-load-bearing packages (`auth`) raise their `vitest.config.ts` coverage threshold to ≥ 85%.
+Follow the [`apply-step`](../apply-step/SKILL.md) discipline: failing vitest test → minimal code → refactor while green. **Organize by concern from the start** — `src/index.ts` re-exports only; put logic in concern-named modules, and group a concern that spans more than one module into a **folder with its own re-export-only `index.ts` barrel** plus concern-named files inside (as `rskit` groups `retry/{backoff,policy}.rs` under a barrel-only `mod.rs`, and as `packages/mocks` does with `data/`/`filter/`/`handlers/`). Names must be self-documenting by path — no junk-drawer `utils`/`helpers`/`core`, no bare verb modules/exports (`compose`, `classify`); qualify them (`pipeline/interceptor.ts` → `composeInterceptors`). Reuse `@plainworks/std` (errors, result, guards, contracts, resilience) rather than re-owning a concern. Security-load-bearing packages (`auth`) raise their `vitest.config.ts` coverage threshold to ≥ 85%.
 
 For a `hasClient` package, the server `.` graph holds the pure logic/types; the `"use client"` leaf holds only DOM/hook-bound code and never imports server-only auth. Interactive components are **accessible and responsive by default** — semantic roles, keyboard/focus, WCAG 2.2 AA, mobile-first/fluid layout with container-query adaptivity, `prefers-reduced-motion`/`-color-scheme` — and each component test queries by role (`@testing-library/user-event`, not `fireEvent`), mocks the network with MSW, and carries an axe assertion. See [`../../instructions/components.instructions.md`](../../instructions/components.instructions.md) and review pass [`08`](../review/references/08-ui-accessibility.md).
 
@@ -80,7 +80,7 @@ bun run changeset          # add the release note
 - [ ] For a client package: components are accessible (WCAG 2.2 AA) and responsive; tests query by role, mock with MSW, and assert axe cleanliness
 - [ ] Placed in the layer map and added to the `LAYERS` table (+ README + docs)
 - [ ] Imports only strictly-lower layers; a cross-layer need is a seam defined lower
-- [ ] `src/index.ts` re-exports only; logic in concern-named modules; no `any` in the public surface
+- [ ] `src/index.ts` re-exports only; logic in concern-named modules; multi-module concerns grouped into folders with barrel-only `index.ts`; names self-documenting by path (no `utils`/bare verbs); no `any` in the public surface
 - [ ] check-versions · lint · typecheck · check-boundaries · build · test green; Changeset added
 
 Per repo workflow, **create the branch and make edits only** — the maintainer commits and pushes.

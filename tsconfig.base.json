@@ -2,9 +2,9 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
     "target": "ES2023",
+    // ES2023 only — no DOM/WebWorker libs, so host-only globals (window, self, caches, indexedDB) can never typecheck in package source; the universal Web APIs every runtime shares (timers, AbortController/AbortSignal) are declared narrowly in types/universal-web.d.ts, which host-independent packages include explicitly. Because packages resolve `@plainworks/*` to source, every consumer compiles that code and must see the same globals.
     "lib": ["ES2023"],
-    // Host-independence: no ambient @types — package source must not see Node/DOM globals.
-    // Host-bound tooling (internal/boundaries) opts back in with `"types": ["node"]`.
+    // Host-independence: no ambient @types — package source must not see Node/DOM globals; host-bound tooling (internal/boundaries) opts back in with `"types": ["node"]`.
     "types": [],
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -31,9 +31,7 @@
     "useDefineForClassFields": true,
 
     "paths": {
-      // Client subpath must map before the generic rule so `@plainworks/foo/client` resolves to
-      // the real `src/client.ts` barrel (not `packages/foo/client/src`); otherwise dependency-cruiser
-      // leaves client-subpath imports unresolved and misses server/client boundary violations.
+      // Client subpath must map before the generic rule so `@plainworks/foo/client` resolves to the real `src/client.ts` barrel (not `packages/foo/client/src`); otherwise dependency-cruiser leaves client-subpath imports unresolved and misses server/client boundary violations.
       "@plainworks/*/client": ["./packages/*/src/client.ts"],
       "@plainworks/*": ["./packages/*/src"]
     }

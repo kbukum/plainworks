@@ -41,7 +41,7 @@ What this step changes and, explicitly, what it does not.
 2. ...
 
 ## Files touched
-- `packages/<name>/**`, new `packages/<name>/src/...`, ...
+- `packages/<name>/**`, new `packages/<name>/src/<concern>/...` (concern folders with barrel-only `index.ts`, not a flat pile), ...
 
 ## Acceptance criteria
 - [ ] Behavior written test-first; vitest green, race/shuffle safe on the affected package(s).
@@ -59,6 +59,7 @@ A plan may **not** invent a lighter standard than plainworks'. Its cross-cutting
 - **Test-first (TDD).** Each behavior gets a failing vitest test first, then minimal code, then refactor while green — failure paths included. Shared fakes/harnesses come from `@plainworks/testkit`, never hand-rolled.
 - **Best-practices bar.** The *simplest* design that fully solves each step — flexible (small typed seams over rigid or speculative abstraction), scalable (bounded buffers, cancellation, no unbounded streams), on current idiomatic TS/React best practices. Complexity must earn its place.
 - **Placement & layering.** Right package and layer; a package in `Ln` imports only `L<n`; a cross-layer need defines the seam in the lower package and implements it higher. New packages are born through `bun run gen package` (see `new-package`) and added to the `LAYERS` map.
+- **Organize by concern; self-documenting by path.** Within a package, group related modules into concern folders with a re-export-only `index.ts` barrel plus concern-named files (as `rskit` groups `retry/{backoff,policy}.rs` under a barrel-only `mod.rs`); a single concern is one clearly named file. No junk-drawer `utils`/`helpers`/`core`, no bare verb modules/exports (`compose`, `classify`) — qualify by concern. Fold proactively when a second sub-concern appears. A step's `Files touched` should name the concern folders/modules it adds, not a flat pile in `src/`.
 - **Host-independence.** Server-safe `.` entry (no React/DOM); optional `./client` with per-module `"use client"`; token-custody code stays out of client graphs.
 - **Composition.** No import-time side effects, no module-level singletons — per-request factories; adapters register explicitly.
 - **Typed & minimal APIs.** No `any` in public surfaces; typed errors that preserve cause; timeout + cancellation on remote calls.

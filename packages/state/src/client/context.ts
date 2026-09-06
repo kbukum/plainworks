@@ -1,11 +1,11 @@
 "use client"
 
-import { createContext, createElement, type ReactNode, useContext, useRef } from "react"
-import { useStore as useZustandStore } from "zustand/react"
-import { StateError } from "../errors"
+import { createElement, type ReactNode, useRef } from "react"
+import { StateConfigError } from "../errors"
 import { createStore, type Store, type StoreInitializer } from "../store"
+import { createBinding, type StoreHooks } from "./binding"
 
-/** Props for a store `Provider`. */
+/** Props for a default-engine store `Provider`. */
 export interface StoreProviderProps<T> {
   /**
    * Server-provided state merged into the freshly created store before first render — the hydration
@@ -27,33 +27,36 @@ export interface StoreContextOptions<T> {
 }
 
 /** The Provider + selector hooks returned by {@link createStoreContext} for one store shape. */
-export interface StoreContext<T> {
+export interface StoreContext<T> extends StoreHooks<T> {
   /** Owns a per-request store (via `useRef`) and provides it to the subtree. */
   readonly Provider: (props: StoreProviderProps<T>) => ReactNode
-  /** Subscribe to a selected slice (or the whole state) of the nearest provided store. */
-  readonly useStore: {
-    (): T
-    <Slice>(selector: (state: T) => Slice): Slice
-  }
-  /** The store instance itself, for imperative reads/writes outside the render path. */
-  readonly useStoreApi: () => Store<T>
 }
 
 /**
- * Create a React binding for one store shape: a `Provider` plus selector hooks. The Provider builds
- * the store **once per mount via `useRef`** rather than a module-level singleton, so two concurrent
- * SSR requests each get an isolated store and never bleed state into one another.
+ * Create a React binding backed by the **default engine**: a `Provider` plus selector hooks. The
+ * Provider builds the store **once per mount via `useRef`** rather than a module-level singleton, so
+ * two concurrent SSR requests each get an isolated store and never bleed state into one another;
+ * `initialState` is the server → client hydration path.
  *
- * The selector hook delegates to Zustand's `useStore`, which compares snapshots by reference: select
- * primitives or reference-stable values (or wrap a derived object in `useShallow`) so a slice
- * re-renders only when it actually changes — returning a fresh object/array each call would loop.
+ * To bring your own store engine instead — with zero dependency on the default — use
+ * {@link import("./binding").createSuppliedStoreContext} and pass a per-request `store`.
+ *
+ * The selector hook compares snapshots by reference: select primitives or reference-stable values
+ * (or memoize a derived object with `createSelector`) so a slice re-renders only when it actually
+ * changes — returning a fresh object/array each call would loop.
  */
 export function createStoreContext<T extends object>(
   initializer: StoreInitializer<T>,
   options?: StoreContextOptions<T>,
 ): StoreContext<T> {
-  const Context = createContext<Store<T> | null>(null)
-  const identity = (state: T): T => state
+  // Type-required, but guarded for JavaScript callers: without an initializer there is no default
+  // store to build. Bring-your-own callers use `createSuppliedStoreContext()` instead.
+  if (initializer === undefined) {
+    throw new StateConfigError(
+      "createStoreContext requires an initializer; use createSuppliedStoreContext() to bring your own store.",
+    )
+  }
+  const { Context, useStore, useStoreApi } = createBinding<T>()
   const merge = options?.mergeInitialState ?? shallowMerge
 
   // Bake `initialState` into the store's *initial* state (not a post-creation `setState`) so the
@@ -72,23 +75,6 @@ export function createStoreContext<T extends object>(
       storeRef.current = build(initialState)
     }
     return createElement(Context.Provider, { value: storeRef.current }, children)
-  }
-
-  function useStoreApi(): Store<T> {
-    const store = useContext(Context)
-    if (store === null) {
-      throw new StateError("useStore/useStoreApi must be called inside its matching <Provider>.")
-    }
-    return store
-  }
-
-  // Overloads (not a cast) carry the public types; the implementation keeps a single, uniform hook
-  // call to satisfy the rules of hooks.
-  function useStore(): T
-  function useStore<Slice>(selector: (state: T) => Slice): Slice
-  function useStore(selector?: (state: T) => unknown): unknown {
-    const store = useStoreApi()
-    return useZustandStore(store, selector ?? identity)
   }
 
   return { Provider, useStore, useStoreApi }

@@ -1,7 +1,7 @@
 {
   "name": "@plainworks/state",
   "version": "0.1.0-alpha.1",
-  "description": "Client-state seam with a Zustand default adapter, SSR/RSC-safe by construction.",
+  "description": "Engine-neutral client-state seam with a built-in default store, SSR/RSC-safe by construction.",
   "type": "module",
   "sideEffects": false,
   "license": "MIT",
@@ -19,6 +19,10 @@
     "./client": {
       "types": "./dist/client.d.ts",
       "import": "./dist/client.js"
+    },
+    "./client/supplied": {
+      "types": "./dist/client/supplied.d.ts",
+      "import": "./dist/client/supplied.js"
     }
   },
   "scripts": {

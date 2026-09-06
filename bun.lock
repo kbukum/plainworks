@@ -34,6 +34,18 @@
         "typescript": "catalog:",
       },
     },
+    "packages/std": {
+      "name": "@plainworks/std",
+      "version": "0.1.0-alpha.1",
+      "devDependencies": {
+        "@plainworks/tsdown-config": "workspace:*",
+        "@types/node": "catalog:",
+        "@vitest/coverage-v8": "catalog:",
+        "tsdown": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
   },
   "catalog": {
     "@biomejs/biome": "^2.5.12",
@@ -240,6 +252,8 @@
     "@oxc-project/types": ["@oxc-project/types@0.148.0", "", {}, "sha512-Nm4s/jB+4FpFsPhWGEC4h7rzksesmtnMXomo6rCMcg/b8zLQuOziRgkCS1fxDCXOlJB/6Q8oABOZ/OP6RIPj9A=="],
 
     "@plainworks/boundaries": ["@plainworks/boundaries@workspace:internal/boundaries"],
+
+    "@plainworks/std": ["@plainworks/std@workspace:packages/std"],
 
     "@plainworks/tsdown-config": ["@plainworks/tsdown-config@workspace:internal/tsdown-config"],
 

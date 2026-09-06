@@ -12,7 +12,13 @@ export default defineConfig({
       // Re-export-only barrels carry no logic to unit-test (the `"use client"` directive's survival
       // is proven by the CI dist check, not coverage); excluding them keeps tests from coupling to
       // the entry file just to color a line.
-      exclude: ["src/**/*.test.{ts,tsx}", "src/index.ts", "src/client.ts"],
+      exclude: [
+        "src/**/*.test.{ts,tsx}",
+        "src/**/*.d.ts",
+        "src/index.ts",
+        "src/client.ts",
+        "src/client/supplied.ts",
+      ],
       thresholds: {
         lines: 80,
         functions: 80,

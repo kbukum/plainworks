@@ -1,0 +1,31 @@
+version: 2
+updates:
+  # ── GitHub Actions ──────────────────────────────────────────────────────────
+  # Keeps `uses:` pins current. Every action is SHA-pinned (with a version
+  # comment); Dependabot bumps the SHA and the comment together.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "friday"
+      time: "09:00"
+      timezone: "Etc/UTC"
+    commit-message:
+      prefix: "ci"
+    labels:
+      - "dependencies"
+      - "ci"
+    groups:
+      actions:
+        patterns:
+          - "*"
+
+  # ── npm / bun: intentionally NOT managed by Dependabot ──────────────────────
+  # plainworks pins every dependency through a single Bun **catalog** in the root
+  # package.json (`catalog:` / `workspace:*`), enforced by Sherif + Syncpack
+  # (`bun run check-versions`). Dependabot does not understand Bun workspaces or
+  # the `catalog:` protocol, so an npm ecosystem entry would either no-op or open
+  # broken PRs that rewrite `catalog:` back into inline versions and fail the
+  # version gate. Dependency bumps are done by editing the catalog in one place
+  # (a `bun update` + a Changeset), which keeps the single-source-of-truth intact.
+  # Revisit if/when Dependabot gains Bun catalog support.

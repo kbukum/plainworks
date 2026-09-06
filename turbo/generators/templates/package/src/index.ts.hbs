@@ -1,0 +1,4 @@
+// Server-safe public entry for `@plainworks/{{name}}` — re-export-only barrel (no logic here;
+// implementation lives in concern-named modules like `./hello`). No React or DOM imports, so the
+// `.` entry runs anywhere (Node, edge, RSC).
+export { hello } from "./hello"

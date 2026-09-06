@@ -1,0 +1,28 @@
+{
+  "$schema": "https://unpkg.com/syncpack/dist/schema.json",
+  "sortFirst": [
+    "name",
+    "version",
+    "description",
+    "private",
+    "type",
+    "sideEffects",
+    "publishConfig"
+  ],
+  "versionGroups": [
+    {
+      "label": "Internal @plainworks packages use the workspace protocol.",
+      "dependencies": ["@plainworks/**"],
+      "dependencyTypes": ["dev", "prod"],
+      "pinVersion": "workspace:*"
+    },
+    {
+      "label": "Third-party deps come from the catalog (single source of truth); no inline versions.",
+      "policy": "catalog",
+      "severity": {
+        "NotUsingCatalog": "error",
+        "MissingFromCatalog": "error"
+      }
+    }
+  ]
+}

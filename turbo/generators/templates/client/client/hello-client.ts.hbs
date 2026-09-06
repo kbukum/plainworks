@@ -1,0 +1,11 @@
+import { hello } from "../hello"
+
+/**
+ * Placeholder client binding for `@plainworks/{{name}}`. Client modules may reuse the package's
+ * server-safe concern modules directly, but must never import the `.` server barrel — once the
+ * package gains server-only exports, the barrel would pull them into the client graph. Replace
+ * with the package's real hooks/components.
+ */
+export function helloClient(name: string): string {
+  return hello(name)
+}

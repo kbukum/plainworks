@@ -1,0 +1,50 @@
+{
+  "name": "@plainworks/{{name}}",
+  "version": "0.1.0-alpha.1",
+  "description": {{{json description}}},
+  "type": "module",
+  "sideEffects": false,
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }{{#if hasClient}},
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    }{{/if}}
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit{{#if hasClient}} && tsc --noEmit -p tsconfig.client.json{{/if}}",
+    "test": "vitest run --coverage",
+    "lint": "biome check ."
+  },
+  "devDependencies": {
+    "@plainworks/tsdown-config": "workspace:*",
+    "@types/node": "catalog:",{{#if hasClient}}
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",{{/if}}
+    "@vitest/coverage-v8": "catalog:",{{#if hasClient}}
+    "jsdom": "catalog:",{{/if}}
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }{{#if hasClient}},
+  "peerDependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "react-dom": {
+      "optional": true
+    }
+  }{{/if}}
+}

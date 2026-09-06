@@ -1,0 +1,63 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing a feature! Please describe the problem you're trying
+        to solve and your proposed approach.
+
+  - type: input
+    id: package
+    attributes:
+      label: Package
+      description: Which package would be affected? Use "new" if proposing a new package.
+      placeholder: "@plainworks/<name>"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What problem are you trying to solve? Why is the current API insufficient?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the API or behavior you'd like. Include a code sketch if possible.
+      render: typescript
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What other approaches did you consider, and why did you reject them?
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Host-independence
+      description: Does this feature need to stay server-safe, client-only, or both?
+      options:
+        - Server-safe (default entry `.`)
+        - Client-only (`./client`, "use client")
+        - Both (server-safe core + client hook)
+        - Not sure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Confirmation
+      options:
+        - label: I have searched existing issues and discussions and this is not a duplicate.
+          required: true

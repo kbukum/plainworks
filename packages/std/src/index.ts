@@ -1,0 +1,12 @@
+// Server-safe public entry for `@plainworks/std` — the bottom of the layer graph. Re-export-only barrel (no logic here; implementation lives in concern modules). Zero runtime dependencies and no React or DOM imports, so it runs anywhere: Node, edge, RSC, browser.
+export { assert, assertNever } from "./assert"
+export type { PlainErrorOptions } from "./errors"
+export { ensureError, getErrorMessage, PlainError } from "./errors"
+export { hasProperty, isDefined, isNonEmptyString, isRecord } from "./guards"
+export { randomId } from "./id"
+export type { Err, Ok, Result } from "./result"
+export { err, isErr, isOk, ok, unwrap, unwrapOr } from "./result"
+export type { AuthHeaderProvider, AuthHeaders } from "./seam/auth"
+export type { Listener, PlainEvent, Subscription } from "./seam/events"
+export type { Clock } from "./time"
+export { systemClock } from "./time"

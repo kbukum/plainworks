@@ -1,0 +1,34 @@
+{
+  "name": "@plainworks/std",
+  "version": "0.1.0-alpha.1",
+  "description": "Zero-dependency, host-independent standard-library primitives and shared contracts for plainworks.",
+  "type": "module",
+  "sideEffects": false,
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage",
+    "lint": "biome check ."
+  },
+  "devDependencies": {
+    "@plainworks/tsdown-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

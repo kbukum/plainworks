@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Dev/test tooling: the MSW handlers, node server, and Vite middleware use Web/Fetch globals
+  // (URL, Request, Response, Headers, crypto) and Node APIs (Buffer) that the host-independent base
+  // config hides via `types: []`. Opt back into Node's typings, per the base config's note for
+  // host-bound tooling.
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src"]
+}

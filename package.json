@@ -46,6 +46,7 @@
     "@vitest/coverage-v8": "^5.0.0",
     "dependency-cruiser": "^18.2.0",
     "jsdom": "^30.0.1",
+    "msw": "^2.12.8",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "sherif": "^1.13.0",

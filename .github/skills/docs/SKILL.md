@@ -39,7 +39,7 @@ Never touch `tmp/` (gitignored scratch) and never add a committed doc that refer
 
 Verify each doc against the code it describes; a doc that lies is worse than none:
 
-- **Commands & gates** match the root `package.json` scripts and `turbo.json` (`bun run check-versions`, `bun run lint`, `bun run typecheck`, `bun run check-boundaries`, `bun run build`, `bun run test`, `bun run gen package`, turbo `--filter` forms) — no renamed or invented script or flag lingers in the docs.
+- **Commands & gates** match the root `package.json` scripts and `turbo.json` (`bun run check-versions`, `bun run lint`, `bun run typecheck`, `bun run check-boundaries`, `bun run build`, `bun run test`, `bun run check-packaging`, `bun run gen package`, turbo `--filter` forms) — no renamed or invented script or flag lingers in the docs.
 - **Package & layer structure** matches reality: the `packages/*` / `apps/*` / `internal/*` split and the L0–L4 layer map match the `LAYERS` table in `internal/boundaries/.dependency-cruiser.cjs`, the README, and `docs/architecture.md` — all three must agree.
 - **Governance table** (task runner, generator, build, lint, boundaries, version sync, tests, releases) names the tools actually in use.
 - **The TS6-now/TS7-later rationale** stays accurate to the catalog pin and the boundaries guard.

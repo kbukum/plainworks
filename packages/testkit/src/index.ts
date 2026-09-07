@@ -17,3 +17,10 @@ export { seededRandom } from "./random"
 export { expectErr, expectOk } from "./result"
 export type { FakeSchemaOptions } from "./schema"
 export { fakeSchema, guardSchema } from "./schema"
+export type {
+  AsyncStateSource,
+  AsyncStateSourceOptions,
+  FakeStateSource,
+  FakeStateSourceOptions,
+} from "./state"
+export { asyncStateSource, fakeStateSource } from "./state"

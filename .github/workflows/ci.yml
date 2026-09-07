@@ -58,6 +58,9 @@ jobs:
       - name: Test + coverage
         run: bun run test
 
+      - name: Packaging (publint + attw)
+        run: bun run check-packaging
+
   # Proves the golden generator keeps producing gate-passing packages. Runs on a single
   # node (output is deterministic and the verify matrix already covers N/N-1); the tree it
   # mutates is the ephemeral runner checkout — nothing is committed.
@@ -95,6 +98,7 @@ jobs:
           bun run check-boundaries
           bun run build
           bun run test
+          bun run check-packaging
 
       - name: Assert "use client" directive is preserved
         run: |

@@ -52,7 +52,8 @@ A package in `Ln` may import only `L<n`; sideways and upward imports fail CI. **
 bun install
 bun run gen package        # scaffold a new package from the golden template
 bun run check-versions && bun run lint && bun run typecheck \
-  && bun run check-boundaries && bun run build && bun run test
+  && bun run check-boundaries && bun run build && bun run test \
+  && bun run check-packaging
 ```
 
 ## Governance

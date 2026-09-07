@@ -5,6 +5,20 @@
   "type": "module",
   "sideEffects": false,
   "license": "MIT",
+  "author": "Plainworks",
+  "homepage": "https://github.com/kbukum/plainworks/tree/main/packages/{{name}}#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kbukum/plainworks.git",
+    "directory": "packages/{{name}}"
+  },
+  "bugs": "https://github.com/kbukum/plainworks/issues",
+  "keywords": [
+    "plainworks",
+    "typescript",
+    "esm",
+    "host-independent"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -25,15 +39,18 @@
     "build": "tsdown",
     "typecheck": "tsc --noEmit{{#if hasClient}} && tsc --noEmit -p tsconfig.client.json{{/if}}",
     "test": "vitest run --coverage",
-    "lint": "biome check ."
+    "lint": "biome check .",
+    "check-packaging": "publint --strict && attw --pack --profile esm-only"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "catalog:",
     "@plainworks/tsdown-config": "workspace:*",
     "@types/node": "catalog:",{{#if hasClient}}
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",{{/if}}
     "@vitest/coverage-v8": "catalog:",{{#if hasClient}}
     "jsdom": "catalog:",{{/if}}
+    "publint": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

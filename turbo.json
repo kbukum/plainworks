@@ -16,6 +16,13 @@
       "inputs": ["src/**", "tsconfig.json", "tsconfig.client.json"],
       "outputs": []
     },
+    "check-packaging": {
+      // publint + attw validate the *built* tarball (exports/types/files resolution), so depend on
+      // this package's own `build` and read `dist` + the manifest that drives packing.
+      "dependsOn": ["build"],
+      "inputs": ["dist/**", "package.json"],
+      "outputs": []
+    },
     "test": {
       "dependsOn": ["^build"],
       "inputs": ["src/**", "vitest.config.ts", "tsconfig.json"],

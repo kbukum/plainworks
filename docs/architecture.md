@@ -92,6 +92,10 @@ Two boundaries keep the promise from decaying into a convention:
 - **Server/client split** — a server-only module (especially auth token custody) is never pulled into a `"use client"` graph. Enforced at build and in review.
 - **Portability gate** — the neutral `.` entry may reference no DOM global (`document`, `window`, `localStorage`, `navigator`, `EventSource`) and no Node builtin. This is enforced at compile time, not by a lint heuristic: the shared **ES2023-only** config (`tsconfig.base.json` — no DOM/Node lib, `types: []`) plus the explicit `types/universal-web.d.ts` shim means any host-only name is simply undeclared and fails `typecheck`, and fixtures in `@plainworks/boundaries` prove the gate rejects a DOM global while accepting a universal-only entry. The web-platform surface a neutral entry *does* name in its public API (`fetch`, `Headers`, `Response`, `URL`) is typed against the self-contained structural `Web*` types owned by `std` (`std/web`), not the DOM or `@types/node` libs — so a shipped `.d.ts` typechecks standalone against the ES lib and a consumer is never forced to install host type libs to use the kit.
 
+### Why no `react-server` export condition
+
+The `react-server` condition exists to point an RSC bundler at a *different* build than the client one — the escape hatch for a package whose main entry contains `"use client"` or client-only code. plainworks does not have that problem: the neutral `.` entry is server-safe *by construction* (the portability gate above forbids any client/DOM global in it), and every client binding lives behind the explicit `./client` entry. An RSC graph importing `.` already resolves to the correct server-safe module, so a `react-server` condition would only ever point at the same file as `import` — config with no behavioral effect and a standing maintenance cost. It is deliberately omitted; add it only if a package ever ships a genuinely divergent server build.
+
 ## Naming
 
 One concern, one plain word, the **same word everywhere**. Names like `core`, `engine`, `foundation`, and junk-drawer `utils` are banned.
@@ -140,7 +144,7 @@ Every package holds to these; review and the gates check them.
 | **Runtime primitive contract** | Universal primitives used directly; non-universal ones injected as seams; the neutral `.` entry stays DOM- and Node-builtin-free. |
 | **Typed errors, no `any`** | Errors are typed values, never thrown strings; public APIs expose no `any`. |
 | **Accessible & responsive by default** | Interactive `./client` code meets WCAG 2.2 AA, is mobile-first and fluid, honors `prefers-reduced-motion` / `prefers-color-scheme`, and carries an axe assertion per component. |
-| **ESM-only, real `dist`** | Correct `exports` / `types` / `files`; each package ships a tsdown `dist`; `typecheck` is separate from `build`. |
+| **ESM-only, real `dist`** | Correct `exports` / `types` / `files`; each package ships a tsdown `dist`; `typecheck` is separate from `build`. The `check-packaging` gate (**publint** + **are-the-types-wrong**) validates each built tarball's `exports`/`types` resolution. |
 
 ## Governance
 
@@ -151,10 +155,11 @@ Every package holds to these; review and the gates check them.
 | Build | tsdown (ESM-only, per-module `"use client"`, ships `dist`) |
 | Lint / format | Biome |
 | Layer boundaries + cycles | dependency-cruiser (in `@plainworks/boundaries`) |
+| Packaging validation | publint + are-the-types-wrong (`@arethetypeswrong/cli`) over each built tarball, via `bun run check-packaging` |
 | Runtime primitive contract | ES2023-only compile config (no DOM/Node lib) + `types/universal-web.d.ts` shim, enforced at `typecheck`; portability fixtures in `@plainworks/boundaries` |
 | Version sync | Syncpack (`catalog` policy) + Sherif (cross-package divergence) |
 | Tests / coverage | Vitest — ≥ 80% per package, ≥ 85% for security-critical packages like `auth` |
-| Releases | Changesets |
+| Releases | Changesets; published with npm provenance (SLSA attestation) via trusted publishing |
 
 ### One version list
 

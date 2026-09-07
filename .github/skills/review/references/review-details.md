@@ -35,6 +35,7 @@ turbo run typecheck --filter=@plainworks/<name>     # tsc --noEmit
 bun run check-boundaries                            # dependency-cruiser layer gate
 turbo run build --filter=@plainworks/<name>         # tsdown
 turbo run test --filter=@plainworks/<name>          # Vitest + coverage
+turbo run check-packaging --filter=@plainworks/<name>   # publint + are-the-types-wrong
 ```
 
 Report pass/fail per command with the first failure block verbatim.

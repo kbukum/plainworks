@@ -69,6 +69,7 @@ bun install
 turbo run lint typecheck build test --filter=@plainworks/<name>
 bun run check-boundaries
 bun run check-versions
+turbo run check-packaging --filter=@plainworks/<name>
 bun run changeset          # add the release note
 ```
 
@@ -81,6 +82,6 @@ bun run changeset          # add the release note
 - [ ] Placed in the layer map and added to the `LAYERS` table (+ README + docs)
 - [ ] Imports only strictly-lower layers; a cross-layer need is a seam defined lower
 - [ ] `src/index.ts` re-exports only; logic in concern-named modules; multi-module concerns grouped into folders with barrel-only `index.ts`; names self-documenting by path (no `utils`/bare verbs); no `any` in the public surface
-- [ ] check-versions · lint · typecheck · check-boundaries · build · test green; Changeset added
+- [ ] check-versions · lint · typecheck · check-boundaries · build · test · check-packaging green; Changeset added
 
 Per repo workflow, **create the branch and make edits only** — the maintainer commits and pushes.

@@ -23,6 +23,7 @@ Every change must pass these, in this order (same order CI runs them):
 | Boundaries | `bun run check-boundaries` | dependency-cruiser: zero upward/sideways imports, zero cycles |
 | Build | `bun run build` | tsdown, ESM-only, ships `dist/` |
 | Tests | `bun run test` | Vitest, coverage ≥ 80% per package (≥ 85% for `auth`) |
+| Packaging | `bun run check-packaging` | publint (`--strict`) + are-the-types-wrong (`--pack --profile esm-only`) over each built tarball: `exports`/`types`/`files` resolve for ESM consumers |
 
 Plus: a **Changeset** added (`bun run changeset`) and the architecture invariants (no import-time side effects, no module-level singletons, header-only auth, typed errors, no `any` in public APIs).
 
@@ -34,6 +35,7 @@ Never rebuild the whole tree for a small change. Scope with turbo filters:
 turbo run lint typecheck build test --filter=@plainworks/<name>   # one package (+ its deps)
 turbo run test --filter='...[origin/main]'                        # only packages affected by the diff
 turbo run build --filter=@plainworks/<name>...                    # a package and everything that depends on it
+turbo run check-packaging --filter=@plainworks/<name>             # publint + attw on the built tarball
 ```
 
 Within a single package you can also run its own scripts directly:
@@ -69,7 +71,7 @@ rm -rf packages/scratch && bun install
 
 ## Before you hand work off
 
-The minimum passing standard for a self-contained change: `check-versions`, `lint`, `typecheck`, `check-boundaries`, and scoped `build` + `test` green (vitest race/shuffle safe), plus a Changeset. Escalate to the unscoped `bun run build && bun run test` only for an audit or release.
+The minimum passing standard for a self-contained change: `check-versions`, `lint`, `typecheck`, `check-boundaries`, scoped `build` + `test`, and `check-packaging` green (vitest race/shuffle safe), plus a Changeset. Escalate to the unscoped `bun run build && bun run test && bun run check-packaging` only for an audit or release.
 
 Treat a green run as **necessary but not sufficient**: it does not catch unbounded streams/buffers, missing timeouts/cancellation, module-level singletons, import-time side effects, or a token leaking into a URL. Those are on the reviewer.
 

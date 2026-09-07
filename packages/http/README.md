@@ -10,6 +10,10 @@ Part of the [plainworks](../../README.md) kit.
 bun add @plainworks/http
 ```
 
+## Runtime primitives
+
+`http` is a **neutral (`.`)** package. It names the **universal** WHATWG value primitives directly — `Headers`, `URL` / `URLSearchParams`, `Response`, `TextDecoder`, `AbortController` — typed through the `std` `Web*` contract, so it imposes no DOM or Node types on a consumer. Its one **non-universal** primitive is `fetch`: an **injected seam** (`options.fetch`, a `FetchLike` narrowing of the `std` `WebFetch` contract) that defaults to the host's platform `fetch` and raises a typed `http/network` error when no `fetch` exists. No DOM or Node global is referenced, so it runs on server, edge, workers, RSC, the browser, and React Native. See [`docs/architecture.md › Axis 2`](../../docs/architecture.md) for the universal-vs-injected primitive contract.
+
 ## Server-safe core (`.`)
 
 `createHttpClient` is a **factory**, never a module-level singleton — every call returns an isolated client with its own base URL, interceptors, and retry policy, so nothing leaks across SSR requests. It depends only on the platform `fetch` (injectable via `options.fetch` for tests), so the package pulls in no DOM or Node types and stays host-independent.

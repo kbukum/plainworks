@@ -1,6 +1,6 @@
 # @plainworks/http
 
-> Host-independent typed fetch client — interceptor pipeline, auth-header injection, safe URL building, a pluggable codec seam, and `std`-powered timeout/retry — that higher transports (rest, graphql) build on.
+> Host-independent typed fetch client — ergonomic resource methods, idempotency-key writes, an interceptor pipeline, auth-header injection, safe URL building, a pluggable codec seam, and `std`-powered timeout/retry. This **is** the REST/JSON client.
 
 Part of the [plainworks](../../README.md) kit.
 
@@ -45,9 +45,31 @@ Each `request` runs a fixed pipeline:
 
 A non-2xx response or a network failure throws a typed `HttpError` that preserves the cause and carries `category`, `retryable`, and any parsed `Retry-After` hint (clamped to `backoff.maxMs`).
 
+### Resource methods
+
+`request` is the low-level call that returns the full `HttpResponse` (status, headers, final URL, decoded body). For the common "just give me the data" case, the client also exposes ergonomic resource methods — `get`, `post`, `put`, `patch`, `delete` — that preset the method and resolve to the **decoded body** (validated and typed when you pass a `schema`, `undefined` for a `204`). This is the REST/JSON surface: no separate package, because a REST call is just an HTTP call against a JSON API, which the codec already handles.
+
+```ts
+const client = createHttpClient({ baseUrl: "https://api.example.com" })
+
+const user = await client.get("/users/42", { schema: z.object({ id: z.string() }) })
+// user is `{ id: string } | undefined`
+
+await client.delete("/users/42")
+```
+
+**Idempotency-key writes.** `GET`/`PUT`/`DELETE` are idempotent and retried by the client policy automatically. `POST`/`PATCH` are **never** auto-retried — a partial success must not be duplicated — unless you supply an idempotency key, which is sent as the `Idempotency-Key` header **and** marks the write retry-eligible so the shared retry driver may repeat it. This is safe **only if the target endpoint honors the header and dedupes the repeats server-side**; against a server that ignores it, an auto-retried write can duplicate a partial success, so enable it only for endpoints that guarantee idempotency-key support:
+
+```ts
+import { idempotencyKey } from "@plainworks/std"
+
+const key = idempotencyKey() // generate once per logical write, reuse across retries
+await client.post("/orders", { body: { sku: "abc" }, idempotencyKey: key })
+```
+
 ### Validation seam
 
-The response body crosses a trust boundary, so it is decoded to `unknown` and never silently cast to a caller-chosen `T`. Pass a `schema` — any [Standard Schema](https://standardschema.dev) validator (Zod, Valibot, ArkType, …) — and the client validates the decoded body and infers the response type from it; a validation failure raises a fatal `http/validate` error that preserves the issues as `cause`. Omit `schema` and `data` is the raw `unknown` for you to narrow. To opt explicitly out of validation — "I trust this wire" — pass `unsafePassthrough<T>()` from `@plainworks/std`; the unchecked cast then lives at that one audited call site, never as a hidden default. The seam is shared: future `rest`/`graphql` transports validate their payloads through the same `std` contract.
+The response body crosses a trust boundary, so it is decoded to `unknown` and never silently cast to a caller-chosen `T`. Pass a `schema` — any [Standard Schema](https://standardschema.dev) validator (Zod, Valibot, ArkType, …) — and the client validates the decoded body and infers the response type from it; a validation failure raises a fatal `http/validate` error that preserves the issues as `cause`. Omit `schema` and `data` is the raw `unknown` for you to narrow. To opt explicitly out of validation — "I trust this wire" — pass `unsafePassthrough<T>()` from `@plainworks/std`; the unchecked cast then lives at that one audited call site, never as a hidden default. The seam is reusable: any transport layered on this client validates its payloads through the same `std` contract.
 
 ### Interceptors
 

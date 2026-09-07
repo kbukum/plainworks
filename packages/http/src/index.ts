@@ -12,6 +12,9 @@ export type {
   HttpRequest,
   HttpResponse,
   RequestInput,
+  ResourceMethods,
+  ResourceReadOptions,
+  ResourceWriteOptions,
 } from "./exchange"
 export { createHttpClient } from "./exchange"
 export type {

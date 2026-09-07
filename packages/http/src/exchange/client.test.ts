@@ -1,36 +1,21 @@
 import {
-  type Delay,
   RetryError,
   type RetryPolicy,
   TimeoutError,
   unsafePassthrough,
   type WebResponse,
 } from "@plainworks/std"
-import { fakeAuthHeaderProvider, fakeFetch, fakeSchema, guardSchema } from "@plainworks/testkit"
+import {
+  autoBackoffDelay,
+  fakeAuthHeaderProvider,
+  fakeFetch,
+  fakeSchema,
+  guardSchema,
+} from "@plainworks/testkit"
 import { expect, test, vi } from "vitest"
 import { HttpError } from "../error"
 import type { HttpInterceptor } from "../interceptor"
 import { createHttpClient } from "./client"
-
-/**
- * A deterministic {@link Delay}: a small backoff wait resolves instantly (so retries proceed without
- * real time), while a large per-attempt timeout wait stays pending until its signal aborts (so it
- * only fires when the request explicitly sets a tiny timeout). Splitting on the ms budget lets one
- * injected delay serve both the timeout and the backoff paths.
- */
-function testDelay(thresholdMs = 10_000): { delay: Delay; waits: number[] } {
-  const waits: number[] = []
-  const delay: Delay = (ms, signal) => {
-    if (ms >= thresholdMs) {
-      return new Promise<void>((_, reject) => {
-        signal?.addEventListener("abort", () => reject(new Error("cleared")), { once: true })
-      })
-    }
-    waits.push(ms)
-    return Promise.resolve()
-  }
-  return { delay, waits }
-}
 
 function jsonResponse(data: unknown, status = 200, headers?: Record<string, string>): WebResponse {
   return new Response(JSON.stringify(data), {
@@ -58,7 +43,7 @@ test("resolves the decoded body and defaults to GET against the base URL", async
   const client = createHttpClient({
     baseUrl: "https://api.test/v1",
     fetch,
-    delay: testDelay().delay,
+    delay: autoBackoffDelay().delay,
   })
 
   const response = await client.request({ path: "widgets/1" })
@@ -75,7 +60,7 @@ test("encodes a JSON body and sets the content type, letting a caller header win
     baseUrl: "https://api.test",
     fetch,
     headers: { "x-app": "plainworks" },
-    delay: testDelay().delay,
+    delay: autoBackoffDelay().delay,
   })
 
   await client.request({ method: "POST", path: "widgets", body: { name: "a" } })
@@ -101,7 +86,7 @@ test("injects the auth header from the provider on every attempt", async () => {
     fetch,
     authProvider: auth.provider,
     retry,
-    delay: testDelay().delay,
+    delay: autoBackoffDelay().delay,
   })
 
   await client.request({ path: "me" })
@@ -113,7 +98,11 @@ test("injects the auth header from the provider on every attempt", async () => {
 
 test("maps a per-attempt timeout to a typed http/timeout error preserving the cause", async () => {
   const { fetch } = fakeFetch(["hang"])
-  const client = createHttpClient({ baseUrl: "https://api.test", fetch, delay: testDelay().delay })
+  const client = createHttpClient({
+    baseUrl: "https://api.test",
+    fetch,
+    delay: autoBackoffDelay().delay,
+  })
 
   const error = await client.request({ path: "slow", timeoutMs: 50 }).catch((e: unknown) => e)
   expect(error).toBeInstanceOf(HttpError)
@@ -127,7 +116,7 @@ test("retries an idempotent request whose attempts time out, then surfaces http/
     baseUrl: "https://api.test",
     fetch,
     retry,
-    delay: testDelay().delay,
+    delay: autoBackoffDelay().delay,
   })
 
   const error = await client.request({ path: "slow", timeoutMs: 50 }).catch((e: unknown) => e)
@@ -142,7 +131,7 @@ test("retries an idempotent request on a 503 then succeeds", async () => {
     baseUrl: "https://api.test",
     fetch,
     retry,
-    delay: testDelay().delay,
+    delay: autoBackoffDelay().delay,
   })
 
   const response = await client.request({ path: "widgets" })
@@ -157,7 +146,7 @@ test("does not retry a fatal 401 and surfaces a typed status error", async () =>
     baseUrl: "https://api.test",
     fetch,
     retry,
-    delay: testDelay().delay,
+    delay: autoBackoffDelay().delay,
   })
 
   await expect(client.request({ path: "me" })).rejects.toMatchObject({
@@ -173,7 +162,7 @@ test("surfaces a typed HttpError, not a RetryError, when retries are exhausted",
     baseUrl: "https://api.test",
     fetch,
     retry,
-    delay: testDelay().delay,
+    delay: autoBackoffDelay().delay,
   })
 
   const error = await client.request({ path: "widgets" }).catch((e: unknown) => e)
@@ -194,7 +183,7 @@ test("clones headers per attempt so an interceptor mutation does not leak into a
     fetch,
     retry,
     interceptors: [mutating],
-    delay: testDelay().delay,
+    delay: autoBackoffDelay().delay,
   })
 
   await client.request({ path: "widgets" })
@@ -210,7 +199,7 @@ test("honors a Retry-After hint on a 429 before the next attempt", async () => {
     jsonResponse({}, 429, { "retry-after": "1" }),
     jsonResponse({ ok: true }),
   ])
-  const { delay, waits } = testDelay()
+  const { delay, waits } = autoBackoffDelay()
   // A backoff ceiling above the hint so the 1s server hint passes through unclamped.
   const hintRetry: RetryPolicy = {
     maxAttempts: 3,
@@ -227,7 +216,11 @@ test("honors a Retry-After hint on a 429 before the next attempt", async () => {
 
 test("refuses a credential-shaped query parameter before any fetch", async () => {
   const { fetch, calls } = fakeFetch([jsonResponse({})])
-  const client = createHttpClient({ baseUrl: "https://api.test", fetch, delay: testDelay().delay })
+  const client = createHttpClient({
+    baseUrl: "https://api.test",
+    fetch,
+    delay: autoBackoffDelay().delay,
+  })
 
   await expect(client.request({ path: "x", query: { access_token: "s" } })).rejects.toMatchObject({
     kind: "http/unsafe-url",
@@ -243,7 +236,7 @@ test("re-rejects a final URL an interceptor rewrote to embed a credential", asyn
     baseUrl: "https://api.test",
     fetch,
     interceptors: [smuggle],
-    delay: testDelay().delay,
+    delay: autoBackoffDelay().delay,
   })
 
   await expect(client.request({ path: "x" })).rejects.toMatchObject({ kind: "http/unsafe-url" })
@@ -263,7 +256,7 @@ test("refuses a cross-origin interceptor rewrite that would leak the injected cr
     fetch,
     interceptors: [redirect],
     authProvider: auth.provider,
-    delay: testDelay().delay,
+    delay: autoBackoffDelay().delay,
   })
 
   await expect(client.request({ path: "me" })).rejects.toMatchObject({ kind: "http/unsafe-url" })
@@ -281,7 +274,7 @@ test("allows a same-origin interceptor rewrite carrying a credential", async () 
     fetch,
     interceptors: [rewrite],
     authProvider: auth.provider,
-    delay: testDelay().delay,
+    delay: autoBackoffDelay().delay,
   })
 
   const response = await client.request({ path: "me" })
@@ -301,7 +294,7 @@ test("falls back to the final interceptor-rewritten URL when the transport repor
     baseUrl: "https://api.test/v1",
     fetch,
     interceptors: [rewrite],
-    delay: testDelay().delay,
+    delay: autoBackoffDelay().delay,
   })
 
   const response = await client.request({ path: "start" })
@@ -329,7 +322,11 @@ test("cancels a non-2xx response body, and a rejecting cancel does not mask the 
     body: failingBody,
   } as unknown as WebResponse
   const { fetch } = fakeFetch([failing])
-  const client = createHttpClient({ baseUrl: "https://api.test", fetch, delay: testDelay().delay })
+  const client = createHttpClient({
+    baseUrl: "https://api.test",
+    fetch,
+    delay: autoBackoffDelay().delay,
+  })
 
   const error = await client.request({ path: "x" }).catch((e: unknown) => e)
 
@@ -347,7 +344,7 @@ test("classifies a non-2xx an interceptor short-circuits with as a typed status 
     baseUrl: "https://api.test",
     fetch,
     interceptors: [shortCircuit],
-    delay: testDelay().delay,
+    delay: autoBackoffDelay().delay,
   })
 
   await expect(client.request({ path: "x" })).rejects.toMatchObject({
@@ -359,7 +356,11 @@ test("classifies a non-2xx an interceptor short-circuits with as a typed status 
 
 test("refuses a body on a GET before encoding or fetching", async () => {
   const { fetch, calls } = fakeFetch([jsonResponse({})])
-  const client = createHttpClient({ baseUrl: "https://api.test", fetch, delay: testDelay().delay })
+  const client = createHttpClient({
+    baseUrl: "https://api.test",
+    fetch,
+    delay: autoBackoffDelay().delay,
+  })
 
   await expect(client.request({ path: "x", body: { a: 1 } })).rejects.toMatchObject({
     kind: "http/request",
@@ -373,7 +374,7 @@ test("redacts credential headers passed to the observability sink", async () => 
   const client = createHttpClient({
     baseUrl: "https://api.test",
     fetch,
-    delay: testDelay().delay,
+    delay: autoBackoffDelay().delay,
     observability: { onRequest: (r) => logged.push(r.headers) },
   })
 
@@ -384,7 +385,11 @@ test("redacts credential headers passed to the observability sink", async () => 
 
 test("wraps a transport failure in a retryable network error", async () => {
   const { fetch } = fakeFetch([new Error("connection reset")])
-  const client = createHttpClient({ baseUrl: "https://api.test", fetch, delay: testDelay().delay })
+  const client = createHttpClient({
+    baseUrl: "https://api.test",
+    fetch,
+    delay: autoBackoffDelay().delay,
+  })
 
   await expect(client.request({ path: "x" })).rejects.toMatchObject({ kind: "http/network" })
 })
@@ -393,7 +398,11 @@ test("propagates a fetch abort without masking it as a network error", async () 
   const abort = new Error("aborted")
   abort.name = "AbortError"
   const { fetch } = fakeFetch([abort])
-  const client = createHttpClient({ baseUrl: "https://api.test", fetch, delay: testDelay().delay })
+  const client = createHttpClient({
+    baseUrl: "https://api.test",
+    fetch,
+    delay: autoBackoffDelay().delay,
+  })
 
   await expect(client.request({ path: "x" })).rejects.toBe(abort)
 })
@@ -409,7 +418,11 @@ test("throws a network error when no fetch is available and none is injected", (
 
 test("validates the decoded body against a schema and returns the typed value", async () => {
   const { fetch } = fakeFetch([jsonResponse({ id: 1 })])
-  const client = createHttpClient({ baseUrl: "https://api.test", fetch, delay: testDelay().delay })
+  const client = createHttpClient({
+    baseUrl: "https://api.test",
+    fetch,
+    delay: autoBackoffDelay().delay,
+  })
 
   const response = await client.request({ path: "widgets/1", schema: guardSchema(isWidget) })
 
@@ -419,7 +432,11 @@ test("validates the decoded body against a schema and returns the typed value", 
 
 test("rejects a body the schema refuses with a typed http/validate error", async () => {
   const { fetch } = fakeFetch([jsonResponse({ id: "not-a-number" })])
-  const client = createHttpClient({ baseUrl: "https://api.test", fetch, delay: testDelay().delay })
+  const client = createHttpClient({
+    baseUrl: "https://api.test",
+    fetch,
+    delay: autoBackoffDelay().delay,
+  })
 
   const error = await client
     .request({ path: "widgets/1", schema: guardSchema(isWidget, "id must be a number") })
@@ -433,7 +450,11 @@ test("rejects a body the schema refuses with a typed http/validate error", async
 
 test("runs an async schema validator at the boundary", async () => {
   const { fetch } = fakeFetch([jsonResponse({ id: 5 })])
-  const client = createHttpClient({ baseUrl: "https://api.test", fetch, delay: testDelay().delay })
+  const client = createHttpClient({
+    baseUrl: "https://api.test",
+    fetch,
+    delay: autoBackoffDelay().delay,
+  })
   const asyncSchema = fakeSchema<Widget>(
     (value) => (isWidget(value) ? { value } : { issues: [{ message: "bad" }] }),
     { async: true },
@@ -446,7 +467,11 @@ test("runs an async schema validator at the boundary", async () => {
 
 test("returns the raw decoded unknown when no schema is supplied", async () => {
   const { fetch } = fakeFetch([jsonResponse({ arbitrary: true })])
-  const client = createHttpClient({ baseUrl: "https://api.test", fetch, delay: testDelay().delay })
+  const client = createHttpClient({
+    baseUrl: "https://api.test",
+    fetch,
+    delay: autoBackoffDelay().delay,
+  })
 
   const response = await client.request({ path: "x" })
 
@@ -456,7 +481,11 @@ test("returns the raw decoded unknown when no schema is supplied", async () => {
 
 test("unsafePassthrough opts explicitly into an unchecked typed body", async () => {
   const { fetch } = fakeFetch([jsonResponse({ id: 9 })])
-  const client = createHttpClient({ baseUrl: "https://api.test", fetch, delay: testDelay().delay })
+  const client = createHttpClient({
+    baseUrl: "https://api.test",
+    fetch,
+    delay: autoBackoffDelay().delay,
+  })
 
   const response = await client.request({ path: "widgets/9", schema: unsafePassthrough<Widget>() })
 
@@ -465,7 +494,11 @@ test("unsafePassthrough opts explicitly into an unchecked typed body", async () 
 
 test("skips schema validation for an empty/no-content response", async () => {
   const { fetch } = fakeFetch([new Response(null, { status: 204 })])
-  const client = createHttpClient({ baseUrl: "https://api.test", fetch, delay: testDelay().delay })
+  const client = createHttpClient({
+    baseUrl: "https://api.test",
+    fetch,
+    delay: autoBackoffDelay().delay,
+  })
 
   // A 204 has no body to validate; a would-reject schema must not fire, and data is `undefined`.
   const response = await client.request({

@@ -1,4 +1,6 @@
-export type { FetchLike, HttpClient, HttpClientOptions, RequestInput } from "./client"
+export type { FetchLike, HttpClient, HttpClientOptions } from "./client"
 export { createHttpClient } from "./client"
 export type { HttpRequest } from "./request"
+export type { RequestInput } from "./request-input"
+export type { ResourceMethods, ResourceReadOptions, ResourceWriteOptions } from "./resource"
 export type { HttpResponse } from "./response"

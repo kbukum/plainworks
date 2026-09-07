@@ -32,9 +32,10 @@ import {
   loggingInterceptor,
   type ObservabilityHooks,
 } from "../interceptor"
-import type { HttpMethod } from "../method"
 import { assertSafeRequestUrl, buildUrl, type QueryParams } from "../url"
 import { type HttpRequest, toRequestInit } from "./request"
+import type { RequestInput } from "./request-input"
+import { createResourceMethods, type ResourceMethods } from "./resource"
 import type { HttpResponse } from "./response"
 import { parseRetryAfterMs, resolveRetryPolicy } from "./retry"
 
@@ -73,43 +74,14 @@ export interface HttpClientOptions {
   readonly now?: () => number
 }
 
-/** A single request's inputs. */
-export interface RequestInput {
-  /** HTTP method; defaults to `GET`. */
-  readonly method?: HttpMethod
-  /** Path relative to the client's `baseUrl`, or a full URL when no base is set. */
-  readonly path: string
-  /** Typed query parameters (credential-shaped keys are rejected). */
-  readonly query?: QueryParams
-  /** Per-request headers, merged over the client defaults. */
-  readonly headers?: WebHeadersInit
-  /** Request body; encoded by the codec. */
-  readonly body?: unknown
-  /** Caller cancellation — aborts the in-flight attempt and any pending backoff. */
-  readonly signal?: WebAbortSignal
-  /** Force retry eligibility regardless of method (e.g. a `POST` known to be safe to repeat). */
-  readonly idempotent?: boolean
-  /** Override the per-attempt timeout for this request. */
-  readonly timeoutMs?: number
-  /** Override the retry policy for this request. */
-  readonly retry?: RetryPolicy
-  /**
-   * Standard Schema validator applied to the decoded response body at the trust boundary. When
-   * present it both validates the untrusted body and infers the response type; a validation failure
-   * raises a typed `http/validate` {@link HttpError}. Omit it to receive the raw decoded `unknown`
-   * and narrow it yourself, or pass `unsafePassthrough<T>()` from `@plainworks/std` to opt explicitly
-   * into an unchecked `T` — the unvalidated passthrough is never the silent default.
-   */
-  readonly schema?: StandardSchemaV1
-}
-
 /**
  * A typed fetch client. Build one per request scope via {@link createHttpClient} — no module singleton.
  *
- * A request with a `schema` validates the untrusted body and resolves to the schema's inferred type;
- * a request without one resolves to `unknown`, so the wire is never silently trusted as a caller-chosen `T`.
+ * `request` is the low-level call returning the full {@link HttpResponse} (status, headers, final URL, decoded body). The {@link ResourceMethods} (`get`/`post`/`put`/`patch`/`delete`) are the ergonomic surface over it: they preset the method, handle idempotency-key writes, and resolve to the decoded body for the common case.
+ *
+ * A request with a `schema` validates the untrusted body and resolves to the schema's inferred type; a request without one resolves to `unknown`, so the wire is never silently trusted as a caller-chosen `T`.
  */
-export interface HttpClient {
+export interface HttpClient extends ResourceMethods {
   request<S extends StandardSchemaV1>(
     input: RequestInput & { readonly schema: S },
   ): Promise<HttpResponse<InferSchemaOutput<S>>>
@@ -266,7 +238,7 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
     }
   }
 
-  return { request }
+  return { request, ...createResourceMethods(request) }
 }
 
 /**

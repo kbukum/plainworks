@@ -11,9 +11,7 @@ const IDEMPOTENT_METHODS: ReadonlySet<HttpMethod> = new Set<HttpMethod>([
 ])
 
 /**
- * Whether `method` is idempotent, which is the default retry-eligibility signal: a `POST`/`PATCH` is
- * never retried automatically (a partial success could be duplicated) unless a caller explicitly
- * opts in per request.
+ * Whether `method` is idempotent, which is the default retry-eligibility signal: a `POST`/`PATCH` is never retried automatically (a partial success could be duplicated) unless a caller explicitly opts in per request.
  */
 export function isIdempotentMethod(method: HttpMethod): boolean {
   return IDEMPOTENT_METHODS.has(method)

@@ -107,3 +107,40 @@ export function manualDelay(): ManualDelay {
     },
   }
 }
+
+/**
+ * A deterministic {@link Delay} that lets retry backoff proceed automatically while a long per-attempt timeout wait stays suspended. Inject it wherever code awaits the `Delay` seam for both backoff and timeout on one budget — a wait shorter than the threshold elapses instantly, a wait at or above it hangs until aborted.
+ */
+export interface AutoBackoffDelay {
+  /** The injectable {@link Delay} — pass this to the code under test. */
+  readonly delay: Delay
+  /** The durations of every auto-elapsed backoff wait, in order — for asserting a backoff or `Retry-After` sequence. */
+  readonly waits: readonly number[]
+}
+
+/**
+ * Build an {@link AutoBackoffDelay}. A wait shorter than `thresholdMs` resolves instantly, so retry backoff proceeds without real time and its duration is recorded in {@link AutoBackoffDelay.waits}; a wait at or above the threshold stays pending until its signal aborts (rejecting with the shared `AbortError`), so a large per-attempt timeout wait only fires when the request sets a tiny timeout. One injected delay thus serves both the timeout and the backoff paths. Prefer {@link manualDelay} when a test needs to fire each wait step by step.
+ */
+export function autoBackoffDelay(thresholdMs = 10_000): AutoBackoffDelay {
+  const waits: number[] = []
+  const delay: Delay = (ms, signal?: WebAbortSignal) => {
+    if (signal?.aborted === true) {
+      return Promise.reject(new AbortError({ cause: signal.reason }))
+    }
+    if (ms >= thresholdMs) {
+      return new Promise<void>((_, reject) => {
+        signal?.addEventListener("abort", () => reject(new AbortError({ cause: signal.reason })), {
+          once: true,
+        })
+      })
+    }
+    waits.push(ms)
+    return Promise.resolve()
+  }
+  return {
+    delay,
+    get waits() {
+      return waits
+    },
+  }
+}

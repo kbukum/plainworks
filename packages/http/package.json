@@ -1,7 +1,7 @@
 {
   "name": "@plainworks/http",
   "version": "0.1.0-alpha.1",
-  "description": "Host-independent typed fetch client (interceptors, auth-header injection, safe URL building, codec seam) that rest and graphql build on.",
+  "description": "Host-independent typed fetch client (ergonomic resource methods, idempotency-key writes, interceptors, auth-header injection, safe URL building, codec seam) — the REST/JSON client.",
   "type": "module",
   "sideEffects": false,
   "license": "MIT",

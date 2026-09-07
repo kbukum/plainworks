@@ -1,6 +1,6 @@
 import { AbortError, type WebAbortSignal } from "@plainworks/std"
 import { describe, expect, test } from "vitest"
-import { manualDelay } from "./delay"
+import { autoBackoffDelay, manualDelay } from "./delay"
 
 describe("manualDelay", () => {
   test("a wait stays pending until fired, then resolves", async () => {
@@ -84,5 +84,53 @@ describe("manualDelay", () => {
     clock.fireNext()
     await promise
     expect(removed).toBe(1)
+  })
+})
+
+describe("autoBackoffDelay", () => {
+  test("a backoff wait resolves instantly and is recorded", async () => {
+    const timer = autoBackoffDelay()
+    await timer.delay(50)
+    await timer.delay(120)
+    expect(timer.waits).toEqual([50, 120])
+  })
+
+  test("a wait at or above the threshold stays pending until its signal aborts", async () => {
+    const timer = autoBackoffDelay(10_000)
+    const controller = new AbortController()
+    let settled = false
+    const promise = timer.delay(30_000, controller.signal).catch(() => {
+      settled = true
+    })
+    await Promise.resolve()
+    expect(settled).toBe(false)
+    // The long timeout wait is never counted as backoff.
+    expect(timer.waits).toEqual([])
+    controller.abort(new Error("stop"))
+    await promise
+    expect(settled).toBe(true)
+  })
+
+  test("a suspended wait rejects with the shared AbortError", async () => {
+    const timer = autoBackoffDelay(10_000)
+    const controller = new AbortController()
+    const promise = timer.delay(30_000, controller.signal)
+    controller.abort()
+    await expect(promise).rejects.toBeInstanceOf(AbortError)
+  })
+
+  test("an already-aborted signal rejects a short wait immediately", async () => {
+    const timer = autoBackoffDelay(10_000)
+    const controller = new AbortController()
+    controller.abort()
+    await expect(timer.delay(50, controller.signal)).rejects.toBeInstanceOf(AbortError)
+    expect(timer.waits).toEqual([])
+  })
+
+  test("an already-aborted signal rejects a suspended wait instead of hanging", async () => {
+    const timer = autoBackoffDelay(10_000)
+    const controller = new AbortController()
+    controller.abort()
+    await expect(timer.delay(30_000, controller.signal)).rejects.toBeInstanceOf(AbortError)
   })
 })

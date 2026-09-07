@@ -28,7 +28,7 @@ flowchart TD
     auth[auth]
   end
   subgraph L2["L2 · transport & data"]
-    connection[connection] ~~~ connect[connect] ~~~ query[query]
+    channel[channel] ~~~ connect[connect] ~~~ query[query]
   end
   subgraph L1["L1 · client & I/O"]
     state[state] ~~~ http[http] ~~~ ui[ui]
@@ -43,7 +43,7 @@ A package in `Ln` may import only `L<n`; sideways and upward imports fail CI. **
 
 ## Two distribution axes
 
-- **npm (versioned dep):** infrastructure you don't fork — `std`, the connection/auth/query engines, adapters, testkit. This repo.
+- **npm (versioned dep):** infrastructure you don't fork — `std`, the channel/auth/query engines, adapters, testkit. This repo.
 - **registry (copy-in), later:** the *ownable* surface — UI, hooks, presets, templates. A parked, future deliverable.
 
 ## Quickstart (development)

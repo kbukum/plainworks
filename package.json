@@ -51,6 +51,7 @@
     "@vitest/coverage-v8": "^5.0.0",
     "axe-core": "^4.13.0",
     "dependency-cruiser": "^18.2.0",
+    "eventsource-parser": "^4.1.0",
     "jsdom": "^30.0.1",
     "msw": "^2.12.8",
     "publint": "^0.3.24",

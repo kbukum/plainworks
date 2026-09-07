@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Client-only project: the `./client` React graph is the sole surface allowed the React/DOM libs.
+  // The neutral transports stay DOM-free (they take injected `fetch`/`WebSocket` seams), so only the
+  // hook layer needs `DOM` for React's types; the server `tsconfig.json` excludes this graph.
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/client.ts", "src/client"]
+}

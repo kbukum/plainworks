@@ -48,6 +48,7 @@ turbo run lint typecheck build test --filter=@plainworks/<name>
 turbo run test --filter='...[origin/main]'   # only packages the diff affects
 bun run check-boundaries                      # fast placement/acyclicity guard
 bun run check-versions                        # catalog single-source
+turbo run check-packaging --filter=@plainworks/<name>   # publint + attw on the built tarball
 ```
 
 A green scoped run is necessary but **not sufficient** — it will not catch unbounded streams/buffers, missing timeouts/cancellation, module-level singletons, import-time side effects, or a token leaking into a URL. Those are on the reviewer.

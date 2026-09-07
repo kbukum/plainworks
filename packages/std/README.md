@@ -33,6 +33,10 @@ bun add @plainworks/std
   - `StandardSchemaV1` — the [Standard Schema](https://standardschema.dev) validation seam (owned structurally, so any Zod/Valibot/ArkType schema fits without a dependency), with `validateWithSchema` (validation → `Result`) and the audited `unsafePassthrough<T>()` opt-out. Transports (`http`, and future `rest`/`graphql`) turn an untrusted decoded `unknown` into a typed value through it.
 - **Web-platform types** — self-contained structural types (`WebFetch`, `WebResponse`, `WebHeaders`, `WebRequestInit`, `WebAbortSignal`, `WebURL`, `WebReadableStream`, `WebTextDecoder`, …) that let a neutral package name `fetch`/`Headers`/`Response`/`URL` in its public API and ship a `.d.ts` that typechecks standalone against the ES lib — no DOM or `@types/node` dependency imposed on consumers.
 
+## Runtime primitives
+
+`std` is a **neutral (`.`)** package — no React, no DOM, no Node builtins — so it runs on every target runtime (server, edge, workers, RSC, browser, React Native). It touches only **universal** platform primitives directly (`AbortController` / `AbortSignal`, `TextDecoder`, and the WHATWG value types it models as the self-contained `Web*` structural contract). Its one host-resolved primitive, `crypto.randomUUID` (backing `randomId`), is resolved lazily at call time and throws a typed `std/unsupported` error when the runtime lacks it — never an import-time host assumption. `Math.random` backs the non-cryptographic `systemRandom` seam. See [`docs/architecture.md › Axis 2`](../../docs/architecture.md) for the universal-vs-injected primitive contract.
+
 ## Usage
 
 ```ts

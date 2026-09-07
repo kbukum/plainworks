@@ -5,6 +5,23 @@
   "type": "module",
   "sideEffects": false,
   "license": "MIT",
+  "author": "Plainworks",
+  "homepage": "https://github.com/kbukum/plainworks/tree/main/packages/http#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kbukum/plainworks.git",
+    "directory": "packages/http"
+  },
+  "bugs": "https://github.com/kbukum/plainworks/issues",
+  "keywords": [
+    "plainworks",
+    "typescript",
+    "esm",
+    "host-independent",
+    "fetch",
+    "http-client",
+    "interceptors"
+  ],
   "publishConfig": {
     "access": "public"
   },
@@ -21,16 +38,19 @@
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
-    "lint": "biome check ."
+    "lint": "biome check .",
+    "check-packaging": "publint --strict && attw --pack --profile esm-only"
   },
   "dependencies": {
     "@plainworks/std": "workspace:*"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "catalog:",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "publint": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

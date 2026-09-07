@@ -58,9 +58,10 @@ bun run typecheck
 bun run check-boundaries      # zero upward/sideways imports, zero cycles
 bun run build                 # tsdown, ESM-only, every package ships dist/
 bun run test                  # vitest + coverage (>=80% per package, >=85% for auth)
+bun run check-packaging       # publint + are-the-types-wrong over each built tarball
 ```
 
-Also run the [`review`](../review/SKILL.md) project audit in a fresh agent before a release. Treat green gates as necessary but not sufficient. Sanity-check the built artifacts before publishing:
+Also run the [`review`](../review/SKILL.md) project audit in a fresh agent before a release. Treat green gates as necessary but not sufficient. `check-packaging` already lints each built tarball's `exports`/`types` resolution; still sanity-check the artifacts before publishing:
 
 ```bash
 (cd packages/<name> && bun pm pack)   # inspect the tarball: only dist/, correct exports/types/files
@@ -95,7 +96,7 @@ Per repo workflow the maintainer reviews and merges. Do not push the bump direct
 
 ## Step 5 — Tag and publish (after merge)
 
-On merged `main`, clean tree, the maintainer publishes locally (there is no CI release workflow today; if one is added later it must be SHA-pinned, minimally permissioned, and carry the scoped `NPM_TOKEN` — and it must still publish through `bun publish`, below):
+On merged `main`, clean tree, tag the release:
 
 ```bash
 git switch main && git pull --ff-only
@@ -104,18 +105,28 @@ bun run changeset tag         # create the per-package git tags for the bumped v
 git push --follow-tags        # push the tags Changesets created
 ```
 
-Then publish each package **in dependency order** (lowest layer first: `std`, then L1, L2, L3, L4 — see the layer map) with `bun publish`:
+There are two publish paths. **Prefer the provenance path** — an unattested publish is a fallback.
+
+### Publish with provenance (preferred) — the `release.yml` workflow
+
+npm **provenance** (a signed SLSA attestation linking the tarball to the exact CI build) is produced only under **npm trusted publishing (OIDC)** — an ambient CI identity, never a long-lived token. `bun publish` cannot use OIDC or emit provenance yet ([oven-sh/bun#24855](https://github.com/oven-sh/bun/issues/24855)), and only Bun rewrites `catalog:` / `workspace:*` protocols. The [`release.yml`](../../workflows/release.yml) workflow bridges the two: `bun pm pack` resolves the protocols into a tarball, then `npm publish <tarball> --provenance` performs the attested publish, in dependency order, skipping versions already on the registry.
+
+Prerequisites (one-time, out of band): configure a **trusted publisher** for each `@plainworks/*` package on npmjs.com pointing at this repo's `release.yml`. The workflow already requests `id-token: write` and upgrades to npm ≥ 11.5.1. Then, after the version-bump PR merges, trigger it from the Actions tab (`Run workflow`, pick the `dist-tag` — `alpha` while pre-stable).
+
+### Publish locally without provenance (fallback)
+
+If CI trusted publishing is unavailable, the maintainer can publish locally with **`bun publish`, never `changeset publish`**: package manifests carry Bun `catalog:` ranges (and internal `workspace:*` deps), and only Bun rewrites those into concrete versions in the published manifest — `changeset publish` shells out to `npm publish`, which would ship the raw protocols and produce unusable packages. Provenance is **not** produced on this path (bun's OIDC gap above).
 
 ```bash
 (cd packages/std && bun publish --tag alpha)   # repeat per package, lowest layer first
 ```
 
-Publish with **`bun publish`, never `changeset publish`**: package manifests carry Bun `catalog:` ranges (and internal `workspace:*` deps), and only Bun rewrites those into concrete versions in the published manifest — `changeset publish` shells out to `npm publish`, which would ship the raw protocols and produce unusable packages. While in pre mode (alpha), always pass `--tag alpha`; for a stable release, drop the tag. Skip a package whose version is already on npm, and never publish anything `"private": true` (apps, `internal/*`). Then draft the GitHub Release from the generated changelog if desired.
+Either way, publish **in dependency order** (lowest layer first: `std`, then its dependents, then `state` — see the layer map). While in pre mode (alpha), publish under `--tag alpha`; for a stable release, drop the tag. Skip a package whose version is already on npm, and never publish anything `"private": true` (apps, `internal/*`). Then draft the GitHub Release from the generated changelog if desired.
 
 ## Guardrails
 
 - **Never** run destructive git commands (`reset --hard`, `checkout -- .`, `clean`) on uncommitted work without explicit permission.
 - **Never** publish from a dirty tree or an unbuilt `dist/`.
-- Per repo workflow, the agent prepares the branch/version bump; **the maintainer merges the PR, tags, and runs the actual publish** unless explicitly asked otherwise. Open a PR only when explicitly requested, in **draft**, following the PR template.
-- All CI actions must be SHA-pinned; a future CI publish workflow must carry the minimum permissions and the scoped npm token.
+- Per repo workflow, the agent prepares the branch/version bump; **the maintainer merges the PR, tags, and triggers the publish** unless explicitly asked otherwise. Open a PR only when explicitly requested, in **draft**, following the PR template.
+- All CI actions must be SHA-pinned; the `release.yml` publish workflow carries minimum permissions (`contents: read`, `id-token: write`) and uses OIDC trusted publishing rather than a stored token.
 - Reference other-repo items with full URLs, never bare `#123`.

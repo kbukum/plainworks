@@ -15,7 +15,7 @@ Each skill is a folder with a `SKILL.md` (YAML frontmatter + workflow) and optio
 | [`commit`](commit/SKILL.md) | Commit staged work with one compact Conventional-Commit message — no co-author trailer, no plan/batch/tool narration; one commit per branch (amend). |
 | [`create-pr`](create-pr/SKILL.md) | Open a reviewer-friendly **draft** PR — high-level summary, honest template sections, bound to the baseline. |
 | [`fix-reviews`](fix-reviews/SKILL.md) | Act on PR review comments by pattern — fix every instance across the change set, then commit and resolve the threads. |
-| [`validate`](validate/SKILL.md) | Run the DoD gates (`check-versions · lint · typecheck · check-boundaries · build · test`) through `bun run`/`turbo`, scoped to the changed package(s). |
+| [`validate`](validate/SKILL.md) | Run the DoD gates (`check-versions · lint · typecheck · check-boundaries · build · test · check-packaging`) through `bun run`/`turbo`, scoped to the changed package(s). |
 | [`review`](review/SKILL.md) | Run the standing engineering-baseline review over a diff or the tree, in a fresh clean-context agent (high-capability model). |
 | [`new-package`](new-package/SKILL.md) | Scaffold a new `@plainworks/*` package by driving the `turbo gen` golden generator — never hand-rolled — then place it in the layer map. |
 | [`new-backend`](new-backend/SKILL.md) | Add an adapter (state / connection transport / auth / query) as an explicit-registration module, with the default kept in core. |

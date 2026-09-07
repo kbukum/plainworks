@@ -22,3 +22,7 @@ Client-only bindings (`"use client"`) live under the `./client` entry:
 import { helloClient } from "@plainworks/{{name}}/client"
 ```
 {{/if}}
+
+## Runtime primitives
+
+Declare this package's platform primitives and their tier — **universal** (used directly) vs **non-universal** (an injected seam with a platform default and a typed error when absent). By default `@plainworks/{{name}}` is a **neutral (`.`)** package touching no host globals, so it runs on every target runtime.{{#if hasClient}} The `./client` bindings are DOM-free (the **React-without-DOM** bucket) unless they genuinely need the DOM.{{/if}} See [`docs/architecture.md › Axis 2`](../../docs/architecture.md) for the primitive contract and the three entry buckets.

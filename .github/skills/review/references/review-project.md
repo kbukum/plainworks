@@ -37,7 +37,8 @@ Unlike a change review, a project audit may run the unscoped gates:
 
 ```bash
 bun run check-versions && bun run lint && bun run typecheck \
-  && bun run check-boundaries && bun run build && bun run test
+  && bun run check-boundaries && bun run build && bun run test \
+  && bun run check-packaging
 ```
 
 Plus, if the generator or template is in scope, regenerate both variants and gate them (see the `validate` skill). Record each finding with the standard severity format; a project audit typically produces a prioritized list rather than a merge/no-merge verdict.

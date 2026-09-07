@@ -1,0 +1,9 @@
+{
+  // Editor-routing config only: an editor picks the nearest `tsconfig.json` to a file, and the
+  // package's server `tsconfig.json` excludes this DOM client graph — so without this, an editor
+  // falls back to the DOM-free root config and wrongly flags `window`/`location`/`document` here.
+  // It inherits the DOM libs (and everything else) from the real client project, so the lib list
+  // stays single-sourced; the authoritative `typecheck` gate still runs `../../tsconfig.client.json`.
+  "extends": "../../tsconfig.client.json",
+  "include": ["."]
+}

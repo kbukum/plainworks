@@ -65,6 +65,7 @@ export type {
   StandardSchemaV1,
 } from "./seam/schema"
 export { unsafePassthrough, validateWithSchema } from "./seam/schema"
+export type { StateCapabilities, StateSerializer, StateSource } from "./seam/state"
 export type { Clock } from "./time"
 export { systemClock } from "./time"
 export type {

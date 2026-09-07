@@ -45,7 +45,7 @@ What this step changes and, explicitly, what it does not.
 
 ## Acceptance criteria
 - [ ] Behavior written test-first; vitest green, race/shuffle safe on the affected package(s).
-- [ ] The six DoD gates green for the package: check-versions · lint · typecheck · check-boundaries · build · test.
+- [ ] The seven DoD gates green for the package: check-versions · lint · typecheck · check-boundaries · build · test · check-packaging.
 - [ ] A Changeset added.
 - [ ] <step-specific, verifiable outcomes>
 ```

@@ -19,7 +19,7 @@ Shared baseline — apply to all work here:
 - **Performance:** code-split heavy and route-level surfaces behind `React.lazy` + `Suspense`; keep components small and let the React compiler memoize — reach for `memo`/`useMemo`/`useCallback` only where a profile shows a measurable win, never prophylactically; virtualize large lists; keep the client bundle tree-shakeable (per-component subpath exports, `"sideEffects": false`).
 - **Tests:** behavioral and deterministic; **test-first** (failing test → minimal code → refactor while green); cover failure paths; injected clocks and seeded RNG, no real network/FS in unit tests; race/shuffle safe. Coverage ≥ 80% per package, ≥ 85% for security-load-bearing packages (`auth`). React/DOM tests assert what the user perceives — query by role/label (`getByRole` first, `getByTestId` last resort), drive interaction with `@testing-library/user-event` (not `fireEvent`), never couple to implementation detail (class names, internal state); mock the network at the boundary with **MSW** (`onUnhandledRequest: "error"`), not by stubbing `fetch`. Shared fakes/harnesses live in **`@plainworks/testkit`** (a shipped product) — never hand-rolled per test.
 - **AI / model features:** treat model output and retrieved context as untrusted; enforce structured, validated outputs; least-privilege tool calls with a human gate on destructive actions; version prompts/models and gate changes on evals.
-- **Supply chain:** one shared version list (the bun **catalog**) enforced by Sherif + Syncpack; ESM-only with correct `exports`/`types`/`files`; pin CI actions by commit SHA; audit and license-check new dependencies; Changesets-driven releases.
+- **Supply chain:** one shared version list (the bun **catalog**) enforced by Sherif + Syncpack; ESM-only with correct `exports`/`types`/`files` proven by the **publint + are-the-types-wrong** packaging gate; pin CI actions by commit SHA; audit and license-check new dependencies; Changesets-driven releases published with npm **provenance** (SLSA attestation).
 - **Keep code current:** current idioms and standards, not old habits — verify the dependency is maintained, the platform/stdlib (Web APIs, `AbortController`, `structuredClone`) doesn't already cover it, and no open advisory applies.
 - **Best practices over parity, consistency above both:** current idiomatic TS/React best practices outrank any cross-kit mimicry of gokit/rskit — parity is spirit and intuition-transfer, never a forced non-idiomatic type or API shape. Above both, be **consistent across plainworks**: internal consistency of naming, seams, and package shapes is one of the most important properties.
 
@@ -50,11 +50,12 @@ bun run typecheck                 # tsc --noEmit across packages (+ the generato
 bun run check-boundaries          # dependency-cruiser: zero upward/sideways imports, zero cycles
 bun run build                     # tsdown, ESM-only, ships dist/
 bun run test                      # vitest run --coverage
+bun run check-packaging           # publint + are-the-types-wrong over each built tarball
 bun run gen package               # scaffold a new @plainworks/* package from the golden template
 bun run changeset                 # add a Changeset for the release
 ```
 
-The Definition of Done for every change is those six gates green — **check-versions · lint · typecheck · check-boundaries · build · test** — plus a Changeset and the architecture invariants below. Scope with turbo filters: `turbo run test --filter=@plainworks/<name>` for one package, `--filter='...[origin/main]'` for the affected set.
+The Definition of Done for every change is those seven gates green — **check-versions · lint · typecheck · check-boundaries · build · test · check-packaging** — plus a Changeset and the architecture invariants below. Scope with turbo filters: `turbo run test --filter=@plainworks/<name>` for one package, `--filter='...[origin/main]'` for the affected set.
 
 ## Package structure
 

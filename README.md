@@ -5,7 +5,7 @@
 
 plainworks gives you runtime-agnostic cores (no DOM/React/host assumptions) and thin, optional client bindings you opt into. Next.js, a Vite SPA, Astro, TanStack Start, Remix — or something that doesn't exist yet — all *plug in*. You keep your code simple; the seams stay replaceable.
 
-> **Status: scaffold.** The workspace, boundary gate, package generator, and governance layer are in place, and the first packages have landed — `std` (L0), `state` (L1), `http` (L1), and the L4 `testkit`/`mocks`. Nothing is published to npm yet; the first release will ship on the `0.1.0-alpha.x` line under the `alpha` dist-tag (matching gokit/rskit), and until `0.1.0` APIs may change without back-compat.
+> **Status: scaffold.** The workspace, boundary gate, package generator, and governance layer are in place, and the first packages have landed — `std` (L0), `state` (L1), `http` (L1), the L2 `connect`, and the L4 `testkit`/`mocks`. Nothing is published to npm yet; the first release will ship on the `0.1.0-alpha.x` line under the `alpha` dist-tag (matching gokit/rskit), and until `0.1.0` APIs may change without back-compat.
 
 ## Design charter
 

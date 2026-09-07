@@ -1,1 +1,9 @@
 * text=auto eol=lf
+
+# These config files are JSONC (JSON with comments): the tools require these exact
+# `.json` names, so tell GitHub to highlight them as JSONC and render `//` rationale
+# as comments in blobs/diffs rather than as syntax errors.
+tsconfig*.json linguist-language=JSON-with-Comments
+turbo.json     linguist-language=JSON-with-Comments
+biome.json     linguist-language=JSON-with-Comments
+

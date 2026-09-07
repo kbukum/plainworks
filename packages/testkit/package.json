@@ -31,6 +31,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./connect": {
+      "types": "./dist/connect/index.d.ts",
+      "import": "./dist/connect/index.js"
     }
   },
   "scripts": {
@@ -38,6 +42,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
     "lint": "biome check .",
+    "gen:proto": "buf generate",
     "check-packaging": "publint --strict && attw --pack --profile esm-only"
   },
   "dependencies": {
@@ -45,6 +50,10 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
+    "@bufbuild/buf": "catalog:",
+    "@bufbuild/protobuf": "catalog:",
+    "@bufbuild/protoc-gen-es": "catalog:",
+    "@connectrpc/connect": "catalog:",
     "@plainworks/tsdown-config": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
@@ -52,5 +61,17 @@
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@bufbuild/protobuf": "catalog:",
+    "@connectrpc/connect": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@bufbuild/protobuf": {
+      "optional": true
+    },
+    "@connectrpc/connect": {
+      "optional": true
+    }
   }
 }

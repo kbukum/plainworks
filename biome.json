@@ -16,7 +16,8 @@
       "**/*.json",
       "!**/dist",
       "!**/.turbo",
-      "!**/coverage"
+      "!**/coverage",
+      "!**/src/connect/gen"
     ]
   },
   "assist": {

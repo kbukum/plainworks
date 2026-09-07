@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Client project, but React-without-DOM: the `./client` graph only re-exports connect-query hooks,
+  // which touch no DOM global, so it stays DOM-free like the server entry — the universal-web shim,
+  // not the DOM libs. Tests are DOM-free and typechecked in `tsconfig.test.json`, so they are excluded
+  // here: a client test that imports neutral, shim-typed `@plainworks/testkit/*` source must not be
+  // compiled against the DOM lib (its `WebHeaders`/`WebAbortSignal` would clash with DOM types).
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
+  "include": ["src/client.ts", "src/client", "../../types/universal-web.d.ts"]
+}

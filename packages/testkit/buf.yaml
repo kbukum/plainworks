@@ -1,0 +1,11 @@
+# buf module config. Dev-only: the generated `src/connect/gen/*_pb.ts` is checked in, so build /
+# typecheck / test never invoke buf. Regenerate with `bun run gen:proto`.
+version: v2
+modules:
+  - path: proto
+lint:
+  use:
+    - STANDARD
+breaking:
+  use:
+    - FILE

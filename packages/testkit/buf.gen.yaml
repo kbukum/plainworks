@@ -1,0 +1,9 @@
+# buf codegen config. Emits protobuf-es v2 TypeScript into the checked-in fixture folder. Run via
+# `bun run gen:proto`; the `local` plugin resolves `protoc-gen-es` from node_modules.
+version: v2
+plugins:
+  - local: protoc-gen-es
+    out: src/connect/gen
+    opt:
+      - target=ts
+      - import_extension=js

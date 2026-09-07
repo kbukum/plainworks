@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+// Canonical Connect test fixture, shipped from `@plainworks/testkit/connect`. Kept intentionally
+// small but shaped to exercise every transport concern the kit tests: an idempotent unary call
+// (safe to retry), a write unary call (never auto-retried), and a server-streaming call
+// (not retried; bounded by the resilience interceptor's idle timeout). Regenerate the checked-in
+// `*_pb.ts` with `bun run gen:proto`.
+package plainworks.testkit.v1;
+
+message EchoRequest {
+  string message = 1;
+}
+
+message EchoResponse {
+  string message = 1;
+}
+
+message CountRequest {
+  int32 count = 1;
+}
+
+message CountResponse {
+  int32 value = 1;
+}
+
+service EchoService {
+  // Idempotent read: proto-declared side-effect-free, so the resilience interceptor may retry it.
+  rpc Echo(EchoRequest) returns (EchoResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+
+  // Write: default (unknown) idempotency, so it is never retried automatically.
+  rpc Mutate(EchoRequest) returns (EchoResponse);
+
+  // Server-streaming: never retried (a stream cannot be re-consumed), but bounded by the
+  // resilience interceptor's idle timeout — a gap longer than `timeoutMs` between messages fails
+  // the stream `deadline_exceeded`.
+  rpc Count(CountRequest) returns (stream CountResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+}

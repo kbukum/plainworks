@@ -33,6 +33,14 @@
     "paths": {
       // Client subpath must map before the generic rule so `@plainworks/foo/client` resolves to the real `src/client.ts` barrel (not `packages/foo/client/src`); otherwise dependency-cruiser leaves client-subpath imports unresolved and misses server/client boundary violations.
       "@plainworks/*/client": ["./packages/*/src/client.ts"],
+      // A published subpath other than `./client` needs its own explicit rule: the generic
+      // `@plainworks/*` rule would send `@plainworks/testkit/connect` to `packages/testkit/connect/src`
+      // (which does not exist) and fall through to the built `dist`, so a dependent typechecks against
+      // stale output while the main entry resolves to live source. Map it to source like every other
+      // entry; because `testkit/connect` is neutral, shim-typed code, only DOM-free programs may
+      // compile it — its consumers' DOM programs (e.g. a client test) must exclude tests and typecheck
+      // them in a DOM-free `tsconfig.test.json` instead.
+      "@plainworks/testkit/connect": ["./packages/testkit/src/connect/index.ts"],
       "@plainworks/*": ["./packages/*/src"]
     }
   }

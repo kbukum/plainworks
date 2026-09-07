@@ -25,10 +25,10 @@ function toAbortError(signal: WebAbortSignal): AbortError {
 }
 
 /** The host `setTimeout` ceiling: a 32-bit signed millisecond count. Above it, engines wrap the delay and fire near-immediately, turning a long budget into an instant one. */
-const MAX_TIMER_MS = 2_147_483_647
+export const MAX_TIMER_MS = 2_147_483_647
 
-/** Guard a duration before it reaches a host timer: reject a non-finite, negative, or overflowing value rather than let the engine silently coerce it. */
-function assertTimerMs(ms: number): void {
+/** Guard a duration before it reaches a host timer: reject a non-finite, negative, or overflowing value rather than let the engine silently coerce it. Throws a `RangeError`. */
+export function assertTimerMs(ms: number): void {
   if (!Number.isFinite(ms) || ms < 0 || ms > MAX_TIMER_MS) {
     throw new RangeError(`Delay must be a finite number between 0 and ${MAX_TIMER_MS} ms`)
   }

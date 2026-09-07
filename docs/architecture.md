@@ -15,7 +15,7 @@ flowchart TD
     auth[auth]
   end
   subgraph L2["L2 · transport & data"]
-    connection[connection] ~~~ connect[connect] ~~~ query[query]
+    channel[channel] ~~~ connect[connect] ~~~ query[query]
   end
   subgraph L1["L1 · client & I/O"]
     state[state] ~~~ http[http] ~~~ ui[ui]
@@ -39,7 +39,7 @@ How a consumer takes the code. Two modes, and only the first is built today.
 
 | Mode | What it covers | Consumer relationship | Status |
 |---|---|---|---|
-| **npm** (versioned dependency) | Infrastructure you don't fork: `std`, the connection/auth/query engines, adapters, `testkit`. | Import it, upgrade it via semver. | **This repo.** |
+| **npm** (versioned dependency) | Infrastructure you don't fork: `std`, the channel/auth/query engines, adapters, `testkit`. | Import it, upgrade it via semver. | **This repo.** |
 | **registry** (copy-in) | The *ownable* surface: UI, hooks, presets, templates — a shadcn-style copy-in for complex components. | You paste it in, then own and edit it. | **Parked** — a later deliverable, not part of the foundation. |
 
 ## Axis 2 — Host-independence
@@ -73,7 +73,7 @@ flowchart LR
 
 1. **Neutral (`.`)** — no React, no DOM. The default import and the widest target: server, edge, workers, RSC, and inside React Native.
 2. **DOM client (`./client`)** — React plus browser DOM, marked per-module with `"use client"`. Browser SPAs, Next.js client components, the Electron renderer. `ui` and anything touching `document` or CSS lives here.
-3. **React-without-DOM** — React Native and Expo: React renders, but there is no DOM, no cookies, and Web Crypto needs a polyfill. DOM `ui` is out of scope here, but the *hooks* in `state`, `query`, `connection`, and `auth` stay DOM-free so RN can still use them.
+3. **React-without-DOM** — React Native and Expo: React renders, but there is no DOM, no cookies, and Web Crypto needs a polyfill. DOM `ui` is out of scope here, but the *hooks* in `state`, `query`, `channel`, and `auth` stay DOM-free so RN can still use them.
 
 ### Where each runtime lands
 
@@ -110,13 +110,13 @@ Each package sits in a numbered layer and may import `@plainworks` packages only
 |---|---|---|
 | **L0** | `std` | Errors, result, guards, contracts (seams incl. Standard Schema validation), resilience, structural web-platform types. No React. |
 | **L1** | `state` · `http` · `ui` | Client state, the typed fetch client, components. |
-| **L2** | `connection` · `connect` · `query` | Streaming transport, RPC, TanStack wiring. |
+| **L2** | `channel` · `connect` · `query` | Streaming transport, RPC, TanStack wiring. |
 | **L3** | `auth` | Core plus `oidc` / `jwt` / `apikey` / BYO adapters; server/client split. |
 | **L4** | `app` · `testkit` · `mocks` | Composition, providers, harnesses, test tooling. |
 
 ### Seams point down, implementations live up
 
-When a higher layer needs to plug into a lower one, the **seam is defined in the lower layer and implemented higher**. The `AuthHeaderProvider` seam and the event shapes live once in `std`; `connection` and `auth` implement against them. No package reaches across a boundary, and no seam is copied twice to drift apart.
+When a higher layer needs to plug into a lower one, the **seam is defined in the lower layer and implemented higher**. The `AuthHeaderProvider` seam and the event shapes live once in `std`; `channel` and `auth` implement against them. No package reaches across a boundary, and no seam is copied twice to drift apart.
 
 ```mermaid
 flowchart TD

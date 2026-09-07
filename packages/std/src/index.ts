@@ -28,6 +28,7 @@ export type {
 } from "./resilience"
 export {
   AbortError,
+  assertTimerMs,
   CircuitOpenError,
   classifyError,
   classifyStatus,
@@ -37,6 +38,7 @@ export {
   createDeadline,
   defaultBackoff,
   isRetryable,
+  MAX_TIMER_MS,
   NetworkError,
   nextBackoff,
   QueueClosedError,

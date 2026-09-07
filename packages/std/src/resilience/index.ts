@@ -20,8 +20,10 @@ export { RetryError, runWithRetry } from "./retry"
 export type { Deadline, Delay } from "./timeout"
 export {
   AbortError,
+  assertTimerMs,
   combineSignals,
   createDeadline,
+  MAX_TIMER_MS,
   systemDelay,
   TimeoutError,
   withTimeout,

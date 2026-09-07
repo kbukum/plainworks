@@ -11,7 +11,7 @@
 //
 //   L0  std
 //   L1  state · ui · http
-//   L2  connection · connect · query
+//   L2  channel · connect · query
 //   L3  auth
 //   L4  app · testkit · mocks        (dev/test tooling lives here too)
 //
@@ -36,7 +36,7 @@ const LAYERS = {
   state: 1,
   ui: 1,
   http: 1,
-  connection: 2,
+  channel: 2,
   connect: 2,
   query: 2,
   auth: 3,

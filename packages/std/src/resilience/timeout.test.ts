@@ -1,4 +1,5 @@
 import { expect, test, vi } from "vitest"
+import type { WebAbortSignal } from "../web"
 import {
   AbortError,
   combineSignals,
@@ -11,7 +12,7 @@ import {
 
 /** A delay whose pending timers the test settles by hand — no real time passes. */
 function controllableDelay() {
-  const calls: Array<{ ms: number; signal: AbortSignal | undefined; fire: () => void }> = []
+  const calls: Array<{ ms: number; signal: WebAbortSignal | undefined; fire: () => void }> = []
   const delay: Delay = (ms, signal) =>
     new Promise<void>((resolve, reject) => {
       calls.push({ ms, signal, fire: resolve })
@@ -22,7 +23,7 @@ function controllableDelay() {
 
 test("withTimeout rejects with a TimeoutError and aborts the operation when the budget elapses", async () => {
   const { delay, calls } = controllableDelay()
-  let operationSignal: AbortSignal | undefined
+  let operationSignal: WebAbortSignal | undefined
   const promise = withTimeout(
     (signal) => {
       operationSignal = signal
@@ -60,7 +61,7 @@ test("withTimeout rejects and cancels the operation when the delay fails before 
   const failingDelay: Delay = async () => {
     throw new Error("timer broken")
   }
-  let operationSignal: AbortSignal | undefined
+  let operationSignal: WebAbortSignal | undefined
   const promise = withTimeout(
     (signal) => {
       operationSignal = signal
@@ -76,7 +77,7 @@ test("withTimeout rejects and cancels the operation when the delay fails before 
 test("withTimeout rejects with a fatal AbortError on caller abort, even if the operation never settles", async () => {
   const { delay } = controllableDelay()
   const controller = new AbortController()
-  let operationSignal: AbortSignal | undefined
+  let operationSignal: WebAbortSignal | undefined
   const promise = withTimeout(
     (signal) => {
       operationSignal = signal
@@ -183,6 +184,25 @@ test("combineSignals passes a lone signal through and never aborts with none", (
   expect(combineSignals().aborted).toBe(false)
 })
 
+test("combineSignals forwards the reason of the first input to abort", () => {
+  const a = new AbortController()
+  const b = new AbortController()
+  const combined = combineSignals(a.signal, b.signal)
+  b.abort(new Error("b failed"))
+  expect(combined.aborted).toBe(true)
+  expect(combined.reason).toBeInstanceOf(Error)
+  expect((combined.reason as Error).message).toBe("b failed")
+})
+
+test("combineSignals aborts immediately when an input is already aborted", () => {
+  const already = new AbortController()
+  already.abort(new Error("pre"))
+  const live = new AbortController()
+  const combined = combineSignals(live.signal, already.signal)
+  expect(combined.aborted).toBe(true)
+  expect((combined.reason as Error).message).toBe("pre")
+})
+
 test("createDeadline aborts with a fatal AbortError after its interval", async () => {
   vi.useFakeTimers()
   try {
@@ -207,4 +227,39 @@ test("a disposed deadline never fires", async () => {
   } finally {
     vi.useRealTimers()
   }
+})
+
+test("withTimeout leaves no listener on a long-lived caller signal after a normal completion", async () => {
+  // A counting signal proxies a real controller but records every add/remove so the test can assert
+  // the combined-signal plumbing (withTimeout + combineSignals) fully detaches on success.
+  const inner = new AbortController()
+  const live = new Set<() => void>()
+  let everAdded = 0
+  const callerSignal: WebAbortSignal = {
+    get aborted() {
+      return inner.signal.aborted
+    },
+    get reason() {
+      return inner.signal.reason
+    },
+    throwIfAborted() {
+      inner.signal.throwIfAborted()
+    },
+    addEventListener(_type, listener) {
+      everAdded++
+      live.add(listener)
+      inner.signal.addEventListener("abort", listener, { once: true })
+    },
+    removeEventListener(_type, listener) {
+      live.delete(listener)
+      inner.signal.removeEventListener("abort", listener)
+    },
+  }
+
+  const { delay } = controllableDelay()
+  const value = await withTimeout(async () => "ok", 100, { signal: callerSignal, delay })
+
+  expect(value).toBe("ok")
+  expect(everAdded).toBeGreaterThan(0)
+  expect(live.size).toBe(0)
 })

@@ -1,4 +1,5 @@
 import { PlainError } from "../errors"
+import type { WebAbortSignal } from "../web"
 import { AbortError } from "./timeout"
 
 /**
@@ -40,7 +41,7 @@ export interface BoundedQueue<T> {
   /**
    * Await the next item; rejects with {@link QueueClosedError} if the queue closes while empty, with {@link QueueWaitersFullError} when the pending-consumer bound is reached, or with an `AbortError` when `options.signal` aborts (which removes the waiter, freeing its slot).
    */
-  pop(options?: { signal?: AbortSignal }): Promise<T>
+  pop(options?: { signal?: WebAbortSignal }): Promise<T>
   /** Take an item without waiting, or `undefined` if none is buffered. */
   tryPop(): T | undefined
   /** Close the queue: reject waiting consumers and refuse further pushes. Idempotent. */
@@ -113,7 +114,7 @@ export function createBoundedQueue<T>(
     tryPop(): T | undefined {
       return buffered() > 0 ? takeHead() : undefined
     },
-    pop(options?: { signal?: AbortSignal }): Promise<T> {
+    pop(options?: { signal?: WebAbortSignal }): Promise<T> {
       if (buffered() > 0) {
         return Promise.resolve(takeHead())
       }

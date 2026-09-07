@@ -18,6 +18,8 @@ import {
   manualClock,
   seededRandom,
   fakeAuthHeaderProvider,
+  fakeSchema,
+  guardSchema,
   createEmitter,
   recordEvents,
   expectOk,
@@ -36,6 +38,13 @@ rng.int(1, 6)
 
 // Header-only auth double for the auth seam.
 const auth = fakeAuthHeaderProvider({ headers: { Authorization: "Bearer test" } })
+
+// A controllable Standard Schema for validated-boundary tests. `fakeSchema` drives accept /
+// reject / transform directly; `guardSchema` builds one from a type-guard predicate.
+const schema = guardSchema(
+  (v): v is { id: string } =>
+    typeof v === "object" && v !== null && typeof (v as { id?: unknown }).id === "string",
+)
 
 // Assert on a `Result` from `@plainworks/std`.
 expectOk(ok(42)) // === 42; throws a typed PlainError on an Err

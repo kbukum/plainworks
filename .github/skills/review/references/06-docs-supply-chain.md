@@ -14,6 +14,13 @@ Docs that match the code, and a release path that stays reproducible and honest.
 - **No history/plan narration in shipped docs.** READMEs and `docs/` describe the code **as it is today**, not "we migrated from X" or "step 4 will add Y". Migration/plan notes belong in `tmp/`. Prose flows naturally (no hard-wrapped columns); diagrams (mermaid) where they clarify architecture.
 - **Commands are real.** Every command in docs exists in a `package.json` or `turbo.json` (`bun run <script>`, `turbo run <task> --filter=…`, `bun run gen package`). An invented flag or a stale command is a should-fix — verify against the manifests.
 
+## Readability checks (a crowded doc is a defect, not thoroughness)
+
+- **Simple, organized, uncrowded.** A README or design doc that reads as a jargon-dense wall of text, stacks many identifiers into one sentence, or over-explains the obvious is a should-fix — a reader under time pressure gives up on it. The fix is the shortest organized version that still answers the question, using current documentation best practices.
+- **Scannable and task-first.** The page leads with the shortest working path (import + a runnable example) before deep reference; it uses meaningful headings, short lists, and tables, and bolds the load-bearing terms. A page that buries the quickstart under prose, or is one long undifferentiated section, is a should-fix.
+- **Dense detail belongs in a table or example, not a sentence.** Option lists, identifier catalogs, and signature detail packed into prose are a should-fix — move them into a table or a real snippet.
+- **Diagram where prose is the wrong tool.** Architecture, dependency direction, an auth/reconnect flow, or a state machine gets a focused `mermaid` diagram (one idea per diagram, one-line caption) rather than a paragraph the reader has to simulate in their head. A missing diagram where one would obviously help is a nit→should-fix; a trivial or decorative diagram is noise.
+
 ## Supply-chain checks
 
 - **Changeset present.** Any change to a publishable package needs a changeset (`.changeset/*.md`) with the right bump. A behavioral/public change with no changeset is a should-fix. Pre-1.0: breaking changes are `minor`, everything else `patch` — don't hand-edit versions or a CHANGELOG; Changesets owns both.

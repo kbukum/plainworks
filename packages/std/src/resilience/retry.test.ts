@@ -1,5 +1,6 @@
 import { expect, test } from "vitest"
 import { createSeededRandom } from "../random"
+import type { WebAbortSignal } from "../web"
 import { NetworkError } from "./classify"
 import { RetryError, type RetryPolicy, runWithRetry } from "./retry"
 import type { Delay } from "./timeout"
@@ -179,7 +180,7 @@ test("evaluates isRetryable once per failure, including the final attempt", asyn
 test("a caller abort cancels an in-flight attempt and wins a late success", async () => {
   const controller = new AbortController()
   let released: (() => void) | undefined
-  let receivedSignal: AbortSignal | undefined
+  let receivedSignal: WebAbortSignal | undefined
   const pending = runWithRetry(
     async (_attempt, signal) => {
       receivedSignal = signal

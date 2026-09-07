@@ -37,13 +37,84 @@ const DEFAULT_SENSITIVE_KEYS: readonly string[] = [
 const JWT_PATTERN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/
 /** `Bearer <token>` authorization value. */
 const BEARER_PATTERN = /^Bearer\s+\S+/i
+/**
+ * An embedded `<scheme> <token>` HTTP credential (`Bearer <jwt>`, `DPoP <jwt>`, `Basic <b64>`)
+ * sitting inside a larger string — a serialized `Authorization` header, an error message, a log
+ * line. The whole scheme+token run is masked, because stopping at the first whitespace (as the
+ * generic `key=value` matcher below does) would redact only the scheme word and leak the token after
+ * it (e.g. `Authorization: [REDACTED] <jwt>`). The token runs to the next hard delimiter; scheme and
+ * token are separate, non-overlapping character classes, so the global scan stays linear (no
+ * super-linear backtracking) on adversarial input. Applied before the generic pair matcher.
+ */
+const EMBEDDED_AUTH_SCHEME_PATTERN =
+  /\b(?:Bearer|DPoP|Basic|Digest|Negotiate|NTLM)\s+[^\s&;,"'?#]+/gi
+/**
+ * An embedded `key=value` (or `key: value`) credential inside a larger string — a query string, an
+ * error message, or a log line. The captured value runs to the next delimiter (whitespace, `&`, `?`,
+ * `#`, `;`, `,`, or a quote), so `access_token=live-secret` and `password: live-secret` are masked
+ * while the surrounding text survives. The key-name run is length-bounded so an adversarial input (a
+ * long unbroken run of key-legal characters with no separator) can't drive super-linear backtracking
+ * as the global scan advances — real credential key names are far shorter than the cap.
+ */
+const EMBEDDED_SECRET_PATTERN = /([A-Za-z][A-Za-z0-9_.-]{0,127})(\s*[=:]\s*)([^\s&;,"'?#]+)/g
 
 function looksSecret(value: string): boolean {
   return JWT_PATTERN.test(value) || BEARER_PATTERN.test(value)
 }
 
 /**
- * Return a redacted copy of `value`: any property whose key matches a sensitive name (compared separator-insensitively, so `api_key` matches `x-api-key`), and any string that looks like a bearer token or JWT, is replaced with the mask. Objects and arrays are walked up to `maxDepth`; cycles are detected and marked. A sensitive key is masked from its descriptor without reading the value, a non-sensitive accessor is surfaced as `"[Getter]"` rather than invoked, and a callable value is surfaced as `"[Function]"`, so redaction never executes untrusted getter or `toJSON` code and never carries an executable hook onto the copy — safe on arbitrary log payloads.
+ * Mask any embedded `<scheme> <token>` HTTP credential — the whole scheme+token run — inside a
+ * larger string. This closes the gap where a serialized `Authorization: Bearer <jwt>` header would
+ * otherwise have only its scheme redacted by the generic `key=value` matcher (which stops at the
+ * first whitespace), leaking the token that follows. Applied before {@link maskEmbeddedSecrets}.
+ */
+function maskCredentialSchemes(value: string, mask: string): string {
+  return value.replace(EMBEDDED_AUTH_SCHEME_PATTERN, mask)
+}
+
+/**
+ * Mask the value half of any embedded `key=value` pair whose key names a secret, leaving the rest of
+ * the string intact. This closes the gap where a token is smuggled inside a larger string (a URL
+ * query, a thrown error message) rather than sitting as its own property value.
+ */
+function maskEmbeddedSecrets(
+  value: string,
+  mask: string,
+  isSensitive: (key: string) => boolean,
+): string {
+  return value.replace(EMBEDDED_SECRET_PATTERN, (match, key: string, separator: string) =>
+    isSensitive(key) ? `${key}${separator}${mask}` : match,
+  )
+}
+
+// Keys are matched lowercase with separators removed, so `x-api-key`, `api_key`, and `apikey` all collapse to the same token.
+function normalizeKey(key: string): string {
+  return key.toLowerCase().replace(/[-_.]/g, "")
+}
+
+/** The built-in sensitive names, normalized once so membership is a cheap substring scan. */
+const NORMALIZED_SENSITIVE_KEYS: readonly string[] = DEFAULT_SENSITIVE_KEYS.map(normalizeKey)
+
+/**
+ * Whether `key` names a credential/secret value that must never be logged or smuggled into a URL. The comparison is separator-insensitive **substring** matching against the built-in sensitive vocabulary plus any `extraKeys`, so `X-Api-Key`, `api_key`, and `apikey` all match `apikey`, and `sessionId` matches `session`. This is the one owner of the sensitive-key vocabulary — {@link redact} and header-only-auth URL guards both reuse it instead of forking their own list.
+ */
+export function isSensitiveKey(key: string, extraKeys: readonly string[] = []): boolean {
+  const normalized = normalizeKey(key)
+  for (const name of NORMALIZED_SENSITIVE_KEYS) {
+    if (normalized.includes(name)) {
+      return true
+    }
+  }
+  for (const extra of extraKeys) {
+    if (normalized.includes(normalizeKey(extra))) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Return a redacted copy of `value`: any property whose key matches a sensitive name (compared separator-insensitively, so `api_key` matches `x-api-key`), any string that looks like a bearer token or JWT, and any embedded `key=value` credential inside a larger string (e.g. `access_token=live-secret` in a URL query or error message) is replaced with the mask. Objects and arrays are walked up to `maxDepth`; cycles are detected and marked. A sensitive key is masked from its descriptor without reading the value, a non-sensitive accessor is surfaced as `"[Getter]"` rather than invoked, and a callable value is surfaced as `"[Function]"`, so redaction never executes untrusted getter or `toJSON` code and never carries an executable hook onto the copy — safe on arbitrary log payloads.
  */
 export function redact(value: unknown, options: RedactOptions = {}): unknown {
   const mask = options.mask ?? "[REDACTED]"
@@ -51,26 +122,18 @@ export function redact(value: unknown, options: RedactOptions = {}): unknown {
   if (!Number.isInteger(maxDepth) || maxDepth < 0) {
     throw new RangeError("redact requires maxDepth to be a non-negative integer")
   }
-  // Keys are matched lowercase with separators removed, so `x-api-key`, `api_key`, and `apikey` all hit the same entry.
-  const normalizeKey = (key: string): string => key.toLowerCase().replace(/[-_.]/g, "")
-  const sensitive = new Set(
-    [...DEFAULT_SENSITIVE_KEYS, ...(options.keys ?? [])].map((key) => normalizeKey(key)),
-  )
   const seen = new WeakSet<object>()
 
-  const isSensitiveKey = (key: string): boolean => {
-    const normalized = normalizeKey(key)
-    for (const name of sensitive) {
-      if (normalized.includes(name)) {
-        return true
-      }
-    }
-    return false
-  }
+  const isSensitive = (key: string): boolean => isSensitiveKey(key, options.keys)
 
   const walk = (input: unknown, depth: number): unknown => {
     if (typeof input === "string") {
-      return looksSecret(input) ? mask : input
+      if (looksSecret(input)) {
+        return mask
+      }
+      // Mask embedded `<scheme> <token>` credentials (whole run) before the generic key=value
+      // matcher, so a serialized `Authorization: Bearer <jwt>` never leaks the token after its scheme.
+      return maskEmbeddedSecrets(maskCredentialSchemes(input, mask), mask, isSensitive)
     }
     // A callable value (e.g. an own `toJSON`) is surfaced as an inert marker, never carried through: a JSON log sink would otherwise invoke a surviving hook and could re-emit a captured secret after redaction.
     if (typeof input === "function") {
@@ -106,7 +169,7 @@ export function redact(value: unknown, options: RedactOptions = {}): unknown {
     } else {
       const entries: Array<[string, unknown]> = []
       for (const key of Object.keys(input)) {
-        if (isSensitiveKey(key)) {
+        if (isSensitive(key)) {
           // Mask from the key alone — reading the value could invoke an untrusted getter that leaks or throws.
           entries.push([key, mask])
           continue

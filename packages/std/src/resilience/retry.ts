@@ -1,6 +1,7 @@
 import { PlainError } from "../errors"
 import type { RandomSource } from "../random"
 import { systemRandom } from "../random"
+import type { WebAbortSignal } from "../web"
 import type { BackoffPolicy } from "./backoff"
 import { assertBackoffPolicy, nextBackoff } from "./backoff"
 import { isRetryable as defaultIsRetryable } from "./classify"
@@ -30,7 +31,7 @@ export interface RetryDeps {
   /** Injectable delay; defaults to the host timer. */
   readonly delay?: Delay
   /** Caller cancellation — aborts an in-flight backoff wait and stops further attempts. */
-  readonly signal?: AbortSignal
+  readonly signal?: WebAbortSignal
 }
 
 /** Raised when every attempt failed. Preserves the final failure as `cause` and the attempt count. */
@@ -47,10 +48,10 @@ export class RetryError extends PlainError<"std/retry-exhausted"> {
 /**
  * Drive `operation` under `policy`: attempt, and on a retryable failure of an idempotent operation wait a bounded, jittered backoff (honoring a `retryAfter` hint when present) before the next attempt, up to `maxAttempts`. A non-idempotent or non-retryable failure propagates immediately; a caller abort — before an attempt, while one is in flight, or during a backoff wait — propagates as a fatal {@link AbortError} and stops the loop (each attempt receives the caller signal so a cooperative operation can cancel its own work, and an uncooperative one is abandoned rather than awaited); exhausting all attempts throws a {@link RetryError} whose `cause` is the last failure. `random`/`delay` are injected for deterministic tests.
  *
- * @param operation - Receives the 0-based attempt index and an `AbortSignal` that mirrors the caller's cancellation; returns the operation's value.
+ * @param operation - Receives the 0-based attempt index and a `WebAbortSignal` that mirrors the caller's cancellation; returns the operation's value.
  */
 export async function runWithRetry<T>(
-  operation: (attempt: number, signal: AbortSignal) => Promise<T>,
+  operation: (attempt: number, signal: WebAbortSignal) => Promise<T>,
   policy: RetryPolicy,
   deps: RetryDeps = {},
 ): Promise<T> {
@@ -96,9 +97,9 @@ export async function runWithRetry<T>(
  * Run one attempt, handing it a signal that mirrors the caller's cancellation. If the caller aborts while the attempt is pending, reject immediately with a fatal {@link AbortError}; a later settle of the abandoned attempt is discarded, so a cancelled call never resolves with a stale success.
  */
 function attemptOnce<T>(
-  operation: (attempt: number, signal: AbortSignal) => Promise<T>,
+  operation: (attempt: number, signal: WebAbortSignal) => Promise<T>,
   attempt: number,
-  signal: AbortSignal | undefined,
+  signal: WebAbortSignal | undefined,
 ): Promise<T> {
   const operationSignal = combineSignals(signal)
   if (signal === undefined) {

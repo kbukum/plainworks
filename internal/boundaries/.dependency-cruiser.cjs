@@ -10,7 +10,7 @@
 // Single source of truth for the layer map (mirrors README + docs/architecture.md):
 //
 //   L0  std
-//   L1  state · ui
+//   L1  state · ui · http
 //   L2  connection · connect · query
 //   L3  auth
 //   L4  app · testkit · mocks        (dev/test tooling lives here too)
@@ -24,6 +24,10 @@
 
 const path = require("node:path")
 
+// A test module: `*.test.ts`/`*.test.tsx`. Test files are the ONLY source permitted the single
+// upward exception below (importing @plainworks/testkit); production source is not.
+const TEST_FILE = "\\.test\\.tsx?$"
+
 // Repo root, resolved from this file so cwd (a package dir under `bun run --filter`) is irrelevant.
 const repoRoot = path.resolve(__dirname, "..", "..")
 
@@ -31,6 +35,7 @@ const LAYERS = {
   std: 0,
   state: 1,
   ui: 1,
+  http: 1,
   connection: 2,
   connect: 2,
   query: 2,
@@ -44,8 +49,11 @@ const LAYERS = {
 function layerRules() {
   return Object.entries(LAYERS).map(([pkg, layer]) => {
     // Packages this one must NOT import: anything at the same or a higher layer, except itself.
+    // `testkit` is carved out here and governed by `no-production-testkit-import` instead, so the
+    // one test-only exception lives in a single place; every other upward/sideways edge (including
+    // testkit imported from *production* source) still trips this rule.
     const forbidden = Object.entries(LAYERS)
-      .filter(([other, otherLayer]) => other !== pkg && otherLayer >= layer)
+      .filter(([other, otherLayer]) => other !== pkg && otherLayer >= layer && other !== "testkit")
       .map(([other]) => other)
 
     return {
@@ -109,6 +117,20 @@ const forbidden = [
     severity: "error",
     from: { path: "(^|/)packages/[^/]+/src/" },
     to: { path: "(^|/)(apps|internal)/[^/]+/" },
+  },
+  {
+    // The single, deliberate upward exception. @plainworks/testkit (L4) ships shared fakes and
+    // harnesses that lower packages consume in their tests — a test-only edge, so `*.test.ts(x)`
+    // source is exempt (via `from.pathNot`) while production source may not pull test tooling into
+    // the shipped graph. This replaces testkit's coverage in the per-layer rules above, keeping the
+    // exception narrow: it relaxes testkit and only testkit, and only for test files. `testkit`'s
+    // own source is excluded from `from` so its internal imports stay legal.
+    name: "no-production-testkit-import",
+    comment:
+      "Only *.test.ts(x) files may import @plainworks/testkit; production source must not pull test tooling into the shipped graph.",
+    severity: "error",
+    from: { path: "(^|/)packages/(?!testkit/)[^/]+/src/", pathNot: TEST_FILE },
+    to: { path: "(^|/)packages/testkit/" },
   },
   ...layerRules(),
 ]

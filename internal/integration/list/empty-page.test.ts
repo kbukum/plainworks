@@ -5,8 +5,8 @@ import { createQueryClient, listQueryOptions, type PaginatedResult } from "@plai
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { readUserPage } from "./user-reads"
 
-// A filter that matches nothing must yield a *real* empty envelope through the assembled spine, not a
-// `null`/`undefined` masquerading as a page, and that empty envelope must still cache — no
+// A filter that matches nothing must yield a *real* empty envelope through the assembled spine, not
+// a `null`/`undefined` masquerading as a page, and that empty envelope must still cache — no
 // success-shaped fallback on the read path.
 
 const handle = createMockServerHandle({ seed: 42 })

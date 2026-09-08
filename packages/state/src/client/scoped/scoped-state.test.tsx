@@ -219,11 +219,11 @@ describe("createScopedState — imperative api, actions, and errors", () => {
         <Grab />
       </useTheme.Provider>,
     )
-    // The default report surfaces a rejected persist as an unhandled rejection (a universal Promise,
-    // no host scheduler) — captured here to prove it is neither swallowed nor left to crash the host.
-    // The rejection lands on the Node test runner's `unhandledRejection`, not jsdom's window event,
-    // so reach the runner's process through a narrowly-typed accessor (the DOM typecheck config, by
-    // design, declares no Node globals).
+    // The default report surfaces a rejected persist as an unhandled rejection (a universal
+    // Promise, no host scheduler) — captured here to prove it is neither swallowed nor left to
+    // crash the host. The rejection lands on the Node test runner's `unhandledRejection`, not
+    // jsdom's window event, so reach the runner's process through a narrowly-typed accessor (the
+    // DOM typecheck config, by design, declares no Node globals).
     interface RejectionEmitter {
       on(event: "unhandledRejection", listener: (reason: unknown) => void): void
       off(event: "unhandledRejection", listener: (reason: unknown) => void): void

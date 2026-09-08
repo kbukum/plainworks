@@ -10,11 +10,11 @@ import { createSourceReconciler } from "./reconcile"
 import { createScopedSurface, mergeActions, type Report, type ScopedInstance } from "./surface"
 
 /**
- * How a value's next state is expressed on {@link ScopedStateApi.set} — a value or an updater. A
- * function argument is always treated as `(previous) => next`, matching React's `useState` setter. A
- * value whose own type is a function therefore cannot be assigned directly (it would be *invoked*);
- * wrap function-valued state in a holder object (`{ fn }`) or model it in `memory` where identity is
- * preserved.
+ * How a value's next state is expressed on {@link ScopedStateApi.set} — a value or an updater.
+ * A function argument is always treated as `(previous) => next`, matching React's `useState`
+ * setter. A value whose own type is a function therefore cannot be assigned directly (it would be
+ * *invoked*); wrap function-valued state in a holder object (`{ fn }`) or model it in `memory`
+ * where identity is preserved.
  */
 export type ScopedSetter<Value> = Value | ((previous: Value) => Value)
 
@@ -46,23 +46,25 @@ export interface ScopedStateConfig<Value, Actions extends object = Record<never,
   /** Encode/decode for a string-backed scope; defaults to a JSON serializer. Ignored by `memory`. */
   readonly serializer?: StateSerializer<Value>
   /**
-   * Optional Standard Schema validator. A persisted scope (`persistent`/`session`/`cookie`/`url`) is
-   * an **untrusted** medium — supply a schema to validate a decoded value at the read boundary; a
-   * tampered or wrong-shaped value then becomes a typed `StateSourceError` (routed to `onError`)
+   * Optional Standard Schema validator. A persisted scope (`persistent`/`session`/`cookie`/`url`)
+   * is an **untrusted** medium — supply a schema to validate a decoded value at the read boundary;
+   * a tampered or wrong-shaped value then becomes a typed `StateSourceError` (routed to `onError`)
    * instead of a fabricated `Value`. Unnecessary for `memory` (it holds the live typed reference).
    */
   readonly schema?: StandardSchemaV1<unknown, Value>
   /**
    * Marks the value a secret — rejected at construction unless `scope` is memory-equivalent (the
-   * in-memory access-token fallback), so a token can never be placed in `persistent`/`cookie`/`url`.
+   * in-memory access-token fallback), so a token can never be placed in
+   * `persistent`/`cookie`/`url`.
    */
   readonly sensitivity?: Sensitivity
   /** Optional named actions merged onto the {@link ScopedStateApi} handle. */
   readonly actions?: ScopedStateActions<Value, Actions>
   /**
-   * Where a backend persistence failure goes. A write is optimistic — the mirror updates immediately
-   * — so a rejected `source.set` would otherwise be an unhandled rejection; by default it is re-thrown
-   * asynchronously (surfaced to the host's error handling, never swallowed). Supply this to route it.
+   * Where a backend persistence failure goes. A write is optimistic — the mirror updates
+   * immediately — so a rejected `source.set` would otherwise be an unhandled rejection; by default
+   * it is re-thrown asynchronously (surfaced to the host's error handling, never swallowed).
+   * Supply this to route it.
    */
   readonly onError?: (error: unknown) => void
 }
@@ -70,8 +72,9 @@ export interface ScopedStateConfig<Value, Actions extends object = Record<never,
 /** Props for a scoped-state `Provider`. */
 export interface ScopedStateProviderProps<Value> {
   /**
-   * Server-provided value for hydration. It is rendered on the server and on the first client render
-   * (so markup matches), then reconciled against the backend once mounted — no hydration flash.
+   * Server-provided value for hydration. It is rendered on the server and on the first client
+   * render (so markup matches), then reconciled against the backend once mounted — no hydration
+   * flash.
    */
   readonly initialValue?: Value
   readonly children: ReactNode
@@ -80,7 +83,8 @@ export interface ScopedStateProviderProps<Value> {
 /**
  * The callable `use`-prefixed surface {@link createScopedState} returns — the binding **is** the
  * subscribing hook (`const useThing = createScopedState(...)`, then `useThing(selector)`), exactly
- * like Zustand's `create`. `Provider` is the per-request boundary; `useApi` is the imperative handle.
+ * like Zustand's `create`. `Provider` is the per-request boundary; `useApi` is the imperative
+ * handle.
  */
 export interface ScopedStateSurface<Value, Handle> {
   /** Read the whole value. */
@@ -94,16 +98,17 @@ export interface ScopedStateSurface<Value, Handle> {
 }
 
 /**
- * Create a scoped-state binding: **one consumer surface**, parameterized by scope. The returned value
- * **is the subscribing hook** — `const useTheme = createScopedState({...})`, then `useTheme()` or
- * `useTheme((v) => v.slice)` — with `useTheme.Provider` and `useTheme.useApi()` hung on it, exactly
- * like Zustand's `create`. Reading the same value whether it is held in `memory`, `persistent`,
- * `cookie`, `url`, or a future `remote` scope is the single `scope:` change, not a call-site rewrite.
+ * Create a scoped-state binding: **one consumer surface**, parameterized by scope. The returned
+ * value **is the subscribing hook** — `const useTheme = createScopedState({...})`, then
+ * `useTheme()` or `useTheme((v) => v.slice)` — with `useTheme.Provider` and `useTheme.useApi()`
+ * hung on it, exactly like Zustand's `create`. Reading the same value whether it is held in
+ * `memory`, `persistent`, `cookie`, `url`, or a future `remote` scope is the single `scope:`
+ * change, not a call-site rewrite.
  *
  * A scoped value is the **composition of two seams**: a {@link StateSource} *backend* (the scope,
  * where the value lives) feeding a mirror {@link Store} driven through the React *binding*
- * (`useSyncExternalStore`). Writes update the mirror immediately and persist to the backend; a change
- * from the backend (another tab, a navigation, a remote push) flows back into the mirror.
+ * (`useSyncExternalStore`). Writes update the mirror immediately and persist to the backend; a
+ * change from the backend (another tab, a navigation, a remote push) flows back into the mirror.
  */
 export function createScopedState<Value, Actions extends object = Record<never, never>>(
   config: ScopedStateConfig<Value, Actions>,
@@ -145,8 +150,8 @@ export function createScopedState<Value, Actions extends object = Record<never, 
       subscribe: (onChange) => store.subscribe(() => onChange()),
     }
     const api = mergeActions(base, config.actions)
-    // Reconcile once on mount (the client's stored value may differ from the SSR seed), then stay in
-    // sync with external changes — latest-wins and removal-aware, owned by the reconciler.
+    // Reconcile once on mount (the client's stored value may differ from the SSR seed), then stay
+    // in sync with external changes — latest-wins and removal-aware, owned by the reconciler.
     const connect: (report: Report) => () => void = () => reconciler.start()
     return { store, api, connect }
   }

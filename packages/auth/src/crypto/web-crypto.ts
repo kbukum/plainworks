@@ -20,8 +20,8 @@ interface WebCryptoLike {
 /**
  * Resolve the runtime's Web Crypto without assuming a host global exists at import time — the same
  * lazy-global pattern as `@plainworks/std`'s `id.ts`. `crypto.subtle` and `crypto.getRandomValues`
- * are Web Standards present in Node 18+, Deno, edge runtimes, and browsers, but the portability shim
- * deliberately does not declare them (they have host variance), so this is the one place that
+ * are Web Standards present in Node 18+, Deno, edge runtimes, and browsers, but the portability
+ * shim deliberately does not declare them (they have host variance), so this is the one place that
  * feature-detects them.
  *
  * @throws {AuthError} `auth/crypto-unavailable` when the runtime exposes no usable Web Crypto.
@@ -47,10 +47,10 @@ function resolveWebCrypto(): WebCryptoLike {
 }
 
 /**
- * The platform-default {@link AuthCrypto}, backed by the host's Web Crypto. Host-independent: it does
- * no work at import time and resolves the `crypto` global lazily on each call, so importing this
- * module never touches the runtime. A host without Web Crypto (older RN) injects its own `AuthCrypto`
- * rather than hard-importing a polyfill into the core.
+ * The platform-default {@link AuthCrypto}, backed by the host's Web Crypto. Host-independent: it
+ * does no work at import time and resolves the `crypto` global lazily on each call, so importing
+ * this module never touches the runtime. A host without Web Crypto (older RN) injects its own
+ * `AuthCrypto` rather than hard-importing a polyfill into the core.
  */
 export function defaultAuthCrypto(): AuthCrypto {
   return {

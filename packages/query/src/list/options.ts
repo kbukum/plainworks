@@ -39,9 +39,9 @@ export interface ListQueryPlan<T> {
  * `useQuery`.
  */
 export function listQueryOptions<T>(input: ListQueryOptionsInput<T>): ListQueryPlan<T> {
-  // Offset mode has no cursor. Strip any caller-supplied `cursor` so the key (which already omits it)
-  // and the fetch agree — otherwise two plans differing only by cursor would share a key yet fetch
-  // different pages, returning one plan's page under the other's key.
+  // Offset mode has no cursor. Strip any caller-supplied `cursor` so the key (which already omits
+  // it) and the fetch agree — otherwise two plans differing only by cursor would share a key yet
+  // fetch different pages, returning one plan's page under the other's key.
   const { cursor: _cursor, ...params } = input.params
   return {
     queryKey: listQueryKey(input.resource, params, input),
@@ -80,17 +80,17 @@ export interface InfiniteListQueryPlan<T> {
 
 /**
  * Assemble an {@link InfiniteListQueryPlan} for a **cursor** list — one shared key from
- * {@link infiniteListQueryKey} plus the `initialPageParam`/`getNextPageParam`/`getPreviousPageParam`
- * wiring `useInfiniteQuery` needs. The current cursor is folded into `params.cursor` before each fetch,
- * and the next/prev cursors are read from the {@link CursorResult} envelope — the reason cursor is the
- * default for infinite lists (an offset would drift as rows change between fetches). Caller-supplied
- * `cursor` and `page` are stripped (the query engine owns the cursor; offset has no meaning here) so a
- * stray control param never leaks into the fetch or scatters the cache; the start point is
- * `initialCursor`, which is included in the cache key so plans starting at different cursors key
- * distinctly. Every fetch carries an explicit `cursor` — the empty string on the first page — so a
- * backend implementing the canonical contract can select cursor mode from the very first request
- * (without it, a cursor first page and a defaulted offset page 1 are identical on the wire). Spread
- * into `useInfiniteQuery`.
+ * {@link infiniteListQueryKey} plus the
+ * `initialPageParam`/`getNextPageParam`/`getPreviousPageParam` wiring `useInfiniteQuery` needs.
+ * The current cursor is folded into `params.cursor` before each fetch, and the next/prev cursors
+ * are read from the {@link CursorResult} envelope — the reason cursor is the default for infinite
+ * lists (an offset would drift as rows change between fetches). Caller-supplied `cursor` and `page`
+ * are stripped (the query engine owns the cursor; offset has no meaning here) so a stray control
+ * param never leaks into the fetch or scatters the cache; the start point is `initialCursor`, which
+ * is included in the cache key so plans starting at different cursors key distinctly. Every fetch
+ * carries an explicit `cursor` — the empty string on the first page — so a backend implementing the
+ * canonical contract can select cursor mode from the very first request (without it, a cursor first
+ * page and a defaulted offset page 1 are identical on the wire). Spread into `useInfiniteQuery`.
  */
 export function infiniteListQueryOptions<T>(
   input: InfiniteListQueryOptionsInput<T>,

@@ -4,9 +4,9 @@ import { invalidateCache, writeQueryData } from "./routing"
 
 /**
  * The cache action a routed event resolves to — either write the decoded payload into a key, or
- * invalidate a set of queries so they refetch. A router returns one of these (or `undefined` to ignore
- * the event); the sink executes it. This is the whole protocol-agnostic routing vocabulary: no
- * per-protocol event bus, just "set this" or "invalidate that".
+ * invalidate a set of queries so they refetch. A router returns one of these (or `undefined` to
+ * ignore the event); the sink executes it. This is the whole protocol-agnostic routing vocabulary:
+ * no per-protocol event bus, just "set this" or "invalidate that".
  */
 export type QueryCacheAction =
   | {
@@ -23,9 +23,9 @@ export type QueryCacheAction =
     }
 
 /**
- * Map one decoded {@link PlainEvent} to the {@link QueryCacheAction} it should drive, or `undefined` to
- * drop it (an event type this sink ignores). Pure and synchronous — the routing decision is data, so it
- * is trivial to unit-test without a cache; the sink performs the effect.
+ * Map one decoded {@link PlainEvent} to the {@link QueryCacheAction} it should drive, or
+ * `undefined` to drop it (an event type this sink ignores). Pure and synchronous — the routing
+ * decision is data, so it is trivial to unit-test without a cache; the sink performs the effect.
  */
 export type QueryEventRouter<TEvent extends PlainEvent = PlainEvent> = (
   event: TEvent,
@@ -33,10 +33,11 @@ export type QueryEventRouter<TEvent extends PlainEvent = PlainEvent> = (
 
 /**
  * A sink that folds decoded events into the query cache — the cache-side counterpart to `channel`'s
- * state sink. Both consume the **same neutral {@link PlainEvent} shape**, so one live stream can drive
- * scoped state and the query cache with no bespoke bus. `deliver` is async and honors `signal`: a slow
- * `invalidate` awaits its refetches (applying backpressure), and a delivery that arrives after the
- * owning stream tore down is dropped rather than mutating a cache the host has abandoned.
+ * state sink. Both consume the **same neutral {@link PlainEvent} shape**, so one live stream can
+ * drive scoped state and the query cache with no bespoke bus. `deliver` is async and honors
+ * `signal`: a slow `invalidate` awaits its refetches (applying backpressure), and a delivery that
+ * arrives after the owning stream tore down is dropped rather than mutating a cache the host has
+ * abandoned.
  */
 export interface QueryEventSink<TEvent extends PlainEvent = PlainEvent> {
   /** Route `event` and apply the resulting cache action; a no-op when the router ignores it or `signal` has aborted. */
@@ -46,8 +47,9 @@ export interface QueryEventSink<TEvent extends PlainEvent = PlainEvent> {
 /**
  * Build a {@link QueryEventSink} that routes each event through `route` and applies the action to
  * `client`. The transport (a `channel` SSE/WS stream at the app layer) owns delivery order and
- * teardown; this sink owns only the fold into the cache. It never imports a transport — it is wired to
- * one at composition, keeping "Query is optional" true and the L2 layer free of sideways imports.
+ * teardown; this sink owns only the fold into the cache. It never imports a transport — it is wired
+ * to one at composition, keeping "Query is optional" true and the L2 layer free of sideways
+ * imports.
  */
 export function createQueryEventSink<TEvent extends PlainEvent = PlainEvent>(
   client: QueryClient,
@@ -55,7 +57,8 @@ export function createQueryEventSink<TEvent extends PlainEvent = PlainEvent>(
 ): QueryEventSink<TEvent> {
   return {
     async deliver(event: TEvent, signal?: WebAbortSignal): Promise<void> {
-      // The owning stream may have closed before this delivery ran — never mutate the cache post-teardown.
+      // The owning stream may have closed before this delivery ran — never mutate the cache
+      // post-teardown.
       if (signal?.aborted) {
         return
       }

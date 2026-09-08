@@ -75,11 +75,17 @@ export interface HttpClientOptions {
 }
 
 /**
- * A typed fetch client. Build one per request scope via {@link createHttpClient} — no module singleton.
+ * A typed fetch client. Build one per request scope via {@link createHttpClient} — no module
+ * singleton.
  *
- * `request` is the low-level call returning the full {@link HttpResponse} (status, headers, final URL, decoded body). The {@link ResourceMethods} (`get`/`post`/`put`/`patch`/`delete`) are the ergonomic surface over it: they preset the method, handle idempotency-key writes, and resolve to the decoded body for the common case.
+ * `request` is the low-level call returning the full {@link HttpResponse} (status, headers, final
+ * URL, decoded body). The {@link ResourceMethods} (`get`/`post`/`put`/`patch`/`delete`) are the
+ * ergonomic surface over it: they preset the method, handle idempotency-key writes, and resolve to
+ * the decoded body for the common case.
  *
- * A request with a `schema` validates the untrusted body and resolves to the schema's inferred type; a request without one resolves to `unknown`, so the wire is never silently trusted as a caller-chosen `T`.
+ * A request with a `schema` validates the untrusted body and resolves to the schema's inferred
+ * type; a request without one resolves to `unknown`, so the wire is never silently trusted as a
+ * caller-chosen `T`.
  */
 export interface HttpClient extends ResourceMethods {
   request<S extends StandardSchemaV1>(
@@ -193,8 +199,9 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
             await cancelBody(response)
             throw HttpError.status(response.status, statusOptions)
           }
-          // Decode under the attempt's timeout/abort signal so a response that sends headers and then
-          // stalls its body cannot hang forever and post-headers cancellation is still honored.
+          // Decode under the attempt's timeout/abort signal so a response that sends headers and
+          // then stalls its body cannot hang forever and post-headers cancellation is still
+          // honored.
           const decoded = await codec.decode(response, timeoutSignal)
           // The wire is untrusted: validate the decoded body against the caller's schema at the
           // boundary (no schema → the raw `unknown` is returned, never a fabricated `T`). An empty
@@ -216,8 +223,8 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
         timeoutOptions,
       ).catch((error: unknown) => {
         // A per-attempt deadline surfaces as a std TimeoutError; remap it to a typed, retryable
-        // http/timeout so the caller keeps a single HttpError contract and the retry driver can back
-        // off and try again. A caller cancellation (AbortError) is left untouched.
+        // http/timeout so the caller keeps a single HttpError contract and the retry driver can
+        // back off and try again. A caller cancellation (AbortError) is left untouched.
         if (error instanceof TimeoutError) {
           throw HttpError.timeout({ cause: error })
         }
@@ -243,9 +250,9 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
 
 /**
  * Validate a decoded, untrusted response body against the caller's Standard Schema at the trust
- * boundary. On success the parsed, typed value is returned; a validation failure is mapped to a fatal
- * `http/validate` {@link HttpError} that preserves the issues as `cause`, so an invalid body never
- * escapes the typed error model as a fabricated value.
+ * boundary. On success the parsed, typed value is returned; a validation failure is mapped to a
+ * fatal `http/validate` {@link HttpError} that preserves the issues as `cause`, so an invalid body
+ * never escapes the typed error model as a fabricated value.
  */
 async function validateBody(schema: StandardSchemaV1, decoded: unknown): Promise<unknown> {
   const result = await validateWithSchema(schema, decoded)
@@ -269,10 +276,10 @@ async function cancelBody(response: WebResponse): Promise<void> {
 
 /**
  * When retries are exhausted the shared driver wraps the final failure in a {@link RetryError}.
- * Surface the underlying cause so a caller sees the actual last failure — its typed {@link HttpError}
- * discriminant (`http/status` | `http/network` | `http/timeout` | …), `status`, and `category` — on
- * an exhausted request, instead of a generic `std/retry-exhausted` error it would have to unwrap by
- * hand.
+ * Surface the underlying cause so a caller sees the actual last failure — its typed
+ * {@link HttpError} discriminant (`http/status` | `http/network` | `http/timeout` | …), `status`,
+ * and `category` — on an exhausted request, instead of a generic `std/retry-exhausted` error it
+ * would have to unwrap by hand.
  */
 function unwrapRetryError(error: unknown): unknown {
   if (error instanceof RetryError && error.cause !== undefined) {
@@ -297,8 +304,8 @@ function makeTerminal(
     // the final URL so a reintroduced userinfo credential or credential-shaped query never reaches
     // the wire (header-only auth), regardless of what the chain did.
     assertSafeRequestUrl(request.url)
-    // A rewrite that also crossed origins would deliver the injected Authorization (or a cookie) to a
-    // different host than the caller targeted; refuse it rather than leak the credential.
+    // A rewrite that also crossed origins would deliver the injected Authorization (or a cookie) to
+    // a different host than the caller targeted; refuse it rather than leak the credential.
     assertNoCrossOriginCredentialLeak(request.url, expectedOrigin, request.headers)
     outbound.url = request.url
     try {
@@ -319,8 +326,9 @@ const CREDENTIAL_HEADERS = ["authorization", "cookie", "proxy-authorization"] as
 
 /**
  * Refuse to send a credential across origins. When an interceptor rewrites the URL to a different
- * origin than the request targeted and a credential header is present, the injected credential would
- * leak to that host — a fatal unsafe-url fault, not a silent send. Same-origin rewrites are allowed.
+ * origin than the request targeted and a credential header is present, the injected credential
+ * would leak to that host — a fatal unsafe-url fault, not a silent send. Same-origin rewrites are
+ * allowed.
  */
 function assertNoCrossOriginCredentialLeak(
   finalUrl: string,

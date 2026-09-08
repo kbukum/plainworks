@@ -55,7 +55,8 @@ describe("remote scope through the scoped-state surface", () => {
 
     render(createElement(useCount.Provider, null, createElement(Counter)))
 
-    // A change written straight to the cache (e.g. a query refetch) flows through subscribe -> the mirror.
+    // A change written straight to the cache (e.g. a query refetch) flows through subscribe -> the
+    // mirror.
     act(() => {
       client.setQueryData(["plainworks", "remote", "count"], 42)
     })

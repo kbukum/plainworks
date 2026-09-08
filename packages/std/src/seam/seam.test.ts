@@ -3,7 +3,9 @@ import type { AuthHeaderProvider, AuthHeaders } from "./auth"
 import type { Listener, PlainEvent, Subscription } from "./events"
 import type { StateCapabilities, StateSerializer, StateSource } from "./state"
 
-// Downstream smoke: prove the shared seams higher layers implement type-check and behave. These are the single source of truth for the auth-header contract and event shapes — connection, connect, and auth satisfy them structurally without importing one another.
+// Downstream smoke: prove the shared seams higher layers implement type-check and behave.
+// These are the single source of truth for the auth-header contract and event shapes — connection,
+// connect, and auth satisfy them structurally without importing one another.
 
 describe("auth-header seam", () => {
   test("a synchronous provider resolves header-only credentials", async () => {

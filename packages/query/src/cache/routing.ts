@@ -2,12 +2,12 @@ import type { InvalidateQueryFilters, QueryClient, QueryKey, Updater } from "@ta
 
 /**
  * Write decoded data into the cache for `queryKey` — the payload-carrying half of protocol-agnostic
- * cache routing. `updater` is either the next value or a `(previous) => next` function (the standard
- * TanStack updater), so a caller can fold an event onto the current value without a separate read.
- * An updater that returns `undefined` **evicts** the slot (TanStack's own `setQueryData(key, undefined)`
- * is a no-op, so eviction is the only way to truly clear). Returns the value now in the cache, or
- * `undefined` if it was evicted. Thin by design: it owns no protocol knowledge — the caller decides
- * the key and the fold.
+ * cache routing. `updater` is either the next value or a `(previous) => next` function (the
+ * standard TanStack updater), so a caller can fold an event onto the current value without a
+ * separate read. An updater that returns `undefined` **evicts** the slot (TanStack's own
+ * `setQueryData(key, undefined)` is a no-op, so eviction is the only way to truly clear).
+ * Returns the value now in the cache, or `undefined` if it was evicted. Thin by design: it owns no
+ * protocol knowledge — the caller decides the key and the fold.
  */
 export function writeQueryData<T>(
   client: QueryClient,
@@ -24,9 +24,9 @@ export function writeQueryData<T>(
 }
 
 /**
- * Mark cached queries stale so TanStack refetches them — the change-signal half of cache routing, for
- * an event that says "something changed, re-read it" without carrying the new value. Matching is a
- * **prefix** match on `filters.queryKey` (as TanStack invalidation always is), so invalidating
+ * Mark cached queries stale so TanStack refetches them — the change-signal half of cache routing,
+ * for an event that says "something changed, re-read it" without carrying the new value. Matching
+ * is a **prefix** match on `filters.queryKey` (as TanStack invalidation always is), so invalidating
  * `["users"]` refetches every `["users", …]` query. Returns the settle promise of the refetches.
  */
 export function invalidateCache(
@@ -42,8 +42,8 @@ export interface OptimisticUpdate<T> {
   readonly previous: T | undefined
   /**
    * Restore the cache to {@link previous} — call when the backing mutation rejects. Compare-and-set
-   * on the **write revision** (the query object and its `dataUpdateCount`): the restore happens only
-   * while the slot still holds exactly this update's write, so a failed older mutation never
+   * on the **write revision** (the query object and its `dataUpdateCount`): the restore happens
+   * only while the slot still holds exactly this update's write, so a failed older mutation never
    * overwrites a newer one — even a newer write of an equal value (indistinguishable by reference)
    * or an eviction followed by a rewrite (a fresh query object). Returns whether the restore ran —
    * `false` means a newer write won and the snapshot was dropped.
@@ -52,12 +52,12 @@ export interface OptimisticUpdate<T> {
 }
 
 /**
- * Apply an optimistic write and hand back a `rollback` — the optimistic-then-reconcile pattern for a
- * mutation. It snapshots the current value, writes `apply(previous)` immediately, and returns the
+ * Apply an optimistic write and hand back a `rollback` — the optimistic-then-reconcile pattern for
+ * a mutation. It snapshots the current value, writes `apply(previous)` immediately, and returns the
  * snapshot plus a `rollback` that restores it. The caller performs the real mutation and calls
- * `rollback()` on failure (and typically invalidates on success to reconcile against the server). No
- * timers or retained subscriptions: the rollback closes over the snapshot only, so nothing leaks if it
- * is never called.
+ * `rollback()` on failure (and typically invalidates on success to reconcile against the server).
+ * No timers or retained subscriptions: the rollback closes over the snapshot only, so nothing leaks
+ * if it is never called.
  */
 export function optimisticUpdate<T>(params: {
   readonly client: QueryClient
@@ -95,10 +95,10 @@ export function optimisticUpdate<T>(params: {
 
 /**
  * Write `value` for `queryKey`, but **evict** the slot when `value` is `undefined`. TanStack's
- * `setQueryData(key, undefined)` is a no-op — it never deletes — so an `undefined` target must remove
- * the query to truly mean "no value". This keeps the optimistic write symmetric with its rollback: an
- * optimistic clear (`apply` returning `undefined`) actually clears, and restoring a slot that was empty
- * before the write actually empties it.
+ * `setQueryData(key, undefined)` is a no-op — it never deletes — so an `undefined` target must
+ * remove the query to truly mean "no value". This keeps the optimistic write symmetric with its
+ * rollback: an optimistic clear (`apply` returning `undefined`) actually clears, and restoring a
+ * slot that was empty before the write actually empties it.
  */
 function setOrEvict<T>(client: QueryClient, queryKey: QueryKey, value: T | undefined): void {
   if (value === undefined) {

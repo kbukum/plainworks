@@ -1,5 +1,5 @@
-// @vitest-environment jsdom
-// Client tests opt into jsdom per file; the package default stays `node` so the server-safe `.` entry can never lean on DOM globals unnoticed.
+// @vitest-environment jsdom Client tests opt into jsdom per file; the package default stays `node`
+//   so the server-safe `.` entry can never lean on DOM globals unnoticed.
 import { act, cleanup, render, renderHook, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import axe from "axe-core"
@@ -239,7 +239,8 @@ describe("createChannelContext", () => {
         </ChannelProvider>
       </StrictMode>,
     )
-    // StrictMode ran mount → unmount → mount; the first channel was closed and a fresh one is connecting (a terminally-closed channel would leave status stuck and never open).
+    // StrictMode ran mount → unmount → mount; the first channel was closed and a fresh one is
+    // connecting (a terminally-closed channel would leave status stuck and never open).
     expect(screen.getByRole("status").textContent).toBe("connecting")
 
     await act(async () => {

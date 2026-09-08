@@ -1,10 +1,10 @@
 import { PlainError, type PlainErrorOptions } from "@plainworks/std"
 
 /**
- * Typed error raised by `@plainworks/state`. Extends the kit's {@link PlainError} so the whole graph
- * shares one error shape — a machine-readable `kind` discriminant and a preserved `cause`. Thrown
- * when `useStore` or `useStoreApi` is called outside the store's matching `<Provider>`, where there
- * is no per-request store to read from.
+ * Typed error raised by `@plainworks/state`. Extends the kit's {@link PlainError} so the whole
+ * graph shares one error shape — a machine-readable `kind` discriminant and a preserved `cause`.
+ * Thrown when `useStore` or `useStoreApi` is called outside the store's matching `<Provider>`,
+ * where there is no per-request store to read from.
  */
 export class StateError extends PlainError<"state/missing-provider"> {
   constructor(message: string, options?: PlainErrorOptions) {
@@ -52,8 +52,8 @@ export interface StateSourceErrorOptions extends PlainErrorOptions {
  *
  * It doubles as the **aggregate** for a `createScopedObject` patch that fans a write across several
  * scopes: when one or more fields fail, {@link failures} lists each failed field key with its cause
- * (and `cause` holds the single failure when exactly one field failed), so no field error is swallowed
- * and a partial write never masquerades as a success.
+ * (and `cause` holds the single failure when exactly one field failed), so no field error is
+ * swallowed and a partial write never masquerades as a success.
  */
 export class StateSourceError extends PlainError<"state/source"> {
   /** The per-field failures when this error aggregates a multi-field patch; `undefined` otherwise. */

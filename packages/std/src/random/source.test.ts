@@ -11,7 +11,8 @@ test("different seeds diverge", () => {
   expect(createSeededRandom(1).next()).not.toBe(createSeededRandom(2).next())
 })
 
-// Golden vector: locks the exact mulberry32 seed→sequence mapping so an accidental algorithm change fails loudly instead of silently shifting every consumer's fixtures.
+// Golden vector: locks the exact mulberry32 seed→sequence mapping so an accidental algorithm change
+// fails loudly instead of silently shifting every consumer's fixtures.
 test("seed 42 matches the golden mulberry32 vector", () => {
   const rng = createSeededRandom(42)
   expect(rng.next()).toBe(0.60110375192016363)

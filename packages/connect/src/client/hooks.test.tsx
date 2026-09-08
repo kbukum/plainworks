@@ -1,6 +1,5 @@
-// @vitest-environment jsdom
-// Client hooks run against jsdom per file; the package default stays `node` so the neutral `.` entry
-// can never lean on a DOM global unnoticed.
+// @vitest-environment jsdom Client hooks run against jsdom per file; the package default stays
+//   `node` so the neutral `.` entry can never lean on a DOM global unnoticed.
 import { createFakeConnectTransport, EchoService } from "@plainworks/testkit/connect"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, render, screen } from "@testing-library/react"

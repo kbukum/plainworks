@@ -1,6 +1,6 @@
-// Default `node` environment: the shared string-medium source is driven with a hand-built backend so
-// its serialize/write/clear failure paths — every one mapped to a typed StateSourceError with the
-// cause preserved — are exercised directly, without a host.
+// Default `node` environment: the shared string-medium source is driven with a hand-built backend
+// so its serialize/write/clear failure paths — every one mapped to a typed StateSourceError with
+// the cause preserved — are exercised directly, without a host.
 
 import type { StandardSchemaV1, StateCapabilities, StateSerializer } from "@plainworks/std"
 import { describe, expect, test } from "vitest"

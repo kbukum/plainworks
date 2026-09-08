@@ -9,8 +9,8 @@ export interface FakeSchemaOptions {
 }
 
 /**
- * Build a {@link StandardSchemaV1} from a plain `validate` function for transport/validation tests —
- * a controllable Standard Schema without pulling in Zod/Valibot. The function returns either a
+ * Build a {@link StandardSchemaV1} from a plain `validate` function for transport/validation tests
+ * — a controllable Standard Schema without pulling in Zod/Valibot. The function returns either a
  * `{ value }` (accepted, typed) or `{ issues }` (rejected) result; set `async` to exercise the
  * promise-returning validate path.
  */

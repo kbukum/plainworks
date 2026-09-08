@@ -4,14 +4,16 @@
  * client cookie scope in `@plainworks/state` and the server-owned `__Host-` session cookie in
  * `@plainworks/auth` share **one** grammar instead of each hand-rolling it. It touches no host
  * global: name/path checks are string regexes, the byte budget is measured without allocating a
- * `TextEncoder`, and reading `document.cookie` / the host `Set-Cookie` transport stays with the caller.
+ * `TextEncoder`, and reading `document.cookie` / the host `Set-Cookie` transport stays with the
+ * caller.
  */
 
 // A cookie name is an RFC 6265 token: visible ASCII minus controls, whitespace, and separators
 // (`( ) < > @ , ; : \ " / [ ] ? = { }`). A name outside this set can break the `key=value; attrs`
 // grammar or let a value smuggle attributes.
 const COOKIE_NAME = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/
-// A path attribute: starts with `/` and carries no whitespace, `;`, or `,` that would break parsing.
+// A path attribute: starts with `/` and carries no whitespace, `;`, or `,` that would break
+// parsing.
 const COOKIE_PATH = /^\/[^\s;,]*$/
 
 /** The per-cookie browser budget: ~4096 bytes for the whole `key=value; attrs` entry. */
@@ -46,8 +48,8 @@ export function isCookiePath(path: string): boolean {
 
 /**
  * The UTF-8 byte length of `value`, measured directly so a hot cookie write never allocates a
- * `TextEncoder`. Matches `new TextEncoder().encode(value).length` — including the 3-byte replacement
- * for a lone surrogate — which is what the cookie byte budget is measured against.
+ * `TextEncoder`. Matches `new TextEncoder().encode(value).length` — including the 3-byte
+ * replacement for a lone surrogate — which is what the cookie byte budget is measured against.
  */
 export function utf8ByteLength(value: string): number {
   let bytes = 0
@@ -77,8 +79,8 @@ export function utf8ByteLength(value: string): number {
 /**
  * Serialize the attribute suffix of a cookie entry (`Path=/; SameSite=Lax; Max-Age=…; Secure;
  * HttpOnly`) in a fixed order. Pure — it assumes an already-validated `path` (check
- * {@link isCookiePath} first) and enforces the one hard grammar rule: `SameSite=None` is only honored
- * on a `Secure` cookie, so `Secure` is forced there regardless of the `secure` flag.
+ * {@link isCookiePath} first) and enforces the one hard grammar rule: `SameSite=None` is only
+ * honored on a `Secure` cookie, so `Secure` is forced there regardless of the `secure` flag.
  */
 export function serializeCookieAttributes(attributes: CookieAttributes = {}): string {
   const path = attributes.path ?? "/"

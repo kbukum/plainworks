@@ -17,8 +17,9 @@ export interface PresetOptions {
  * The one build shape every plainworks package uses:
  *
  * - **ESM-only** (dual CJS/ESM is legacy).
- * - **`platform: "neutral"`** — no host assumptions (matches the "assume no host" charter) and, with
- *   `type: "module"`, yields plain `.js` / `.d.ts` output that the package `exports` map points at.
+ * - **`platform: "neutral"`** — no host assumptions (matches the "assume no host" charter) and,
+ *   with `type: "module"`, yields plain `.js` / `.d.ts` output that the package `exports` map
+ *   points at.
  * - **`unbundle`** keeps the source module graph 1:1 in `dist`, so a per-module `"use client"`
  *   directive is preserved on exactly the modules that declared it — the server `.` entry never
  *   gets a stray client banner.

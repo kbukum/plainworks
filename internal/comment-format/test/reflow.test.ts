@@ -143,6 +143,41 @@ describe("regression: template literals and inline code", () => {
   })
 })
 
+describe("sentence-aware wrapping", () => {
+  const lineAfter = (out: string, needle: string): string | undefined =>
+    out.split("\n").find((l) => l.includes(needle))
+
+  test("breaks before a new sentence when its boundary sits within the window of the margin", () => {
+    // The first sentence fills the line to near the margin, so the second sentence starts fresh.
+    const src =
+      "// Integration tests assemble the neutral, server-safe surfaces plus the msw mock service now. Concern folders live directly under the package here for sure.\nconst a = 1\n"
+    const out = run(src)
+    expect(withinWidth(out)).toBe(true)
+    // The line ending the first sentence must not carry the start of the next one.
+    const boundaryLine = lineAfter(out, "mock service now.")
+    expect(boundaryLine).toBeDefined()
+    expect(boundaryLine).not.toContain("Concern")
+    expect(out).toMatch(/^\/\/ Concern folders/m)
+  })
+
+  test("does NOT pull back to a sentence boundary that is far from the margin (stays greedy)", () => {
+    const src =
+      "// Short. This is a single long continuing sentence that just keeps going well past the hundred column mark for sure here.\nconst a = 1\n"
+    const out = run(src)
+    expect(withinWidth(out)).toBe(true)
+    // `Short.` is far from the margin, so the greedy line keeps filling past it.
+    expect(out).toMatch(/^\/\/ Short\. This is a single long/m)
+  })
+
+  test("never breaks after an abbreviation like `e.g.`", () => {
+    const src =
+      "// This picks a resilience strategy, e.g. Foo and also Bar, to keep the retry backoff bounded here.\nconst a = 1\n"
+    const out = run(src)
+    expect(withinWidth(out)).toBe(true)
+    expect(lineAfter(out, "e.g.")).toContain("e.g. Foo")
+  })
+})
+
 describe("stability", () => {
   test("is a fixed point: reflowing reflowed output is a no-op", () => {
     const src = [

@@ -25,8 +25,8 @@ interface HttpErrorFields {
 
 /**
  * The one typed error every `@plainworks/http` failure surfaces as. It carries the HTTP `status`
- * (for a response failure), the shared {@link FailureCategory}, and a `retryable` verdict decided by
- * the `std` classifier — never re-derived per protocol — plus an optional `Retry-After` hint the
+ * (for a response failure), the shared {@link FailureCategory}, and a `retryable` verdict decided
+ * by the `std` classifier — never re-derived per protocol — plus an optional `Retry-After` hint the
  * retry driver honors. `retryable` lets the retry policy decide from the error alone without
  * re-instanceof-ing every transport error type.
  */

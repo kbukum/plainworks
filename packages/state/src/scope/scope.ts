@@ -21,17 +21,17 @@ export interface SourceSpec<Value> {
    * Optional Standard Schema validator. Persisted media (Web Storage, a cookie, the URL) are
    * **untrusted** — anyone can tamper with them — so a string-backed source runs this over the
    * decoded value before adopting it, turning a wrong-shaped value into a typed error rather than a
-   * fabricated `Value`. Omit it only when the medium is trusted (in-memory) or the caller has made an
-   * explicit trust decision.
+   * fabricated `Value`. Omit it only when the medium is trusted (in-memory) or the caller has made
+   * an explicit trust decision.
    */
   readonly schema?: StandardSchemaV1<unknown, Value>
 }
 
 /**
- * A **scope**: the factory that builds a per-slot {@link StateSource} backend for one storage medium
- * — `memory`, `session`, `persistent`, `cookie`, `url`, and (later, from the query layer) `remote`.
- * It is the axis the scoped-state surface is parameterized by: moving a value between scopes is a
- * one-line `scope:` change, because the surface only ever talks to this factory.
+ * A **scope**: the factory that builds a per-slot {@link StateSource} backend for one storage
+ * medium — `memory`, `session`, `persistent`, `cookie`, `url`, and (later, from the query layer)
+ * `remote`. It is the axis the scoped-state surface is parameterized by: moving a value between
+ * scopes is a one-line `scope:` change, because the surface only ever talks to this factory.
  *
  * Selection is **config-driven and explicit** — a caller passes the scope object in, so there is no
  * global registry or string service-locator. Host access is deferred to {@link Scope.createSource}
@@ -43,9 +43,9 @@ export interface Scope {
   readonly name: string
   /**
    * The **static** capabilities every source this scope builds carries — known without a host, so a
-   * composer can read them at construction (the secret guard reads `durable`/`sentToServer`/… here to
-   * reject a secret placed in a non-memory scope) instead of waiting for a per-request source. A
-   * built {@link StateSource} reports the same capabilities.
+   * composer can read them at construction (the secret guard reads `durable`/`sentToServer`/… here
+   * to reject a secret placed in a non-memory scope) instead of waiting for a per-request source.
+   * A built {@link StateSource} reports the same capabilities.
    */
   readonly capabilities: StateCapabilities
   /** Build the backend for one value slot. Called per request; performs no host access until used. */

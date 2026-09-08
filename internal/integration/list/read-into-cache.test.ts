@@ -6,10 +6,10 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { readUserPage } from "./user-reads"
 
 // The data spine assembled the way an app wires it: a TanStack cache (`@plainworks/query`), a typed
-// fetch client (`@plainworks/http`), and the MSW mock service (`@plainworks/mocks`) standing in for the
-// backend. This scenario proves an offset read flows http → mock → query and lands in the cache under
-// the derived key, then is served from cache. List *types* come from `@plainworks/query` (the facade);
-// only the URL serializer `buildListQuery` comes from `@plainworks/http`.
+// fetch client (`@plainworks/http`), and the MSW mock service (`@plainworks/mocks`) standing in for
+// the backend. This scenario proves an offset read flows http → mock → query and lands in the cache
+// under the derived key, then is served from cache. List *types* come from `@plainworks/query` (the
+// facade); only the URL serializer `buildListQuery` comes from `@plainworks/http`.
 
 const handle = createMockServerHandle({ seed: 42 })
 const client = createHttpClient({ baseUrl: "http://mock.test" })

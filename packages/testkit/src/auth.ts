@@ -25,8 +25,8 @@ export interface FakeAuthOptions {
 /**
  * Build a controllable {@link AuthHeaderProvider} fake for transport/auth tests. The returned
  * handle lets a test swap the resolved headers, force a failure, assert how many times the provider
- * was called, and inspect the {@link AuthContext} `signal` each call received (so a test can prove a
- * transport forwards the attempt's cancellation to the credential seam) — without hand-rolling a
+ * was called, and inspect the {@link AuthContext} `signal` each call received (so a test can prove
+ * a transport forwards the attempt's cancellation to the credential seam) — without hand-rolling a
  * one-off stub.
  */
 export function fakeAuthHeaderProvider(options: FakeAuthOptions = {}): FakeAuthProvider {

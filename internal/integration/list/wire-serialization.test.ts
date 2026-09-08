@@ -7,10 +7,10 @@ import { readUserPage } from "./user-reads"
 // The builder ↔ parser ↔ envelope agreement, proven end-to-end and in one place: `@plainworks/http`
 // serializes a typed param object to the exact PostgREST wire, the `@plainworks/mocks` MSW service
 // parses that wire, and the response is exactly the `{ data, pagination, facets }` envelope the
-// contract specifies. Both ends bind to the one contract in `@plainworks/std`, so the operator tokens
-// can't drift by construction — this asserts they are actually wired to it, and that a renamed
-// envelope field reddens here. This is the home of the builder↔parser assertion that the `mocks`
-// parser unit tests (which feed literal wire strings) deliberately do not carry.
+// contract specifies. Both ends bind to the one contract in `@plainworks/std`, so the operator
+// tokens can't drift by construction — this asserts they are actually wired to it, and that a
+// renamed envelope field reddens here. This is the home of the builder↔parser assertion that the
+// `mocks` parser unit tests (which feed literal wire strings) deliberately do not carry.
 
 const handle = createMockServerHandle({ seed: 42 })
 const client = createHttpClient({ baseUrl: "http://mock.test" })
@@ -62,8 +62,8 @@ describe("list wire serialization", () => {
       true,
     )
 
-    // The longest-first parse must match `not.is.null` before `is.null`/`in`; every seeded user has a
-    // `role`, so a presence check returns the whole set — its total equals the unfiltered total.
+    // The longest-first parse must match `not.is.null` before `is.null`/`in`; every seeded user has
+    // a `role`, so a presence check returns the whole set — its total equals the unfiltered total.
     const baseline = await readUserPage(client, { pageSize: 1 })
     const present = await readUserPage(client, {
       filters: [{ field: "role", op: "notNull" }],

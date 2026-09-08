@@ -46,8 +46,8 @@ function isEnvelope(value: unknown): value is SessionEnvelope<unknown> {
 }
 
 /**
- * Encode and sign a session value into the cookie string `payload.mac` (`base64url` payload, detached
- * `base64url` MAC). Pure aside from the injected signer/clock.
+ * Encode and sign a session value into the cookie string `payload.mac` (`base64url` payload,
+ * detached `base64url` MAC). Pure aside from the injected signer/clock.
  */
 export async function encodeSession<Schema extends StandardSchemaV1>(
   codec: SessionCodec<Schema>,
@@ -72,8 +72,8 @@ export async function encodeSession<Schema extends StandardSchemaV1>(
  * - authentic but past `exp` → `auth/session-expired`
  * - authentic and unexpired but failing the schema → `auth/session-invalid`
  *
- * The MAC is checked **before** the payload is parsed, so untrusted bytes are never JSON-parsed until
- * their integrity is proven.
+ * The MAC is checked **before** the payload is parsed, so untrusted bytes are never JSON-parsed
+ * until their integrity is proven.
  */
 export async function decodeSession<Schema extends StandardSchemaV1>(
   codec: SessionCodec<Schema>,

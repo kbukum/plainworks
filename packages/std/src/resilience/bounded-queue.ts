@@ -3,7 +3,9 @@ import type { WebAbortSignal } from "../web"
 import { AbortError } from "./timeout"
 
 /**
- * What a full queue does with a newly pushed item: `drop-new` rejects the newcomer, `drop-oldest` evicts the head to make room (freshest-wins), `reject` throws. Every option keeps memory bounded — there is no unbounded buffering.
+ * What a full queue does with a newly pushed item: `drop-new` rejects the newcomer, `drop-oldest`
+ * evicts the head to make room (freshest-wins), `reject` throws. Every option keeps memory bounded
+ * — there is no unbounded buffering.
  */
 export type OverflowPolicy = "drop-new" | "drop-oldest" | "reject"
 
@@ -29,7 +31,10 @@ export class QueueClosedError extends PlainError<"std/queue-closed"> {
 }
 
 /**
- * A bounded FIFO queue with explicit backpressure. Producers `push` (bounded by {@link OverflowPolicy}); consumers `pop` await the next item. Both sides are bounded: buffered items by `capacity`, pending consumers by `maxWaiters`, so memory never grows without limit. Build one per pipeline; never a module singleton.
+ * A bounded FIFO queue with explicit backpressure. Producers `push` (bounded by
+ * {@link OverflowPolicy}); consumers `pop` await the next item. Both sides are bounded: buffered
+ * items by `capacity`, pending consumers by `maxWaiters`, so memory never grows without limit.
+ * Build one per pipeline; never a module singleton.
  */
 export interface BoundedQueue<T> {
   /** Number of buffered items. */
@@ -39,7 +44,9 @@ export interface BoundedQueue<T> {
   /** Enqueue `item`; returns whether it was accepted (an evicted head still counts as accepted). */
   push(item: T): boolean
   /**
-   * Await the next item; rejects with {@link QueueClosedError} if the queue closes while empty, with {@link QueueWaitersFullError} when the pending-consumer bound is reached, or with an `AbortError` when `options.signal` aborts (which removes the waiter, freeing its slot).
+   * Await the next item; rejects with {@link QueueClosedError} if the queue closes while empty,
+   * with {@link QueueWaitersFullError} when the pending-consumer bound is reached, or with an
+   * `AbortError` when `options.signal` aborts (which removes the waiter, freeing its slot).
    */
   pop(options?: { signal?: WebAbortSignal }): Promise<T>
   /** Take an item without waiting, or `undefined` if none is buffered. */
@@ -49,7 +56,10 @@ export interface BoundedQueue<T> {
 }
 
 /**
- * Build a {@link BoundedQueue} of `capacity` (must be `>= 1`) using `overflow` (default `drop-oldest`). A waiting consumer is handed a pushed item directly, so the buffer never grows past `capacity`. Pending consumers are bounded by `maxWaiters` (default `capacity`); an excess `pop` rejects with {@link QueueWaitersFullError}.
+ * Build a {@link BoundedQueue} of `capacity` (must be `>= 1`) using `overflow` (default
+ * `drop-oldest`). A waiting consumer is handed a pushed item directly, so the buffer never grows
+ * past `capacity`. Pending consumers are bounded by `maxWaiters` (default `capacity`); an excess
+ * `pop` rejects with {@link QueueWaitersFullError}.
  */
 export function createBoundedQueue<T>(
   capacity: number,
@@ -68,7 +78,8 @@ export function createBoundedQueue<T>(
       'createBoundedQueue requires overflow to be "drop-new", "drop-oldest", or "reject"',
     )
   }
-  // FIFO buffer with a moving `head`, so a pop is O(1) instead of re-indexing every remaining item; the dead prefix is compacted only once it dominates.
+  // FIFO buffer with a moving `head`, so a pop is O(1) instead of re-indexing every remaining item;
+  // the dead prefix is compacted only once it dominates.
   const buffer: T[] = []
   let head = 0
   const buffered = (): number => buffer.length - head

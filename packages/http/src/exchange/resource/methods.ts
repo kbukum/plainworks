@@ -14,7 +14,14 @@ type SendOptions = ResourceWriteOptions & {
 }
 
 /**
- * The five resource helpers over {@link RequestInput} — `get`/`post`/`put`/`patch`/`delete`. Each resolves to the **decoded body**: with a `schema` the untrusted body is validated at the boundary and its inferred type is returned; without one it resolves to `unknown`. An empty (`204`) response resolves to `undefined`. Use these for the common "give me the data" case; reach for `request` when you need the full response (status, headers, final URL) or a method without a helper (`HEAD`, `OPTIONS`). `GET`/`PUT`/`DELETE` are idempotent and retried by the client policy automatically; `POST`/`PATCH` retry only when a {@link ResourceWriteOptions.idempotencyKey} is given.
+ * The five resource helpers over {@link RequestInput} — `get`/`post`/`put`/`patch`/`delete`.
+ * Each resolves to the **decoded body**: with a `schema` the untrusted body is validated at the
+ * boundary and its inferred type is returned; without one it resolves to `unknown`. An empty
+ * (`204`) response resolves to `undefined`. Use these for the common "give me the data" case; reach
+ * for `request` when you need the full response (status, headers, final URL) or a method without a
+ * helper (`HEAD`, `OPTIONS`). `GET`/`PUT`/`DELETE` are idempotent and retried by the client policy
+ * automatically; `POST`/`PATCH` retry only when a {@link ResourceWriteOptions.idempotencyKey} is
+ * given.
  */
 export interface ResourceMethods {
   get<S extends StandardSchemaV1>(
@@ -49,7 +56,9 @@ export interface ResourceMethods {
 }
 
 /**
- * Build the resource methods bound to a client's `request`. Each method presets its HTTP method, folds an optional idempotency key into the headers (and marks the write retry-eligible), and returns the decoded body — adding ergonomics without duplicating any transport logic.
+ * Build the resource methods bound to a client's `request`. Each method presets its HTTP method,
+ * folds an optional idempotency key into the headers (and marks the write retry-eligible), and
+ * returns the decoded body — adding ergonomics without duplicating any transport logic.
  */
 export function createResourceMethods(request: RequestFn): ResourceMethods {
   async function send(method: HttpMethod, path: string, options?: SendOptions): Promise<unknown> {
@@ -77,7 +86,13 @@ export function createResourceMethods(request: RequestFn): ResourceMethods {
 }
 
 /**
- * Map resource options onto a {@link RequestInput}. The idempotency key becomes the `Idempotency-Key` header and flips the request to retry-eligible; every other forwardable field is a `RequestInput` field and passes straight through, so query building, timeout, retry, and schema validation stay owned by `request` and a new `RequestInput` field is forwarded without touching this mapping. The fields the resource layer owns are destructured out instead of spread, so a wider-typed options value cannot smuggle a body into a read or `idempotent: true` into a write without an idempotency key.
+ * Map resource options onto a {@link RequestInput}. The idempotency key becomes the
+ * `Idempotency-Key` header and flips the request to retry-eligible; every other forwardable field
+ * is a `RequestInput` field and passes straight through, so query building, timeout, retry, and
+ * schema validation stay owned by `request` and a new `RequestInput` field is forwarded without
+ * touching this mapping. The fields the resource layer owns are destructured out instead of spread,
+ * so a wider-typed options value cannot smuggle a body into a read or `idempotent: true` into a
+ * write without an idempotency key.
  */
 function toRequestInput(method: HttpMethod, path: string, options?: SendOptions): RequestInput {
   if (options === undefined) {

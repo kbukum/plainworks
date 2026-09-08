@@ -1,9 +1,10 @@
 import { listQueryKey } from "@plainworks/query"
 import { describe, expect, it } from "vitest"
 
-// The cache-key derivation is order-independent over the AND-set of filters and distinct on any change,
-// so writing the same request differently keys the same cache entry while a real difference keys a new
-// one. This is the `@plainworks/query` half of the contract, exercised against the shared param shape.
+// The cache-key derivation is order-independent over the AND-set of filters and distinct on any
+// change, so writing the same request differently keys the same cache entry while a real difference
+// keys a new one. This is the `@plainworks/query` half of the contract, exercised against the
+// shared param shape.
 
 describe("list cache key derivation", () => {
   it("keys equal params equally regardless of filter order and distinctly on any change", () => {

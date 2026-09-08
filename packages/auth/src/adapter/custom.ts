@@ -6,9 +6,9 @@ import type { AuthAdapterFactory } from "./registry"
 export const CUSTOM_ADAPTER_KIND = "custom"
 
 /**
- * The trivial pass-through adapter factory: it hands back the supplied {@link AuthAdapter} verbatim.
- * A bring-your-own adapter therefore needs no bespoke factory — it plugs in through `{ kind:
- * "custom", adapter }` — and the registry is exercisable without a real mechanism.
+ * The trivial pass-through adapter factory: it hands back the supplied {@link AuthAdapter}
+ * verbatim. A bring-your-own adapter therefore needs no bespoke factory — it plugs in through `{
+ * kind: "custom", adapter }` — and the registry is exercisable without a real mechanism.
  *
  * @throws {AuthError} `auth/config` when the config carries no `adapter`.
  */

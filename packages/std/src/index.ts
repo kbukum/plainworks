@@ -1,4 +1,6 @@
-// Server-safe public entry for `@plainworks/std` — the bottom of the layer graph. Re-export-only barrel (no logic here; implementation lives in concern modules). Zero runtime dependencies and no React or DOM imports, so it runs anywhere: Node, edge, RSC, browser.
+// Server-safe public entry for `@plainworks/std` — the bottom of the layer graph. Re-export-only
+// barrel (no logic here; implementation lives in concern modules). Zero runtime dependencies and no
+// React or DOM imports, so it runs anywhere: Node, edge, RSC, browser.
 export { base64urlDecode, base64urlEncode } from "./base64url"
 export type { CookieAttributes, CookieSameSite } from "./cookie"
 export {

@@ -16,11 +16,11 @@ import type { SessionSigner } from "../signer/seam"
 import { decodeSession, encodeSession, type SessionCodec } from "./envelope"
 
 /**
- * The request/response cookie surface the server session store drives — read the inbound cookie value
- * by name, append an outbound `Set-Cookie` entry. Injected so a host binds it to its own
- * `Request`/`Response` (Next route handler, Node http, an edge fetch handler) with no assumption about
- * which one. Distinct from the client `document.cookie` jar in `@plainworks/state`: this side mints
- * `HttpOnly` cookies a script can never read.
+ * The request/response cookie surface the server session store drives — read the inbound cookie
+ * value by name, append an outbound `Set-Cookie` entry. Injected so a host binds it to its own
+ * `Request`/`Response` (Next route handler, Node http, an edge fetch handler) with no assumption
+ * about which one. Distinct from the client `document.cookie` jar in `@plainworks/state`: this side
+ * mints `HttpOnly` cookies a script can never read.
  */
 export interface SessionCookieJar {
   /** The inbound value of cookie `name`, or `undefined` when absent. */
@@ -48,11 +48,12 @@ export interface CookieSessionStoreConfig<Schema extends StandardSchemaV1> {
 const DEFAULT_TTL_SECONDS = 3600
 const HOST_PREFIX = "__Host-"
 
-// A server-owned session cookie: transmitted to the server (`sentToServer`), durable across reloads,
-// not observable across tabs, and never available at import (a host request must be present). It is
-// deliberately `sentToServer: true` — that is what a cookie *is* — yet it is exempt from the client
-// secret guard because custody is server-side and the value is `HttpOnly`: no client scope ever reads
-// it, so the "secret only in memory" rule (which protects *client*-readable scopes) does not apply.
+// A server-owned session cookie: transmitted to the server (`sentToServer`), durable across
+// reloads, not observable across tabs, and never available at import (a host request must be
+// present). It is deliberately `sentToServer: true` — that is what a cookie *is* — yet it is exempt
+// from the client secret guard because custody is server-side and the value is `HttpOnly`: no
+// client scope ever reads it, so the "secret only in memory" rule (which protects *client*-readable
+// scopes) does not apply.
 const COOKIE_SESSION_CAPABILITIES: StateCapabilities = {
   access: "sync",
   authority: "local",
@@ -68,10 +69,10 @@ const COOKIE_SESSION_CAPABILITIES: StateCapabilities = {
  * signed, integrity-protected session value.
  *
  * - `get` reads the cookie and runs verify-at-read ({@link decodeSession}): a tampered/unsigned/
- *   malformed cookie throws `auth/session-invalid`, an expired one throws `auth/session-expired`, and
- *   an absent cookie is `undefined` — a caller is never handed a fabricated session.
- * - `set` signs and writes the cookie, refusing a value that would exceed the ~4KB cookie budget with
- *   a typed `auth/config` error rather than letting the browser silently drop it.
+ *   malformed cookie throws `auth/session-invalid`, an expired one throws `auth/session-expired`,
+ *   and an absent cookie is `undefined` — a caller is never handed a fabricated session.
+ * - `set` signs and writes the cookie, refusing a value that would exceed the ~4KB cookie budget
+ *   with a typed `auth/config` error rather than letting the browser silently drop it.
  * - `remove` clears the cookie (logout invalidation).
  *
  * Every mutation notifies this store's own subscribers; a cookie has no cross-tab change event.
@@ -99,7 +100,8 @@ export function createCookieSessionStore<Schema extends StandardSchemaV1>(
       `session ttlSeconds must be a positive integer, got ${codec.ttlSeconds}`,
     )
   }
-  // `__Host-` requires Secure + Path=/ + no Domain; SameSite=Strict + HttpOnly complete the custody.
+  // `__Host-` requires Secure + Path=/ + no Domain; SameSite=Strict + HttpOnly complete the
+  // custody.
   const attributes = serializeCookieAttributes({
     path: "/",
     sameSite: "Strict",

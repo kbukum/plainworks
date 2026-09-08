@@ -1,4 +1,8 @@
-// The neutral (`.`) WebSocket transport: one attempt over an injected socket seam, decoding each inbound message to a channel frame. Reconnect/backoff/timeouts live in the channel core; this stays a thin per-attempt adapter. An optional app-level heartbeat sends a periodic ping through the injected `Delay` seam so a NAT/proxy keeps the connection alive; the server's pong is an ordinary inbound frame that resets the core's idle-read timer.
+// The neutral (`.`) WebSocket transport: one attempt over an injected socket seam, decoding each
+// inbound message to a channel frame. Reconnect/backoff/timeouts live in the channel core; this
+// stays a thin per-attempt adapter. An optional app-level heartbeat sends a periodic ping through
+// the injected `Delay` seam so a NAT/proxy keeps the connection alive; the server's pong is an
+// ordinary inbound frame that resets the core's idle-read timer.
 import { type Delay, systemDelay } from "@plainworks/std"
 import { assertDurationMs } from "../../duration"
 import { ChannelError } from "../../error"
@@ -34,13 +38,18 @@ export interface WsTransportOptions {
 }
 
 /**
- * A pluggable WebSocket {@link TransportFactory} for {@link createChannel}. Each attempt opens one socket (header-only auth via the injected factory), signals `onOpen`, maps every inbound message to an `onFrame` of type `"message"`, and resolves on a clean close / rejects on an error or dirty close.
+ * A pluggable WebSocket {@link TransportFactory} for {@link createChannel}. Each attempt opens one
+ * socket (header-only auth via the injected factory), signals `onOpen`, maps every inbound message
+ * to an `onFrame` of type `"message"`, and resolves on a clean close / rejects on an error or dirty
+ * close.
  */
 export function createWsTransport(options: WsTransportOptions): TransportFactory {
   const { url, protocols, heartbeat, delay = systemDelay } = options
   const socketFactory = options.socketFactory ?? resolveGlobalSocketFactory()
   if (heartbeat !== undefined) {
-    // Fail fast at construction: an invalid interval would otherwise surface mid-stream as a delay rejection the loop cannot distinguish from a cancellation, and a zero interval would spin the loop into a CPU/network storm.
+    // Fail fast at construction: an invalid interval would otherwise surface mid-stream as a delay
+    // rejection the loop cannot distinguish from a cancellation, and a zero interval would spin the
+    // loop into a CPU/network storm.
     assertDurationMs("heartbeat.intervalMs", heartbeat.intervalMs)
     if (heartbeat.intervalMs < 1) {
       throw ChannelError.config("heartbeat.intervalMs must be at least 1 ms")
@@ -120,7 +129,8 @@ export function createWsTransport(options: WsTransportOptions): TransportFactory
           }
         }
         socket.onerror = (): void => {
-          // An error event is not guaranteed to be followed by a close — close the socket so a reconnect never leaves the failed one open with its handlers detached.
+          // An error event is not guaranteed to be followed by a close — close the socket so a
+          // reconnect never leaves the failed one open with its handlers detached.
           finish(() => {
             closeQuietly(socket)
             reject(ChannelError.connect("channel socket error"))
@@ -141,7 +151,9 @@ export function createWsTransport(options: WsTransportOptions): TransportFactory
 }
 
 /**
- * Send a periodic ping while the socket is open; returns a canceller that stops the loop. Only a cancellation is silent — any other `delay` failure is reported via `onFailure` so it reaches the connection lifecycle instead of leaving a quietly heartbeat-less socket.
+ * Send a periodic ping while the socket is open; returns a canceller that stops the loop.
+ * Only a cancellation is silent — any other `delay` failure is reported via `onFailure` so it
+ * reaches the connection lifecycle instead of leaving a quietly heartbeat-less socket.
  */
 function startHeartbeat(
   socket: WebSocketLike,
@@ -168,7 +180,8 @@ function startHeartbeat(
       try {
         socket.send(message)
       } catch (error) {
-        // A failed send does not guarantee a later error/close event — fail the attempt so the socket closes and the core reconnects instead of leaving the transport pending forever.
+        // A failed send does not guarantee a later error/close event — fail the attempt so the
+        // socket closes and the core reconnects instead of leaving the transport pending forever.
         onFailure(error)
         return
       }
@@ -179,7 +192,9 @@ function startHeartbeat(
 }
 
 /**
- * Decode a text or binary frame to the string the event router parses. Anything else (e.g. a `Blob` from a socket that ignored `binaryType = "arraybuffer"`) is a protocol failure — never a lossy `String()` coercion that would corrupt the frame into `"[object Blob]"`.
+ * Decode a text or binary frame to the string the event router parses. Anything else (e.g. a `Blob`
+ * from a socket that ignored `binaryType = "arraybuffer"`) is a protocol failure — never a lossy
+ * `String()` coercion that would corrupt the frame into `"[object Blob]"`.
  */
 function decodeData(data: unknown): string {
   if (typeof data === "string") {

@@ -35,10 +35,10 @@ function headersToObject(headers: WebHeaders): Record<string, string> {
  * Reduce a URL to a form safe for a log sink: strip any userinfo (`user:pass@`), query string, and
  * fragment, keeping only scheme, host, and path. `response.url` and hand-built request URLs are
  * server- or caller-controlled and can carry an `access_token`, a signed-URL signature, or a
- * fragment credential in the query/fragment (header-only auth is the rule, but a smuggled value must
- * still never be logged). A value that does not parse as a URL is reduced to a fixed placeholder
- * rather than passed through — the raw string could itself be a credential-bearing token, so it must
- * never reach the sink verbatim.
+ * fragment credential in the query/fragment (header-only auth is the rule, but a smuggled value
+ * must still never be logged). A value that does not parse as a URL is reduced to a fixed
+ * placeholder rather than passed through — the raw string could itself be a credential-bearing
+ * token, so it must never reach the sink verbatim.
  */
 function sanitizeUrl(rawUrl: string): string {
   let parsed: WebURL
@@ -56,7 +56,8 @@ function sanitizeUrl(rawUrl: string): string {
 
 /**
  * Read a property from an error without invoking any accessor: walk the prototype chain for the
- * first descriptor, so a non-enumerable `name`/`message`/`cause` on `Error.prototype` is still found.
+ * first descriptor, so a non-enumerable `name`/`message`/`cause` on `Error.prototype` is still
+ * found.
  */
 function findDescriptor(target: object, key: string): PropertyDescriptor | undefined {
   let current: object | null = target
@@ -102,11 +103,11 @@ function describeErrorSafely(error: Error): Record<string, unknown> {
 /**
  * Reduce a thrown value to a redacted, structural view safe for a log sink. An error can carry a
  * credential in its `message` or in an enumerable field (a `fetch` failure, or a custom
- * interceptor's error), so a descriptor-safe view of the error — one that surfaces accessors instead
- * of invoking them — is passed through `std` {@link redact}: a token-shaped or embedded-secret
- * message is masked and a sensitively-named field is masked, while the discriminants an observer
- * needs (`name`, `kind`, `status`, …) survive. The original error is never handed across the
- * boundary; only this redacted copy is.
+ * interceptor's error), so a descriptor-safe view of the error — one that surfaces accessors
+ * instead of invoking them — is passed through `std` {@link redact}: a token-shaped or
+ * embedded-secret message is masked and a sensitively-named field is masked, while the
+ * discriminants an observer needs (`name`, `kind`, `status`, …) survive. The original error is
+ * never handed across the boundary; only this redacted copy is.
  */
 function redactError(error: unknown, redactOptions?: RedactOptions): unknown {
   if (!(error instanceof Error)) {

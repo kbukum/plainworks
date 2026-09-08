@@ -20,10 +20,10 @@ export interface BodyCodec {
   /** Serialize a request body and report its content type. Throws a typed encode error on a non-serializable value. */
   encode(value: unknown): EncodedBody
   /**
-   * Read and decode a response body into an untrusted `unknown`, or `undefined` for an empty/no-content
-   * response. The body is read under `signal` — a bounded reader cancels the stream when the caller's
-   * per-attempt timeout or cancellation fires, so a stalled body never hangs the call or leaks a
-   * connection.
+   * Read and decode a response body into an untrusted `unknown`, or `undefined` for an
+   * empty/no-content response. The body is read under `signal` — a bounded reader cancels the
+   * stream when the caller's per-attempt timeout or cancellation fires, so a stalled body never
+   * hangs the call or leaks a connection.
    */
   decode(response: WebResponse, signal?: WebAbortSignal): Promise<unknown>
 }

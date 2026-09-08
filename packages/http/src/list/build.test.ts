@@ -48,15 +48,17 @@ describe("buildListQuery", () => {
   })
 
   it("escapes the delimiter and escape char in a list value so it round-trips", () => {
-    // A comma inside a value must not split it into two: `\,` is one value, `\\` a literal backslash.
+    // A comma inside a value must not split it into two: `\,` is one value, `\\` a literal
+    // backslash.
     expect(toSearch({ filters: [{ field: "tags", op: "in", value: ["a,b", "c\\d"] }] })).toBe(
       "?tags=in.(a\\,b,c\\\\d)",
     )
   })
 
   it("rejects an empty-string membership value — it cannot round-trip the wire unambiguously", () => {
-    // `[]` and `[""]` would both encode to `in.()` and a trailing empty item would be dropped by the
-    // parser, so two distinct cache keys would issue the same request. Reject instead of corrupting.
+    // `[]` and `[""]` would both encode to `in.()` and a trailing empty item would be dropped by
+    // the parser, so two distinct cache keys would issue the same request. Reject instead of
+    // corrupting.
     expect(() =>
       buildListQuery({ filters: [{ field: "tags", op: "in", value: [""] }] }),
     ).toThrowError(HttpError)

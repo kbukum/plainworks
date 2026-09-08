@@ -30,9 +30,9 @@ export interface UrlScopeOptions {
   readonly mode?: UrlMode
 }
 
-// A URL param is shareable/bookmarkable but not durable (a fresh navigation drops it), lives per tab,
-// and needs a host to read — so it is not available at import. It is not an automatic server channel
-// like a cookie; it only reaches the server on the next full navigation.
+// A URL param is shareable/bookmarkable but not durable (a fresh navigation drops it), lives per
+// tab, and needs a host to read — so it is not available at import. It is not an automatic server
+// channel like a cookie; it only reaches the server on the next full navigation.
 const URL_CAPABILITIES: StateCapabilities = {
   access: "sync",
   authority: "local",
@@ -90,13 +90,15 @@ function withParam(host: UrlHost, mode: UrlMode, key: string, value: string | nu
 }
 
 /**
- * Build a **url** scope: keep a value in the address bar's `?search` params (default) or `#hash`, so
- * it is shareable and survives back/forward. Writes swap the URL in place (`history.replaceState`, so
- * a rapid update never floods the back button) and reads observe `popstate`/`hashchange`. Host access
- * is deferred to the first read/write (inside the surface's client-only `connect`), so both importing
- * the scope and building its source during SSR touch no `location`.
+ * Build a **url** scope: keep a value in the address bar's `?search` params (default) or `#hash`,
+ * so it is shareable and survives back/forward. Writes swap the URL in place
+ * (`history.replaceState`, so a rapid update never floods the back button) and reads observe
+ * `popstate`/`hashchange`. Host access is deferred to the first read/write (inside the surface's
+ * client-only `connect`), so both importing the scope and building its source during SSR touch no
+ * `location`.
  *
- * URL state is world-visible — keep it non-secret, and note it is not durable across a fresh navigation.
+ * URL state is world-visible — keep it non-secret, and note it is not durable across a fresh
+ * navigation.
  */
 export function createUrlScope(options: UrlScopeOptions = {}): Scope {
   const mode = options.mode ?? "search"

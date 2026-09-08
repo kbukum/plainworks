@@ -46,7 +46,8 @@ export interface CreateAuthConfig {
 
 /**
  * A fully-wired auth runtime: the selected adapter, the in-memory session store, and the header
- * provider a transport consumes. Built per request (no module-level singletons), so it is SSR/RSC-safe.
+ * provider a transport consumes. Built per request (no module-level singletons), so it is
+ * SSR/RSC-safe.
  */
 export interface AuthRuntime {
   /** The resolved adapter driving authentication. */

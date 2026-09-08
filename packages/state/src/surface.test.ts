@@ -10,10 +10,10 @@ import storeSource from "./store.ts?raw"
 
 /**
  * The type-neutrality guarantee: Zustand is the internal default engine, never part of the public
- * contract. `isolatedDeclarations` lets each module emit its `.d.ts` in isolation, so if any exported
- * type referenced a Zustand type the engine import would survive into the declaration. Asserting the
- * emitted declarations name no engine keeps `Store` (and the rest of the surface) plainworks-owned —
- * the engine stays swappable without a breaking change.
+ * contract. `isolatedDeclarations` lets each module emit its `.d.ts` in isolation, so if any
+ * exported type referenced a Zustand type the engine import would survive into the declaration.
+ * Asserting the emitted declarations name no engine keeps `Store` (and the rest of the surface)
+ * plainworks-owned — the engine stays swappable without a breaking change.
  */
 function emitDeclaration(source: string): string {
   return ts.transpileDeclaration(source, {
@@ -37,8 +37,9 @@ describe("public surface is engine-neutral", () => {
 /**
  * The bring-your-own-store subpath (`@plainworks/state/client/supplied`) must load **zero**
  * default-engine code, even in a bundler-free native-ESM host that cannot tree-shake. That holds
- * only if its whole static value-import graph avoids `createStore`/`zustand`: the subpath re-exports
- * just `./binding`, and `./binding` reaches the store solely through an erased `import type`.
+ * only if its whole static value-import graph avoids `createStore`/`zustand`: the subpath
+ * re-exports just `./binding`, and `./binding` reaches the store solely through an erased
+ * `import type`.
  */
 describe("bring-your-own client subpath carries no default engine", () => {
   test("client/supplied re-exports only the engine-neutral binding", () => {

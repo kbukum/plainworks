@@ -33,8 +33,9 @@ export interface WebStorageScopeOptions {
 }
 
 const CAPABILITIES: Record<WebStorageKind, StateCapabilities> = {
-  // Both survive a reload; only `localStorage` is observable across tabs of the same origin. Neither
-  // is available at import (there is no host during SSR), and neither is sent to the server.
+  // Both survive a reload; only `localStorage` is observable across tabs of the same origin.
+  // Neither is available at import (there is no host during SSR), and neither is sent to the
+  // server.
   persistent: {
     access: "sync",
     authority: "local",

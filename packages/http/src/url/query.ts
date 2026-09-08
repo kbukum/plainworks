@@ -14,9 +14,10 @@ export type QueryParams = Readonly<
 
 /**
  * Reject a query key that names a credential — credentials must travel in a header (header-only
- * auth), never the query string. The credential vocabulary is the shared `std` {@link isSensitiveKey}
- * predicate (separator-insensitive substring matching), so `X-Api-Key`, `access_token`, and
- * `apiKey` are all caught and the rule never drifts from the redaction vocabulary it mirrors.
+ * auth), never the query string. The credential vocabulary is the shared `std`
+ * {@link isSensitiveKey} predicate (separator-insensitive substring matching), so `X-Api-Key`,
+ * `access_token`, and `apiKey` are all caught and the rule never drifts from the redaction
+ * vocabulary it mirrors.
  */
 function assertSafeQueryKey(key: string): void {
   if (isSensitiveKey(key)) {

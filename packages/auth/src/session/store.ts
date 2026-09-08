@@ -63,8 +63,9 @@ export interface AuthStoreConfig {
 /**
  * The in-memory session core: it custodies the access token, tracks expiry against an injected
  * clock, de-duplicates concurrent refreshes (single-flight), and satisfies the `AuthHeaderProvider`
- * seam via {@link AuthStore.getAuthHeader}. The client-safe snapshot (identity + status) is published
- * through a `@plainworks/state` store so the same immutable-snapshot model backs the React binding.
+ * seam via {@link AuthStore.getAuthHeader}. The client-safe snapshot (identity + status) is
+ * published through a `@plainworks/state` store so the same immutable-snapshot model backs the
+ * React binding.
  */
 export interface AuthStore {
   /** The underlying snapshot store — fed to `toAdapter` for the React binding (client step). */
@@ -75,9 +76,9 @@ export interface AuthStore {
   subscribe(listener: (snapshot: SessionSnapshot) => void): () => void
   /**
    * Resolve the current credential as headers, refreshing lazily when the token is missing or near
-   * expiry. Degrades to `undefined` (never throws) so a transport owns the 401 decision; header-only.
-   * A `context.signal` abort ends only this call's wait on a shared refresh — it never cancels that
-   * refresh for other callers.
+   * expiry. Degrades to `undefined` (never throws) so a transport owns the 401 decision;
+   * header-only. A `context.signal` abort ends only this call's wait on a shared refresh — it never
+   * cancels that refresh for other callers.
    */
   getAuthHeader(context?: AuthContext): Promise<AuthHeaders | undefined>
   /** Establish a session from a login result — supersedes any in-flight refresh. */
@@ -90,8 +91,8 @@ const DEFAULT_REFRESH_TIMEOUT_MS = 10_000
 const DEFAULT_EXPIRY_LEEWAY_MS = 5_000
 
 /**
- * Build an {@link AuthStore}. A factory, never a module-level singleton, so each request/tab gets its
- * own custody (SSR/RSC-safe).
+ * Build an {@link AuthStore}. A factory, never a module-level singleton, so each request/tab gets
+ * its own custody (SSR/RSC-safe).
  *
  * The session-lifetime invariants it upholds:
  *
@@ -99,8 +100,9 @@ const DEFAULT_EXPIRY_LEEWAY_MS = 5_000
  *   only while the generation is unchanged. `logout`/`setSession` bump the generation **and abort**
  *   the in-flight refresh, so a refresh that resolves after logout is dropped — the session stays
  *   cleared and no session-change fires.
- * - **A hung refresh is bounded.** The refresh runs under {@link withTimeout}; even one that ignores
- *   its signal is abandoned at the deadline, single-flight is released, and the next call retries.
+ * - **A hung refresh is bounded.** The refresh runs under {@link withTimeout}; even one that
+ *   ignores its signal is abandoned at the deadline, single-flight is released, and the next call
+ *   retries.
  * - **A caller's cancellation is private.** The shared refresh is owned by the store, so a
  *   per-request `AuthContext.signal` only stops *that* caller awaiting it — it never aborts the
  *   refresh for the other in-flight callers, nor clears the session.
@@ -159,9 +161,9 @@ export function createAuthStore(config: AuthStoreConfig = {}): AuthStore {
     const generationAtStart = generation
     const controller: WebAbortController = new AbortController()
     inflightController = controller
-    // The refresh is bound only to the store-owned controller (aborted on logout/setSession) and its
-    // own timeout — never to a caller's per-request signal, so one cancelled request cannot tear the
-    // shared refresh down for the others.
+    // The refresh is bound only to the store-owned controller (aborted on logout/setSession) and
+    // its own timeout — never to a caller's per-request signal, so one cancelled request cannot
+    // tear the shared refresh down for the others.
     const attempt = withTimeout((signal) => refresh(signal), refreshTimeoutMs, {
       signal: controller.signal,
       ...(delay === undefined ? {} : { delay }),

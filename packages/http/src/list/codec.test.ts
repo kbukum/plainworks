@@ -3,9 +3,9 @@ import { HttpError } from "../error"
 import { escapeListValue, escapeScalarValue, parseDelimitedList, unescapeValue } from "./codec"
 
 describe("REST value codec round-trip", () => {
-  // The escape (serialize) and unescape (parse) halves must be inverses: whatever the builder emits,
-  // the backend parser recovers exactly. These are the delimiter/backslash edge cases that would
-  // corrupt a value if the two halves ever drifted.
+  // The escape (serialize) and unescape (parse) halves must be inverses: whatever the builder
+  // emits, the backend parser recovers exactly. These are the delimiter/backslash edge cases that
+  // would corrupt a value if the two halves ever drifted.
   const scalarValues = ["plain", "a\\b", "\\", "a\\\\b", "dot.value", "(foo)", "trailing\\"]
 
   it("recovers a scalar value through escapeScalarValue → unescapeValue", () => {

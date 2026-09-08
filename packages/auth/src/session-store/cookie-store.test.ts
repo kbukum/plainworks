@@ -24,8 +24,9 @@ const sessionSchema: StandardSchemaV1<unknown, { sub: string }> = {
   },
 }
 
-// A single-request cookie jar: `set` parses `name=value; attrs` so a written cookie reads back through
-// `get` (empty value = cleared), and every raw `Set-Cookie` string is retained for assertion.
+// A single-request cookie jar: `set` parses `name=value; attrs` so a written cookie reads back
+// through `get` (empty value = cleared), and every raw `Set-Cookie` string is retained for
+// assertion.
 function fakeJar(): { jar: SessionCookieJar; setCookies: string[] } {
   const store = new Map<string, string>()
   const setCookies: string[] = []

@@ -101,7 +101,8 @@ const ASYNC_DEFAULT_CAPABILITIES: StateCapabilities = {
  * A {@link StateSource} whose `get()` resolves only when the test calls {@link
  * AsyncStateSource.releaseReads}, so a test can assert the surface renders its seed *before* the
  * backend resolves (the no-hydration-flash guarantee) and control an async reconcile step by step.
- * Stands in for the future remote scope, proving the seam is general enough for it — build one per test.
+ * Stands in for the future remote scope, proving the seam is general enough for it — build one per
+ * test.
  */
 export function asyncStateSource<Value>(
   options: AsyncStateSourceOptions<Value> = {},

@@ -18,7 +18,9 @@ import type { ChannelFrame } from "../transport"
 /** Props for the {@link ChannelContext.ChannelProvider}. */
 export interface ChannelProviderProps {
   /**
-   * Channel configuration, read **once** when the Provider mounts (like a per-request store). Change the transport or auth by remounting under a new `key`, not by mutating this between renders.
+   * Channel configuration, read **once** when the Provider mounts (like a per-request store).
+   * Change the transport or auth by remounting under a new `key`, not by mutating this between
+   * renders.
    */
   readonly options: ChannelOptions
   /** Connect on mount and close on unmount. Default `true`. */
@@ -35,7 +37,9 @@ export interface ChannelContext {
   /** The live {@link ChannelStatus}, re-rendering the caller on every transition. */
   readonly useChannelStatus: () => ChannelStatus
   /**
-   * Subscribe to frames of one `type` for the component's lifetime. The latest `listener` is always called (no stale closure) and the subscription is torn down on unmount — explicit ownership, no leak. Pass `"*"` semantics via {@link useAnyChannelEvent} for every frame.
+   * Subscribe to frames of one `type` for the component's lifetime. The latest `listener` is always
+   * called (no stale closure) and the subscription is torn down on unmount — explicit ownership, no
+   * leak. Pass `"*"` semantics via {@link useAnyChannelEvent} for every frame.
    */
   readonly useChannelEvent: (type: string, listener: (frame: ChannelFrame) => void) => void
   /** Subscribe to **every** frame for the component's lifetime, torn down on unmount. */
@@ -51,7 +55,12 @@ interface ChannelHandle {
 }
 
 /**
- * Create a React binding for a {@link Channel}: a `ChannelProvider` plus hooks. The Provider owns a stable per-mount handle (via `useRef`) — never a module-level singleton — so two concurrent SSR requests each get an isolated stream; the underlying channel is (re)built on each activation, so a StrictMode / remount cycle reconnects cleanly instead of reusing a terminally closed channel. Status is exposed through `useSyncExternalStore`, so a consumer re-renders exactly on a lifecycle transition. DOM-free: works in the browser, in a Next client tree, and under React Native.
+ * Create a React binding for a {@link Channel}: a `ChannelProvider` plus hooks. The Provider owns a
+ * stable per-mount handle (via `useRef`) — never a module-level singleton — so two concurrent SSR
+ * requests each get an isolated stream; the underlying channel is (re)built on each activation, so
+ * a StrictMode / remount cycle reconnects cleanly instead of reusing a terminally closed channel.
+ * Status is exposed through `useSyncExternalStore`, so a consumer re-renders exactly on a lifecycle
+ * transition. DOM-free: works in the browser, in a Next client tree, and under React Native.
  */
 export function createChannelContext(): ChannelContext {
   const Context = createContext<ChannelHandle | null>(null)
@@ -75,7 +84,10 @@ export function createChannelContext(): ChannelContext {
     }
     const handle = handleRef.current
 
-    // The handle is stable (built once via the ref); each mount activates a fresh underlying channel and tears it down on unmount. Because the channel's `close()` is terminal, activation rebuilds it — so a StrictMode / remount cycle reconnects rather than reusing a permanently closed channel.
+    // The handle is stable (built once via the ref); each mount activates a fresh underlying
+    // channel and tears it down on unmount. Because the channel's `close()` is terminal, activation
+    // rebuilds it — so a StrictMode / remount cycle reconnects rather than reusing a permanently
+    // closed channel.
     useEffect(() => handle.activate(autoConnect), [handle, autoConnect])
 
     return createElement(Context.Provider, { value: handle }, children)
@@ -112,7 +124,13 @@ export function createChannelContext(): ChannelContext {
 }
 
 /**
- * Build the stable handle a Provider mounts: a status store plus a {@link Channel} **façade** over a swappable underlying channel. Consumers hold the façade (via `useChannel`) and subscribe through it, so the Provider can rebuild the underlying channel on each activation — the channel's `close()` is terminal, so surviving a StrictMode / remount means a fresh channel each mount — while durable subscriptions are rebound to the new channel and the status store stays put. The latest event id is carried across rebuilds so a reconnect resumes where the previous channel left off.
+ * Build the stable handle a Provider mounts: a status store plus a {@link Channel} **façade** over
+ * a swappable underlying channel. Consumers hold the façade (via `useChannel`) and subscribe
+ * through it, so the Provider can rebuild the underlying channel on each activation — the channel's
+ * `close()` is terminal, so surviving a StrictMode / remount means a fresh channel each mount —
+ * while durable subscriptions are rebound to the new channel and the status store stays put.
+ * The latest event id is carried across rebuilds so a reconnect resumes where the previous channel
+ * left off.
  */
 function buildHandle(options: ChannelOptions): ChannelHandle {
   interface Binding {
@@ -145,7 +163,8 @@ function buildHandle(options: ChannelOptions): ChannelHandle {
       },
     })
     inner = channel
-    // A rebuilt channel starts idle — never inherit the predecessor's terminal `closed` status (e.g. an autoConnect true→false transition would otherwise leave useChannelStatus stale).
+    // A rebuilt channel starts idle — never inherit the predecessor's terminal `closed` status
+    // (e.g. an autoConnect true→false transition would otherwise leave useChannelStatus stale).
     status = channel.status
     notifyStatus()
     // Rebind every durable listener onto the fresh channel.
@@ -174,7 +193,8 @@ function buildHandle(options: ChannelOptions): ChannelHandle {
     const current = inner
     inner = undefined
     if (current !== undefined) {
-      // Preserve the inner channel's cursor exactly — including a reset to `undefined` (an SSE empty-id reset), which a `??` fallback would wrongly replace with the stale previous id.
+      // Preserve the inner channel's cursor exactly — including a reset to `undefined` (an SSE
+      // empty-id reset), which a `??` fallback would wrongly replace with the stale previous id.
       lastEventId = current.lastEventId
       current.close()
     }

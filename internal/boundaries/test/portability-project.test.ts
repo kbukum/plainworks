@@ -6,17 +6,19 @@ import { expect, test } from "vitest"
 
 /**
  * Structural half of the portability gate. The sibling fixture test in `boundaries.test.ts` proves
- * the ES2023-only compile config *rejects* a neutral entry that names a DOM global. This test proves
- * the other half the step's "every package, fail closed" requirement needs: that every package which
- * claims host-independence is actually wired into that config and cannot silently opt back out.
+ * the ES2023-only compile config *rejects* a neutral entry that names a DOM global. This test
+ * proves the other half the step's "every package, fail closed" requirement needs: that every
+ * package which claims host-independence is actually wired into that config and cannot silently opt
+ * back out.
  *
- * A package declares itself host-independent by including the `types/universal-web.d.ts` shim in its
- * neutral (server `.`) project. The one bypass the compiler fixture can't catch is a package that
- * *does* include the shim yet re-adds the DOM lib (or Node/DOM `@types`) to its own `tsconfig.json`:
- * `document`/`window` would then typecheck and the gate would fail open for that package alone. This
- * reads each package's fully-resolved config (honoring `extends`) and forbids exactly that. Packages
- * that are deliberately host-bound dev tooling (e.g. `mocks`) opt into `types: ["node"]` and do *not*
- * include the shim, so they are correctly out of scope here rather than needing an allowlist.
+ * A package declares itself host-independent by including the `types/universal-web.d.ts` shim in
+ * its neutral (server `.`) project. The one bypass the compiler fixture can't catch is a package
+ * that *does* include the shim yet re-adds the DOM lib (or Node/DOM `@types`) to its own
+ * `tsconfig.json`: `document`/`window` would then typecheck and the gate would fail open for that
+ * package alone. This reads each package's fully-resolved config (honoring `extends`) and forbids
+ * exactly that. Packages that are deliberately host-bound dev tooling (e.g. `mocks`) opt into
+ * `types: ["node"]` and do *not* include the shim, so they are correctly out of scope here rather
+ * than needing an allowlist.
  */
 const here = dirname(fileURLToPath(import.meta.url))
 const packagesDir = resolve(here, "../../../packages")
@@ -28,7 +30,8 @@ const SHIM = "universal-web.d.ts"
  * The packages that declare host-independence and must stay wired into the ES2023-only neutral
  * config. Listed explicitly so a package silently dropping the shim fails the gate (it would vanish
  * from the resolved-neutral set otherwise) rather than passing by omission — fail closed, like the
- * boundary map. Host-bound dev tooling (e.g. `mocks`, which opts into `types: ["node"]`) is not here.
+ * boundary map. Host-bound dev tooling (e.g. `mocks`, which opts into `types: ["node"]`) is not
+ * here.
  */
 const EXPECTED_NEUTRAL = [
   "std",
@@ -47,9 +50,9 @@ interface NeutralProject {
   /** Resolved `lib` entries that leak a host surface (DOM / WebWorker) into the neutral project. */
   domLibs: string[]
   /**
-   * Every resolved `types` entry. The base config pins `types: []`, so a neutral project's list must
-   * stay empty: any entry (`node`, `dom`, but also `bun`, `jsdom`, …) reopens an ambient host surface
-   * the exact-name check used to miss.
+   * Every resolved `types` entry. The base config pins `types: []`, so a neutral project's list
+   * must stay empty: any entry (`node`, `dom`, but also `bun`, `jsdom`, …) reopens an ambient host
+   * surface the exact-name check used to miss.
    */
   types: string[]
 }
@@ -65,8 +68,9 @@ function inspectNeutralProject(tsconfigPath: string): NeutralProject {
       },
     },
   )
-  // Derive shim inclusion from the fully-resolved file list, not the raw `include`, so a package that
-  // inherits the shim through `extends` is still recognized — matching how `lib`/`types` are read.
+  // Derive shim inclusion from the fully-resolved file list, not the raw `include`, so a package
+  // that inherits the shim through `extends` is still recognized — matching how `lib`/`types` are
+  // read.
   const includesShim = (parsed?.fileNames ?? []).some((file) => file.includes(SHIM))
   const libs = parsed?.options.lib ?? []
   const types = parsed?.options.types ?? []
@@ -96,8 +100,8 @@ test("no host-independent package widens its neutral project to a DOM/Node surfa
       ({ name, project }) =>
         `@plainworks/${name}: lib=[${project.domLibs.join(", ")}] types=[${project.types.join(", ")}]`,
     )
-  // Named, fail-closed like the boundary gate: an offender points at the exact package that reopened
-  // the DOM surface on its own `.` project.
+  // Named, fail-closed like the boundary gate: an offender points at the exact package that
+  // reopened the DOM surface on its own `.` project.
   expect(
     offenders,
     `these neutral projects reopened a host surface:\n${offenders.join("\n")}`,

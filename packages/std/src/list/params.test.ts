@@ -10,9 +10,10 @@ import type {
   SortDirection,
 } from "./params"
 
-// `params.ts` is pure type surface, so the contract it must keep is its *shape*: each operator carries
-// exactly the value it needs, and a mismatched combination does not compile. These are compile-time
-// assertions — they redden the typecheck gate, not a runtime run, if the discriminated union drifts.
+// `params.ts` is pure type surface, so the contract it must keep is its *shape*: each operator
+// carries exactly the value it needs, and a mismatched combination does not compile. These are
+// compile-time assertions — they redden the typecheck gate, not a runtime run, if the discriminated
+// union drifts.
 describe("FilterOperator vocabulary", () => {
   it("is the single union of operator names, independent of any wire dialect", () => {
     expectTypeOf<FilterOperator>().toEqualTypeOf<

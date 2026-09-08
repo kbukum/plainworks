@@ -1,5 +1,7 @@
 /**
- * Redaction for safe logging: strip credentials, tokens, and other secrets from a value before it reaches an observability sink, so a request/response is never logged with a live token or payload secret. Pure and structural — returns a redacted copy, never mutating the input.
+ * Redaction for safe logging: strip credentials, tokens, and other secrets from a value before it
+ * reaches an observability sink, so a request/response is never logged with a live token or payload
+ * secret. Pure and structural — returns a redacted copy, never mutating the input.
  */
 
 /** Options for {@link redact}. */
@@ -41,20 +43,21 @@ const BEARER_PATTERN = /^Bearer\s+\S+/i
  * An embedded `<scheme> <token>` HTTP credential (`Bearer <jwt>`, `DPoP <jwt>`, `Basic <b64>`)
  * sitting inside a larger string — a serialized `Authorization` header, an error message, a log
  * line. The whole scheme+token run is masked, because stopping at the first whitespace (as the
- * generic `key=value` matcher below does) would redact only the scheme word and leak the token after
- * it (e.g. `Authorization: [REDACTED] <jwt>`). The token runs to the next hard delimiter; scheme and
- * token are separate, non-overlapping character classes, so the global scan stays linear (no
- * super-linear backtracking) on adversarial input. Applied before the generic pair matcher.
+ * generic `key=value` matcher below does) would redact only the scheme word and leak the token
+ * after it (e.g. `Authorization: [REDACTED] <jwt>`). The token runs to the next hard delimiter;
+ * scheme and token are separate, non-overlapping character classes, so the global scan stays linear
+ * (no super-linear backtracking) on adversarial input. Applied before the generic pair matcher.
  */
 const EMBEDDED_AUTH_SCHEME_PATTERN =
   /\b(?:Bearer|DPoP|Basic|Digest|Negotiate|NTLM)\s+[^\s&;,"'?#]+/gi
 /**
  * An embedded `key=value` (or `key: value`) credential inside a larger string — a query string, an
- * error message, or a log line. The captured value runs to the next delimiter (whitespace, `&`, `?`,
- * `#`, `;`, `,`, or a quote), so `access_token=live-secret` and `password: live-secret` are masked
- * while the surrounding text survives. The key-name run is length-bounded so an adversarial input (a
- * long unbroken run of key-legal characters with no separator) can't drive super-linear backtracking
- * as the global scan advances — real credential key names are far shorter than the cap.
+ * error message, or a log line. The captured value runs to the next delimiter (whitespace, `&`,
+ * `?`, `#`, `;`, `,`, or a quote), so `access_token=live-secret` and `password: live-secret` are
+ * masked while the surrounding text survives. The key-name run is length-bounded so an adversarial
+ * input (a long unbroken run of key-legal characters with no separator) can't drive super-linear
+ * backtracking as the global scan advances — real credential key names are far shorter than the
+ * cap.
  */
 const EMBEDDED_SECRET_PATTERN = /([A-Za-z][A-Za-z0-9_.-]{0,127})(\s*[=:]\s*)([^\s&;,"'?#]+)/g
 
@@ -73,8 +76,8 @@ function maskCredentialSchemes(value: string, mask: string): string {
 }
 
 /**
- * Mask the value half of any embedded `key=value` pair whose key names a secret, leaving the rest of
- * the string intact. This closes the gap where a token is smuggled inside a larger string (a URL
+ * Mask the value half of any embedded `key=value` pair whose key names a secret, leaving the rest
+ * of the string intact. This closes the gap where a token is smuggled inside a larger string (a URL
  * query, a thrown error message) rather than sitting as its own property value.
  */
 function maskEmbeddedSecrets(
@@ -87,7 +90,8 @@ function maskEmbeddedSecrets(
   )
 }
 
-// Keys are matched lowercase with separators removed, so `x-api-key`, `api_key`, and `apikey` all collapse to the same token.
+// Keys are matched lowercase with separators removed, so `x-api-key`, `api_key`, and `apikey` all
+// collapse to the same token.
 function normalizeKey(key: string): string {
   return key.toLowerCase().replace(/[-_.]/g, "")
 }
@@ -96,7 +100,11 @@ function normalizeKey(key: string): string {
 const NORMALIZED_SENSITIVE_KEYS: readonly string[] = DEFAULT_SENSITIVE_KEYS.map(normalizeKey)
 
 /**
- * Whether `key` names a credential/secret value that must never be logged or smuggled into a URL. The comparison is separator-insensitive **substring** matching against the built-in sensitive vocabulary plus any `extraKeys`, so `X-Api-Key`, `api_key`, and `apikey` all match `apikey`, and `sessionId` matches `session`. This is the one owner of the sensitive-key vocabulary — {@link redact} and header-only-auth URL guards both reuse it instead of forking their own list.
+ * Whether `key` names a credential/secret value that must never be logged or smuggled into a URL.
+ * The comparison is separator-insensitive **substring** matching against the built-in sensitive
+ * vocabulary plus any `extraKeys`, so `X-Api-Key`, `api_key`, and `apikey` all match `apikey`, and
+ * `sessionId` matches `session`. This is the one owner of the sensitive-key vocabulary —
+ * {@link redact} and header-only-auth URL guards both reuse it instead of forking their own list.
  */
 export function isSensitiveKey(key: string, extraKeys: readonly string[] = []): boolean {
   const normalized = normalizeKey(key)
@@ -114,7 +122,15 @@ export function isSensitiveKey(key: string, extraKeys: readonly string[] = []): 
 }
 
 /**
- * Return a redacted copy of `value`: any property whose key matches a sensitive name (compared separator-insensitively, so `api_key` matches `x-api-key`), any string that looks like a bearer token or JWT, and any embedded `key=value` credential inside a larger string (e.g. `access_token=live-secret` in a URL query or error message) is replaced with the mask. Objects and arrays are walked up to `maxDepth`; cycles are detected and marked. A sensitive key is masked from its descriptor without reading the value, a non-sensitive accessor is surfaced as `"[Getter]"` rather than invoked, and a callable value is surfaced as `"[Function]"`, so redaction never executes untrusted getter or `toJSON` code and never carries an executable hook onto the copy — safe on arbitrary log payloads.
+ * Return a redacted copy of `value`: any property whose key matches a sensitive name (compared
+ * separator-insensitively, so `api_key` matches `x-api-key`), any string that looks like a bearer
+ * token or JWT, and any embedded `key=value` credential inside a larger string (e.g.
+ * `access_token=live-secret` in a URL query or error message) is replaced with the mask. Objects
+ * and arrays are walked up to `maxDepth`; cycles are detected and marked. A sensitive key is masked
+ * from its descriptor without reading the value, a non-sensitive accessor is surfaced as
+ * `"[Getter]"` rather than invoked, and a callable value is surfaced as `"[Function]"`, so
+ * redaction never executes untrusted getter or `toJSON` code and never carries an executable hook
+ * onto the copy — safe on arbitrary log payloads.
  */
 export function redact(value: unknown, options: RedactOptions = {}): unknown {
   const mask = options.mask ?? "[REDACTED]"
@@ -132,17 +148,22 @@ export function redact(value: unknown, options: RedactOptions = {}): unknown {
         return mask
       }
       // Mask embedded `<scheme> <token>` credentials (whole run) before the generic key=value
-      // matcher, so a serialized `Authorization: Bearer <jwt>` never leaks the token after its scheme.
+      // matcher, so a serialized `Authorization: Bearer <jwt>` never leaks the token after its
+      // scheme.
       return maskEmbeddedSecrets(maskCredentialSchemes(input, mask), mask, isSensitive)
     }
-    // A callable value (e.g. an own `toJSON`) is surfaced as an inert marker, never carried through: a JSON log sink would otherwise invoke a surviving hook and could re-emit a captured secret after redaction.
+    // A callable value (e.g. an own `toJSON`) is surfaced as an inert marker, never carried
+    // through: a JSON log sink would otherwise invoke a surviving hook and could re-emit a captured
+    // secret after redaction.
     if (typeof input === "function") {
       return "[Function]"
     }
     if (input === null || typeof input !== "object") {
       return input
     }
-    // A `Date` is a leaf value, not a container to walk. Clone through the intrinsic getter so a subclass or an own `toJSON` hook can't ride along on the copy and execute inside a serializer; only the timestamp survives.
+    // A `Date` is a leaf value, not a container to walk. Clone through the intrinsic getter so a
+    // subclass or an own `toJSON` hook can't ride along on the copy and execute inside a
+    // serializer; only the timestamp survives.
     if (input instanceof Date) {
       return new Date(Date.prototype.getTime.call(input))
     }
@@ -159,7 +180,8 @@ export function redact(value: unknown, options: RedactOptions = {}): unknown {
       for (let index = 0; index < input.length; index++) {
         const descriptor = Object.getOwnPropertyDescriptor(input, index)
         if (descriptor?.get !== undefined) {
-          // An indexed accessor is surfaced, never executed — the same non-invoking policy as object accessors.
+          // An indexed accessor is surfaced, never executed — the same non-invoking policy as
+          // object accessors.
           items.push("[Getter]")
           continue
         }
@@ -170,13 +192,15 @@ export function redact(value: unknown, options: RedactOptions = {}): unknown {
       const entries: Array<[string, unknown]> = []
       for (const key of Object.keys(input)) {
         if (isSensitive(key)) {
-          // Mask from the key alone — reading the value could invoke an untrusted getter that leaks or throws.
+          // Mask from the key alone — reading the value could invoke an untrusted getter that leaks
+          // or throws.
           entries.push([key, mask])
           continue
         }
         const descriptor = Object.getOwnPropertyDescriptor(input, key)
         if (descriptor?.get !== undefined) {
-          // A non-sensitive accessor is surfaced, never executed, so arbitrary getter code never runs during logging.
+          // A non-sensitive accessor is surfaced, never executed, so arbitrary getter code never
+          // runs during logging.
           entries.push([key, "[Getter]"])
           continue
         }

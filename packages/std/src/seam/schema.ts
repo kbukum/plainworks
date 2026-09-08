@@ -1,9 +1,15 @@
 import { err, ok, type Result } from "../result"
 
 /**
- * A Standard Schema v1 validator — the community-standard validation contract implemented by Zod, Valibot, ArkType, Effect Schema, and others through the `~standard` property. Owning it structurally here (rather than depending on `@standard-schema/spec`) keeps `@plainworks/std` zero-dependency while any such library's schema stays assignable by duck typing.
+ * A Standard Schema v1 validator — the community-standard validation contract implemented by Zod,
+ * Valibot, ArkType, Effect Schema, and others through the `~standard` property. Owning it
+ * structurally here (rather than depending on `@standard-schema/spec`) keeps `@plainworks/std`
+ * zero-dependency while any such library's schema stays assignable by duck typing.
  *
- * It is the one validation seam every transport reuses to turn an untrusted decoded `unknown` into a typed value at a trust boundary: `http` validates a response body with it, and future `rest`/`graphql`/`query` layers apply the same contract to their own payloads. See the Standard Schema spec at https://standardschema.dev.
+ * It is the one validation seam every transport reuses to turn an untrusted decoded `unknown` into
+ * a typed value at a trust boundary: `http` validates a response body with it, and future
+ * `rest`/`graphql`/`query` layers apply the same contract to their own payloads. See the Standard
+ * Schema spec at https://standardschema.dev.
  */
 export interface StandardSchemaV1<Input = unknown, Output = Input> {
   /** The Standard Schema validation namespace this validator exposes. */
@@ -56,7 +62,8 @@ export interface StandardSchemaTypes<Input, Output> {
 }
 
 /**
- * Statically infer the validated output type of a {@link StandardSchemaV1}. Derived from the success branch of `validate` so it works even when a schema omits the optional `types` phantom.
+ * Statically infer the validated output type of a {@link StandardSchemaV1}. Derived from the
+ * success branch of `validate` so it works even when a schema omits the optional `types` phantom.
  */
 export type InferSchemaOutput<S extends StandardSchemaV1> = Extract<
   Awaited<ReturnType<S["~standard"]["validate"]>>,
@@ -64,7 +71,11 @@ export type InferSchemaOutput<S extends StandardSchemaV1> = Extract<
 >["value"]
 
 /**
- * Run a {@link StandardSchemaV1} over an untrusted value at a trust boundary, normalizing its sync-or-async outcome into a {@link Result}: `ok(value)` with the parsed, typed value, or `err(issues)` with the validation issues. Transports reuse this to validate a decoded payload without re-implementing the `~standard` handshake, then map the issues onto their own typed error.
+ * Run a {@link StandardSchemaV1} over an untrusted value at a trust boundary, normalizing its
+ * sync-or-async outcome into a {@link Result}: `ok(value)` with the parsed, typed value, or
+ * `err(issues)` with the validation issues. Transports reuse this to validate a decoded payload
+ * without re-implementing the `~standard` handshake, then map the issues onto their own typed
+ * error.
  */
 export async function validateWithSchema<S extends StandardSchemaV1>(
   schema: S,
@@ -78,7 +89,11 @@ export async function validateWithSchema<S extends StandardSchemaV1>(
 }
 
 /**
- * The explicit, opt-in escape hatch for "I trust this wire": a {@link StandardSchemaV1} that performs no validation and returns the decoded value as `T`. The cast is unchecked, so this must be a deliberate choice at the call site — the safe default is to receive the decoded `unknown` and narrow it, or to pass a real schema. Prefer a real validator for any untrusted boundary (a server response, model output, or retrieved content).
+ * The explicit, opt-in escape hatch for "I trust this wire": a {@link StandardSchemaV1} that
+ * performs no validation and returns the decoded value as `T`. The cast is unchecked, so this must
+ * be a deliberate choice at the call site — the safe default is to receive the decoded `unknown`
+ * and narrow it, or to pass a real schema. Prefer a real validator for any untrusted boundary (a
+ * server response, model output, or retrieved content).
  */
 export function unsafePassthrough<T>(): StandardSchemaV1<unknown, T> {
   return {

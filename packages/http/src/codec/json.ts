@@ -4,9 +4,9 @@ import type { BodyCodec, EncodedBody } from "./body"
 
 /**
  * Default cap on a decoded response body: 10 MiB. A body larger than this is refused with a fatal
- * decode error rather than buffered, so a chunked or dishonest server cannot exhaust process memory.
- * Raise or lower it per codec via {@link createJsonCodec} when a protocol legitimately needs a
- * different ceiling.
+ * decode error rather than buffered, so a chunked or dishonest server cannot exhaust process
+ * memory. Raise or lower it per codec via {@link createJsonCodec} when a protocol legitimately
+ * needs a different ceiling.
  */
 export const DEFAULT_MAX_BODY_BYTES: number = 10 * 1024 * 1024
 
@@ -18,21 +18,21 @@ export interface JsonCodecOptions {
 
 /**
  * Build a JSON {@link BodyCodec} with a configurable maximum decoded body size. Encoding maps a
- * non-serializable value (cyclic, `BigInt`, or a top-level `function`/`symbol` that `JSON.stringify`
- * renders as `undefined`) to a fatal {@link HttpError} `http/encode` instead of throwing a raw
- * `TypeError` or emitting an invalid body. Decoding reads the body through a bounded streaming reader
- * that cancels the stream once `maxBytes` is exceeded (rejecting with a fatal {@link HttpError}
- * `http/decode`) or the caller's signal aborts (rejecting with a typed abort error), treats an
- * empty body (including `204`/`205`) as `undefined`, and wraps a malformed body in a fatal
- * {@link HttpError} `http/decode` rather than leaking the raw `SyntaxError`. `maxBytes` must be a
- * positive integer.
+ * non-serializable value (cyclic, `BigInt`, or a top-level `function`/`symbol` that
+ * `JSON.stringify` renders as `undefined`) to a fatal {@link HttpError} `http/encode` instead of
+ * throwing a raw `TypeError` or emitting an invalid body. Decoding reads the body through a bounded
+ * streaming reader that cancels the stream once `maxBytes` is exceeded (rejecting with a fatal
+ * {@link HttpError} `http/decode`) or the caller's signal aborts (rejecting with a typed abort
+ * error), treats an empty body (including `204`/`205`) as `undefined`, and wraps a malformed body
+ * in a fatal {@link HttpError} `http/decode` rather than leaking the raw `SyntaxError`. `maxBytes`
+ * must be a positive integer.
  */
 export function createJsonCodec(options: JsonCodecOptions = {}): BodyCodec {
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_BODY_BYTES
   if (!Number.isInteger(maxBytes) || maxBytes <= 0) {
     // A non-finite, fractional, or non-positive cap would let the bound silently degrade to "no
-    // limit" (`Infinity`/`NaN` compare false against every size) or refuse every body, defeating the
-    // memory guard. Fail loudly at construction rather than at the first oversized response.
+    // limit" (`Infinity`/`NaN` compare false against every size) or refuse every body, defeating
+    // the memory guard. Fail loudly at construction rather than at the first oversized response.
     throw new RangeError("createJsonCodec requires maxBytes to be a positive integer")
   }
   return {
@@ -76,9 +76,10 @@ export const jsonCodec: BodyCodec = createJsonCodec()
  * body stream and decoded incrementally; the reader is cancelled the moment the cap is exceeded or
  * `signal` aborts, so an oversized or stalled body never accumulates unbounded memory and its
  * connection is released. A `null` body (no content) decodes to the empty string. A cancellation —
- * whether the signal was already aborted or fired mid-read — rejects with a typed {@link AbortError}
- * rather than resolving a truncated body as if it were complete, and a genuine stream fault (the
- * underlying `read()` rejecting for a non-abort reason) maps to a retryable `http/network` error.
+ * whether the signal was already aborted or fired mid-read — rejects with a typed
+ * {@link AbortError} rather than resolving a truncated body as if it were complete, and a genuine
+ * stream fault (the underlying `read()` rejecting for a non-abort reason) maps to a retryable
+ * `http/network` error.
  */
 async function readBoundedText(
   response: WebResponse,

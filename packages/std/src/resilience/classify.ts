@@ -1,11 +1,15 @@
 import { PlainError } from "../errors"
 
 /**
- * Shared failure taxonomy: map any failure (an HTTP status or a thrown value) to a category and a retry disposition, so the retry driver, the circuit breaker, and every transport decide retryability from **one** classifier instead of re-implementing the rules per protocol.
+ * Shared failure taxonomy: map any failure (an HTTP status or a thrown value) to a category and a
+ * retry disposition, so the retry driver, the circuit breaker, and every transport decide
+ * retryability from **one** classifier instead of re-implementing the rules per protocol.
  */
 
 /**
- * A network-level failure (DNS, connection reset, offline) reported by a transport, wrapping the host error as `cause`. Retryable under the classifier — unlike a raw `TypeError`, which is a programmer fault and stays fatal.
+ * A network-level failure (DNS, connection reset, offline) reported by a transport, wrapping the
+ * host error as `cause`. Retryable under the classifier — unlike a raw `TypeError`, which is a
+ * programmer fault and stays fatal.
  */
 export class NetworkError extends PlainError<"std/network"> {
   constructor(message = "Network request failed", options?: { cause?: unknown }) {
@@ -37,10 +41,14 @@ export interface Classification {
 }
 
 /**
- * Classify an HTTP status code (only meaningful for `>= 400`). `401`/`403` are auth and fatal (a retry with the same credential fails identically); `408`/`429` and all `5xx` are retryable (timeout / rate-limit / server); every other `4xx` — and any non-integer or out-of-range value — is a fatal protocol error.
+ * Classify an HTTP status code (only meaningful for `>= 400`). `401`/`403` are auth and fatal (a
+ * retry with the same credential fails identically); `408`/`429` and all `5xx` are retryable
+ * (timeout / rate-limit / server); every other `4xx` — and any non-integer or out-of-range value —
+ * is a fatal protocol error.
  */
 export function classifyStatus(status: number): Classification {
-  // A non-integer status is not a real HTTP code (e.g. `500.5`); treat it as a protocol fault rather than let the `5xx` range retry malformed input.
+  // A non-integer status is not a real HTTP code (e.g. `500.5`); treat it as a protocol fault
+  // rather than let the `5xx` range retry malformed input.
   if (!Number.isInteger(status)) {
     return { category: "protocol", disposition: "fatal" }
   }
@@ -63,7 +71,13 @@ function errorName(error: unknown): string | undefined {
 }
 
 /**
- * Classify a thrown value. A per-attempt timeout is retryable; a caller/deadline abort is fatal (the overall budget is spent — do not retry); a retry-exhausted wrapper (`std/retry-exhausted`) is classified from its preserved cause, so a repeatedly-failing idempotent call still counts toward a breaker; a {@link StatusError} defers to {@link classifyStatus}; a {@link NetworkError} — the type a transport wraps a failed `fetch` in — is a retryable network fault. Anything unrecognized (including a raw `TypeError`, a programmer fault) is treated as fatal, the safe default (never retry the unknown).
+ * Classify a thrown value. A per-attempt timeout is retryable; a caller/deadline abort is fatal
+ * (the overall budget is spent — do not retry); a retry-exhausted wrapper (`std/retry-exhausted`)
+ * is classified from its preserved cause, so a repeatedly-failing idempotent call still counts
+ * toward a breaker; a {@link StatusError} defers to {@link classifyStatus}; a {@link NetworkError}
+ * — the type a transport wraps a failed `fetch` in — is a retryable network fault. Anything
+ * unrecognized (including a raw `TypeError`, a programmer fault) is treated as fatal, the safe
+ * default (never retry the unknown).
  */
 export function classifyError(error: unknown): Classification {
   const name = errorName(error)
@@ -73,7 +87,9 @@ export function classifyError(error: unknown): Classification {
   if (name === "AbortError") {
     return { category: "timeout", disposition: "fatal" }
   }
-  // A retry-exhausted wrapper is only as fatal as the failure it preserved: classify its cause so a `circuitBreaker(runWithRetry(...))` composition still counts repeated network outages toward tripping.
+  // A retry-exhausted wrapper is only as fatal as the failure it preserved: classify its cause so a
+  // `circuitBreaker(runWithRetry(...))` composition still counts repeated network outages toward
+  // tripping.
   if (error instanceof PlainError && error.kind === "std/retry-exhausted") {
     return classifyError(error.cause)
   }

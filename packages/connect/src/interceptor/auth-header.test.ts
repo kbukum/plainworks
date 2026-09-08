@@ -83,7 +83,8 @@ describe("authHeaderInterceptor", () => {
 
     expect(seen[0]?.header.get("authorization")).toBe("******")
     expect(seen[1]?.header.has("authorization")).toBe(false)
-    // The base request the retry driver reuses is never mutated, so the vanished credential is gone.
+    // The base request the retry driver reuses is never mutated, so the vanished credential is
+    // gone.
     expect(request.header.has("authorization")).toBe(false)
   })
 })

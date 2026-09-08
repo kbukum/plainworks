@@ -10,9 +10,9 @@ import type { FilterCondition, FilterOperator, FilterQuery } from "./types"
  * Parse PostgREST/Supabase-style API params back into a {@link FilterQuery}.
  *
  * The REST wire dialect — the operator↔token grammar, the longest-first token match, and the value
- * escape/parse codec — is owned by `@plainworks/http/list` (the L1 REST dialect this L4 backend binds
- * downward to), so this fake backend and the `buildListQuery` request builder decode/encode through
- * one codec and can never drift. This module only composes those primitives into the mock's
+ * escape/parse codec — is owned by `@plainworks/http/list` (the L1 REST dialect this L4 backend
+ * binds downward to), so this fake backend and the `buildListQuery` request builder decode/encode
+ * through one codec and can never drift. This module only composes those primitives into the mock's
  * {@link FilterQuery} domain shape.
  *
  * @example

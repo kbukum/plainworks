@@ -30,16 +30,17 @@ export interface StringBackend {
 
 /**
  * Build a {@link StateSource} over a string {@link StringBackend}, shared by every storage-backed
- * scope so serialization, typed-error mapping, and subscription bookkeeping live in one place rather
- * than being re-implemented per medium.
+ * scope so serialization, typed-error mapping, and subscription bookkeeping live in one place
+ * rather than being re-implemented per medium.
  *
- * The source owns a **local** listener set (its own writes notify synchronously, since Web Storage's
- * `storage` event never fires in the tab that made the change) and, when the backend provides one,
- * an **external** subscription for cross-tab / navigation changes. `unsubscribe` detaches both, so no
- * host listener outlives its subscription. A read, (de)serialize, or write failure is wrapped in a
- * typed {@link StateSourceError} that preserves the cause — an untrusted persisted string never
- * escapes as a raw host error or a fabricated value, and a rejected write is never swallowed. When a
- * `schema` is supplied the decoded value is validated at this trust boundary before it is adopted.
+ * The source owns a **local** listener set (its own writes notify synchronously, since Web
+ * Storage's `storage` event never fires in the tab that made the change) and, when the backend
+ * provides one, an **external** subscription for cross-tab / navigation changes. `unsubscribe`
+ * detaches both, so no host listener outlives its subscription. A read, (de)serialize, or write
+ * failure is wrapped in a typed {@link StateSourceError} that preserves the cause — an untrusted
+ * persisted string never escapes as a raw host error or a fabricated value, and a rejected write is
+ * never swallowed. When a `schema` is supplied the decoded value is validated at this trust
+ * boundary before it is adopted.
  */
 export function createStringSource<Value>(params: {
   readonly capabilities: StateCapabilities
@@ -65,8 +66,8 @@ export function createStringSource<Value>(params: {
         raw = backend.read()
       } catch (cause) {
         // A host read can throw (Web Storage `SecurityError`, a malformed cookie, an invalid URL) —
-        // map a raw host error to the typed contract. An already-typed error (e.g. host-absent, which
-        // names its escape hatch) is rethrown as-is so its actionable message is preserved.
+        // map a raw host error to the typed contract. An already-typed error (e.g. host-absent,
+        // which names its escape hatch) is rethrown as-is so its actionable message is preserved.
         if (cause instanceof StateSourceError) {
           throw cause
         }
@@ -84,8 +85,8 @@ export function createStringSource<Value>(params: {
       if (schema === undefined) {
         return decoded
       }
-      // Validate the decoded value at the trust boundary: a tampered/wrong-shaped persisted value is
-      // a typed error, never a fabricated `Value` handed back as if it were sound.
+      // Validate the decoded value at the trust boundary: a tampered/wrong-shaped persisted value
+      // is a typed error, never a fabricated `Value` handed back as if it were sound.
       const result = await validateWithSchema(schema, decoded)
       if (!result.ok) {
         throw new StateSourceError(`The persisted ${medium} value failed validation.`, {
@@ -107,8 +108,9 @@ export function createStringSource<Value>(params: {
       try {
         backend.write(raw)
       } catch (cause) {
-        // Preserve an already-typed backend failure (the cookie size guard, a missing host) as-is so
-        // its actionable message survives, then wrap only a raw host error in the generic quota text.
+        // Preserve an already-typed backend failure (the cookie size guard, a missing host) as-is
+        // so its actionable message survives, then wrap only a raw host error in the generic quota
+        // text.
         if (cause instanceof StateSourceError) {
           throw cause
         }

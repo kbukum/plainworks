@@ -5,8 +5,9 @@
  * substitutable in tests: a host without Web Crypto supplies a polyfill instead of the core failing
  * to load.
  *
- * Every source of randomness here MUST be a CSPRNG. The seeded, deterministic RNG in `@plainworks/std`
- * (`createSeededRandom`) is a **non-secure** test tool and must never reach these paths.
+ * Every source of randomness here MUST be a CSPRNG. The seeded, deterministic RNG in
+ * `@plainworks/std` (`createSeededRandom`) is a **non-secure** test tool and must never reach these
+ * paths.
  */
 export interface AuthCrypto {
   /**

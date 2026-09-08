@@ -11,7 +11,8 @@ export default defineConfig({
       include: ["src/**/*.{ts,tsx}"],
       // Re-export-only barrels carry no logic to unit-test (the `"use client"` directive's survival
       // is proven by the CI dist check, not coverage); excluding them keeps tests from coupling to
-      // the entry file just to color a line. Generated protobuf output is excluded as vendored code.
+      // the entry file just to color a line. Generated protobuf output is excluded as vendored
+      // code.
       exclude: ["src/**/*.test.{ts,tsx}", "src/**/index.ts", "src/client.ts", "src/connect/gen/**"],
       thresholds: {
         lines: 80,

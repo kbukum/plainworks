@@ -6,14 +6,15 @@ import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { readUserPage } from "./user-reads"
 
-// A failing backend must surface as a typed `HttpError` through `http` and `query`, and must leave no
-// success-shaped value in the cache — the half a green-path scenario never reaches.
+// A failing backend must surface as a typed `HttpError` through `http` and `query`, and must leave
+// no success-shaped value in the cache — the half a green-path scenario never reaches.
 //
-// The failing backend is modeled with a *bodyless* error response, not the mock's global error gate:
-// on a non-2xx the client releases the failed response's body before raising (so a retry can't pin an
-// unread stream), and MSW's mocked `ReadableStream.cancel()` never settles under Node — a JSON error
-// body would hang that release. A bodyless response has nothing to release, keeping the assertion
-// deterministic while still exercising the real non-ok → `HttpError` path over the network boundary.
+// The failing backend is modeled with a *bodyless* error response, not the mock's global error
+// gate: on a non-2xx the client releases the failed response's body before raising (so a retry
+// can't pin an unread stream), and MSW's mocked `ReadableStream.cancel()` never settles under Node
+// — a JSON error body would hang that release. A bodyless response has nothing to release, keeping
+// the assertion deterministic while still exercising the real non-ok → `HttpError` path over the
+// network boundary.
 
 const handle = createMockServerHandle({ seed: 42 })
 const client = createHttpClient({ baseUrl: "http://mock.test" })

@@ -180,7 +180,8 @@ describe("createEventRouter", () => {
     release()
     await flushMicrotasks()
 
-    // Event 1 was popped into the stalled sink; with capacity 2 and the default drop-oldest policy, only the freshest two of {2,3,4,5} survive → 4 and 5. The buffer never grew past capacity.
+    // Event 1 was popped into the stalled sink; with capacity 2 and the default drop-oldest policy,
+    // only the freshest two of {2,3,4,5} survive → 4 and 5. The buffer never grew past capacity.
     expect(delivered).toEqual([1, 4, 5])
     router.close()
   })

@@ -1,0 +1,19 @@
+{
+  "name": "@plainworks/comment-format",
+  "version": "0.0.0",
+  "description": "Comment-width gate: wraps `//` and `/** */` comment prose to the print width (Biome never touches comment content). Comment ranges come from the TypeScript compiler API, so strings/URLs are never mistaken for comments.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "bun cli.ts --check ../../packages ../../apps ../../internal",
+    "write": "bun cli.ts --write ../../packages ../../apps ../../internal",
+    "verify": "bun verify.ts ../../packages ../../apps ../../internal",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

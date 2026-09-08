@@ -1,4 +1,4 @@
-import { PlainError } from "./errors"
+import { PlainError } from "../errors"
 
 /**
  * Throw a {@link PlainError} unless `condition` holds. As a TypeScript assertion, it also narrows the checked value for the rest of the scope.

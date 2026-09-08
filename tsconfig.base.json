@@ -45,6 +45,10 @@
       // fetch-bridging client graph, so host-bound programs that cannot compile neutral shim-typed
       // source (e.g. `mocks`, which opts into `types: ["node"]`) may consume it.
       "@plainworks/http/list": ["./packages/http/src/list/index.ts"],
+      // `auth/server` is the token-custody / cookie-minting entry: map it to its real `src/server.ts`
+      // barrel so dependency-cruiser resolves the subpath and can enforce that no `"use client"` graph
+      // imports it (the server/client custody boundary).
+      "@plainworks/auth/server": ["./packages/auth/src/server.ts"],
       "@plainworks/*": ["./packages/*/src"]
     }
   }

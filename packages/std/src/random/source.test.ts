@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { createSeededRandom, systemRandom } from "./random"
+import { createSeededRandom, systemRandom } from "./source"
 
 test("the same seed produces the same sequence", () => {
   const a = createSeededRandom(42)

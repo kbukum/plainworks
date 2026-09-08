@@ -110,7 +110,7 @@ Checked in review and by the gates, for every package:
 **How it reads (standards):**
 
 - Write Markdown paragraphs as **one continuous source line** — do not hard-wrap prose to a column; renderers wrap for the viewport. Preserve intentional structure: headings, lists, tables, blockquotes, mermaid diagrams, fenced code.
-- Apply the same rule to TSDoc (`/** */`) and `//` comment prose. Preserve TSDoc tags, directives, lists, and code examples.
+- **Code comments are the exception — wrap them.** A `/** */` TSDoc or `//` comment is read at its source column, not reflowed by a renderer, so wrap its prose to the Biome print width (100 columns) like the code it documents — never a long single line trailing off-screen, and never hard-wrap Markdown to match. Keep TSDoc tags, directives (`@param`, `@throws`, `{@link}`), lists, and code examples intact, and break paragraphs on blank comment lines rather than joining them. Biome does not touch comment content, so `bun run check-comments` reports over-width comments and `bun run format-comments` reflows them safely (via `@plainworks/comment-format`, which edits only comment prose and never code).
 - Comments and docs describe the code **as it is now** — not history, plans, or the process that produced it.
 
 **How it lands (clarity — a doc is for a human skimming under time pressure):**

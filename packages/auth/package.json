@@ -1,0 +1,64 @@
+{
+  "name": "@plainworks/auth",
+  "version": "0.1.0-alpha.1",
+  "description": "Pluggable authentication and authorization: host-neutral core, secure BFF default, swappable adapters.",
+  "type": "module",
+  "sideEffects": false,
+  "license": "MIT",
+  "author": "Plainworks",
+  "homepage": "https://github.com/kbukum/plainworks/tree/main/packages/auth#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kbukum/plainworks.git",
+    "directory": "packages/auth"
+  },
+  "bugs": "https://github.com/kbukum/plainworks/issues",
+  "keywords": [
+    "plainworks",
+    "typescript",
+    "esm",
+    "host-independent",
+    "auth",
+    "authentication",
+    "authorization",
+    "oidc"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/server.d.ts",
+      "import": "./dist/server.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage",
+    "lint": "biome check .",
+    "check-packaging": "publint --strict && attw --pack --profile esm-only"
+  },
+  "dependencies": {
+    "@plainworks/state": "workspace:*",
+    "@plainworks/std": "workspace:*"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "catalog:",
+    "@plainworks/testkit": "workspace:*",
+    "@plainworks/tsdown-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "publint": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "typecheck": {
+      "inputs": ["reflow.ts", "cli.ts", "test/**", "tsconfig.json"],
+      "outputs": []
+    },
+    "test": {
+      "inputs": ["reflow.ts", "cli.ts", "test/**", "vitest.config.ts"],
+      "outputs": []
+    }
+  }
+}

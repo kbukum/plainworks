@@ -59,6 +59,41 @@ test("layer violations trip the gate", async () => {
   expect(tripped.has("no-package-into-apps-or-internal")).toBe(true)
 })
 
+/**
+ * Token-custody quarantine. auth's server-only custody graph holds the session-signing secret, so a
+ * `"use client"` graph must never import it. The rule is path-based (dependency-cruiser can't read a
+ * `"use client"` directive), so the fixture is a client-graph module (`auth/src/client/guard.ts`)
+ * importing the server graph (`auth/src/server/hmac-signer.ts`) — the edge that must trip the rule,
+ * proving the secret cannot slip into a browser bundle.
+ */
+test("a client graph importing auth server-only custody trips the quarantine rule", async () => {
+  const violations = await cruiseFixtures()
+  const tripped = violations.find(
+    (v) =>
+      v.rule.name === "no-client-into-auth-server" &&
+      v.from.endsWith("auth/src/client/guard.ts") &&
+      v.to.endsWith("auth/src/server/hmac-signer.ts"),
+  )
+  expect(tripped).toBeDefined()
+})
+
+/**
+ * Custody ownership — the transitive half of the quarantine. A neutral (non-server) auth module
+ * reaching into `server/**` must trip `no-nonserver-into-auth-server`, proving the signing secret is
+ * reachable only through auth's own server entry — so a client importing the neutral `.` barrel can
+ * never pull custody in by a longer path.
+ */
+test("a neutral auth module importing server-only custody trips the ownership rule", async () => {
+  const violations = await cruiseFixtures()
+  const tripped = violations.find(
+    (v) =>
+      v.rule.name === "no-nonserver-into-auth-server" &&
+      v.from.endsWith("auth/src/neutral-custody-leak.ts") &&
+      v.to.endsWith("auth/src/server/hmac-signer.ts"),
+  )
+  expect(tripped).toBeDefined()
+})
+
 test("legal higher-to-lower imports are allowed", async () => {
   const violations = await cruiseFixtures()
   // `auth` (L3) -> `std` (L0) is the layer model working as intended; no rule may flag it.
@@ -148,6 +183,14 @@ test("the portability gate compiles a neutral entry using only universal Web glo
   timeout: TSC_TIMEOUT_MS,
 }, () => {
   expect(typechecksUnderGate("tsconfig.ok.json").ok).toBe(true)
+})
+
+test("the portability gate compiles the server-only entry host-free (TextEncoder/TextDecoder)", {
+  timeout: TSC_TIMEOUT_MS,
+}, () => {
+  // auth's `./server` custody graph uses `new TextEncoder()`; proving it compiles under the shim
+  // shows the quarantined server entry is host-independent, not that it is host-*bound*.
+  expect(typechecksUnderGate("tsconfig.server-ok.json").ok).toBe(true)
 })
 
 test("the portability gate rejects a neutral entry referencing a DOM-only global", {

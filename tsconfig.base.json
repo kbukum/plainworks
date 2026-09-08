@@ -41,6 +41,10 @@
       // compile it — its consumers' DOM programs (e.g. a client test) must exclude tests and typecheck
       // them in a DOM-free `tsconfig.test.json` instead.
       "@plainworks/testkit/connect": ["./packages/testkit/src/connect/index.ts"],
+      // `http/list` is the wire-contract slice (operators/params/result) that never touches the
+      // fetch-bridging client graph, so host-bound programs that cannot compile neutral shim-typed
+      // source (e.g. `mocks`, which opts into `types: ["node"]`) may consume it.
+      "@plainworks/http/list": ["./packages/http/src/list/index.ts"],
       "@plainworks/*": ["./packages/*/src"]
     }
   }

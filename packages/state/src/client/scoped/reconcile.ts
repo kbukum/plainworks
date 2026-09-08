@@ -1,6 +1,6 @@
 "use client"
 
-import type { StateSource } from "@plainworks/std"
+import type { StateSource, WebAbortController } from "@plainworks/std"
 import type { Report } from "./surface"
 
 /**
@@ -37,8 +37,10 @@ export function createSourceReconciler<Value>(params: {
   let writeRevision = 0
   let latestPull = 0
   // Owns cancellation for the reads this reconciler starts: aborted on teardown so a remote `get`
-  // still in flight abandons its network work instead of resolving into an unmounted mirror.
-  let controller: AbortController | undefined
+  // still in flight abandons its network work instead of resolving into an unmounted mirror. Typed as
+  // the shim's `WebAbortController` (not the DOM-lib global) so this client module stays DOM-free and
+  // compiles on React Native/Expo — `new AbortController()` binds to that same universal shim type.
+  let controller: WebAbortController | undefined
 
   const pull = (isInitial: boolean): void => {
     const startedAt = writeRevision

@@ -94,6 +94,55 @@ Bodies pass through a `BodyCodec`. `jsonCodec` is the default; supply your own �
 - **Encoding** a non-serializable value (cyclic, `BigInt`, a bare function or symbol) raises a typed `http/encode` error, not a raw `TypeError`.
 - **Decoding** runs through a bounded streaming reader that refuses a body larger than `maxBytes` (10 MiB default) and honors the attempt's timeout/abort signal — so a stalled or dishonest body can neither hang the call nor exhaust memory.
 
+## List reads (`buildListQuery`) — the PostgREST list contract
+
+plainworks defines a canonical **PostgREST/Supabase-style** list-read wire: filter, sort, paginate (offset **or** cursor), free-text search, eager-load, and facet. `buildListQuery` serializes a typed `ListQueryParams` into exactly that query string, so the frontend speaks the same list language a backend implementing this contract parses — no stringly-typed caller API. The result flows through the same URL safety, credential guard, auth injection, timeout, retry, and codec as any other request.
+
+The contract slice — the param builder, the envelope types, and the canonical operator-token table (`FILTER_OPERATOR_TOKENS`, `filterOperatorFromToken`) — is also published as **`@plainworks/http/list`**, so a server-side implementer of the contract (like `@plainworks/mocks`) can consume the same token table the builder serializes from without pulling in the fetch client.
+
+```ts
+import { buildListQuery } from "@plainworks/http"
+import { z } from "zod"
+
+// Provide your own Standard Schema validator matching the envelope shape.
+const paginatedResultSchema = <T>(row: z.ZodType<T>) =>
+  z.object({
+    data: z.array(row),
+    pagination: z.object({
+      page: z.number(),
+      pageSize: z.number(),
+      total: z.number(),
+      totalPages: z.number(),
+    }),
+  })
+
+const users = await client.get("/users", {
+  query: buildListQuery({
+    filters: [
+      { field: "status", op: "eq", value: "active" },
+      { field: "role", op: "in", value: ["admin", "editor"] },
+    ],
+    page: 1,
+    pageSize: 20,
+    sortBy: "createdAt",
+    order: "desc",
+    search: "ada",
+  }),
+  schema: paginatedResultSchema(z.object({ id: z.string(), name: z.string() })),
+})
+// ?status=eq.active&role=in.(admin,editor)&page=1&pageSize=20&sortBy=createdAt&order=desc&search=ada
+```
+
+Each filter serializes to `field=op.value`; a field carrying several filters becomes a repeated key (a range: `price=gte.10&price=lte.20`). A value shape that contradicts its operator (a scalar for `in`, an array for `eq`, a value on `null`) is a caller fault rejected as a fatal `http/request` error, never mis-serialized.
+
+| Operator | Wire token | Value |
+|---|---|---|
+| `eq` `neq` `gt` `gte` `lt` `lte` `like` `ilike` | same token | scalar |
+| `in` `nin` | `in.(a,b,c)` · `not.in.(a,b,c)` | array |
+| `null` `notNull` | `is.null` · `not.is.null` | none |
+
+Responses decode through the request's schema into the envelope the canonical contract specifies: `PaginatedResult<T>` (offset — `{ data, pagination: { page, pageSize, total, totalPages }, facets? }`) or `CursorResult<T>` (cursor — `nextCursor`/`prevCursor` instead of page counts). Cursor mode is the default for infinite lists, since an offset drifts as rows change between fetches. A request selects cursor mode by the **presence of `cursor`** — an empty `cursor=` asks for the first page (otherwise a cursor first page and a defaulted offset page 1 would be identical on the wire). The matching **cache-key** derivation lives in [`@plainworks/query`](../query/README.md) — the L2 half of the same contract.
+
 ## Typed errors
 
 `HttpError` is the client's own typed failure family; `isHttpError` narrows it. Callers branch on its `kind` — exhaustive **for `HttpError`** — instead of inspecting strings:

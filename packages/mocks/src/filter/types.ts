@@ -1,23 +1,14 @@
+import type { FilterOperator } from "@plainworks/http/list"
+
 /**
- * Structured filter query shapes, vendored into `@plainworks/mocks` so the mock handlers can parse
- * PostgREST/Supabase-style query params without depending on a higher layer. The canonical home for
- * a shared filter language is revisited when the `ui` package lands.
+ * Structured filter query shapes for the mock handlers. The operator vocabulary itself is **not**
+ * vendored: it is the canonical contract owned by `@plainworks/http` (the lower layer that
+ * serializes the same wire), re-exported here so the mock's filter types and its consumers share one
+ * source of truth and cannot drift.
  */
 
-/** Comparison operators supported by the mock filter language. */
-export type FilterOperator =
-  | "eq"
-  | "neq"
-  | "gt"
-  | "gte"
-  | "lt"
-  | "lte"
-  | "in"
-  | "nin"
-  | "like"
-  | "ilike"
-  | "null"
-  | "notNull"
+/** Comparison operators supported by the mock filter language — the canonical `http` contract. */
+export type { FilterOperator }
 
 /** A single field/operator/value predicate. */
 export interface FilterCondition {

@@ -1,3 +1,4 @@
+import { buildListQuery } from "@plainworks/http/list"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { createMockApi } from "../api"
 import { createMockServer } from "../server"
@@ -15,6 +16,11 @@ interface ListResponse {
 interface ItemResponse {
   data: Record<string, unknown> | null
   error?: string
+}
+interface CursorListResponse {
+  data: Array<Record<string, unknown>>
+  pagination: { pageSize: number; nextCursor: string | null; prevCursor: string | null }
+  facets?: Record<string, Record<string, number>>
 }
 
 const json = async <T>(res: Response): Promise<T> => (await res.json()) as T
@@ -39,6 +45,109 @@ describe("crud list handler", () => {
     expect(body.pagination.total).toBeGreaterThan(0)
   })
 
+  it("serves cursor mode when the request carries `cursor` — empty cursor is the first page", async () => {
+    // The canonical cursor envelope: presence of `cursor` selects cursor mode, `cursor=` (empty)
+    // asks for the first page — exactly what `infiniteListQueryOptions` sends.
+    const first = await json<CursorListResponse>(
+      await fetch(`${base}/api/users?cursor=&pageSize=5`),
+    )
+    expect(first.data.length).toBe(5)
+    expect(first.pagination.pageSize).toBe(5)
+    expect(first.pagination.prevCursor).toBeNull()
+    expect(first.pagination.nextCursor).not.toBeNull()
+
+    const second = await json<CursorListResponse>(
+      await fetch(`${base}/api/users?cursor=${first.pagination.nextCursor}&pageSize=5`),
+    )
+    expect(second.data[0]?.id).not.toBe(first.data[0]?.id)
+    expect(second.pagination.prevCursor).not.toBeNull()
+  })
+
+  it("terminates cursor mode with a null nextCursor at the end of the list", async () => {
+    let cursor = ""
+    let last: CursorListResponse | undefined
+    // Walk every page; the walk must terminate with nextCursor null, never loop.
+    for (let pages = 0; pages < 50; pages += 1) {
+      last = await json<CursorListResponse>(
+        await fetch(`${base}/api/users?cursor=${cursor}&pageSize=7`),
+      )
+      if (last.pagination.nextCursor === null) break
+      cursor = last.pagination.nextCursor
+    }
+    expect(last?.pagination.nextCursor).toBeNull()
+  })
+
+  it("rejects a foreign cursor and a page+cursor mix with 400", async () => {
+    expect((await fetch(`${base}/api/users?cursor=bogus`)).status).toBe(400)
+    expect((await fetch(`${base}/api/users?cursor=&page=2`)).status).toBe(400)
+    // A well-formed token naming a row that does not exist is stale, not resumable.
+    expect((await fetch(`${base}/api/users?cursor=n_no-such-row`)).status).toBe(400)
+  })
+
+  it("does not drift when a row is deleted between cursor requests", async () => {
+    // Keyset anchors: page 2 resumes *after the anchor row*, so deleting an earlier row must not
+    // shift page 2's contents — an offset cursor would skip the row that moved up.
+    const first = await json<CursorListResponse>(
+      await fetch(`${base}/api/users?cursor=&pageSize=5`),
+    )
+    const baseline = await json<CursorListResponse>(
+      await fetch(`${base}/api/users?cursor=${first.pagination.nextCursor}&pageSize=5`),
+    )
+
+    // Delete a page-1 row that is not the anchor (the first, not the last).
+    const deleted = await fetch(`${base}/api/users/${String(first.data[0]?.id)}`, {
+      method: "DELETE",
+    })
+    expect(deleted.status).toBe(200)
+
+    const after = await json<CursorListResponse>(
+      await fetch(`${base}/api/users?cursor=${first.pagination.nextCursor}&pageSize=5`),
+    )
+    expect(after.data.map((u) => u.id)).toEqual(baseline.data.map((u) => u.id))
+  })
+
+  it("walks back to the first page through prevCursor", async () => {
+    const first = await json<CursorListResponse>(
+      await fetch(`${base}/api/users?cursor=&pageSize=5`),
+    )
+    const second = await json<CursorListResponse>(
+      await fetch(`${base}/api/users?cursor=${first.pagination.nextCursor}&pageSize=5`),
+    )
+    const back = await json<CursorListResponse>(
+      await fetch(`${base}/api/users?cursor=${second.pagination.prevCursor}&pageSize=5`),
+    )
+    expect(back.data.map((u) => u.id)).toEqual(first.data.map((u) => u.id))
+    expect(back.pagination.prevCursor).toBeNull()
+  })
+
+  it("honors the canonical pageSize, preferring it over the legacy limit alias", async () => {
+    const sized = await json<ListResponse>(await fetch(`${base}/api/users?pageSize=3`))
+    expect(sized.data.length).toBeLessThanOrEqual(3)
+    expect(sized.pagination.pageSize).toBe(3)
+
+    const both = await json<ListResponse>(await fetch(`${base}/api/users?pageSize=3&limit=9`))
+    expect(both.pagination.pageSize).toBe(3)
+  })
+
+  it("applies repeated field=op.value keys as a range filter", async () => {
+    // The canonical wire repeats a field for a range (`age=gte.X&age=lte.Y`) — every occurrence
+    // must be consumed, not just the first.
+    const all = await json<ListResponse>(await fetch(`${base}/api/users?pageSize=500`))
+    const ages = all.data.map((u) => Number(u.age)).sort((a, b) => a - b)
+    const lo = ages[Math.floor(ages.length / 4)] ?? 0
+    const hi = ages[Math.floor((ages.length * 3) / 4)] ?? 100
+    expect(lo).toBeLessThan(hi)
+
+    const range = await json<ListResponse>(
+      await fetch(
+        `${base}/api/users?age=${encodeURIComponent(`gte.${lo}`)}&age=${encodeURIComponent(`lte.${hi}`)}&pageSize=500`,
+      ),
+    )
+    expect(range.data.length).toBeGreaterThan(0)
+    expect(range.data.length).toBeLessThan(all.pagination.total)
+    expect(range.data.every((u) => Number(u.age) >= lo && Number(u.age) <= hi)).toBe(true)
+  })
+
   it("rejects non-positive-integer page and limit with 400", async () => {
     expect((await fetch(`${base}/api/users?page=0`)).status).toBe(400)
     expect((await fetch(`${base}/api/users?page=-2`)).status).toBe(400)
@@ -52,7 +161,7 @@ describe("crud list handler", () => {
   })
 
   it("computes cross-filtered facets and applies a filter", async () => {
-    const listRes = await fetch(`${base}/api/users`)
+    const listRes = await fetch(`${base}/api/users?facets=role`)
     const list = await json<ListResponse>(listRes)
     expect(list.facets?.role).toBeDefined()
     expect(list.facets?.role?._total).toBe(list.pagination.total)
@@ -62,6 +171,30 @@ describe("crud list handler", () => {
       await fetch(`${base}/api/users?filter=${encodeURIComponent(`role=eq.${role}`)}`),
     )
     expect(filtered.data.every((u) => u.role === role)).toBe(true)
+  })
+
+  it("computes only the requested facets, and rejects an unknown facet field", async () => {
+    // No `facets` param → no facets block ("when facets were requested" envelope semantics).
+    const unrequested = await json<ListResponse>(await fetch(`${base}/api/users`))
+    expect(unrequested.facets).toBeUndefined()
+
+    const subset = await json<ListResponse>(await fetch(`${base}/api/users?facets=role`))
+    expect(Object.keys(subset.facets ?? {})).toEqual(["role"])
+
+    expect((await fetch(`${base}/api/users?facets=password`)).status).toBe(400)
+  })
+
+  it("serves facets requested through the canonical `buildListQuery` wire end-to-end", async () => {
+    const query = buildListQuery({ pageSize: 5, facets: ["role", "status"] })
+    const search = new URLSearchParams()
+    for (const [key, value] of Object.entries(query)) {
+      for (const item of Array.isArray(value) ? value : [value]) {
+        search.append(key, String(item))
+      }
+    }
+    const res = await json<ListResponse>(await fetch(`${base}/api/users?${search}`))
+    expect(res.pagination.pageSize).toBe(5)
+    expect(Object.keys(res.facets ?? {}).sort()).toEqual(["role", "status"])
   })
 
   it("searches, sorts, and supports legacy field filters", async () => {
@@ -77,9 +210,22 @@ describe("crud list handler", () => {
     expect(byField.data.every((u) => u.role === role)).toBe(true)
   })
 
+  it("applies the canonical `not.in` wire filter end-to-end through the URL parser", async () => {
+    // The exact token `http.buildListQuery` serializes for a `nin` filter. Before the multi-segment
+    // token was parsed, this fell through to legacy equality and matched nothing.
+    const excluded = "admin"
+    const res = await json<ListResponse>(
+      await fetch(`${base}/api/users?role=${encodeURIComponent(`not.in.(${excluded})`)}`),
+    )
+    expect(res.data.length).toBeGreaterThan(0)
+    expect(res.data.every((u) => u.role !== excluded)).toBe(true)
+  })
+
   it("computes facets consistently with legacy exact-field filters", async () => {
     const role = "admin"
-    const res = await json<ListResponse>(await fetch(`${base}/api/users?role=${role}`))
+    const res = await json<ListResponse>(
+      await fetch(`${base}/api/users?role=${role}&facets=status`),
+    )
     expect(res.data.every((u) => u.role === role)).toBe(true)
     // Facet totals reflect the filtered result set, not the whole store.
     expect(res.facets?.status?._total).toBe(res.pagination.total)

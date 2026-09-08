@@ -49,6 +49,7 @@
     "check-packaging": "publint --strict && attw --pack --profile esm-only"
   },
   "dependencies": {
+    "@plainworks/http": "workspace:*",
     "@plainworks/std": "workspace:*",
     "msw": "catalog:"
   },

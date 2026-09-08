@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Server project: typechecks the shipped `.` surface only. The client graph (`src/client.ts` +
+  // `src/client/`) is React-without-DOM and lives in `tsconfig.client.json`; every `*.test.*` file
+  // is DOM-free and lives in `tsconfig.test.json`. Excluding tests here keeps the shipped-surface
+  // programs from dragging in neutral, shim-typed test helpers (e.g. `@plainworks/testkit`).
+  "exclude": ["src/client.ts", "src/client", "src/**/*.test.ts", "src/**/*.test.tsx"],
+  "include": ["src", "../../types/universal-web.d.ts"]
+}

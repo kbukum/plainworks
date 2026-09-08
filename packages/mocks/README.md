@@ -28,6 +28,20 @@ api.reset() // re-seed stores and clear control state between tests
 server.close()
 ```
 
+`createMockServerHandle()` builds the api and its server together when a test needs both halves — the `server` to install as the network boundary and the `api` to inspect stores or `reset()` between cases:
+
+```ts
+import { createMockServerHandle } from "@plainworks/mocks/server"
+
+const { server, api } = createMockServerHandle({ seed: 42 })
+beforeAll(() => server.listen({ onUnhandledRequest: "error" }))
+afterEach(() => {
+  server.resetHandlers()
+  api.reset()
+})
+afterAll(() => server.close())
+```
+
 ```ts
 // Vite dev-server middleware
 import { createMockApi } from "@plainworks/mocks"

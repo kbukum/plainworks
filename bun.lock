@@ -24,6 +24,23 @@
         "vitest": "catalog:",
       },
     },
+    "internal/integration": {
+      "name": "@plainworks/integration",
+      "version": "0.0.0",
+      "dependencies": {
+        "@plainworks/http": "workspace:*",
+        "@plainworks/mocks": "workspace:*",
+        "@plainworks/query": "workspace:*",
+        "@plainworks/std": "workspace:*",
+        "@plainworks/testkit": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "msw": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "internal/tsdown-config": {
       "name": "@plainworks/tsdown-config",
       "version": "0.0.0",
@@ -164,7 +181,6 @@
       "name": "@plainworks/query",
       "version": "0.1.0-alpha.1",
       "dependencies": {
-        "@plainworks/http": "workspace:*",
         "@plainworks/state": "workspace:*",
         "@plainworks/std": "workspace:*",
       },
@@ -559,6 +575,8 @@
     "@plainworks/connect": ["@plainworks/connect@workspace:packages/connect"],
 
     "@plainworks/http": ["@plainworks/http@workspace:packages/http"],
+
+    "@plainworks/integration": ["@plainworks/integration@workspace:internal/integration"],
 
     "@plainworks/mocks": ["@plainworks/mocks@workspace:packages/mocks"],
 

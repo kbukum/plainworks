@@ -1,22 +1,5 @@
-import { buildListQuery, type ListFilter } from "@plainworks/http/list"
 import { describe, expect, it } from "vitest"
 import { parseApiParams } from "./api"
-
-/** Flatten the builder's `QueryParams` into the `Record<string, string>` shape the parser consumes. */
-function flatten(params: Record<string, unknown>): Record<string, string> {
-  const flat: Record<string, string> = {}
-  for (const [key, value] of Object.entries(params)) {
-    if (Array.isArray(value)) {
-      // Repeated keys (range filters) arrive as an array; the parser sees each occurrence on its own.
-      for (const item of value) {
-        flat[key] = String(item)
-      }
-    } else if (value !== undefined) {
-      flat[key] = String(value)
-    }
-  }
-  return flat
-}
 
 describe("parseApiParams", () => {
   it("parses a simple op.value condition", () => {
@@ -87,44 +70,5 @@ describe("parseApiParams", () => {
 
   it("skips values that are not recognised conditions", () => {
     expect(parseApiParams({ a: "novalue", b: "bogus.x" }).conditions).toEqual([])
-  })
-})
-
-describe("buildListQuery ↔ parseApiParams round trip", () => {
-  const roundTrip = (filters: readonly ListFilter[]) =>
-    parseApiParams(flatten(buildListQuery({ filters }))).conditions
-
-  it("round-trips every operator shape the builder emits", () => {
-    expect(
-      roundTrip([
-        { field: "status", op: "eq", value: "active" },
-        { field: "price", op: "gte", value: 10 },
-        { field: "role", op: "in", value: ["admin", "editor"] },
-        { field: "tier", op: "nin", value: ["guest"] },
-        { field: "deletedAt", op: "null" },
-        { field: "updatedAt", op: "notNull" },
-      ]),
-    ).toEqual([
-      { field: "status", operator: "eq", value: "active" },
-      { field: "price", operator: "gte", value: "10" },
-      { field: "role", operator: "in", value: ["admin", "editor"] },
-      { field: "tier", operator: "nin", value: ["guest"] },
-      { field: "deletedAt", operator: "null", value: null },
-      { field: "updatedAt", operator: "notNull", value: null },
-    ])
-  })
-
-  it("round-trips values carrying the wire's metacharacters", () => {
-    expect(
-      roundTrip([
-        { field: "label", op: "eq", value: "(foo)" },
-        { field: "path", op: "eq", value: "a\\b" },
-        { field: "tag", op: "in", value: ["a,b", "c\\d"] },
-      ]),
-    ).toEqual([
-      { field: "label", operator: "eq", value: "(foo)" },
-      { field: "path", operator: "eq", value: "a\\b" },
-      { field: "tag", operator: "in", value: ["a,b", "c\\d"] },
-    ])
   })
 })

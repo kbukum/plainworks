@@ -2,6 +2,8 @@
  * Pagination utilities
  */
 
+import type { PageInfo } from "@plainworks/std"
+
 /** Requested page parameters. */
 export interface PaginationParams {
   /** 1-based page number. */
@@ -12,17 +14,16 @@ export interface PaginationParams {
   limit?: number
 }
 
-/** A page of items plus its metadata. */
+/**
+ * A page of items plus its metadata. The metadata is the canonical {@link PageInfo} the list wire
+ * defines in `@plainworks/std` — bound to that one source of truth so the mock's offset envelope
+ * can never drift from the `PaginatedResult<T>` a consumer decodes.
+ */
 export interface PaginationResult<T> {
   /** The current page of items. */
   data: T[]
   /** Pagination metadata. */
-  pagination: {
-    page: number
-    pageSize: number
-    total: number
-    totalPages: number
-  }
+  pagination: PageInfo
 }
 
 /** Slice `items` to the requested page and compute pagination metadata. */

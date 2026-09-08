@@ -1,7 +1,8 @@
+import type { ListQueryParams } from "@plainworks/std"
 import { describe, expect, it } from "vitest"
 import { HttpError } from "../error"
 import { buildUrl } from "../url"
-import { buildListQuery, type ListQueryParams } from "./params"
+import { buildListQuery } from "./build"
 
 /** Build the params and encode them onto a URL, returning the decoded search string for assertions. */
 function toSearch(params: ListQueryParams): string {

@@ -1,6 +1,6 @@
 # @plainworks/query
 
-> Host-independent TanStack Query layer — the kit's **protocol-agnostic cache substrate**: a per-request client factory, `events`→cache routing, a query event sink, RSC prefetch/hydrate helpers, the `remote` state scope, and PostgREST list cache keys.
+> Host-independent TanStack Query layer — the kit's **protocol-agnostic cache substrate**: a per-request client factory, `events`→cache routing, a query event sink, RSC prefetch/hydrate helpers, the `remote` state scope, and list cache keys.
 
 Part of the [plainworks](../../README.md) kit.
 
@@ -110,9 +110,9 @@ const state = dehydrateClient(client, {
 </QueryProvider>
 ```
 
-## List cache keys — the PostgREST list contract, cache side
+## List cache keys — the list contract, cache side
 
-The wire half of the list-read contract (the typed param builder and `{ data, pagination, facets }` envelopes) lives in [`@plainworks/http`](../http/README.md); `query` owns the **deterministic cache-key derivation** from the same `ListQueryParams`. Equal params produce a deeply-equal key regardless of filter order; any filter/sort/page/search change keys distinctly. `infiniteListQueryKey` omits `page`/`cursor`, so every page of one `useInfiniteQuery` shares a key. Every cursor-mode fetch carries an explicit `cursor` — empty (`cursor=`) on the first page — so a backend implementing the contract can select cursor mode from the very first request.
+The abstract list-read contract — the typed `ListQueryParams` and the `{ data, pagination, facets }` envelopes — is defined in [`@plainworks/std`](../std/README.md) and re-exported here, so a `query` consumer imports the types from the one package it already reached for; the REST wire serializer (`buildListQuery`) lives in [`@plainworks/http`](../http/README.md). `query` owns the **deterministic cache-key derivation** from the same `ListQueryParams`. Equal params produce a deeply-equal key regardless of filter order; any filter/sort/page/search change keys distinctly. `infiniteListQueryKey` omits `page`/`cursor`, so every page of one `useInfiniteQuery` shares a key. Every cursor-mode fetch carries an explicit `cursor` — empty (`cursor=`) on the first page — so a backend implementing the contract can select cursor mode from the very first request.
 
 ```ts
 import { listQueryOptions, infiniteListQueryOptions } from "@plainworks/query"

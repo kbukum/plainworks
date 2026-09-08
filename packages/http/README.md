@@ -98,7 +98,16 @@ Bodies pass through a `BodyCodec`. `jsonCodec` is the default; supply your own �
 
 plainworks defines a canonical **PostgREST/Supabase-style** list-read wire: filter, sort, paginate (offset **or** cursor), free-text search, eager-load, and facet. `buildListQuery` serializes a typed `ListQueryParams` into exactly that query string, so the frontend speaks the same list language a backend implementing this contract parses — no stringly-typed caller API. The result flows through the same URL safety, credential guard, auth injection, timeout, retry, and codec as any other request.
 
-The contract slice — the param builder, the envelope types, and the canonical operator-token table (`FILTER_OPERATOR_TOKENS`, `filterOperatorFromToken`) — is also published as **`@plainworks/http/list`**, so a server-side implementer of the contract (like `@plainworks/mocks`) can consume the same token table the builder serializes from without pulling in the fetch client.
+The contract slice — the param builder, the envelope types, the canonical operator-token table (`FILTER_OPERATOR_TOKENS`, `filterOperatorFromToken`), and the value escape/parse **codec** (`escapeScalarValue`/`escapeListValue` and their inverses `unescapeValue`/`parseDelimitedList`) — is also published as **`@plainworks/http/list`**, so a server-side implementer of the contract (like `@plainworks/mocks`) parses the same tokens and escapes the builder serializes from, without pulling in the fetch client. Serializer and parser read one codec, so they cannot drift.
+
+```ts
+// A backend parsing the same wire the builder emits (`role=not.in.(admin,editor)`).
+import { filterOperatorFromToken, parseDelimitedList, splitOperatorToken } from "@plainworks/http/list"
+
+const resolved = splitOperatorToken("not.in.(admin,editor)")
+const operator = resolved && filterOperatorFromToken(resolved.token) // "nin"
+const values = resolved && parseDelimitedList(resolved.rest.slice(1, -1)) // ["admin", "editor"]
+```
 
 ```ts
 import { buildListQuery } from "@plainworks/http"

@@ -1,30 +1,14 @@
 /**
- * The canonical filter-operator ↔ wire-token contract for the PostgREST/Supabase-style list read —
- * the one source of truth both the request builder ({@link buildListQuery}) and a backend parser
- * (e.g. `@plainworks/mocks`) consume, so the two sides can never drift on how an operator serializes.
+ * The PostgREST/Supabase REST **wire dialect** for the list contract: how each abstract
+ * {@link FilterOperator} (the vocabulary owned by `@plainworks/std`) serializes to and parses from a
+ * `field=op.value` URL token. This is the one place the REST token grammar lives, so the request
+ * builder (`buildListQuery`) and a REST backend parser (e.g. `@plainworks/mocks`) bind to the same
+ * table and can never drift. Not a `std` concern — `std` owns the abstract shapes, `http` owns the URL.
  */
 
-/**
- * The PostgREST/Supabase-style filter operators — the canonical list-read vocabulary plainworks
- * defines for its backends. Typed on the client (this union); serialized to the `field=op.value`
- * string the server parses. `null`/`notNull` are value-less presence checks; `in`/`nin` take a
- * list; every other operator takes a single scalar.
- */
-export type FilterOperator =
-  | "eq"
-  | "neq"
-  | "gt"
-  | "gte"
-  | "lt"
-  | "lte"
-  | "in"
-  | "nin"
-  | "like"
-  | "ilike"
-  | "null"
-  | "notNull"
+import type { FilterOperator } from "@plainworks/std"
 
-/** The `field=<token>` operator serialization: the PostgREST token the canonical contract specifies. */
+/** The `field=<token>` operator serialization: the PostgREST token this REST dialect emits per operator. */
 export const FILTER_OPERATOR_TOKENS: Readonly<Record<FilterOperator, string>> = {
   eq: "eq",
   neq: "neq",
@@ -53,6 +37,24 @@ export function filterOperatorFromToken(token: string): FilterOperator | null {
   for (const [operator, wireToken] of Object.entries(FILTER_OPERATOR_TOKENS)) {
     if (wireToken === token) {
       return operator as FilterOperator
+    }
+  }
+  return null
+}
+
+/**
+ * Split an untrusted `op.value` wire string into its operator token and the remaining value, matching
+ * the longest known token first (so `not.in.(a,b)` resolves to `not.in`, not the unknown `not`).
+ * Returns `null` when no known token prefixes the string — a REST backend treats that as an
+ * unrecognised parameter, never a silent filter.
+ */
+export function splitOperatorToken(rawValue: string): { token: string; rest: string } | null {
+  for (const token of FILTER_OPERATOR_TOKENS_LONGEST_FIRST) {
+    if (rawValue === token) {
+      return { token, rest: "" }
+    }
+    if (rawValue.startsWith(`${token}.`)) {
+      return { token, rest: rawValue.slice(token.length + 1) }
     }
   }
   return null

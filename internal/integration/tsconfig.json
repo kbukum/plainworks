@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Host-bound test runner (msw/node, node timers), so opt into Node globals like every other
+    // dev-only workspace.
+    "types": ["node"],
+    // Resolve every `@plainworks/*` import to the built `dist` package surface, not the source
+    // paths the base config aliases. An integration test proves the *published* types and wire, so
+    // it must compile against what a consumer installs — hence `typecheck` depends on `^build`.
+    "paths": {}
+  },
+  "include": ["list"]
+}

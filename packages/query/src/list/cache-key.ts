@@ -1,4 +1,4 @@
-import type { ListFilter, ListQueryParams } from "@plainworks/http"
+import type { ListFilter, ListQueryParams } from "@plainworks/std"
 import type { QueryKey } from "@tanstack/query-core"
 
 /** Default namespace for list keys, keeping scoped list slots from colliding with a transport's own keys. */

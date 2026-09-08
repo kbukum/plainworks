@@ -1,4 +1,4 @@
-import type { ListQueryParams } from "@plainworks/http"
+import type { ListQueryParams } from "@plainworks/std"
 import { hashKey } from "@tanstack/query-core"
 import { describe, expect, it } from "vitest"
 import { infiniteListQueryKey, listQueryKey } from "./cache-key"

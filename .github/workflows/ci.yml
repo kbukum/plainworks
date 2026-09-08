@@ -113,3 +113,23 @@ jobs:
           test ! -e packages/smoke-server/tsconfig.client.json
           test ! -e packages/smoke-server/dist/client.js
           ! grep -qF '"./client"' packages/smoke-server/package.json
+
+  # Single aggregate check for branch protection. The verify matrix and generator smoke
+  # each surface their own contexts, but protection targets this one stable name so adding
+  # or renaming a matrix leg never requires touching the branch rule.
+  ci-status:
+    name: CI Status
+    if: always()
+    needs: [verify, generator]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Evaluate results
+        run: |
+          results=("${{ needs.verify.result }}" "${{ needs.generator.result }}")
+          for r in "${results[@]}"; do
+            if [[ "$r" != "success" ]]; then
+              echo "::error::CI failed — one or more jobs did not succeed."
+              exit 1
+            fi
+          done
+          echo "All CI checks passed ✓"

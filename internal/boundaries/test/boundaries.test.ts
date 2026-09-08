@@ -140,11 +140,19 @@ function typechecksUnderGate(project: string): { ok: boolean; output: string } {
   }
 }
 
-test("the portability gate compiles a neutral entry using only universal Web globals", () => {
+// A real `tsc -p` cold start takes several seconds on a CI runner, so these two tests get a
+// process-scale timeout instead of Vitest's 5s default.
+const TSC_TIMEOUT_MS = 60_000
+
+test("the portability gate compiles a neutral entry using only universal Web globals", {
+  timeout: TSC_TIMEOUT_MS,
+}, () => {
   expect(typechecksUnderGate("tsconfig.ok.json").ok).toBe(true)
 })
 
-test("the portability gate rejects a neutral entry referencing a DOM-only global", () => {
+test("the portability gate rejects a neutral entry referencing a DOM-only global", {
+  timeout: TSC_TIMEOUT_MS,
+}, () => {
   const result = typechecksUnderGate("tsconfig.bad.json")
   expect(result.ok).toBe(false)
   // The failure names the offending DOM global, so the gate points at the real portability breach.

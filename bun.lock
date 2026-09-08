@@ -138,6 +138,7 @@
       "name": "@plainworks/mocks",
       "version": "0.1.0-alpha.1",
       "dependencies": {
+        "@plainworks/http": "workspace:*",
         "@plainworks/std": "workspace:*",
         "msw": "catalog:",
       },
@@ -157,6 +158,45 @@
       },
       "optionalPeers": [
         "vite",
+      ],
+    },
+    "packages/query": {
+      "name": "@plainworks/query",
+      "version": "0.1.0-alpha.1",
+      "dependencies": {
+        "@plainworks/http": "workspace:*",
+        "@plainworks/state": "workspace:*",
+        "@plainworks/std": "workspace:*",
+      },
+      "devDependencies": {
+        "@arethetypeswrong/cli": "catalog:",
+        "@plainworks/testkit": "workspace:*",
+        "@plainworks/tsdown-config": "workspace:*",
+        "@tanstack/query-core": "catalog:",
+        "@tanstack/react-query": "catalog:",
+        "@testing-library/react": "catalog:",
+        "@testing-library/user-event": "catalog:",
+        "@types/node": "catalog:",
+        "@types/react": "catalog:",
+        "@types/react-dom": "catalog:",
+        "@vitest/coverage-v8": "catalog:",
+        "axe-core": "catalog:",
+        "jsdom": "catalog:",
+        "publint": "catalog:",
+        "react": "catalog:",
+        "react-dom": "catalog:",
+        "tsdown": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+      },
+      "peerDependencies": {
+        "@tanstack/query-core": "catalog:",
+        "@tanstack/react-query": "catalog:",
+        "react": "catalog:",
+      },
+      "optionalPeers": [
+        "@tanstack/react-query",
+        "react",
       ],
     },
     "packages/state": {
@@ -521,6 +561,8 @@
     "@plainworks/http": ["@plainworks/http@workspace:packages/http"],
 
     "@plainworks/mocks": ["@plainworks/mocks@workspace:packages/mocks"],
+
+    "@plainworks/query": ["@plainworks/query@workspace:packages/query"],
 
     "@plainworks/state": ["@plainworks/state@workspace:packages/state"],
 

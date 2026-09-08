@@ -87,6 +87,47 @@ function parsePositiveInt(value: string | null, defaultValue: number): number | 
 }
 
 /**
+ * Parse a cursor this server issued. Cursor tokens anchor on a row's **id**, not its offset —
+ * `n_<id>` resumes after that row, `p_<id>` resumes before it — so inserting, deleting, or
+ * reordering other rows between requests never shifts what the next page returns. The empty cursor
+ * is the canonical first-page signal; anything not matching the token shape is foreign, rejected as
+ * `null`.
+ */
+interface CursorAnchor {
+  readonly direction: "after" | "before"
+  readonly id: string
+}
+
+function parseCursor(cursor: string): CursorAnchor | null {
+  if (cursor.startsWith("n_")) return { direction: "after", id: cursor.slice(2) }
+  if (cursor.startsWith("p_")) return { direction: "before", id: cursor.slice(2) }
+  return null
+}
+
+/**
+ * Parse the `facets` request parameter into the validated set of fields to compute. Absent or empty
+ * means "no facets requested". Returns `null` when a requested field is not a configured facet
+ * field — untrusted input is rejected, never silently ignored.
+ */
+function parseFacets<F extends string>(
+  param: string | null,
+  facetFields: readonly F[],
+): F[] | null {
+  if (param === null || param.trim() === "") {
+    return []
+  }
+  const requested = [
+    ...new Set(
+      param
+        .split(",")
+        .map((field) => field.trim())
+        .filter((field) => field !== ""),
+    ),
+  ]
+  return requested.every((field): field is F => facetFields.includes(field as F)) ? requested : null
+}
+
+/**
  * Creates standard CRUD handlers for an entity
  * Returns: GET list, GET by id, POST, PATCH, DELETE
  */
@@ -123,10 +164,24 @@ export function createCrudHandlers<
       const url = new URL(request.url)
 
       // Query params are untrusted strings: validate before they drive slices/sorts.
+      // Accept both `pageSize` (canonical) and `limit` (legacy alias); `pageSize` wins when both given.
+      // The canonical contract makes `page` and `cursor` mutually exclusive per request.
+      const hasCursor = url.searchParams.has("cursor")
+      if (hasCursor && url.searchParams.has("page")) {
+        return badRequest("page and cursor are mutually exclusive")
+      }
       const page = parsePositiveInt(url.searchParams.get("page"), 1)
-      const limit = parsePositiveInt(url.searchParams.get("limit"), 10)
-      if (page === null || limit === null) {
-        return badRequest("page and limit must be positive integers")
+      const pageSizeParam = url.searchParams.get("pageSize") ?? url.searchParams.get("limit")
+      const pageSize = parsePositiveInt(pageSizeParam, 10)
+      if (page === null || pageSize === null) {
+        return badRequest("page and pageSize must be positive integers")
+      }
+      const cursorParam = url.searchParams.get("cursor")
+      // The empty cursor is the first page; anything else must be a well-formed anchor token.
+      const cursorAnchor =
+        cursorParam === null || cursorParam === "" ? null : parseCursor(cursorParam)
+      if (cursorParam !== null && cursorParam !== "" && cursorAnchor === null) {
+        return badRequest("cursor is not a token this server issued")
       }
       const search = url.searchParams.get("search") || ""
       const filter = url.searchParams.get("filter") || "" // PostgREST/Supabase style filter
@@ -149,25 +204,41 @@ export function createCrudHandlers<
       }
 
       // One unified condition set drives both facets and results, so facet counts always agree
-      // with the filtered data. Legacy exact-field params fold in as eq/in conditions.
+      // with the filtered data. Direct field params support both PostgREST `field=op.value` (the
+      // canonical wire format `http.buildListQuery` serializes) and plain `field=value` (legacy).
+      // Repeated keys on the same field are all consumed (range filters).
       const filterParams = filter ? parseFilterQueryString(filter) : {}
       const conditions: FilterCondition[] = [...(parseApiParams(filterParams)?.conditions ?? [])]
       for (const field of filterFields) {
-        const value = url.searchParams.get(field)
-        if (value) {
-          conditions.push(
-            value.includes(",")
-              ? { field, operator: "in", value: value.split(",").map((v) => v.trim()) }
-              : { field, operator: "eq", value },
-          )
+        for (const value of url.searchParams.getAll(field)) {
+          if (!value) continue
+          const parsed = parseApiParams({ [field]: value }).conditions
+          if (parsed.length > 0) {
+            conditions.push(...parsed)
+          } else {
+            // Legacy plain value — treat as eq, or in when comma-separated.
+            conditions.push(
+              value.includes(",")
+                ? { field, operator: "in", value: value.split(",").map((v) => v.trim()) }
+                : { field, operator: "eq", value },
+            )
+          }
         }
       }
 
-      // Compute facets with cross-filtering:
+      // Compute facets with cross-filtering, only for the fields the request asks for:
       // For each facet field, apply all filters EXCEPT that field's conditions
-      // This shows "what count would I get if I clicked this option"
+      // This shows "what count would I get if I clicked this option". The envelope contract is
+      // "when facets were requested" — no `facets` param, no facets block; an unknown field is a
+      // caller fault, not a silently ignored one.
+      const requestedFacets = parseFacets(url.searchParams.get("facets"), facetFields)
+      if (requestedFacets === null) {
+        return badRequest(`facets must be a subset of: ${facetFields.join(", ")}`)
+      }
       const facets: Record<string, Record<string, number>> | undefined =
-        facetFields.length > 0 ? computeFacetsWithFilters(data, facetFields, conditions) : undefined
+        requestedFacets.length > 0
+          ? computeFacetsWithFilters(data, requestedFacets, conditions)
+          : undefined
 
       // Now apply the full filter for the actual data results
       if (conditions.length > 0) {
@@ -179,7 +250,44 @@ export function createCrudHandlers<
         data = sortBy(data, { field: sortField as keyof T & string, order: sortOrder })
       }
 
-      const result = paginate(data, { page, limit })
+      // Cursor mode: the request carried `cursor`, so answer with the canonical `CursorResult`
+      // envelope — opaque id-anchored tokens instead of page counts, so an infinite list never
+      // drifts as rows are inserted, deleted, or reordered between fetches.
+      if (cursorParam !== null) {
+        let start = 0
+        let end = Math.min(pageSize, data.length)
+        if (cursorAnchor !== null) {
+          const anchorIndex = data.findIndex((row) => String(row[idField]) === cursorAnchor.id)
+          if (anchorIndex === -1) {
+            // The anchor row is gone (deleted since the token was issued) — fail loudly rather
+            // than silently drifting to whatever now sits at a remembered offset.
+            return badRequest("cursor is not a token this server issued")
+          }
+          if (cursorAnchor.direction === "after") {
+            start = anchorIndex + 1
+            end = Math.min(start + pageSize, data.length)
+          } else {
+            end = anchorIndex
+            start = Math.max(0, end - pageSize)
+          }
+        }
+        const pageRows = data.slice(start, end)
+        const firstRow = pageRows[0]
+        const lastRow = pageRows[pageRows.length - 1]
+        return HttpResponse.json({
+          data: pageRows,
+          pagination: {
+            pageSize,
+            nextCursor:
+              lastRow !== undefined && end < data.length ? `n_${String(lastRow[idField])}` : null,
+            prevCursor:
+              firstRow !== undefined && start > 0 ? `p_${String(firstRow[idField])}` : null,
+          },
+          facets,
+        })
+      }
+
+      const result = paginate(data, { page, limit: pageSize })
       return HttpResponse.json({
         data: result.data,
         pagination: result.pagination,

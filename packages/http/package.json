@@ -1,7 +1,7 @@
 {
   "name": "@plainworks/http",
   "version": "0.1.0-alpha.1",
-  "description": "Host-independent typed fetch client (ergonomic resource methods, idempotency-key writes, interceptors, auth-header injection, safe URL building, codec seam) — the REST/JSON client.",
+  "description": "Host-independent typed fetch client (ergonomic resource methods, idempotency-key writes, interceptors, auth-header injection, safe URL building, codec seam) \u2014 the REST/JSON client.",
   "type": "module",
   "sideEffects": false,
   "license": "MIT",
@@ -32,6 +32,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./list": {
+      "types": "./dist/list.d.ts",
+      "import": "./dist/list.js"
     }
   },
   "scripts": {

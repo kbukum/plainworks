@@ -1,0 +1,8 @@
+{
+  // Editor-routing config only: an editor picks the nearest `tsconfig.json` to a file, and the
+  // package's server `tsconfig.json` excludes this client graph — so without this, an editor falls
+  // back to the server config for these files. It inherits everything from the real client project;
+  // the authoritative `typecheck` gate still runs `../../tsconfig.client.json`.
+  "extends": "../../tsconfig.client.json",
+  "include": ["."]
+}

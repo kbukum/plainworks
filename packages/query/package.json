@@ -1,0 +1,88 @@
+{
+  "name": "@plainworks/query",
+  "version": "0.1.0-alpha.1",
+  "description": "Host-independent TanStack Query provider, protocol-agnostic cache routing, event sink, remote StateSource scope, and PostgREST list-query cache keys.",
+  "type": "module",
+  "sideEffects": false,
+  "license": "MIT",
+  "author": "Plainworks",
+  "homepage": "https://github.com/kbukum/plainworks/tree/main/packages/query#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kbukum/plainworks.git",
+    "directory": "packages/query"
+  },
+  "bugs": "https://github.com/kbukum/plainworks/issues",
+  "keywords": [
+    "plainworks",
+    "typescript",
+    "esm",
+    "host-independent",
+    "tanstack-query",
+    "react-query",
+    "cache",
+    "postgrest"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    }
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run --coverage",
+    "lint": "biome check .",
+    "check-packaging": "publint --strict && attw --pack --profile esm-only"
+  },
+  "dependencies": {
+    "@plainworks/http": "workspace:*",
+    "@plainworks/state": "workspace:*",
+    "@plainworks/std": "workspace:*"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "catalog:",
+    "@plainworks/testkit": "workspace:*",
+    "@plainworks/tsdown-config": "workspace:*",
+    "@tanstack/query-core": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "@testing-library/react": "catalog:",
+    "@testing-library/user-event": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "axe-core": "catalog:",
+    "jsdom": "catalog:",
+    "publint": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "@tanstack/query-core": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "react": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@tanstack/react-query": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
+  }
+}

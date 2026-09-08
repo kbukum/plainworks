@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Client project, but React-without-DOM: the `./client` graph wraps TanStack's `QueryClientProvider`
+  // and `HydrationBoundary`, which are pure React context — no DOM global — so it stays DOM-free like
+  // the server entry (the universal-web shim, not the DOM libs). That keeps the provider usable on
+  // React Native/Expo, not just the browser. Tests are DOM-free and typechecked in `tsconfig.test.json`,
+  // so they are excluded here.
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
+  "include": ["src/client.ts", "src/client", "../../types/universal-web.d.ts"]
+}

@@ -25,6 +25,26 @@ export type {
   ObservabilityHooks,
 } from "./interceptor"
 export { authHeaderInterceptor, loggingInterceptor } from "./interceptor"
+export type {
+  CursorInfo,
+  CursorResult,
+  Facets,
+  FilterOperator,
+  ListFilter,
+  ListMembershipFilter,
+  ListQueryParams,
+  PageInfo,
+  PaginatedResult,
+  PresenceFilter,
+  ScalarFilter,
+  SortDirection,
+} from "./list"
+export {
+  buildListQuery,
+  FILTER_OPERATOR_TOKENS,
+  FILTER_OPERATOR_TOKENS_LONGEST_FIRST,
+  filterOperatorFromToken,
+} from "./list"
 export type { HttpMethod } from "./method"
 export { isIdempotentMethod } from "./method"
 export type { BuildUrlInput, QueryParams, QueryValue } from "./url"

@@ -46,6 +46,7 @@ The root `package.json` scripts are the canonical gates; they run through `turbo
 bun install                       # bun workspaces + catalog
 bun run check-versions            # sherif + syncpack lint (catalog is the single source of versions)
 bun run lint                      # biome check .
+bun run check-comments            # comment-format: `//` and `/** */` prose within the 100-col width
 bun run typecheck                 # tsc --noEmit across packages (+ the generator config)
 bun run check-boundaries          # dependency-cruiser: zero upward/sideways imports, zero cycles
 bun run build                     # tsdown, ESM-only, ships dist/
@@ -55,7 +56,7 @@ bun run gen package               # scaffold a new @plainworks/* package from th
 bun run changeset                 # add a Changeset for the release
 ```
 
-The Definition of Done for every change is those seven gates green — **check-versions · lint · typecheck · check-boundaries · build · test · check-packaging** — plus a Changeset and the architecture invariants below. Scope with turbo filters: `turbo run test --filter=@plainworks/<name>` for one package, `--filter='...[origin/main]'` for the affected set.
+The Definition of Done for every change is those eight gates green — **check-versions · lint · check-comments · typecheck · check-boundaries · build · test · check-packaging** — plus a Changeset and the architecture invariants below. Scope with turbo filters: `turbo run test --filter=@plainworks/<name>` for one package, `--filter='...[origin/main]'` for the affected set.
 
 ## Package structure
 

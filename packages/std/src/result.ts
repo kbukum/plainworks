@@ -13,7 +13,9 @@ export interface Err<E> {
 }
 
 /**
- * A typed success-or-failure value — the return shape for operations that fail as data rather than by throwing. `E` defaults to `Error`; narrow it to a discriminated error union where callers must handle each case.
+ * A typed success-or-failure value — the return shape for operations that fail as data rather than
+ * by throwing. `E` defaults to `Error`; narrow it to a discriminated error union where callers must
+ * handle each case.
  */
 export type Result<T, E = Error> = Ok<T> | Err<E>
 
@@ -38,9 +40,11 @@ export function isErr<T, E>(result: Result<T, E>): result is Err<E> {
 }
 
 /**
- * Return the value of an `Ok`, or throw the failure. A non-`Error` failure is wrapped in a {@link PlainError} so the thrown value is always an Error with the original preserved as `cause`.
+ * Return the value of an `Ok`, or throw the failure. A non-`Error` failure is wrapped in a
+ * {@link PlainError} so the thrown value is always an Error with the original preserved as `cause`.
  *
- * @throws The `Err` error itself when it is an `Error`, otherwise a {@link PlainError} `std/unwrap` wrapping it as `cause`.
+ * @throws The `Err` error itself when it is an `Error`, otherwise a {@link PlainError} `std/unwrap`
+ *   wrapping it as `cause`.
  */
 export function unwrap<T, E>(result: Result<T, E>): T {
   if (result.ok) {

@@ -29,7 +29,8 @@ describe("createStore", () => {
   test("setState replaces the whole state with a computed function (replace: true)", () => {
     const store = counter()
     store.setState({ count: 3 })
-    // The `replace: true` overload accepts a function, so a computed full replacement needs no cast.
+    // The `replace: true` overload accepts a function, so a computed full replacement needs no
+    // cast.
     store.setState((state) => ({ count: state.count * 2, inc: state.inc }), true)
     expect(store.getState().count).toBe(6)
     expect(typeof store.getState().inc).toBe("function")

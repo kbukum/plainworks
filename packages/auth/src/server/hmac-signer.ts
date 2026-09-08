@@ -8,8 +8,8 @@ import type { SessionSigner } from "../signer/seam"
 export interface HmacSignerConfig {
   /**
    * The session-signing secret — a server secret that must never reach a client bundle (which the
-   * `@plainworks/auth/server` import boundary enforces). At least 32 bytes so the HMAC-SHA256 key has
-   * full strength; a shorter secret is a configuration error.
+   * `@plainworks/auth/server` import boundary enforces). At least 32 bytes so the HMAC-SHA256 key
+   * has full strength; a shorter secret is a configuration error.
    */
   readonly secret: Uint8Array
   /** The crypto seam; defaults to the host's Web Crypto ({@link defaultAuthCrypto}). */

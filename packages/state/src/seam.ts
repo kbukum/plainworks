@@ -2,8 +2,9 @@ import type { Store } from "./store"
 
 /**
  * The thin client-state seam — the `useSyncExternalStore`-shaped contract a consumer implements to
- * bring their own store instead of the blessed Zustand default. React (or any equivalent host) wires
- * it directly: `useSyncExternalStore(adapter.subscribe, adapter.getSnapshot, adapter.getServerSnapshot)`.
+ * bring their own store instead of the blessed Zustand default. React (or any equivalent host)
+ * wires it directly:
+ * `useSyncExternalStore(adapter.subscribe, adapter.getSnapshot, adapter.getServerSnapshot)`.
  *
  * `getServerSnapshot` returns the value used during SSR/hydration, kept stable so the first client
  * render matches the server output.

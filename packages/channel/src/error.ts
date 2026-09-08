@@ -1,16 +1,16 @@
 import { PlainError } from "@plainworks/std"
 
 /**
- * Why a channel operation failed, as a stable discriminant for typed handling instead of matching on
- * a message string.
+ * Why a channel operation failed, as a stable discriminant for typed handling instead of matching
+ * on a message string.
  *
  * - `config` — the channel was constructed with an invalid option (a caller/programmer fault).
  * - `connect` — a connection attempt failed to establish (transport/DNS/handshake).
  * - `protocol` — the server responded in a way the transport cannot use (bad status, wrong
  *   content-type, malformed frame, a missing body).
  * - `closed` — reconnection was exhausted; the terminal state carries the last failure as `cause`.
- *   (Also used internally as the caller-close abort reason — caller `close()` is a quiet no-op path,
- *   never reported via `onError`.)
+ *   (Also used internally as the caller-close abort reason — caller `close()` is a quiet no-op
+ *   path, never reported via `onError`.)
  */
 export type ChannelErrorKind = "config" | "connect" | "protocol" | "closed"
 

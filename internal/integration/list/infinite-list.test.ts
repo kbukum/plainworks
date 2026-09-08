@@ -5,8 +5,9 @@ import { createQueryClient, infiniteListQueryOptions } from "@plainworks/query"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { readUserCursorPage } from "./user-reads"
 
-// An infinite (cursor) list accumulates its pages under one cache key, and those pages stay disjoint —
-// cursor mode is the default precisely because a cursor does not drift as rows change between fetches.
+// An infinite (cursor) list accumulates its pages under one cache key, and those pages stay
+// disjoint — cursor mode is the default precisely because a cursor does not drift as rows change
+// between fetches.
 
 const handle = createMockServerHandle({ seed: 42 })
 const client = createHttpClient({ baseUrl: "http://mock.test" })
@@ -27,7 +28,8 @@ describe("infinite list through the cache", () => {
       fetch: (params, signal) => readUserCursorPage(client, params, signal),
     })
 
-    // Prefetch two pages, exercising initialPageParam → getNextPageParam → queryFn through the cache.
+    // Prefetch two pages, exercising initialPageParam → getNextPageParam → queryFn through the
+    // cache.
     const result = await queryClient.fetchInfiniteQuery({ ...plan, pages: 2 })
     expect(result.pages).toHaveLength(2)
 

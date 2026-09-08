@@ -2,8 +2,8 @@ import { defineConfig } from "vitest/config"
 
 export default defineConfig({
   test: {
-    // Always `node`: the server-safe `.` entry (core + transports) must prove it needs no DOM. Client
-    // hook tests opt into jsdom per file via a `// @vitest-environment jsdom` docblock.
+    // Always `node`: the server-safe `.` entry (core + transports) must prove it needs no DOM.
+    // Client hook tests opt into jsdom per file via a `// @vitest-environment jsdom` docblock.
     environment: "node",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     coverage: {
@@ -17,7 +17,8 @@ export default defineConfig({
         "src/**/*.d.ts",
         "src/**/index.ts",
         "src/client.ts",
-        // Test-only harness (never shipped) and type-only seams (erase at build; no runtime to cover).
+        // Test-only harness (never shipped) and type-only seams (erase at build; no runtime to
+        // cover).
         "src/transport/fake-transport.ts",
         "src/transport/transport.ts",
         "src/events/sink.ts",

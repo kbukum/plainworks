@@ -3,7 +3,9 @@ import type { HttpMethod } from "../method"
 import type { QueryParams } from "../url"
 
 /**
- * The caller-facing input to a client request. It is the ergonomic surface both `request` and the {@link ResourceMethods} resolve — path/query/headers/body plus the resilience and validation knobs — which the client then encodes into the internal {@link HttpRequest} unit.
+ * The caller-facing input to a client request. It is the ergonomic surface both `request` and the
+ * {@link ResourceMethods} resolve — path/query/headers/body plus the resilience and validation
+ * knobs — which the client then encodes into the internal {@link HttpRequest} unit.
  */
 export interface RequestInput {
   /** HTTP method; defaults to `GET`. */
@@ -25,7 +27,11 @@ export interface RequestInput {
   /** Override the retry policy for this request. */
   readonly retry?: RetryPolicy
   /**
-   * Standard Schema validator applied to the decoded response body at the trust boundary. When present it both validates the untrusted body and infers the response type; a validation failure raises a typed `http/validate` {@link HttpError}. Omit it to receive the raw decoded `unknown` and narrow it yourself, or pass `unsafePassthrough<T>()` from `@plainworks/std` to opt explicitly into an unchecked `T` — the unvalidated passthrough is never the silent default.
+   * Standard Schema validator applied to the decoded response body at the trust boundary.
+   * When present it both validates the untrusted body and infers the response type; a validation
+   * failure raises a typed `http/validate` {@link HttpError}. Omit it to receive the raw decoded
+   * `unknown` and narrow it yourself, or pass `unsafePassthrough<T>()` from `@plainworks/std` to
+   * opt explicitly into an unchecked `T` — the unvalidated passthrough is never the silent default.
    */
   readonly schema?: StandardSchemaV1
 }

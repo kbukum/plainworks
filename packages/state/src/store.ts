@@ -47,9 +47,10 @@ export interface Store<State> {
 
 /**
  * How a store's state (and its actions) are produced. The `(set, get, store) => state` form lets
- * actions live alongside state — e.g. `(set) => ({ count: 0, inc: () => set((s) => ({ count: s.count + 1 })) })`.
- * Owned by plainworks (no engine type leaks into it); {@link defineStore} is the ergonomic way to
- * build one from separate `state` and `actions`.
+ * actions live alongside state — e.g.
+ * `(set) => ({ count: 0, inc: () => set((s) => ({ count: s.count + 1 })) })`. Owned by plainworks
+ * (no engine type leaks into it); {@link defineStore} is the ergonomic way to build one from
+ * separate `state` and `actions`.
  */
 export type StoreInitializer<State> = (
   set: StoreSet<State>,

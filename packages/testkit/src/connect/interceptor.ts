@@ -53,8 +53,8 @@ export function fakeUnaryRequest<I extends DescMessage, O extends DescMessage>(
 }
 
 /**
- * Build a Connect {@link UnaryResponse} for the given method — the value a fake `next` resolves with
- * on a happy-path interceptor test.
+ * Build a Connect {@link UnaryResponse} for the given method — the value a fake `next` resolves
+ * with on a happy-path interceptor test.
  */
 export function fakeUnaryResponse<I extends DescMessage, O extends DescMessage>(
   method: DescMethodUnary<I, O>,

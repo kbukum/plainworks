@@ -11,7 +11,7 @@ Non-negotiables for any workflow change:
 - **Concurrency.** One in-flight run per ref with `cancel-in-progress: true`.
 - **Node matrix N / N-1 LTS** (`22`, `24`) for the verify job; keep it in step with the `engines` field.
 - **bun** is the package manager: `oven-sh/setup-bun` pinned to `1.3.6`, then `bun install --frozen-lockfile`.
-- **Run the gates through the root scripts**, in the DoD order, so CI and local stay identical: `check-versions → lint → typecheck → check-boundaries → build → test`.
+- **Run the gates through the root scripts**, in the DoD order, so CI and local stay identical: `check-versions → lint → check-comments → typecheck → check-boundaries → build → test`.
 - **Generator smoke job** must stay: regenerate a server-only and a client package, run every gate on the output, and assert the `"use client"` directive is preserved in `dist/client.js` and absent from `dist/index.js`. It mutates only the ephemeral runner checkout — nothing is committed.
 - Release automation (Changesets) is added deliberately; keep it a separate, minimally-permissioned job.
 

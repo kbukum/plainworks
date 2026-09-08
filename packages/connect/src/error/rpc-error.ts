@@ -3,9 +3,9 @@ import { PlainError, type WebHeaders } from "@plainworks/std"
 
 /**
  * Stable, transport-agnostic RPC error code — the gRPC/Connect code set as snake_case string
- * literals. It is the kit's typed error surface: consumers switch on {@link RpcError.code} instead of
- * the numeric Connect {@link Code} enum, and it doubles as the {@link RpcError} `kind` discriminant
- * (`connect/${code}`), matching the `PlainError` model used across plainworks.
+ * literals. It is the kit's typed error surface: consumers switch on {@link RpcError.code} instead
+ * of the numeric Connect {@link Code} enum, and it doubles as the {@link RpcError} `kind`
+ * discriminant (`connect/${code}`), matching the `PlainError` model used across plainworks.
  */
 export type RpcErrorCode =
   | "canceled"
@@ -62,9 +62,9 @@ export interface RpcErrorInit {
 
 /**
  * Typed error raised at the Connect boundary. Extends `PlainError`, so its `kind` is
- * `connect/${code}` (e.g. `connect/not_found`) — the same shape every plainworks package uses — while
- * {@link RpcError.code} exposes the bare {@link RpcErrorCode} for switch-on-code handling. The
- * originating `ConnectError` is preserved as `cause`. The string `code` is **derived from
+ * `connect/${code}` (e.g. `connect/not_found`) — the same shape every plainworks package uses —
+ * while {@link RpcError.code} exposes the bare {@link RpcErrorCode} for switch-on-code handling.
+ * The originating `ConnectError` is preserved as `cause`. The string `code` is **derived from
  * `rawCode`**, so `kind`, `code`, and `rawCode` always describe one failure — a contradictory
  * pairing is unrepresentable.
  */
@@ -93,9 +93,9 @@ export class RpcError extends PlainError<`connect/${RpcErrorCode}`> {
  * plain network failure, an abort, and a `ConnectError` all map to one stable shape without losing
  * the original cause.
  *
- * This is a **boundary** mapper, called where the consumer reads the failure (a query error boundary
- * or a `catch` site) — never inside a transport interceptor, because Connect re-normalizes any
- * interceptor-thrown value back into a `ConnectError`, discarding a custom type.
+ * This is a **boundary** mapper, called where the consumer reads the failure (a query error
+ * boundary or a `catch` site) — never inside a transport interceptor, because Connect re-normalizes
+ * any interceptor-thrown value back into a `ConnectError`, discarding a custom type.
  */
 export function mapConnectError(reason: unknown): RpcError {
   const connectError = ConnectError.from(reason)

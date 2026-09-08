@@ -73,10 +73,10 @@ export function createBinding<T>(): StoreBinding<T> {
       (onStoreChange: () => void) => store.subscribe(onStoreChange),
       [store],
     )
-    // Cache the selected slice by (selector, state) so `useSyncExternalStore` sees a stable reference
-    // across the reads within a render — an allocating selector returns the same value until the
-    // state reference or the selector itself changes, instead of a fresh reference that reads as an
-    // update and loops.
+    // Cache the selected slice by (selector, state) so `useSyncExternalStore` sees a stable
+    // reference across the reads within a render — an allocating selector returns the same value
+    // until the state reference or the selector itself changes, instead of a fresh reference that
+    // reads as an update and loops.
     const cache = useRef<{ selector: (state: T) => unknown; state: T; slice: unknown } | null>(null)
     const getSnapshot = (): unknown => {
       const state = store.getState()

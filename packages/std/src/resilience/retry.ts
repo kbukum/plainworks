@@ -9,7 +9,10 @@ import type { Delay } from "./timeout"
 import { AbortError, combineSignals, systemDelay } from "./timeout"
 
 /**
- * Retry contract for a single operation. Retries fire **only** when `idempotent` is `true` — a non-idempotent write is never retried automatically, because a partial success could be duplicated. `isRetryable` and `retryAfter` default to the shared classifier and no hint respectively.
+ * Retry contract for a single operation. Retries fire **only** when `idempotent` is `true` — a
+ * non-idempotent write is never retried automatically, because a partial success could be
+ * duplicated. `isRetryable` and `retryAfter` default to the shared classifier and no hint
+ * respectively.
  */
 export interface RetryPolicy {
   /** Total attempts including the first; must be `>= 1`. */
@@ -46,9 +49,17 @@ export class RetryError extends PlainError<"std/retry-exhausted"> {
 }
 
 /**
- * Drive `operation` under `policy`: attempt, and on a retryable failure of an idempotent operation wait a bounded, jittered backoff (honoring a `retryAfter` hint when present) before the next attempt, up to `maxAttempts`. A non-idempotent or non-retryable failure propagates immediately; a caller abort — before an attempt, while one is in flight, or during a backoff wait — propagates as a fatal {@link AbortError} and stops the loop (each attempt receives the caller signal so a cooperative operation can cancel its own work, and an uncooperative one is abandoned rather than awaited); exhausting all attempts throws a {@link RetryError} whose `cause` is the last failure. `random`/`delay` are injected for deterministic tests.
+ * Drive `operation` under `policy`: attempt, and on a retryable failure of an idempotent operation
+ * wait a bounded, jittered backoff (honoring a `retryAfter` hint when present) before the next
+ * attempt, up to `maxAttempts`. A non-idempotent or non-retryable failure propagates immediately; a
+ * caller abort — before an attempt, while one is in flight, or during a backoff wait — propagates
+ * as a fatal {@link AbortError} and stops the loop (each attempt receives the caller signal so a
+ * cooperative operation can cancel its own work, and an uncooperative one is abandoned rather than
+ * awaited); exhausting all attempts throws a {@link RetryError} whose `cause` is the last failure.
+ * `random`/`delay` are injected for deterministic tests.
  *
- * @param operation - Receives the 0-based attempt index and a `WebAbortSignal` that mirrors the caller's cancellation; returns the operation's value.
+ * @param operation - Receives the 0-based attempt index and a `WebAbortSignal` that mirrors the
+ *   caller's cancellation; returns the operation's value.
  */
 export async function runWithRetry<T>(
   operation: (attempt: number, signal: WebAbortSignal) => Promise<T>,
@@ -65,14 +76,16 @@ export async function runWithRetry<T>(
   let previousMs = policy.backoff.baseMs
 
   for (let attempt = 0; attempt < policy.maxAttempts; attempt++) {
-    // Cancellation is checked before every attempt, so a pre-aborted signal (or an abort that lands between backoff and the next attempt) never starts more work.
+    // Cancellation is checked before every attempt, so a pre-aborted signal (or an abort that lands
+    // between backoff and the next attempt) never starts more work.
     if (deps.signal?.aborted) {
       throw new AbortError({ cause: deps.signal.reason })
     }
     try {
       return await attemptOnce(operation, attempt, deps.signal)
     } catch (error) {
-      // Classify once: a custom predicate may be stateful or costly, and the same verdict drives both the give-up decision and the RetryError wrap on the final attempt.
+      // Classify once: a custom predicate may be stateful or costly, and the same verdict drives
+      // both the give-up decision and the RetryError wrap on the final attempt.
       const retryable = policy.idempotent && isRetryable(error)
       if (!retryable) {
         throw error
@@ -94,7 +107,9 @@ export async function runWithRetry<T>(
 }
 
 /**
- * Run one attempt, handing it a signal that mirrors the caller's cancellation. If the caller aborts while the attempt is pending, reject immediately with a fatal {@link AbortError}; a later settle of the abandoned attempt is discarded, so a cancelled call never resolves with a stale success.
+ * Run one attempt, handing it a signal that mirrors the caller's cancellation. If the caller aborts
+ * while the attempt is pending, reject immediately with a fatal {@link AbortError}; a later settle
+ * of the abandoned attempt is discarded, so a cancelled call never resolves with a stale success.
  */
 function attemptOnce<T>(
   operation: (attempt: number, signal: WebAbortSignal) => Promise<T>,
@@ -123,7 +138,8 @@ function attemptOnce<T>(
         (error: unknown) => finish(() => reject(error)),
       )
     } catch (error) {
-      // A synchronous throw settles through the same cleanup, so the abort listener is never left attached to a long-lived caller signal.
+      // A synchronous throw settles through the same cleanup, so the abort listener is never left
+      // attached to a long-lived caller signal.
       finish(() => reject(error))
     }
   })

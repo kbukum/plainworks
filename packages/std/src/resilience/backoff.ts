@@ -2,12 +2,17 @@ import type { RandomSource } from "../random"
 import { systemRandom } from "../random"
 
 /**
- * How much randomness to fold into each backoff delay. `none` is bare exponential; `full` spreads a delay uniformly across `[0, cap]` (best thundering-herd avoidance); `decorrelated` walks the delay up from the previous value (AWS-style), keeping delays lively without a hard reset each attempt.
+ * How much randomness to fold into each backoff delay. `none` is bare exponential; `full` spreads a
+ * delay uniformly across `[0, cap]` (best thundering-herd avoidance); `decorrelated` walks the
+ * delay up from the previous value (AWS-style), keeping delays lively without a hard reset each
+ * attempt.
  */
 export type JitterStrategy = "none" | "full" | "decorrelated"
 
 /**
- * A bounded exponential-backoff schedule. `baseMs` is the first delay, growing by `factor` each retry and clamped to `maxMs`; `jitter` decorrelates concurrent retriers so they do not resynchronize.
+ * A bounded exponential-backoff schedule. `baseMs` is the first delay, growing by `factor` each
+ * retry and clamped to `maxMs`; `jitter` decorrelates concurrent retriers so they do not
+ * resynchronize.
  */
 export interface BackoffPolicy {
   /** Delay for the first retry, in milliseconds. */
@@ -29,7 +34,10 @@ export const defaultBackoff: BackoffPolicy = {
 }
 
 /**
- * Validate a {@link BackoffPolicy}: finite `baseMs >= 0`, `maxMs >= baseMs`, `factor >= 1`, and a supported `jitter`. A `NaN`/`Infinity` or malformed runtime discriminant would otherwise slip past comparison-only guards and leak a non-finite delay (or `undefined`) out of {@link nextBackoff}.
+ * Validate a {@link BackoffPolicy}: finite `baseMs >= 0`, `maxMs >= baseMs`, `factor >= 1`, and a
+ * supported `jitter`. A `NaN`/`Infinity` or malformed runtime discriminant would otherwise slip
+ * past comparison-only guards and leak a non-finite delay (or `undefined`) out of
+ * {@link nextBackoff}.
  */
 export function assertBackoffPolicy(policy: BackoffPolicy): void {
   if (
@@ -48,7 +56,9 @@ export function assertBackoffPolicy(policy: BackoffPolicy): void {
 }
 
 /**
- * Compute the delay (ms) before retry number `attempt` (0-based: `0` is the first retry). `random` (seedable) drives jitter; `previousMs` feeds the `decorrelated` strategy and defaults to `baseMs`. The result is always finite, non-negative, and `<= maxMs`.
+ * Compute the delay (ms) before retry number `attempt` (0-based: `0` is the first retry). `random`
+ * (seedable) drives jitter; `previousMs` feeds the `decorrelated` strategy and defaults to
+ * `baseMs`. The result is always finite, non-negative, and `<= maxMs`.
  */
 export function nextBackoff(
   policy: BackoffPolicy,
@@ -63,7 +73,8 @@ export function nextBackoff(
   if (previousMs !== undefined && !Number.isFinite(previousMs)) {
     throw new RangeError("nextBackoff requires a finite previousMs when supplied")
   }
-  // `baseMs === 0` short-circuits before exponentiation: `0 * factor ** attempt` is `0 * Infinity → NaN` once the power overflows, which would defeat the finite-result guarantee.
+  // `baseMs === 0` short-circuits before exponentiation: `0 * factor ** attempt` is
+  // `0 * Infinity → NaN` once the power overflows, which would defeat the finite-result guarantee.
   const exponential =
     policy.baseMs === 0 ? 0 : Math.min(policy.maxMs, policy.baseMs * policy.factor ** attempt)
   switch (policy.jitter) {
@@ -73,7 +84,8 @@ export function nextBackoff(
       return random.next() * exponential
     case "decorrelated": {
       const previous = Math.max(previousMs ?? policy.baseMs, policy.baseMs)
-      // A finite `previous * 3` can still overflow to `Infinity`; fall back to the cap so the interpolation below never multiplies a zero random by `Infinity` into `NaN`.
+      // A finite `previous * 3` can still overflow to `Infinity`; fall back to the cap so the
+      // interpolation below never multiplies a zero random by `Infinity` into `NaN`.
       const rawUpper = previous * 3
       const upper = Number.isFinite(rawUpper) ? rawUpper : policy.maxMs
       return Math.min(policy.maxMs, policy.baseMs + random.next() * (upper - policy.baseMs))

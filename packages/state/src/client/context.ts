@@ -18,10 +18,10 @@ export interface StoreProviderProps<T> {
 /** Options for {@link createStoreContext}. */
 export interface StoreContextOptions<T> {
   /**
-   * How a Provider's `initialState` merges into the initializer's state at store creation. Defaults
-   * to a shallow spread — the right merge for plain-record state. Supply one when the state shape
-   * is not a plain record (an array or class instance would lose its runtime shape to a spread) or
-   * when hydration needs a deep merge.
+   * How a Provider's `initialState` merges into the initializer's state at store creation.
+   * Defaults to a shallow spread — the right merge for plain-record state. Supply one when the
+   * state shape is not a plain record (an array or class instance would lose its runtime shape to a
+   * spread) or when hydration needs a deep merge.
    */
   readonly mergeInitialState?: (initial: T, serverState: Partial<T>) => T
 }
@@ -33,10 +33,10 @@ export interface StoreContext<T> extends StoreHooks<T> {
 }
 
 /**
- * Create a React binding backed by the **default engine**: a `Provider` plus selector hooks. The
- * Provider builds the store **once per mount via `useRef`** rather than a module-level singleton, so
- * two concurrent SSR requests each get an isolated store and never bleed state into one another;
- * `initialState` is the server → client hydration path.
+ * Create a React binding backed by the **default engine**: a `Provider` plus selector hooks.
+ * The Provider builds the store **once per mount via `useRef`** rather than a module-level
+ * singleton, so two concurrent SSR requests each get an isolated store and never bleed state into
+ * one another; `initialState` is the server → client hydration path.
  *
  * To bring your own store engine instead — with zero dependency on the default — use
  * {@link import("./binding").createSuppliedStoreContext} and pass a per-request `store`.
@@ -60,8 +60,8 @@ export function createStoreContext<T extends object>(
   const merge = options?.mergeInitialState ?? shallowMerge
 
   // Bake `initialState` into the store's *initial* state (not a post-creation `setState`) so the
-  // hydrated value is what `getInitialState` returns — the value React reads as the server snapshot,
-  // keeping SSR output and the first client render in sync.
+  // hydrated value is what `getInitialState` returns — the value React reads as the server
+  // snapshot, keeping SSR output and the first client render in sync.
   function build(initialState: Partial<T> | undefined): Store<T> {
     if (initialState === undefined) {
       return createStore(initializer)

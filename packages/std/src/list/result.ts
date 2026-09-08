@@ -1,7 +1,7 @@
 /**
  * Offset-mode pagination metadata — the `{ page, pageSize, total, totalPages }` block the canonical
- * list contract returns alongside a page of rows. Backends implementing this contract serialize these
- * exact camelCase field names.
+ * list contract returns alongside a page of rows. Backends implementing this contract serialize
+ * these exact camelCase field names.
  */
 export interface PageInfo {
   /** 1-based number of the returned page. */
@@ -43,10 +43,10 @@ export interface CursorInfo {
 }
 
 /**
- * The **cursor** list-response envelope — a page of `data` plus {@link CursorInfo}. Cursor mode is the
- * default for infinite lists: unlike an offset page, a cursor does not drift as rows are inserted or
- * removed between fetches, which is exactly what `useInfiniteQuery` needs. This is the plainworks
- * canonical cursor envelope; backends implementing cursor pagination emit this shape.
+ * The **cursor** list-response envelope — a page of `data` plus {@link CursorInfo}. Cursor mode is
+ * the default for infinite lists: unlike an offset page, a cursor does not drift as rows are
+ * inserted or removed between fetches, which is exactly what `useInfiniteQuery` needs. This is the
+ * plainworks canonical cursor envelope; backends implementing cursor pagination emit this shape.
  */
 export interface CursorResult<T> {
   /** The rows on this page. */

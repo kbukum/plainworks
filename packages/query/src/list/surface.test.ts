@@ -29,8 +29,8 @@ describe("query list surface", () => {
     expect(querySurface).toHaveProperty("infiniteListQueryOptions")
   })
 
-  // The facade's type-only exports have no runtime footprint, so this guard is compile-time: deleting
-  // one of these re-exports reddens the typecheck gate, not a vitest run.
+  // The facade's type-only exports have no runtime footprint, so this guard is compile-time:
+  // deleting one of these re-exports reddens the typecheck gate, not a vitest run.
   it("re-exports the abstract list type contract, identical to std", () => {
     expectTypeOf<FilterOperator>().toEqualTypeOf<std.FilterOperator>()
     expectTypeOf<FilterValue>().toEqualTypeOf<std.FilterValue>()

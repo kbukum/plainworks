@@ -1,5 +1,8 @@
 /**
- * Resilience primitives for any transport or call path: failure classification, bounded exponential backoff, timeout/deadline composition, retry driving, a circuit breaker, and a bounded backpressure queue. Written once here at L0 so no caller forks its own copy. Re-export-only barrel; implementation lives in the concern-named modules beside it.
+ * Resilience primitives for any transport or call path: failure classification, bounded exponential
+ * backoff, timeout/deadline composition, retry driving, a circuit breaker, and a bounded
+ * backpressure queue. Written once here at L0 so no caller forks its own copy. Re-export-only
+ * barrel; implementation lives in the concern-named modules beside it.
  */
 
 export type { BackoffPolicy, JitterStrategy } from "./backoff"

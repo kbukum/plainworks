@@ -1,13 +1,15 @@
 /**
- * `base64url` (RFC 4648 §5) encode/decode over raw bytes — the URL- and cookie-safe alphabet with no
- * padding. Hand-rolled against a lookup table because the portability shim declares neither `btoa`
- * (browser-only) nor `Buffer` (Node-only), so this stays host-neutral and lives at L0 for every layer
- * that frames bytes for a URL, cookie, header, or MAC (the signed session cookie, PKCE, and more).
+ * `base64url` (RFC 4648 §5) encode/decode over raw bytes — the URL- and cookie-safe alphabet with
+ * no padding. Hand-rolled against a lookup table because the portability shim declares neither
+ * `btoa` (browser-only) nor `Buffer` (Node-only), so this stays host-neutral and lives at L0 for
+ * every layer that frames bytes for a URL, cookie, header, or MAC (the signed session cookie, PKCE,
+ * and more).
  */
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 
-// Reverse lookup: code point -> 6-bit value, or -1 for any character outside the base64url alphabet.
+// Reverse lookup: code point -> 6-bit value, or -1 for any character outside the base64url
+// alphabet.
 const DECODE = (() => {
   const table = new Int8Array(128).fill(-1)
   for (let index = 0; index < ALPHABET.length; index++) {

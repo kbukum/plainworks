@@ -185,8 +185,8 @@ describe("crud list handler", () => {
 
   it("serves facets requested through the canonical list wire end-to-end", async () => {
     // The exact wire `buildListQuery({ pageSize: 5, facets: ["role", "status"] })` emits — fed as a
-    // literal string so the parser is exercised at its honest boundary (the builder↔parser agreement
-    // is proven once in the integration suite, not here).
+    // literal string so the parser is exercised at its honest boundary (the builder↔parser
+    // agreement is proven once in the integration suite, not here).
     const res = await json<ListResponse>(
       await fetch(`${base}/api/users?pageSize=5&facets=role,status`),
     )

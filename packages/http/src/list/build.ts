@@ -25,12 +25,12 @@ const RESERVED_FIELDS: ReadonlySet<string> = new Set([
  * encodes onto a URL — the PostgREST string the canonical contract specifies (`status=eq.active`,
  * `tags=in.(a,b,c)`, `name=is.null`). A field carrying several filters becomes a repeated key
  * (`price=gte.10&price=lte.20`). A value carrying a delimiter is escaped so it round-trips (see
- * `./codec`). A filter whose `value` shape contradicts its operator (a scalar
- * for `in`, an array for `eq`, a value on `null`) is a caller fault rejected as a fatal `http/request`
- * error rather than silently mis-serialized. A filter whose `field` is a reserved control name
+ * `./codec`). A filter whose `value` shape contradicts its operator (a scalar for `in`, an array
+ * for `eq`, a value on `null`) is a caller fault rejected as a fatal `http/request` error rather
+ * than silently mis-serialized. A filter whose `field` is a reserved control name
  * ({@link RESERVED_FIELDS}) is rejected for the same reason. Reuses `http` entirely — the returned
- * params flow through URL safety, the credential guard, auth injection, timeout, retry, and the codec
- * unchanged. The list contract it serializes is defined in `@plainworks/std`.
+ * params flow through URL safety, the credential guard, auth injection, timeout, retry, and the
+ * codec unchanged. The list contract it serializes is defined in `@plainworks/std`.
  */
 export function buildListQuery(params: ListQueryParams): QueryParams {
   if (params.page !== undefined && params.cursor !== undefined) {

@@ -44,7 +44,8 @@ export function resolveRetryPolicy(
 /**
  * Parse an HTTP `Retry-After` header into milliseconds: a bare integer is seconds; an HTTP date is
  * the delay until that instant (clamped at `0`). An absent or unparseable value yields `undefined`,
- * so the retry driver falls back to its normal backoff. `nowMs` is injected for deterministic tests.
+ * so the retry driver falls back to its normal backoff. `nowMs` is injected for deterministic
+ * tests.
  */
 export function parseRetryAfterMs(headerValue: string | null, nowMs: number): number | undefined {
   if (headerValue === null) {

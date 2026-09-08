@@ -62,7 +62,8 @@ describe("listQueryOptions", () => {
       })
     const a = make("a")
     const b = make("b")
-    // Same offset request → identical key regardless of a stray cursor, and the fetch never sees it.
+    // Same offset request → identical key regardless of a stray cursor, and the fetch never sees
+    // it.
     expect(a.queryKey).toEqual(b.queryKey)
     const client = createQueryClient()
     await client.query(a)
@@ -96,7 +97,8 @@ describe("infiniteListQueryOptions", () => {
 
     await client.infiniteQuery({ ...plan, pages: 3 })
 
-    // Cursors were threaded from each page's `nextCursor`, and every page's rows were collected in order.
+    // Cursors were threaded from each page's `nextCursor`, and every page's rows were collected in
+    // order.
     expect(requested).toEqual(["", "c2", "c3"])
     const data = client.getQueryData<{ pages: CursorResult<Item>[] }>(plan.queryKey)
     expect(data?.pages.flatMap((page) => page.data.map((item) => item.id))).toEqual([1, 2, 3])

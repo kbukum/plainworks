@@ -36,7 +36,10 @@ export class CircuitOpenError extends PlainError<"std/circuit-open"> {
 }
 
 /**
- * Build a {@link CircuitBreaker}. It trips to `open` after `failureThreshold` consecutive counted failures, fails fast for `cooldownMs`, then admits a single `half-open` probe; `successThreshold` consecutive probe successes close it again, while any counted probe failure re-opens it. Degrades gracefully instead of hammering a dead dependency.
+ * Build a {@link CircuitBreaker}. It trips to `open` after `failureThreshold` consecutive counted
+ * failures, fails fast for `cooldownMs`, then admits a single `half-open` probe; `successThreshold`
+ * consecutive probe successes close it again, while any counted probe failure re-opens it.
+ * Degrades gracefully instead of hammering a dead dependency.
  */
 export function createCircuitBreaker(options: CircuitBreakerOptions): CircuitBreaker {
   const clock = options.clock ?? systemClock
@@ -112,7 +115,8 @@ export function createCircuitBreaker(options: CircuitBreakerOptions): CircuitBre
       if (admitted === "open") {
         throw new CircuitOpenError()
       }
-      // Half-open admits exactly one trial call; concurrent callers fail fast so a recovering dependency sees a single probe, not a fresh stampede.
+      // Half-open admits exactly one trial call; concurrent callers fail fast so a recovering
+      // dependency sees a single probe, not a fresh stampede.
       if (admitted === "half-open") {
         if (probing) {
           throw new CircuitOpenError()
@@ -122,7 +126,8 @@ export function createCircuitBreaker(options: CircuitBreakerOptions): CircuitBre
       const admittedGeneration = generation
       try {
         const value = await operation()
-        // A call admitted under an earlier era (e.g. a slow closed-state call that settles after the breaker opened) must not drive the current state's transitions.
+        // A call admitted under an earlier era (e.g. a slow closed-state call that settles after
+        // the breaker opened) must not drive the current state's transitions.
         if (generation === admittedGeneration) {
           onSuccess()
         }
@@ -132,7 +137,9 @@ export function createCircuitBreaker(options: CircuitBreakerOptions): CircuitBre
           if (shouldTrip(error)) {
             onFailure()
           } else if (admitted === "half-open") {
-            // A non-counted fault still breaks the consecutive-probe streak, so `successThreshold` demands genuinely consecutive successes — but it must not re-open a recovering breaker.
+            // A non-counted fault still breaks the consecutive-probe streak, so `successThreshold`
+            // demands genuinely consecutive successes — but it must not re-open a recovering
+            // breaker.
             successes = 0
           }
         }

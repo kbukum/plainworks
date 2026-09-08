@@ -15,8 +15,8 @@ import { createStringSource, type StringBackend } from "./string-source"
 
 /**
  * The read/write surface of the document's cookies a scope uses. `read` returns the raw
- * `document.cookie` string; `write` assigns one `key=value; attrs` entry (the browser merges it into
- * the jar). Injectable so tests drive the scope without a document.
+ * `document.cookie` string; `write` assigns one `key=value; attrs` entry (the browser merges it
+ * into the jar). Injectable so tests drive the scope without a document.
  */
 export interface CookieJar {
   /** The current `document.cookie` string (all cookies, `; `-joined). */
@@ -42,8 +42,8 @@ export interface CookieScopeOptions {
 // A cookie is transmitted to the server on every matching request and is world-readable to any
 // script on the origin, so it must stay small and non-secret. `sentToServer: true` is the signal a
 // consumer reads to keep tokens/secrets out of this scope (auth custody uses a `__Host-` HttpOnly
-// cookie via the server-owned SessionStore instead). There is no cookie change event, so a cookie is
-// not observable across tabs; subscribers still see this source's own writes.
+// cookie via the server-owned SessionStore instead). There is no cookie change event, so a cookie
+// is not observable across tabs; subscribers still see this source's own writes.
 const COOKIE_CAPABILITIES: StateCapabilities = {
   access: "sync",
   authority: "local",
@@ -99,14 +99,16 @@ function isInsecureHost(): boolean {
 }
 
 /**
- * Build a **cookie** scope for **non-secret, client-readable** state (a theme, a consent flag). The
- * value is `encodeURIComponent`-encoded and written with `Path`/`SameSite`/`Secure` attributes; a
- * write that would exceed the ~4KB per-cookie budget raises a typed error instead of being silently
- * dropped. Host access is deferred to the first read/write (inside the surface's client-only
- * `connect`), so both importing the scope and building its source during SSR touch no cookie.
+ * Build a **cookie** scope for **non-secret, client-readable** state (a theme, a consent flag).
+ * The value is `encodeURIComponent`-encoded and written with `Path`/`SameSite`/`Secure` attributes;
+ * a write that would exceed the ~4KB per-cookie budget raises a typed error instead of being
+ * silently dropped. Host access is deferred to the first read/write (inside the surface's
+ * client-only `connect`), so both importing the scope and building its source during SSR touch no
+ * cookie.
  *
- * Never store a token or secret here — a cookie in this scope is readable by any script on the origin
- * **and** sent to the server on every request. Secure server session custody is `auth`'s job.
+ * Never store a token or secret here — a cookie in this scope is readable by any script on the
+ * origin **and** sent to the server on every request. Secure server session custody is `auth`'s
+ * job.
  */
 export function createCookieScope(options: CookieScopeOptions = {}): Scope {
   return {

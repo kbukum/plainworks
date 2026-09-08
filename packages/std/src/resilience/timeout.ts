@@ -2,7 +2,9 @@ import { PlainError } from "../errors"
 import type { WebAbortSignal } from "../web"
 
 /**
- * A cancellable delay: resolve after `ms`, or reject with an {@link AbortError} if `signal` aborts first. Injected so retry/timeout logic is deterministic under test (a fake delay resolves instantly); production uses {@link systemDelay}.
+ * A cancellable delay: resolve after `ms`, or reject with an {@link AbortError} if `signal` aborts
+ * first. Injected so retry/timeout logic is deterministic under test (a fake delay resolves
+ * instantly); production uses {@link systemDelay}.
  */
 export type Delay = (ms: number, signal?: WebAbortSignal) => Promise<void>
 
@@ -54,9 +56,13 @@ export const systemDelay: Delay = (ms, signal) =>
   })
 
 /**
- * Combine several `WebAbortSignal`s into one that aborts as soon as any input does, forwarding the reason of the first input to abort. Ignores `undefined` inputs; a lone signal is passed through unchanged; with none, returns a signal that never aborts.
+ * Combine several `WebAbortSignal`s into one that aborts as soon as any input does, forwarding the
+ * reason of the first input to abort. Ignores `undefined` inputs; a lone signal is passed through
+ * unchanged; with none, returns a signal that never aborts.
  *
- * Built on the universal `AbortController` surface rather than the newer `AbortSignal.any` (absent on older runtimes), and it removes its input listeners the moment the combined signal settles, so a long-lived input signal never retains a reference to a short-lived combined one.
+ * Built on the universal `AbortController` surface rather than the newer `AbortSignal.any` (absent
+ * on older runtimes), and it removes its input listeners the moment the combined signal settles, so
+ * a long-lived input signal never retains a reference to a short-lived combined one.
  */
 export function combineSignals(
   ...signals: ReadonlyArray<WebAbortSignal | undefined>
@@ -137,13 +143,20 @@ export interface Deadline {
 }
 
 /**
- * Create a deadline that aborts after `ms` with an {@link AbortError} — a spent overall budget, which the shared classifier treats as **fatal** (once the budget is gone, do not retry). This is deliberately distinct from a per-attempt {@link withTimeout}, which raises a retryable {@link TimeoutError}. Call {@link Deadline.dispose} when the protected work finishes early so the timer never outlives it; the backing timer is also unref'd where the host supports it, so a pending deadline never keeps the process alive on its own.
+ * Create a deadline that aborts after `ms` with an {@link AbortError} — a spent overall budget,
+ * which the shared classifier treats as **fatal** (once the budget is gone, do not retry).
+ * This is deliberately distinct from a per-attempt {@link withTimeout}, which raises a retryable
+ * {@link TimeoutError}. Call {@link Deadline.dispose} when the protected work finishes early so the
+ * timer never outlives it; the backing timer is also unref'd where the host supports it, so a
+ * pending deadline never keeps the process alive on its own.
  */
 export function createDeadline(ms: number): Deadline {
   assertTimerMs(ms)
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(new AbortError()), ms)
-  // `unref` is a Node timer affordance absent in browsers/workers; widen to `unknown` and feature-detect, because the ambient timer-handle type differs per consumer program (number, NodeJS.Timeout, or our opaque declaration).
+  // `unref` is a Node timer affordance absent in browsers/workers; widen to `unknown` and
+  // feature-detect, because the ambient timer-handle type differs per consumer program (number,
+  // NodeJS.Timeout, or our opaque declaration).
   const handle: unknown = timer
   if (typeof handle === "object" && handle !== null && "unref" in handle) {
     const { unref } = handle
@@ -165,7 +178,12 @@ export function createDeadline(ms: number): Deadline {
 }
 
 /**
- * Run `operation` under a time budget. It receives a signal that aborts on timeout **or** on the caller's `signal`, so a well-behaved operation (e.g. `fetch`) cancels its own work; if the budget elapses first the returned promise rejects with a retryable {@link TimeoutError}, while a caller abort rejects immediately with a fatal {@link AbortError} — even if the operation ignores cancellation. `delay` is injectable for deterministic tests. The timeout timer and the caller listener are always torn down once the call settles.
+ * Run `operation` under a time budget. It receives a signal that aborts on timeout **or** on the
+ * caller's `signal`, so a well-behaved operation (e.g. `fetch`) cancels its own work; if the budget
+ * elapses first the returned promise rejects with a retryable {@link TimeoutError}, while a caller
+ * abort rejects immediately with a fatal {@link AbortError} — even if the operation ignores
+ * cancellation. `delay` is injectable for deterministic tests. The timeout timer and the caller
+ * listener are always torn down once the call settles.
  */
 export function withTimeout<T>(
   operation: (signal: WebAbortSignal) => Promise<T>,
@@ -181,7 +199,9 @@ export function withTimeout<T>(
   let settled = false
 
   return new Promise<T>((resolve, reject) => {
-    // Enforce the same duration invariant `systemDelay`/`createDeadline` do, even under a custom `delay` that would otherwise accept a NaN/negative/overflowing budget and run the operation unbounded.
+    // Enforce the same duration invariant `systemDelay`/`createDeadline` do, even under a custom
+    // `delay` that would otherwise accept a NaN/negative/overflowing budget and run the operation
+    // unbounded.
     try {
       assertTimerMs(ms)
     } catch (error) {
@@ -195,12 +215,13 @@ export function withTimeout<T>(
       settled = true
       callerSignal?.removeEventListener("abort", onCallerAbort)
       timerController.abort()
-      // Abort the private timeout controller on EVERY settlement — a normal resolve included — so the
-      // combined operation signal settles and `combineSignals` runs its teardown, removing the
+      // Abort the private timeout controller on EVERY settlement — a normal resolve included — so
+      // the combined operation signal settles and `combineSignals` runs its teardown, removing the
       // `onAbort` listener it attached to the (possibly long-lived) caller signal. Without this a
       // completed call would leak one listener per invocation onto the caller signal. On the
-      // timeout/abort paths `abortReason` carries the reason so a still-pending operation is cancelled
-      // with it; on success it is `undefined`, an inert abort of an already-settled operation.
+      // timeout/abort paths `abortReason` carries the reason so a still-pending operation is
+      // cancelled with it; on success it is `undefined`, an inert abort of an already-settled
+      // operation.
       timeoutController.abort(abortReason)
       finalize()
     }
@@ -215,7 +236,8 @@ export function withTimeout<T>(
     }
     callerSignal?.addEventListener("abort", onCallerAbort, { once: true })
 
-    // An injected `delay` may throw synchronously despite its Promise return type; route that through `settle` so the caller listener is always torn down.
+    // An injected `delay` may throw synchronously despite its Promise return type; route that
+    // through `settle` so the caller listener is always torn down.
     let delayPromise: Promise<void>
     try {
       delayPromise = delay(ms, timerController.signal)
@@ -229,7 +251,8 @@ export function withTimeout<T>(
         const error = new TimeoutError(ms)
         settle(() => reject(error), error)
       },
-      // The expected post-settle cancellation no-ops inside `settle`; a delay that fails while the operation is still pending cancels the operation and settles the outer promise.
+      // The expected post-settle cancellation no-ops inside `settle`; a delay that fails while the
+      // operation is still pending cancels the operation and settles the outer promise.
       (error: unknown) => settle(() => reject(error), error),
     )
 
@@ -237,7 +260,8 @@ export function withTimeout<T>(
     try {
       result = operation(operationSignal)
     } catch (error) {
-      // A synchronous throw gets the same cleanup as an async rejection so the timer never outlives the rejected call.
+      // A synchronous throw gets the same cleanup as an async rejection so the timer never outlives
+      // the rejected call.
       settle(() => reject(error))
       return
     }

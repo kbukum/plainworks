@@ -17,12 +17,13 @@ export interface InfiniteListKeyOptions extends ListKeyOptions {
 }
 
 /**
- * Derive a deterministic **offset** list cache key: equal params produce a deeply-equal key regardless
- * of the order filters were written in, and any filter/sort/page/search variation keys distinctly. The
- * key is `[...prefix, resource, "list", canonical]` where `canonical` is the params in a stable,
- * order-independent shape — the list analogue of how `connect` derives a stable key from its method
- * schema. Offset mode has no cursor: a `cursor` in the params is ignored here (it belongs to
- * {@link infiniteListQueryKey}). Feed it to `useQuery`/`prefetchQuery` for a single, jump-to-page list.
+ * Derive a deterministic **offset** list cache key: equal params produce a deeply-equal key
+ * regardless of the order filters were written in, and any filter/sort/page/search variation keys
+ * distinctly. The key is `[...prefix, resource, "list", canonical]` where `canonical` is the params
+ * in a stable, order-independent shape — the list analogue of how `connect` derives a stable key
+ * from its method schema. Offset mode has no cursor: a `cursor` in the params is ignored here (it
+ * belongs to {@link infiniteListQueryKey}). Feed it to `useQuery`/`prefetchQuery` for a single,
+ * jump-to-page list.
  */
 export function listQueryKey(
   resource: string,
@@ -34,13 +35,13 @@ export function listQueryKey(
 }
 
 /**
- * Derive a deterministic **infinite** list cache key — one key for the whole `useInfiniteQuery`, shared
- * across every fetched page. It deliberately **omits `page` and `cursor`**: those vary per page (the
- * cursor is the page param), so folding them into the key would scatter each page into its own cache
- * entry. Everything that defines the list identity (filters, sort, page size, search, includes, facets)
- * is included, so two infinite lists that differ in a filter key distinctly while pages of one list
- * share a key. The `initialCursor` is included so two plans starting at different cursors never share
- * a cache entry.
+ * Derive a deterministic **infinite** list cache key — one key for the whole `useInfiniteQuery`,
+ * shared across every fetched page. It deliberately **omits `page` and `cursor`**: those vary per
+ * page (the cursor is the page param), so folding them into the key would scatter each page into
+ * its own cache entry. Everything that defines the list identity (filters, sort, page size, search,
+ * includes, facets) is included, so two infinite lists that differ in a filter key distinctly while
+ * pages of one list share a key. The `initialCursor` is included so two plans starting at different
+ * cursors never share a cache entry.
  */
 export function infiniteListQueryKey(
   resource: string,
@@ -73,10 +74,11 @@ interface CanonicalParams {
 
 /**
  * Project params into a canonical shape. Filters are sorted by `(field, op, value)` and `includes`/
- * `facets` by code unit, so writing the same request sets in a different order yields an equal key (an
- * `AND` set has no order); `page`/`cursor` are included only in offset mode. Object key order does not matter — TanStack's `hashKey` sorts object
- * keys — so only the filter array needs explicit ordering. Absent fields are omitted, not set to
- * `undefined`, so a minimal request keys minimally.
+ * `facets` by code unit, so writing the same request sets in a different order yields an equal key
+ * (an `AND` set has no order); `page`/`cursor` are included only in offset mode. Object key order
+ * does not matter — TanStack's `hashKey` sorts object keys — so only the filter array needs
+ * explicit ordering. Absent fields are omitted, not set to `undefined`, so a minimal request keys
+ * minimally.
  */
 function canonicalize(params: ListQueryParams, opts: { includePage: boolean }): CanonicalParams {
   const canonical: {
@@ -135,9 +137,9 @@ function compareCodeUnits(a: string, b: string): number {
 
 /**
  * A stable, type-preserving string form of a filter's value. Distinct values never collapse to the
- * same string: the value is tagged by its runtime type so `1` and `"1"` differ, and array elements are
- * length-prefixed so `["a,b", "c"]` and `["a", "b,c"]` differ. Array order is preserved — `in.(a,b)`
- * differs from `in.(b,a)`.
+ * same string: the value is tagged by its runtime type so `1` and `"1"` differ, and array elements
+ * are length-prefixed so `["a,b", "c"]` and `["a", "b,c"]` differ. Array order is preserved —
+ * `in.(a,b)` differs from `in.(b,a)`.
  */
 function stringifyValue(filter: ListFilter): string {
   if (!("value" in filter) || filter.value === undefined) {

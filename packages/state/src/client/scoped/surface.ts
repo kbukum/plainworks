@@ -6,16 +6,16 @@ import type { Store } from "../../store"
 import { createBinding } from "../binding"
 
 /**
- * Where a scoped backend failure goes. Writes are optimistic — the mirror updates immediately — so a
- * rejected persistence would otherwise be an unhandled rejection; a report routes it somewhere the
- * host can see it, never swallowed.
+ * Where a scoped backend failure goes. Writes are optimistic — the mirror updates immediately — so
+ * a rejected persistence would otherwise be an unhandled rejection; a report routes it somewhere
+ * the host can see it, never swallowed.
  */
 export type Report = (error: unknown) => void
 
 /**
- * The default report: surface the failure out of band as a rejected promise so it reaches the host's
- * unhandled-rejection path, never swallowed. It uses only the `Promise` language primitive — no
- * host-specific scheduler (`queueMicrotask` is not one of the universal runtime primitives this
+ * The default report: surface the failure out of band as a rejected promise so it reaches the
+ * host's unhandled-rejection path, never swallowed. It uses only the `Promise` language primitive —
+ * no host-specific scheduler (`queueMicrotask` is not one of the universal runtime primitives this
  * React-without-DOM entry may assume) — so it is safe on every target runtime.
  */
 export const defaultReport: Report = (error) => {
@@ -65,12 +65,12 @@ export interface AssembledSurface<Value, Handle, Seed> {
 /**
  * The engine-neutral heart shared by `createScopedState` (one value) and `createScopedObject` (a
  * per-field composite): both are the **same surface** — a callable selector hook, a per-request
- * `Provider`, and a `useApi` handle — differing only in how their {@link ScopedInstance} is built and
- * written. This assembles that surface once; the factory supplies `build`.
+ * `Provider`, and a `useApi` handle — differing only in how their {@link ScopedInstance} is built
+ * and written. This assembles that surface once; the factory supplies `build`.
  *
- * The Provider builds the instance **once per mount via `useRef`** — never a module-level singleton —
- * so two concurrent SSR requests stay isolated, and runs `connect` in an effect (client-only) so SSR
- * touches no host and the first client render matches the server markup.
+ * The Provider builds the instance **once per mount via `useRef`** — never a module-level singleton
+ * — so two concurrent SSR requests stay isolated, and runs `connect` in an effect (client-only) so
+ * SSR touches no host and the first client render matches the server markup.
  *
  * The selector hook compares snapshots by reference: select a primitive or a reference-stable value
  * (or memoize with `createSelector`) so a slice re-renders only when it actually changes.

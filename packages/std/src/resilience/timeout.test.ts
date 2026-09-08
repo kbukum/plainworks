@@ -166,7 +166,8 @@ test("withTimeout routes a synchronously-throwing delay through settle cleanup",
       signal: controller.signal,
     }),
   ).rejects.toThrow("timer exploded")
-  // The caller listener was torn down on settle, so a later abort is inert (no unhandled rejection).
+  // The caller listener was torn down on settle, so a later abort is inert (no unhandled
+  // rejection).
   controller.abort()
 })
 

@@ -26,8 +26,8 @@ function controllableSource(): {
       availableAtImport: false,
     },
     get: () => new Promise((resolve) => reads.push(resolve)),
-    // Writes are irrelevant to the reconciler's read/adopt logic under test, so they are no-ops here;
-    // each pull's outcome is driven by `resolveRead` with an explicit value.
+    // Writes are irrelevant to the reconciler's read/adopt logic under test, so they are no-ops
+    // here; each pull's outcome is driven by `resolveRead` with an explicit value.
     set: async () => {},
     remove: async () => {},
     subscribe: (onChange) => {
@@ -185,7 +185,8 @@ describe("createSourceReconciler", () => {
     await flush()
     await flush()
 
-    // The read rejected because we cancelled it: that is expected teardown, never a reported failure.
+    // The read rejected because we cancelled it: that is expected teardown, never a reported
+    // failure.
     expect(reported).toEqual([])
   })
 })

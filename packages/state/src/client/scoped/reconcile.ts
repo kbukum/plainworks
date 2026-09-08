@@ -37,9 +37,10 @@ export function createSourceReconciler<Value>(params: {
   let writeRevision = 0
   let latestPull = 0
   // Owns cancellation for the reads this reconciler starts: aborted on teardown so a remote `get`
-  // still in flight abandons its network work instead of resolving into an unmounted mirror. Typed as
-  // the shim's `WebAbortController` (not the DOM-lib global) so this client module stays DOM-free and
-  // compiles on React Native/Expo — `new AbortController()` binds to that same universal shim type.
+  // still in flight abandons its network work instead of resolving into an unmounted mirror.
+  // Typed as the shim's `WebAbortController` (not the DOM-lib global) so this client module stays
+  // DOM-free and compiles on React Native/Expo — `new AbortController()` binds to that same
+  // universal shim type.
   let controller: WebAbortController | undefined
 
   const pull = (isInitial: boolean): void => {
@@ -49,21 +50,23 @@ export function createSourceReconciler<Value>(params: {
     source
       .get(signal)
       .then((value) => {
-        // Discard the read if we were torn down, a newer pull superseded it, or a local write landed
-        // while it was in flight — in every case a fresher value already owns the mirror.
+        // Discard the read if we were torn down, a newer pull superseded it, or a local write
+        // landed while it was in flight — in every case a fresher value already owns the mirror.
         if (!active || ticket !== latestPull || writeRevision !== startedAt) {
           return
         }
         if (value !== undefined) {
           adopt(value)
         } else if (!isInitial) {
-          // An empty read after mount is an external removal — restore the initial, not the stale value.
+          // An empty read after mount is an external removal — restore the initial, not the stale
+          // value.
           reset()
         }
       })
       .catch((error) => {
         // A read rejected because we aborted it on teardown is the cancellation we asked for, not a
-        // backend failure — never surface it. Any other rejection is a real failure and is reported.
+        // backend failure — never surface it. Any other rejection is a real failure and is
+        // reported.
         if (signal?.aborted === true) {
           return
         }

@@ -11,9 +11,9 @@ export interface QueryKeyParams<I extends DescMessage, O extends DescMessage> {
   /** Request input; a `skipToken` marks the query as skipped. */
   readonly input?: MessageInitShape<I> | SkipToken
   /**
-   * Transport folded into the key so keys are transport-scoped. A hand-built key **must** thread the
-   * **same `transport`** the connect-query hooks use, or it will not match a hook-generated cache
-   * entry.
+   * Transport folded into the key so keys are transport-scoped. A hand-built key **must** thread
+   * the **same `transport`** the connect-query hooks use, or it will not match a hook-generated
+   * cache entry.
    */
   readonly transport?: Transport
   /** Headers folded into the key when they affect the response. */

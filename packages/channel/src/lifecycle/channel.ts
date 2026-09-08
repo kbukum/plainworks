@@ -47,23 +47,30 @@ export interface ChannelOptions {
   /** Reconnection backoff schedule (from `std`). Default `defaultBackoff`. */
   readonly backoff?: BackoffPolicy
   /**
-   * Ceiling on **consecutive** retries after a failed attempt before the channel gives up and closes terminally. A stable connection resets the count, so this bounds a run of failures, not the channel's lifetime. `0` disables retries (a single attempt per session). Default `10`.
+   * Ceiling on **consecutive** retries after a failed attempt before the channel gives up and
+   * closes terminally. A stable connection resets the count, so this bounds a run of failures, not
+   * the channel's lifetime. `0` disables retries (a single attempt per session). Default `10`.
    */
   readonly maxRetries?: number
   /** Time budget (ms) to establish each connection before aborting the attempt. Default 30s. */
   readonly connectTimeoutMs?: number
   /**
-   * Optional idle-read timeout (ms): if no frame arrives within this window of an open stream, abort and reconnect — catches a half-dead socket that never errors. Default disabled.
+   * Optional idle-read timeout (ms): if no frame arrives within this window of an open stream,
+   * abort and reconnect — catches a half-dead socket that never errors. Default disabled.
    */
   readonly idleTimeoutMs?: number
   /**
-   * How long a connection must stay open to count as **stable**. Backoff resets only after a stable open, so a connection that flaps (opens then drops immediately) escalates backoff instead of hammering the server. Default 1s.
+   * How long a connection must stay open to count as **stable**. Backoff resets only after a stable
+   * open, so a connection that flaps (opens then drops immediately) escalates backoff instead of
+   * hammering the server. Default 1s.
    */
   readonly minUptimeMs?: number
   /** Notified on every lifecycle transition. */
   readonly onStatusChange?: (status: ChannelStatus) => void
   /**
-   * Notified in two cases: the channel closes terminally with a failure (a fatal error, or retry exhaustion reported as `channel/closed` with the last failure as `cause`), and a non-terminal channel listener throw (`channel/protocol`). Check `status`/the error `kind` to distinguish.
+   * Notified in two cases: the channel closes terminally with a failure (a fatal error, or retry
+   * exhaustion reported as `channel/closed` with the last failure as `cause`), and a non-terminal
+   * channel listener throw (`channel/protocol`). Check `status`/the error `kind` to distinguish.
    */
   readonly onError?: (error: ChannelError) => void
   /** Injected clock for uptime measurement; defaults to the wall clock. */
@@ -75,7 +82,9 @@ export interface ChannelOptions {
 }
 
 /**
- * A transport-agnostic streaming connection: one logical stream whose lifetime is bounded by {@link Channel.connect} and {@link Channel.close}. Reconnection, backoff, timeouts, and frame dispatch live here; the wire differences live in the injected transport.
+ * A transport-agnostic streaming connection: one logical stream whose lifetime is bounded by
+ * {@link Channel.connect} and {@link Channel.close}. Reconnection, backoff, timeouts, and frame
+ * dispatch live here; the wire differences live in the injected transport.
  */
 export interface Channel {
   /** Open the stream (idempotent while already active or closed). */
@@ -93,7 +102,10 @@ export interface Channel {
 }
 
 /**
- * Create a {@link Channel} over a transport. The reconnect loop is driven by `std`'s retry engine — classification (a `401`/`403` is fatal and stops the loop), bounded jittered backoff, and the retry ceiling all come from `std`, so this package owns only the lifecycle and the stable-open gating, never a private backoff copy. Never a module singleton — build one per stream.
+ * Create a {@link Channel} over a transport. The reconnect loop is driven by `std`'s retry engine —
+ * classification (a `401`/`403` is fatal and stops the loop), bounded jittered backoff, and the
+ * retry ceiling all come from `std`, so this package owns only the lifecycle and the stable-open
+ * gating, never a private backoff copy. Never a module singleton — build one per stream.
  */
 export function createChannel(options: ChannelOptions): Channel {
   const {
@@ -196,7 +208,10 @@ export function createChannel(options: ChannelOptions): Channel {
   }
 
   /**
-   * Arm a timeout via the injected delay; returns a canceller that stops it firing. The expected cancellation is silent, but any other delay rejection fails the attempt via `onFailure` — otherwise the attempt would keep running with its timeout disabled (matching `std`'s `withTimeout`, where a broken timer fails the call).
+   * Arm a timeout via the injected delay; returns a canceller that stops it firing. The expected
+   * cancellation is silent, but any other delay rejection fails the attempt via `onFailure` —
+   * otherwise the attempt would keep running with its timeout disabled (matching `std`'s
+   * `withTimeout`, where a broken timer fails the call).
    */
   const armTimeout = (
     ms: number,
@@ -213,7 +228,10 @@ export function createChannel(options: ChannelOptions): Channel {
   }
 
   /**
-   * Run one connection attempt. Resolves when a **stable** connection ends cleanly (so the caller resets backoff); rejects with a retryable {@link ChannelError} on a pre-stable flap, a retryable {@link TimeoutError} on a connect/idle timeout, the transport's typed failure, or a fatal {@link AbortError} when the caller closes.
+   * Run one connection attempt. Resolves when a **stable** connection ends cleanly (so the caller
+   * resets backoff); rejects with a retryable {@link ChannelError} on a pre-stable flap, a
+   * retryable {@link TimeoutError} on a connect/idle timeout, the transport's typed failure, or a
+   * fatal {@link AbortError} when the caller closes.
    */
   const runOneConnection = (attemptSignal: WebAbortSignal): Promise<void> => {
     setStatus(attemptsStarted === 0 ? "connecting" : "reconnecting")
@@ -235,7 +253,8 @@ export function createChannel(options: ChannelOptions): Channel {
         cancelConnect()
         cancelIdle()
         attemptSignal.removeEventListener("abort", onCallerAbort)
-        // Release the transport on every settle; a normal end also aborts an inert, already-settled op.
+        // Release the transport on every settle; a normal end also aborts an inert, already-settled
+        // op.
         timeoutController.abort()
       }
       const finish = (run: () => void): void => {
@@ -249,7 +268,9 @@ export function createChannel(options: ChannelOptions): Channel {
       const isStable = (): boolean => opened && clock.now() - openedAt >= minUptimeMs
       // End the session so the reconnect loop resets backoff (a stable connection ended, S3).
       const endWithReset = (): void => finish(resolve)
-      // A retryable failure: after a stable open reset backoff and reconnect promptly; otherwise (a flap, or a failure before stabilizing) escalate backoff within the retry session. A fatal failure always propagates to stop the loop.
+      // A retryable failure: after a stable open reset backoff and reconnect promptly; otherwise (a
+      // flap, or a failure before stabilizing) escalate backoff within the retry session.
+      // A fatal failure always propagates to stop the loop.
       const endWithFailure = (error: unknown): void => {
         if (isRetryableFailure(error)) {
           if (isStable()) {
@@ -257,7 +278,9 @@ export function createChannel(options: ChannelOptions): Channel {
             finish(resolve)
             return
           }
-          // A pre-stable flap that will be retried within this session: surface `reconnecting` now, so the observable status reflects the dropped stream through the backoff wait instead of lingering on a stale `open` until the next attempt starts.
+          // A pre-stable flap that will be retried within this session: surface `reconnecting` now,
+          // so the observable status reflects the dropped stream through the backoff wait instead
+          // of lingering on a stale `open` until the next attempt starts.
           if (reconnect && !closed) {
             setStatus("reconnecting")
           }
@@ -309,7 +332,8 @@ export function createChannel(options: ChannelOptions): Channel {
           dispatch(frame)
           armIdle()
         },
-        // Cursor-only control blocks (e.g. an SSE `id:` line with no data) still move the resume cursor, or the next reconnect would send a stale Last-Event-ID.
+        // Cursor-only control blocks (e.g. an SSE `id:` line with no data) still move the resume
+        // cursor, or the next reconnect would send a stale Last-Event-ID.
         onId: trackEventId,
       }
 
@@ -327,7 +351,8 @@ export function createChannel(options: ChannelOptions): Channel {
           context.headers = headers
           return transport.open(context).then(
             () => {
-              // Clean EOF: a stable stream resets backoff (S3); a pre-stable end is a flap that escalates backoff within the retry session.
+              // Clean EOF: a stable stream resets backoff (S3); a pre-stable end is a flap that
+              // escalates backoff within the retry session.
               if (isStable()) {
                 endWithReset()
               } else {
@@ -357,25 +382,29 @@ export function createChannel(options: ChannelOptions): Channel {
           { random, delay, signal: channelSignal },
         )
       } catch (error) {
-        // A caller close aborts `channelSignal`; that surfaces as an AbortError we swallow silently.
+        // A caller close aborts `channelSignal`; that surfaces as an AbortError we swallow
+        // silently.
         if (closed) {
           break
         }
         terminalError = toTerminalError(error)
         break
       }
-      // A session resolved: a stable connection ended cleanly. Reconnect with a fresh session (backoff reset) unless reconnection is disabled or the caller has closed.
+      // A session resolved: a stable connection ended cleanly. Reconnect with a fresh session
+      // (backoff reset) unless reconnection is disabled or the caller has closed.
       if (!reconnect || closed) {
         break
       }
-      // Honor a server-sent `retry:` hint before the next session — consumed once and capped at the backoff ceiling, exactly as `std` caps `retryAfter`.
+      // Honor a server-sent `retry:` hint before the next session — consumed once and capped at the
+      // backoff ceiling, exactly as `std` caps `retryAfter`.
       if (serverRetryMs !== undefined) {
         const hintMs = Math.min(serverRetryMs, backoff.maxMs)
         serverRetryMs = undefined
         try {
           await delay(hintMs, channelSignal)
         } catch (error) {
-          // A caller close aborts the wait and exits via `closed` below; any other delay failure is terminal rather than a silently unbounded reconnect.
+          // A caller close aborts the wait and exits via `closed` below; any other delay failure is
+          // terminal rather than a silently unbounded reconnect.
           if (!closed) {
             terminalError = ChannelError.config("channel timer failed", { cause: error })
           }
@@ -444,7 +473,10 @@ export function createChannel(options: ChannelOptions): Channel {
 }
 
 /**
- * Whether a connection failure is worth retrying, deferring status classification to `std` (a `401`/`403` is fatal and stops reconnection — S1). A channel `connect` failure (transport/flap) is transient and retryable; a `protocol` failure (bad content-type, missing body) fails identically on retry and is fatal.
+ * Whether a connection failure is worth retrying, deferring status classification to `std` (a
+ * `401`/`403` is fatal and stops reconnection — S1). A channel `connect` failure (transport/flap)
+ * is transient and retryable; a `protocol` failure (bad content-type, missing body) fails
+ * identically on retry and is fatal.
  */
 function isRetryableFailure(error: unknown): boolean {
   if (error instanceof ChannelError) {

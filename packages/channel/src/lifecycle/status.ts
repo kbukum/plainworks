@@ -1,5 +1,8 @@
 /**
- * Observable lifecycle of a channel. A channel starts `idle`, moves to `connecting` on the first attempt, `open` once a connection is established, `reconnecting` while re-establishing after a dropped stream, `closing` briefly during a caller-initiated teardown, and `closed` terminally (either a clean caller close or reconnection exhausted / a fatal failure).
+ * Observable lifecycle of a channel. A channel starts `idle`, moves to `connecting` on the first
+ * attempt, `open` once a connection is established, `reconnecting` while re-establishing after a
+ * dropped stream, `closing` briefly during a caller-initiated teardown, and `closed` terminally
+ * (either a clean caller close or reconnection exhausted / a fatal failure).
  */
 export type ChannelStatus = "idle" | "connecting" | "open" | "reconnecting" | "closing" | "closed"
 

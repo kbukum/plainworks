@@ -5,8 +5,9 @@ import { createQueryClient, listQueryOptions } from "@plainworks/query"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { readUserPage } from "./user-reads"
 
-// An abandoned read must reject and never populate the cache: the plan threads the query signal into
-// the http fetch, so the abort propagates through mock → http → plan before a value can resolve.
+// An abandoned read must reject and never populate the cache: the plan threads the query signal
+// into the http fetch, so the abort propagates through mock → http → plan before a value can
+// resolve.
 
 const handle = createMockServerHandle({ seed: 42 })
 const client = createHttpClient({ baseUrl: "http://mock.test" })

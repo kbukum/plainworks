@@ -35,7 +35,8 @@ export type ConnectRetryPolicy = Omit<RetryPolicy, "idempotent">
 export interface ConnectResilienceOptions {
   /**
    * Time budget in ms. For a unary call it is the per-attempt deadline; for a streaming call it is
-   * the **idle timeout** between messages — a gap longer than this fails the stream `deadline_exceeded`.
+   * the **idle timeout** between messages — a gap longer than this fails the stream
+   * `deadline_exceeded`.
    */
   readonly timeoutMs: number
   /** Retry policy; when omitted, each call makes a single (still timeout-bounded) attempt. */
@@ -59,8 +60,8 @@ export interface ConnectResilienceOptions {
  *
  * Place it **outermost** in the interceptor chain so the retry loop re-runs the whole chain — auth
  * injection included — on every attempt. On exhaustion or timeout the underlying `std`
- * `TimeoutError`/`AbortError` is remapped to a `ConnectError` (`deadline_exceeded`/`canceled`) so the
- * consumer keeps a single Connect error contract to map with `mapConnectError`.
+ * `TimeoutError`/`AbortError` is remapped to a `ConnectError` (`deadline_exceeded`/`canceled`) so
+ * the consumer keeps a single Connect error contract to map with `mapConnectError`.
  */
 export function resilienceInterceptor(options: ConnectResilienceOptions): Interceptor {
   const { timeoutMs, retry, delay, random } = options
@@ -108,11 +109,11 @@ export function resilienceInterceptor(options: ConnectResilienceOptions): Interc
 type NextFn = ReturnType<Interceptor>
 
 /**
- * Bound a streaming call by an **idle timeout**: run it under a signal that combines the caller's and
- * an internal one, then wrap the output so each awaited message races a `timeoutMs` timer. A message
- * resets the timer; if the timer wins, the internal signal is aborted (cancelling the underlying
- * stream) and the call fails `deadline_exceeded`. The source iterator's `return` always runs on exit,
- * so nothing is left dangling on completion, error, or an early consumer `break`.
+ * Bound a streaming call by an **idle timeout**: run it under a signal that combines the caller's
+ * and an internal one, then wrap the output so each awaited message races a `timeoutMs` timer.
+ * A message resets the timer; if the timer wins, the internal signal is aborted (cancelling the
+ * underlying stream) and the call fails `deadline_exceeded`. The source iterator's `return` always
+ * runs on exit, so nothing is left dangling on completion, error, or an early consumer `break`.
  */
 async function streamWithIdleTimeout(
   request: StreamRequest,
@@ -132,11 +133,11 @@ async function streamWithIdleTimeout(
 
 /**
  * Wrap a stream so a gap longer than `idleMs` between messages fails the call. The idle timer is
- * torn down the moment a message arrives (or the call ends); on a stall it aborts `idleController` to
- * cancel the underlying transport, then throws `deadline_exceeded`. On exit the source iterator's
- * `return` runs and `idleController` is disposed even when `return` throws — `combineSignals` only
- * unlinks its listeners once the combined signal aborts, so a completed stream must never retain
- * listeners on a long-lived caller signal.
+ * torn down the moment a message arrives (or the call ends); on a stall it aborts `idleController`
+ * to cancel the underlying transport, then throws `deadline_exceeded`. On exit the source
+ * iterator's `return` runs and `idleController` is disposed even when `return` throws —
+ * `combineSignals` only unlinks its listeners once the combined signal aborts, so a completed
+ * stream must never retain listeners on a long-lived caller signal.
  */
 async function* idleGuarded<T>(
   source: AsyncIterable<T>,
@@ -174,8 +175,8 @@ async function* idleGuarded<T>(
       }
       if (idled) {
         idleController.abort(new AbortError())
-        // The in-flight read will reject once the stream is cancelled; drain it so that rejection is
-        // never unhandled.
+        // The in-flight read will reject once the stream is cancelled; drain it so that rejection
+        // is never unhandled.
         void nextResult.catch(() => {})
         throw new ConnectError(
           `stream stalled: no message within ${idleMs}ms`,

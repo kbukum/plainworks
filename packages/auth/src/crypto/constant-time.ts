@@ -5,9 +5,9 @@
  * token verifier alike.
  */
 export function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
-  // Length is not itself secret for a fixed-width MAC/tag, and comparing mismatched lengths byte for
-  // byte would still leak, so reject unequal lengths up front and fold every byte of equal-length
-  // inputs into one accumulator that is only read once.
+  // Length is not itself secret for a fixed-width MAC/tag, and comparing mismatched lengths byte
+  // for byte would still leak, so reject unequal lengths up front and fold every byte of
+  // equal-length inputs into one accumulator that is only read once.
   if (a.length !== b.length) {
     return false
   }

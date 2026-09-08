@@ -5,7 +5,8 @@ import { defaultAuthCrypto } from "./web-crypto"
 describe("defaultAuthCrypto", () => {
   test("digestSha256 produces the raw 32-byte SHA-256 of the input", async () => {
     const crypto = defaultAuthCrypto()
-    // Known-answer: SHA-256("abc") = ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad.
+    // Known-answer: SHA-256("abc") =
+    // ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad.
     const digest = await crypto.digestSha256(Uint8Array.of(0x61, 0x62, 0x63))
     const hex = Array.from(digest)
       .map((byte) => byte.toString(16).padStart(2, "0"))

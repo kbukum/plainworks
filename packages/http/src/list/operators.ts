@@ -1,9 +1,10 @@
 /**
  * The PostgREST/Supabase REST **wire dialect** for the list contract: how each abstract
- * {@link FilterOperator} (the vocabulary owned by `@plainworks/std`) serializes to and parses from a
- * `field=op.value` URL token. This is the one place the REST token grammar lives, so the request
+ * {@link FilterOperator} (the vocabulary owned by `@plainworks/std`) serializes to and parses from
+ * a `field=op.value` URL token. This is the one place the REST token grammar lives, so the request
  * builder (`buildListQuery`) and a REST backend parser (e.g. `@plainworks/mocks`) bind to the same
- * table and can never drift. Not a `std` concern — `std` owns the abstract shapes, `http` owns the URL.
+ * table and can never drift. Not a `std` concern — `std` owns the abstract shapes, `http` owns the
+ * URL.
  */
 
 import type { FilterOperator } from "@plainworks/std"
@@ -43,9 +44,9 @@ export function filterOperatorFromToken(token: string): FilterOperator | null {
 }
 
 /**
- * Split an untrusted `op.value` wire string into its operator token and the remaining value, matching
- * the longest known token first (so `not.in.(a,b)` resolves to `not.in`, not the unknown `not`).
- * Returns `null` when no known token prefixes the string — a REST backend treats that as an
+ * Split an untrusted `op.value` wire string into its operator token and the remaining value,
+ * matching the longest known token first (so `not.in.(a,b)` resolves to `not.in`, not the unknown
+ * `not`). Returns `null` when no known token prefixes the string — a REST backend treats that as an
  * unrecognised parameter, never a silent filter.
  */
 export function splitOperatorToken(rawValue: string): { token: string; rest: string } | null {

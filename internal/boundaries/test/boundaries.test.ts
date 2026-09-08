@@ -61,8 +61,8 @@ test("layer violations trip the gate", async () => {
 
 /**
  * Token-custody quarantine. auth's server-only custody graph holds the session-signing secret, so a
- * `"use client"` graph must never import it. The rule is path-based (dependency-cruiser can't read a
- * `"use client"` directive), so the fixture is a client-graph module (`auth/src/client/guard.ts`)
+ * `"use client"` graph must never import it. The rule is path-based (dependency-cruiser can't read
+ * a `"use client"` directive), so the fixture is a client-graph module (`auth/src/client/guard.ts`)
  * importing the server graph (`auth/src/server/hmac-signer.ts`) — the edge that must trip the rule,
  * proving the secret cannot slip into a browser bundle.
  */
@@ -79,9 +79,9 @@ test("a client graph importing auth server-only custody trips the quarantine rul
 
 /**
  * Custody ownership — the transitive half of the quarantine. A neutral (non-server) auth module
- * reaching into `server/**` must trip `no-nonserver-into-auth-server`, proving the signing secret is
- * reachable only through auth's own server entry — so a client importing the neutral `.` barrel can
- * never pull custody in by a longer path.
+ * reaching into `server/**` must trip `no-nonserver-into-auth-server`, proving the signing secret
+ * is reachable only through auth's own server entry — so a client importing the neutral `.` barrel
+ * can never pull custody in by a longer path.
  */
 test("a neutral auth module importing server-only custody trips the ownership rule", async () => {
   const violations = await cruiseFixtures()
@@ -118,9 +118,10 @@ test("import cycles trip the no-circular rule", async () => {
 })
 
 /**
- * The one deliberate upward exception: test files may import @plainworks/testkit (shared fakes), but
- * production source may not. Both halves are proven from fixtures so a regression in the carve-out —
- * either forbidding a legitimate test import or letting production pull in test tooling — fails here.
+ * The one deliberate upward exception: test files may import @plainworks/testkit (shared fakes),
+ * but production source may not. Both halves are proven from fixtures so a regression in the
+ * carve-out — either forbidding a legitimate test import or letting production pull in test tooling
+ * — fails here.
  */
 test("test files may import testkit, but production source may not", async () => {
   const violations = await cruiseFixtures()
@@ -156,9 +157,10 @@ test("catalog typescript stays on the TS6 line so the boundary gate keeps parsin
 /**
  * The portability gate is the shared ES2023-only compile config (`tsconfig.base.json`: no DOM/Node
  * lib, `types: []`) plus the explicit `types/universal-web.d.ts` global shim — enforced at
- * `typecheck` on every package, not a dependency-cruiser rule. These fixtures prove it bites in both
- * directions using the real compiler (no regex heuristic): a neutral entry touching only the
- * universal Web value globals compiles, while one reaching for a DOM-only global (`document`) fails.
+ * `typecheck` on every package, not a dependency-cruiser rule. These fixtures prove it bites in
+ * both directions using the real compiler (no regex heuristic): a neutral entry touching only the
+ * universal Web value globals compiles, while one reaching for a DOM-only global (`document`)
+ * fails.
  */
 function typechecksUnderGate(project: string): { ok: boolean; output: string } {
   const cwd = resolve(fixtures, "portability")

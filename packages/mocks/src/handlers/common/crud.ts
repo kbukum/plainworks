@@ -163,8 +163,8 @@ export function createCrudHandlers<
       await latency.wait(request.signal)
       const url = new URL(request.url)
 
-      // Query params are untrusted strings: validate before they drive slices/sorts.
-      // Accept both `pageSize` (canonical) and `limit` (legacy alias); `pageSize` wins when both given.
+      // Query params are untrusted strings: validate before they drive slices/sorts. Accept both
+      // `pageSize` (canonical) and `limit` (legacy alias); `pageSize` wins when both given.
       // The canonical contract makes `page` and `cursor` mutually exclusive per request.
       const hasCursor = url.searchParams.has("cursor")
       if (hasCursor && url.searchParams.has("page")) {

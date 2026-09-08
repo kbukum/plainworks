@@ -1,7 +1,7 @@
 // Server-safe public entry for `@plainworks/mocks` — explicit, minimal surface. The mock servers
-// live in subpath entries: `@plainworks/mocks/server` (msw/node) and `@plainworks/mocks/vite-plugin`
-// (dev middleware). Everything is a factory — importing this module creates no stores, workers, or
-// other state.
+// live in subpath entries: `@plainworks/mocks/server` (msw/node) and
+// `@plainworks/mocks/vite-plugin` (dev middleware). Everything is a factory — importing this module
+// creates no stores, workers, or other state.
 
 // Composition root: one isolated mock graph (handlers + stores + control) per call.
 export type { MockApi, MockApiOptions } from "./api"

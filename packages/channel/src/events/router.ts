@@ -15,7 +15,8 @@ export interface EventRouterOptions<T> {
   /** Sinks fed every decoded event, in order, one event at a time. */
   readonly sinks: readonly EventSink<T>[]
   /**
-   * Bound on buffered-but-undelivered events between the (sync) frame callback and the (async) drain. Keeps memory bounded when sinks fall behind the stream. Default 1024.
+   * Bound on buffered-but-undelivered events between the (sync) frame callback and the (async)
+   * drain. Keeps memory bounded when sinks fall behind the stream. Default 1024.
    */
   readonly capacity?: number
   /** What a full buffer does with a new event; default `drop-oldest` (freshest-wins). */
@@ -31,7 +32,12 @@ export interface EventRouter {
 }
 
 /**
- * Route a {@link Channel}'s raw frames to typed {@link EventSink}s. Frames arrive synchronously and are decoded then pushed onto a **bounded** queue; a single async drain pops them and delivers to every sink serially, so a slow sink backpressures the buffer (bounded, freshest-wins by default) instead of growing without limit. A decode or sink failure is reported to `onError` and the event is dropped — one bad event never stalls the stream. Build one per channel; never a module singleton.
+ * Route a {@link Channel}'s raw frames to typed {@link EventSink}s. Frames arrive synchronously and
+ * are decoded then pushed onto a **bounded** queue; a single async drain pops them and delivers to
+ * every sink serially, so a slow sink backpressures the buffer (bounded, freshest-wins by default)
+ * instead of growing without limit. A decode or sink failure is reported to `onError` and the event
+ * is dropped — one bad event never stalls the stream. Build one per channel; never a module
+ * singleton.
  */
 export function createEventRouter<T>(options: EventRouterOptions<T>): EventRouter {
   const { channel, decode, sinks, capacity = DEFAULT_CAPACITY, overflow, onError } = options

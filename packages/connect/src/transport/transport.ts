@@ -12,10 +12,11 @@ const DEFAULT_TIMEOUT_MS = 30_000
  *
  * - `"connect"` — the Connect protocol over plain `fetch` (JSON or binary). The default: no proxy,
  *   directly consumable by a browser.
- * - `"grpc-web"` — the gRPC-Web protocol, for a backend fronted by a gRPC-Web proxy (e.g. Envoy).
+ * - `"grpc-web"` — the gRPC-Web protocol, for a backend fronted by a gRPC-Web proxy (e.g.
+ *   Envoy).
  *
- * Native gRPC (`@connectrpc/connect-node`, HTTP/2) is intentionally **not** here: it is Node-only and
- * would pull `node:http2` into the neutral entry, breaking host-independence. It belongs in a
+ * Native gRPC (`@connectrpc/connect-node`, HTTP/2) is intentionally **not** here: it is Node-only
+ * and would pull `node:http2` into the neutral entry, breaking host-independence. It belongs in a
  * separate Node-only entry if a real need appears; both would reuse the same interceptor chain.
  */
 export type ConnectProtocol = "connect" | "grpc-web"
@@ -76,8 +77,8 @@ export interface CreateConnectTransportOptions {
  * entry), never a module-level singleton.
  *
  * Errors surface as `ConnectError` (Connect's contract). Map them to the kit's typed `RpcError` at
- * the boundary with `mapConnectError` — never inside an interceptor, since Connect re-normalizes any
- * interceptor-thrown value back into a `ConnectError`, discarding a custom type.
+ * the boundary with `mapConnectError` — never inside an interceptor, since Connect re-normalizes
+ * any interceptor-thrown value back into a `ConnectError`, discarding a custom type.
  */
 export function createConnectRpcTransport(options: CreateConnectTransportOptions): Transport {
   const {

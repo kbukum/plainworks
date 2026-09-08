@@ -4,14 +4,15 @@ import type { AuthAdapter, AuthAdapterDeps } from "./adapter"
 /**
  * Builds an {@link AuthAdapter} from an opaque, mechanism-specific config plus the injected deps.
  * `config` is `unknown` so the registry stays mechanism-agnostic; each factory narrows its own
- * config shape (a `custom` factory reads `{ adapter }`, an `oidc` factory reads issuer/client, ...).
+ * config shape (a `custom` factory reads `{ adapter }`, an `oidc` factory reads issuer/client,
+ * ...).
  */
 export type AuthAdapterFactory = (config: unknown, deps: AuthAdapterDeps) => AuthAdapter
 
 /**
- * An explicit, injected registry of adapter factories keyed by mechanism name — never a package-global
- * mutable singleton or a string service-locator. A runtime is built from a registry per request, so
- * registration order and defaults are deterministic and SSR/RSC-safe.
+ * An explicit, injected registry of adapter factories keyed by mechanism name — never a
+ * package-global mutable singleton or a string service-locator. A runtime is built from a registry
+ * per request, so registration order and defaults are deterministic and SSR/RSC-safe.
  */
 export interface AuthRegistry {
   /**
@@ -19,7 +20,7 @@ export interface AuthRegistry {
    * gokit `auth`), so a single-mechanism setup needs no explicit selection.
    *
    * @throws {AuthError} `auth/config` when `kind` is already registered — silent last-wins override
-   * is a footgun on a security-load-bearing seam.
+   *   is a footgun on a security-load-bearing seam.
    */
   register(kind: string, factory: AuthAdapterFactory): void
   /**

@@ -52,11 +52,11 @@ export interface AuthSession {
 }
 
 /**
- * The open extension point for an authentication mechanism. Built-ins (`oidc`, `jwt`, `apikey`) and a
- * bring-your-own adapter satisfy the same interface, so a consumer swaps mechanisms without touching
- * the core. `id` names the mechanism; `authenticate` is the one required capability (resolve an
- * identity from a request); the interactive/session methods are optional so a stateless verifier
- * (JWT/API key) implements only what it needs.
+ * The open extension point for an authentication mechanism. Built-ins (`oidc`, `jwt`, `apikey`) and
+ * a bring-your-own adapter satisfy the same interface, so a consumer swaps mechanisms without
+ * touching the core. `id` names the mechanism; `authenticate` is the one required capability
+ * (resolve an identity from a request); the interactive/session methods are optional so a stateless
+ * verifier (JWT/API key) implements only what it needs.
  */
 export interface AuthAdapter {
   /** Stable identifier for the mechanism (`"oidc"`, `"jwt"`, a custom name). */
@@ -76,10 +76,10 @@ export interface AuthAdapter {
 }
 
 /**
- * Config for the trivial pass-through adapter — a supplied {@link AuthAdapter} handed straight to the
- * runtime. It exists so a bring-your-own adapter needs no registered factory, and so the registry
- * itself is testable without a real mechanism. Built-in variants (`oidc`, `jwt`, `apikey`) extend
- * this union in their own steps.
+ * Config for the trivial pass-through adapter — a supplied {@link AuthAdapter} handed straight to
+ * the runtime. It exists so a bring-your-own adapter needs no registered factory, and so the
+ * registry itself is testable without a real mechanism. Built-in variants (`oidc`, `jwt`, `apikey`)
+ * extend this union in their own steps.
  */
 export interface CustomAdapterConfig {
   readonly kind: "custom"
@@ -87,8 +87,8 @@ export interface CustomAdapterConfig {
 }
 
 /**
- * The discriminated-union selection of an adapter. Open by design: each built-in adds its own member
- * (`{ kind: "oidc"; ... }`, etc.) as it lands, and `custom` covers bring-your-own — so selecting a
- * mechanism is config-driven with no core change.
+ * The discriminated-union selection of an adapter. Open by design: each built-in adds its own
+ * member (`{ kind: "oidc"; ... }`, etc.) as it lands, and `custom` covers bring-your-own — so
+ * selecting a mechanism is config-driven with no core change.
  */
 export type AuthAdapterConfig = CustomAdapterConfig

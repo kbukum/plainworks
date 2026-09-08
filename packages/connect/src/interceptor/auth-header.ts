@@ -17,15 +17,15 @@ export const injectedAuthHeadersKey: ContextKey<readonly string[]> = createConte
  * `@plainworks/auth`, `http`, and `channel` satisfy, so none of them import one another.
  *
  * The provider is consulted **per attempt** (this interceptor sits inside the retry driver), so a
- * refreshed credential is re-applied on a retry. The attempt's abort signal is handed to the provider
- * as its {@link AuthContext}, binding an async token refresh to the same deadline/cancellation as the
- * request: when the attempt times out or the caller aborts, an abandoned refresh is cancelled rather
- * than left running.
+ * refreshed credential is re-applied on a retry. The attempt's abort signal is handed to the
+ * provider as its {@link AuthContext}, binding an async token refresh to the same
+ * deadline/cancellation as the request: when the attempt times out or the caller aborts, an
+ * abandoned refresh is cancelled rather than left running.
  *
  * Injection is **non-mutating**: a fresh `Headers` copy carries the credential, so the base request
  * the retry driver reuses across attempts is never mutated. A credential injected on one attempt
- * therefore never lingers onto the next — matching the `@plainworks/http` auth interceptor — so when
- * the provider later returns `undefined` the header is genuinely absent.
+ * therefore never lingers onto the next — matching the `@plainworks/http` auth interceptor — so
+ * when the provider later returns `undefined` the header is genuinely absent.
  */
 export function authHeaderInterceptor(provider: AuthHeaderProvider): Interceptor {
   return (next) => async (request) => {

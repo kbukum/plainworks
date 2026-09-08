@@ -1,6 +1,6 @@
 /**
- * An externally-controlled promise: hand `promise` to the code under test, then resolve or reject it
- * from the test at the exact moment you want. Essential for exercising in-flight async paths —
+ * An externally-controlled promise: hand `promise` to the code under test, then resolve or reject
+ * it from the test at the exact moment you want. Essential for exercising in-flight async paths —
  * single-flight refresh, timeouts, and reconnection — deterministically.
  */
 export interface Deferred<T> {

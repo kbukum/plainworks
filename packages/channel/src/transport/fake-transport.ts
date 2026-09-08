@@ -2,7 +2,9 @@ import { AbortError } from "@plainworks/std"
 import type { ChannelFrame, Transport, TransportContext, TransportFactory } from "./transport"
 
 /**
- * One connection attempt captured from a {@link fakeTransport}: the {@link TransportContext} the core handed it, plus manual controls to drive the wire — mark it open, push frames, end it cleanly, or fail it — so a channel test steps a stream without any real network.
+ * One connection attempt captured from a {@link fakeTransport}: the {@link TransportContext} the
+ * core handed it, plus manual controls to drive the wire — mark it open, push frames, end it
+ * cleanly, or fail it — so a channel test steps a stream without any real network.
  *
  * Test-only harness (never bundled into `dist`; not reachable from a package entry).
  */
@@ -34,7 +36,10 @@ export interface FakeTransport {
 }
 
 /**
- * Build a {@link FakeTransport}. A single shared {@link Transport} instance records each `open()` call as a {@link FakeAttempt}; when the attempt's signal aborts, its `open()` promise rejects with the shared `AbortError` (as a real transport does), so the core's reconnect/close paths are exercised.
+ * Build a {@link FakeTransport}. A single shared {@link Transport} instance records each `open()`
+ * call as a {@link FakeAttempt}; when the attempt's signal aborts, its `open()` promise rejects
+ * with the shared `AbortError` (as a real transport does), so the core's reconnect/close paths are
+ * exercised.
  */
 export function fakeTransport(): FakeTransport {
   const attempts: FakeAttempt[] = []

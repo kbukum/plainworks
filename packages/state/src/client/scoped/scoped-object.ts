@@ -22,13 +22,13 @@ export interface FieldDescriptor<Value> {
   readonly serializer?: StateSerializer<Value>
   /**
    * Optional Standard Schema validator for this field. When the field lives in a persisted
-   * (untrusted) scope, supply one to validate the decoded value at the read boundary — a tampered or
-   * wrong-shaped value becomes a typed `StateSourceError` instead of a fabricated `Value`.
+   * (untrusted) scope, supply one to validate the decoded value at the read boundary — a tampered
+   * or wrong-shaped value becomes a typed `StateSourceError` instead of a fabricated `Value`.
    */
   readonly schema?: StandardSchemaV1<unknown, Value>
   /**
-   * Marks this field a secret — rejected at construction unless its `scope` is memory-equivalent, so
-   * a token can never be placed in `persistent`/`cookie`/`url`.
+   * Marks this field a secret — rejected at construction unless its `scope` is memory-equivalent,
+   * so a token can never be placed in `persistent`/`cookie`/`url`.
    */
   readonly sensitivity?: Sensitivity
 }
@@ -77,8 +77,8 @@ export interface ScopedObjectProviderProps<Values> {
 
 /**
  * The callable `use`-prefixed surface {@link createScopedObject} returns — identical in shape to
- * {@link import("./scoped-state").ScopedStateSurface}, so a composite and a single value are one API
- * to learn.
+ * {@link import("./scoped-state").ScopedStateSurface}, so a composite and a single value are one
+ * API to learn.
  */
 export interface ScopedObjectSurface<Values, Handle> {
   /** Read the whole composite value. */
@@ -140,15 +140,17 @@ function reportFieldFailures(writes: readonly FieldWrite[], report: Report, acti
 /**
  * Compose **one logical object whose fields each live in a different scope** — the capability the
  * single-value surface cannot express. `createScopedObject({ fields })` assigns a scope per field
- * (whole-object-in-one-scope is the trivial case), returning the **same callable `use`-prefixed shape**
- * as {@link import("./scoped-state").createScopedState}: `const usePrefs = createScopedObject({...})`,
- * then `usePrefs((s) => s.theme)`, `usePrefs.useApi()`, `usePrefs.Provider`.
+ * (whole-object-in-one-scope is the trivial case), returning the **same callable `use`-prefixed
+ * shape** as {@link import("./scoped-state").createScopedState}:
+ * `const usePrefs = createScopedObject({...})`, then `usePrefs((s) => s.theme)`,
+ * `usePrefs.useApi()`, `usePrefs.Provider`.
  *
- * Writes are **patch-only** (`set({ theme: "dark" })`): a patch touches only the named fields, fanning
- * each to its own scope's {@link StateSource}. There is intentionally no whole-object replace — no
- * cross-medium transaction exists to honor. A multi-field patch that partly fails raises a typed
- * aggregate {@link StateSourceError} listing the failed field keys, each cause preserved. Relocating a
- * field across scopes is the one-line `scope:` change, with call sites unchanged.
+ * Writes are **patch-only** (`set({ theme: "dark" })`): a patch touches only the named fields,
+ * fanning each to its own scope's {@link StateSource}. There is intentionally no whole-object
+ * replace — no cross-medium transaction exists to honor. A multi-field patch that partly fails
+ * raises a typed aggregate {@link StateSourceError} listing the failed field keys, each cause
+ * preserved. Relocating a field across scopes is the one-line `scope:` change, with call sites
+ * unchanged.
  */
 export function createScopedObject<
   Values extends object,

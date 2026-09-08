@@ -5,8 +5,8 @@ import { infiniteListQueryOptions } from "@plainworks/query"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { readUserCursorPage } from "./user-reads"
 
-// Cursor paging forward through the assembled spine: the plan's initialPageParam → getNextPageParam →
-// queryFn wiring pages the mock's cursor mode, and consecutive pages never overlap.
+// Cursor paging forward through the assembled spine: the plan's initialPageParam → getNextPageParam
+// → queryFn wiring pages the mock's cursor mode, and consecutive pages never overlap.
 
 const handle = createMockServerHandle({ seed: 42 })
 const client = createHttpClient({ baseUrl: "http://mock.test" })

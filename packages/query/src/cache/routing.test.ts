@@ -133,7 +133,8 @@ describe("cache routing", () => {
       const key = ["profile"]
       writeQueryData<{ name: string }>(client, key, { name: "old" })
 
-      // An optimistic delete: `setQueryData(key, undefined)` would be a no-op, so the slot must be evicted.
+      // An optimistic delete: `setQueryData(key, undefined)` would be a no-op, so the slot must be
+      // evicted.
       const update = optimisticUpdate<{ name: string }>({
         client,
         queryKey: key,

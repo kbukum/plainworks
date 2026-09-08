@@ -37,15 +37,15 @@ export interface FakeConnectCall {
 }
 
 /**
- * A network-free Connect {@link Transport} that routes calls to canned responders, built on Connect's
- * own `createRouterTransport` — the idiomatic in-process test tool. Configure responders, hand
- * `transport` to the code under test (a `TransportProvider`, a `createConnectRpcTransport` consumer,
- * or connect-query hooks), then assert against `calls`.
+ * A network-free Connect {@link Transport} that routes calls to canned responders, built on
+ * Connect's own `createRouterTransport` — the idiomatic in-process test tool. Configure responders,
+ * hand `transport` to the code under test (a `TransportProvider`, a `createConnectRpcTransport`
+ * consumer, or connect-query hooks), then assert against `calls`.
  *
  * Register every responder **before** reading `transport`: the router is built lazily on first
- * access and cached, so the configured routes are frozen once the transport is handed out. A late
- * registration is rejected with a typed error rather than silently ignored. A responder that must
- * vary across attempts (e.g. fail-then-succeed for a retry test) is a stateful closure, not
+ * access and cached, so the configured routes are frozen once the transport is handed out.
+ * A late registration is rejected with a typed error rather than silently ignored. A responder that
+ * must vary across attempts (e.g. fail-then-succeed for a retry test) is a stateful closure, not
  * re-registration.
  */
 export interface FakeConnectTransport {
@@ -75,9 +75,9 @@ export interface FakeConnectTransport {
 type Registration = (router: ConnectRouter) => void
 
 /**
- * Build a {@link FakeConnectTransport} for `service`. Every responder is a typed Connect handler, so
- * the fake never widens a request/response away from its proto type, and each call is recorded with
- * its wire headers and decoded input for assertions.
+ * Build a {@link FakeConnectTransport} for `service`. Every responder is a typed Connect handler,
+ * so the fake never widens a request/response away from its proto type, and each call is recorded
+ * with its wire headers and decoded input for assertions.
  */
 export function createFakeConnectTransport(service: DescService): FakeConnectTransport {
   const calls: FakeConnectCall[] = []

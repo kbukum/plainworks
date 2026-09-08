@@ -263,7 +263,8 @@ describe("createWsTransport", () => {
     const done = transport.open(h.context)
     await Promise.resolve()
     socket?.open()
-    // A non-text/non-ArrayBuffer frame (e.g. a Blob from a socket that ignored binaryType) must fail, not stringify.
+    // A non-text/non-ArrayBuffer frame (e.g. a Blob from a socket that ignored binaryType) must
+    // fail, not stringify.
     socket?.message({ raw: "x" })
 
     await expect(done).rejects.toMatchObject({ kind: "channel/protocol" })

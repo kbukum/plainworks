@@ -3,18 +3,20 @@ import type { Store, StoreInitializer, StoreSet } from "./store"
 /**
  * The runtime store shape composed from a {@link StoreDefinition}: state fields with the action set
  * merged on top. `defineStore` spreads `state` then `actions`, so on a key present in both the
- * action value wins at runtime — `Omit<State, keyof Actions> & Actions` models exactly that, instead
- * of an unsound `State & Actions` intersection that would claim a key holds both shapes at once.
+ * action value wins at runtime — `Omit<State, keyof Actions> & Actions` models exactly that,
+ * instead of an unsound `State & Actions` intersection that would claim a key holds both shapes at
+ * once.
  */
 export type StoreShape<State extends object, Actions extends object> = Omit<State, keyof Actions> &
   Actions
 
 /**
  * Declarative store shape for {@link defineStore} when it carries actions: the initial `state` as a
- * plain object plus the `actions` factory. Splitting the two keeps state readable and actions typed,
- * and pairs with {@link createSelector} for derived values — the explicit, no-magic ergonomics facade
- * over the `(set, get, store) => state` initializer. For a state-only store, omit `actions` entirely
- * (the state-only {@link defineStore} overload) rather than passing an empty factory.
+ * plain object plus the `actions` factory. Splitting the two keeps state readable and actions
+ * typed, and pairs with {@link createSelector} for derived values — the explicit, no-magic
+ * ergonomics facade over the `(set, get, store) => state` initializer. For a state-only store, omit
+ * `actions` entirely (the state-only {@link defineStore} overload) rather than passing an empty
+ * factory.
  */
 export interface StoreDefinition<State extends object, Actions extends object> {
   /** The initial state fields. */
@@ -38,9 +40,9 @@ export interface StoreDefinition<State extends object, Actions extends object> {
  * })
  * ```
  *
- * Actions are required exactly when the store has them: the state-only overload rejects an `actions`
- * key, and the with-actions overload requires the factory — so a definition can never claim actions
- * in its type that are absent at runtime.
+ * Actions are required exactly when the store has them: the state-only overload rejects an
+ * `actions` key, and the with-actions overload requires the factory — so a definition can never
+ * claim actions in its type that are absent at runtime.
  */
 export function defineStore<State extends object>(definition: {
   readonly state: State
@@ -58,9 +60,9 @@ export function defineStore<State extends object, Actions extends object>(defini
 }): StoreInitializer<StoreShape<State, Actions>> {
   return (set, get, store) => {
     const actions = definition.actions?.(set, get, store) ?? ({} as Actions)
-    // The initializer's declared return is the composed shape; the runtime object carries exactly the
-    // state fields with the (possibly empty) action set merged on top, so this is the one place the
-    // composition is asserted from its two verified halves.
+    // The initializer's declared return is the composed shape; the runtime object carries exactly
+    // the state fields with the (possibly empty) action set merged on top, so this is the one place
+    // the composition is asserted from its two verified halves.
     return { ...definition.state, ...actions } as StoreShape<State, Actions>
   }
 }
@@ -70,9 +72,10 @@ type Input<State, Value> = (state: State) => Value
 
 /**
  * A memoized derived selector, reselect-style: given input selectors and a `combine`, the combiner
- * re-runs only when an input changes (compared with `Object.is`), so a derived object keeps a stable
- * reference across reads and a consuming `useStore` re-renders only when the derived value actually
- * changes. Pure and server-safe — the memo depends solely on the inputs, so it is SSR-safe to share.
+ * re-runs only when an input changes (compared with `Object.is`), so a derived object keeps a
+ * stable reference across reads and a consuming `useStore` re-renders only when the derived value
+ * actually changes. Pure and server-safe — the memo depends solely on the inputs, so it is SSR-safe
+ * to share.
  *
  * ```ts
  * const total = createSelector([(s: Cart) => s.items], (items) => items.reduce(sum, 0))

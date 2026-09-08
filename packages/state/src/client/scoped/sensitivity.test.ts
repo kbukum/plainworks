@@ -11,7 +11,8 @@ import { persistentScope, sessionScope } from "../scope/web-storage"
 import { createScopedObject } from "./scoped-object"
 import { createScopedState } from "./scoped-state"
 
-// Every non-memory built-in scope: each reaches storage a script, the server, or a bystander can read.
+// Every non-memory built-in scope: each reaches storage a script, the server, or a bystander can
+// read.
 const nonMemoryScopes: Array<[string, Scope]> = [
   ["persistent", persistentScope],
   ["session", sessionScope],

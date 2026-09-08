@@ -44,21 +44,21 @@ export interface PresenceFilter {
 }
 
 /**
- * One typed filter — a discriminated union so every operator carries exactly the value shape it needs.
- * A scalar operator carries a single value; a list operator (`in`/`nin`) carries an array; a presence
- * operator (`null`/`notNull`) carries none. TypeScript rejects a mismatched combination at compile
- * time; a transport revalidates the shape at its own wire boundary.
+ * One typed filter — a discriminated union so every operator carries exactly the value shape it
+ * needs. A scalar operator carries a single value; a list operator (`in`/`nin`) carries an array; a
+ * presence operator (`null`/`notNull`) carries none. TypeScript rejects a mismatched combination at
+ * compile time; a transport revalidates the shape at its own wire boundary.
  */
 export type ListFilter = ScalarFilter | ListMembershipFilter | PresenceFilter
 
 /**
- * The canonical, typed **list-read** request — filter, sort, paginate (offset **or** cursor), free-text
- * search, eager-load, and facet. This one param object is the bridge shared by the `http` wire builder
- * (`buildListQuery`) and the `query` cache-key derivation, so the same request keys the cache and
- * hits the backend. Offset (`page`/`pageSize`) suits stable jump-to-page lists; `cursor` suits large or
- * mutating lists and `useInfiniteQuery` (offset drifts as rows change). The two modes are mutually
- * exclusive per request — supplying both `page` and `cursor` is a caller fault rejected by
- * `buildListQuery`.
+ * The canonical, typed **list-read** request — filter, sort, paginate (offset **or** cursor),
+ * free-text search, eager-load, and facet. This one param object is the bridge shared by the `http`
+ * wire builder (`buildListQuery`) and the `query` cache-key derivation, so the same request keys
+ * the cache and hits the backend. Offset (`page`/`pageSize`) suits stable jump-to-page lists;
+ * `cursor` suits large or mutating lists and `useInfiniteQuery` (offset drifts as rows change).
+ * The two modes are mutually exclusive per request — supplying both `page` and `cursor` is a caller
+ * fault rejected by `buildListQuery`.
  */
 export interface ListQueryParams {
   /** Field filters, `AND`-combined; repeat a field for a range (`price>=10 AND price<=20`). */

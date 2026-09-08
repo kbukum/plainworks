@@ -253,7 +253,8 @@ describe("createScopedObject — patch fan-out and the typed aggregate error", (
       </usePrefs.Provider>,
     )
     // `toString` lives on `Object.prototype`; a plain-object registry would report it "configured"
-    // and then invoke the inherited member — a `TypeError`. The `Map` registry rejects it as unknown.
+    // and then invoke the inherited member — a `TypeError`. The `Map` registry rejects it as
+    // unknown.
     act(() =>
       (api as { set(patch: Record<string, unknown>): void } | undefined)?.set({ toString: 1 }),
     )

@@ -8,7 +8,10 @@ export interface UrlContext {
 }
 
 /**
- * A connection endpoint: a fixed string, or a provider resolved on **every** attempt for endpoint discovery/rotation. The provider returns the endpoint only — a credential NEVER belongs in the URL (a signed URL is still a credential: it leaks through logs, history, and referrers). Auth flows through the channel's header seam, re-resolved per attempt.
+ * A connection endpoint: a fixed string, or a provider resolved on **every** attempt for endpoint
+ * discovery/rotation. The provider returns the endpoint only — a credential NEVER belongs in the
+ * URL (a signed URL is still a credential: it leaks through logs, history, and referrers).
+ * Auth flows through the channel's header seam, re-resolved per attempt.
  */
 export type UrlSource = string | ((context: UrlContext) => string | Promise<string>)
 

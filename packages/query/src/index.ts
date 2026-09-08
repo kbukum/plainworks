@@ -1,12 +1,14 @@
-// Server-safe public entry for `@plainworks/query` — the protocol-agnostic TanStack cache substrate.
-// Re-export-only barrel (no logic here; implementation lives in concern-named modules). No React or DOM
-// imports, so the `.` entry runs anywhere (Node, edge, RSC): the client factory, cache routing + event
-// sink, RSC prefetch/hydrate helpers, the `remote` StateSource scope, and the list-query cache keys.
-// The `"use client"` provider + `HydrationBoundary` live in the separate `./client` entry.
+// Server-safe public entry for `@plainworks/query` — the protocol-agnostic TanStack cache
+// substrate. Re-export-only barrel (no logic here; implementation lives in concern-named modules).
+// No React or DOM imports, so the `.` entry runs anywhere (Node, edge, RSC): the client factory,
+// cache routing + event sink, RSC prefetch/hydrate helpers, the `remote` StateSource scope, and the
+// list-query cache keys. The `"use client"` provider + `HydrationBoundary` live in the separate
+// `./client` entry.
 
-// The protocol-agnostic list contract, surfaced from `@plainworks/std` so a `query` consumer imports
-// list types from the one package it already reached for. The URL serializer `buildListQuery` is not
-// re-exported here — it stays an `@plainworks/http` import, paired with the client call that uses it.
+// The protocol-agnostic list contract, surfaced from `@plainworks/std` so a `query` consumer
+// imports list types from the one package it already reached for. The URL serializer
+// `buildListQuery` is not re-exported here — it stays an `@plainworks/http` import, paired with the
+// client call that uses it.
 export type {
   CursorInfo,
   CursorResult,

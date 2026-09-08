@@ -44,7 +44,8 @@ describe("QueryProvider", () => {
     })
     const state = dehydrateClient(server, { shouldDehydrateQuery: () => true })
 
-    // Client: hydrate into the browser client under the provider; the value is warm on first render.
+    // Client: hydrate into the browser client under the provider; the value is warm on first
+    // render.
     const browser = createQueryClient()
     render(
       <QueryProvider client={browser}>

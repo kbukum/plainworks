@@ -1,6 +1,7 @@
 // Server-safe public entry for `@plainworks/http` — the one host-independent typed fetch client the
-// request/response protocols build on. Re-export-only barrel (no logic here; implementation lives in
-// concern-named modules). No React or DOM imports, so the `.` entry runs anywhere (Node, edge, RSC).
+// request/response protocols build on. Re-export-only barrel (no logic here; implementation lives
+// in concern-named modules). No React or DOM imports, so the `.` entry runs anywhere (Node, edge,
+// RSC).
 export type { BodyCodec, EncodedBody, JsonCodecOptions } from "./codec"
 export { createJsonCodec, DEFAULT_MAX_BODY_BYTES, jsonCodec } from "./codec"
 export type { HttpErrorKind } from "./error"

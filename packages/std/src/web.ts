@@ -1,15 +1,24 @@
 /**
- * Self-contained structural types for the universal Web-platform surface every target runtime shares (Node 18+, Deno, edge, browser, worker). They are declared here — not pulled from the DOM or `@types/node` libs — so a host-independent package can name `fetch`/`Headers`/`Response`/`URL` in its public API and ship a `.d.ts` that typechecks standalone against ES-only libs, without forcing a consumer to install DOM or Node types or leaking host-only globals (`window`, `self`, `caches`) past the "assume no host" boundary.
+ * Self-contained structural types for the universal Web-platform surface every target runtime
+ * shares (Node 18+, Deno, edge, browser, worker). They are declared here — not pulled from the DOM
+ * or `@types/node` libs — so a host-independent package can name `fetch`/`Headers`/`Response`/`URL`
+ * in its public API and ship a `.d.ts` that typechecks standalone against ES-only libs, without
+ * forcing a consumer to install DOM or Node types or leaking host-only globals (`window`, `self`,
+ * `caches`) past the "assume no host" boundary.
  *
- * Only the members the kit actually uses are declared; the shapes are structural, so a real platform `Headers`/`Response`/`URL` (from the DOM lib or `@types/node`) satisfies them by duck typing. The repo-only ambient value shim (`types/universal-web.d.ts`) binds the matching runtime globals to these same types, keeping one source of truth. Extend only with APIs that are genuinely universal.
+ * Only the members the kit actually uses are declared; the shapes are structural, so a real
+ * platform `Headers`/`Response`/`URL` (from the DOM lib or `@types/node`) satisfies them by duck
+ * typing. The repo-only ambient value shim (`types/universal-web.d.ts`) binds the matching runtime
+ * globals to these same types, keeping one source of truth. Extend only with APIs that are
+ * genuinely universal.
  */
 
 /**
  * The subset of `AbortSignal` the kit reads: its aborted state, reason, `throwIfAborted`, and event
- * wiring. Every member is present on the platform `AbortSignal` across all target runtimes, so a real
- * signal satisfies it structurally; `throwIfAborted` is included so a caller passed one of these
- * signals (e.g. the operation signal from {@link withTimeout}) can still guard with it, exactly as a
- * native signal allows.
+ * wiring. Every member is present on the platform `AbortSignal` across all target runtimes, so a
+ * real signal satisfies it structurally; `throwIfAborted` is included so a caller passed one of
+ * these signals (e.g. the operation signal from {@link withTimeout}) can still guard with it,
+ * exactly as a native signal allows.
  */
 export interface WebAbortSignal {
   readonly aborted: boolean
@@ -83,9 +92,9 @@ export interface WebResponse {
 }
 
 /**
- * The `ReadableStreamDefaultReader` members a bounded body reader uses to pull and cancel bytes. The
- * done result's `value` is optional (`value?: undefined`) to mirror the platform reader exactly, so a
- * native `ReadableStreamDefaultReader` is structurally assignable.
+ * The `ReadableStreamDefaultReader` members a bounded body reader uses to pull and cancel bytes.
+ * The done result's `value` is optional (`value?: undefined`) to mirror the platform reader
+ * exactly, so a native `ReadableStreamDefaultReader` is structurally assignable.
  */
 export interface WebReadableStreamDefaultReader<R = unknown> {
   read(): Promise<{ done: false; value: R } | { done: true; value?: undefined }>

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "inputs": ["**/*.test.ts", "**/*.test.tsx", "tsconfig.json"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["**/*.test.ts", "**/*.test.tsx", "vitest.config.ts", "tsconfig.json"],
+      "outputs": []
+    }
+  }
+}

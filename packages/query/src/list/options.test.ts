@@ -1,4 +1,4 @@
-import type { CursorResult, ListQueryParams, PaginatedResult } from "@plainworks/http"
+import type { CursorResult, ListQueryParams, PaginatedResult } from "@plainworks/std"
 import { describe, expect, it } from "vitest"
 import { createQueryClient } from "../query-client"
 import { infiniteListQueryOptions, listQueryOptions } from "./options"

@@ -4,6 +4,21 @@ export type { PlainErrorOptions } from "./errors"
 export { ensureError, getErrorMessage, PlainError } from "./errors"
 export { hasProperty, isDefined, isNonEmptyString, isRecord } from "./guards"
 export { idempotencyKey, randomId } from "./id"
+export type {
+  CursorInfo,
+  CursorResult,
+  Facets,
+  FilterOperator,
+  FilterValue,
+  ListFilter,
+  ListMembershipFilter,
+  ListQueryParams,
+  PageInfo,
+  PaginatedResult,
+  PresenceFilter,
+  ScalarFilter,
+  SortDirection,
+} from "./list"
 export type { Handler, Interceptor } from "./pipeline"
 export { composeInterceptors, pipeValues } from "./pipeline"
 export type { RandomSource } from "./random"

@@ -1,0 +1,24 @@
+{
+  "name": "@plainworks/integration",
+  "version": "0.0.0",
+  "description": "Dev-only integration tests. Assembles the published @plainworks/* surfaces the way a consumer does — edges faked with the MSW mock service and in-memory doubles — and proves the list wire round-trips end-to-end. Never published; nothing depends on it.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@plainworks/http": "workspace:*",
+    "@plainworks/mocks": "workspace:*",
+    "@plainworks/query": "workspace:*",
+    "@plainworks/std": "workspace:*",
+    "@plainworks/testkit": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "msw": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

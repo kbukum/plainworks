@@ -1,19 +1,19 @@
 import {
-  FILTER_OPERATOR_TOKENS_LONGEST_FIRST,
   filterOperatorFromToken,
+  parseDelimitedList,
+  splitOperatorToken,
+  unescapeValue,
 } from "@plainworks/http/list"
 import type { FilterCondition, FilterOperator, FilterQuery } from "./types"
 
 /**
- * Wire tokens longest-first, so a multi-segment token (`not.in`, `not.is.null`) is matched before a
- * shorter prefix (`in`, `is.null`). Without this, `not.in.(a,b)` would split on the first `.` into an
- * unknown `not` and be dropped. Provided by `@plainworks/http` — the one canonical token contract —
- * so the mock parser can never drift from the request builder.
- */
-const API_TOKENS = FILTER_OPERATOR_TOKENS_LONGEST_FIRST
-
-/**
  * Parse PostgREST/Supabase-style API params back into a {@link FilterQuery}.
+ *
+ * The REST wire dialect — the operator↔token grammar, the longest-first token match, and the value
+ * escape/parse codec — is owned by `@plainworks/http/list` (the L1 REST dialect this L4 backend binds
+ * downward to), so this fake backend and the `buildListQuery` request builder decode/encode through
+ * one codec and can never drift. This module only composes those primitives into the mock's
+ * {@link FilterQuery} domain shape.
  *
  * @example
  * ```ts
@@ -34,7 +34,7 @@ export function parseApiParams(params: Record<string, string>): FilterQuery {
 
 /** Parse a single `field=op.value` API condition, returning `null` when it is not recognised. */
 function parseApiCondition(field: string, apiValue: string): FilterCondition | null {
-  const resolved = resolveToken(apiValue)
+  const resolved = splitOperatorToken(apiValue)
   if (resolved === null) {
     return null
   }
@@ -57,59 +57,10 @@ function parseApiCondition(field: string, apiValue: string): FilterCondition | n
     if (!rest.startsWith("(") || !rest.endsWith(")")) {
       return null
     }
-    return { field, operator, value: parseApiArray(rest.slice(1, -1)) }
+    return { field, operator, value: parseDelimitedList(rest.slice(1, -1)) }
   }
 
   // Scalar operators take the entire remainder literally: parentheses are data here, so a scalar
   // value of `(foo)` round-trips instead of being misread as the array form.
-  return { field, operator, value: unescapeApiValue(rest) }
-}
-
-/** Split a wire value into its operator token and the remaining value, matching the longest known token. */
-function resolveToken(apiValue: string): { token: string; rest: string } | null {
-  for (const token of API_TOKENS) {
-    if (apiValue === token) {
-      return { token, rest: "" }
-    }
-    if (apiValue.startsWith(`${token}.`)) {
-      return { token, rest: apiValue.slice(token.length + 1) }
-    }
-  }
-  return null
-}
-
-/** Split a comma-separated list, honouring backslash escapes for literal commas and backslashes. */
-function parseApiArray(inner: string): string[] {
-  const values: string[] = []
-  let current = ""
-  let escaped = false
-
-  for (const char of inner) {
-    if (escaped) {
-      current += char
-      escaped = false
-    } else if (char === "\\") {
-      escaped = true
-    } else if (char === ",") {
-      values.push(current)
-      current = ""
-    } else {
-      current += char
-    }
-  }
-
-  if (current) {
-    values.push(current)
-  }
-
-  return values
-}
-
-/**
- * Reverse the builder's backslash escaping: any `\x` collapses to `x`, so `\\` → `\` (a literal
- * backslash round-trips) and `\,`/`\(`/`\)` → their literal char. Mirrors `escapeScalarValue` in
- * `@plainworks/http`.
- */
-function unescapeApiValue(value: string): string {
-  return value.replace(/\\(.)/g, "$1")
+  return { field, operator, value: unescapeValue(rest) }
 }

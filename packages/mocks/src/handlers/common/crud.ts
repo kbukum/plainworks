@@ -205,7 +205,7 @@ export function createCrudHandlers<
 
       // One unified condition set drives both facets and results, so facet counts always agree
       // with the filtered data. Direct field params support both PostgREST `field=op.value` (the
-      // canonical wire format `http.buildListQuery` serializes) and plain `field=value` (legacy).
+      // canonical wire format `buildListQuery` serializes) and plain `field=value` (legacy).
       // Repeated keys on the same field are all consumed (range filters).
       const filterParams = filter ? parseFilterQueryString(filter) : {}
       const conditions: FilterCondition[] = [...(parseApiParams(filterParams)?.conditions ?? [])]

@@ -1,4 +1,3 @@
-import { buildListQuery } from "@plainworks/http/list"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { createMockApi } from "../api"
 import { createMockServer } from "../server"
@@ -184,15 +183,13 @@ describe("crud list handler", () => {
     expect((await fetch(`${base}/api/users?facets=password`)).status).toBe(400)
   })
 
-  it("serves facets requested through the canonical `buildListQuery` wire end-to-end", async () => {
-    const query = buildListQuery({ pageSize: 5, facets: ["role", "status"] })
-    const search = new URLSearchParams()
-    for (const [key, value] of Object.entries(query)) {
-      for (const item of Array.isArray(value) ? value : [value]) {
-        search.append(key, String(item))
-      }
-    }
-    const res = await json<ListResponse>(await fetch(`${base}/api/users?${search}`))
+  it("serves facets requested through the canonical list wire end-to-end", async () => {
+    // The exact wire `buildListQuery({ pageSize: 5, facets: ["role", "status"] })` emits — fed as a
+    // literal string so the parser is exercised at its honest boundary (the builder↔parser agreement
+    // is proven once in the integration suite, not here).
+    const res = await json<ListResponse>(
+      await fetch(`${base}/api/users?pageSize=5&facets=role,status`),
+    )
     expect(res.pagination.pageSize).toBe(5)
     expect(Object.keys(res.facets ?? {}).sort()).toEqual(["role", "status"])
   })
@@ -211,8 +208,7 @@ describe("crud list handler", () => {
   })
 
   it("applies the canonical `not.in` wire filter end-to-end through the URL parser", async () => {
-    // The exact token `http.buildListQuery` serializes for a `nin` filter. Before the multi-segment
-    // token was parsed, this fell through to legacy equality and matched nothing.
+    // The exact token the canonical list serializer (`buildListQuery`) emits for a `nin` filter.
     const excluded = "admin"
     const res = await json<ListResponse>(
       await fetch(`${base}/api/users?role=${encodeURIComponent(`not.in.(${excluded})`)}`),

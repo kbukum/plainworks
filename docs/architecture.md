@@ -146,6 +146,44 @@ Every package holds to these; review and the gates check them.
 | **Accessible & responsive by default** | Interactive `./client` code meets WCAG 2.2 AA, is mobile-first and fluid, honors `prefers-reduced-motion` / `prefers-color-scheme`, and carries an axe assertion per component. |
 | **ESM-only, real `dist`** | Correct `exports` / `types` / `files`; each package ships a tsdown `dist`; `typecheck` is separate from `build`. The `check-packaging` gate (**publint** + **are-the-types-wrong**) validates each built tarball's `exports`/`types` resolution. |
 
+## Testing
+
+Tests fall into three deliberate layers. The line between them is *what is faked*, not how much code runs.
+
+| Layer | What is assembled | Fakes / doubles | Home |
+|---|---|---|---|
+| **Unit** | One module's pure logic | `@plainworks/testkit` fakes (`fakeFetch`, fake transports) | Each package's `src/**/*.test.ts` |
+| **Integration** | Real `@plainworks/*` packages wired together | Edges faked — the **MSW** mock service (`@plainworks/mocks`, `onUnhandledRequest: "error"`), in-memory doubles | `internal/integration` |
+| **e2e** | An assembled surface with nothing faked | None — a real browser/server/DB | *reserved* (a future `internal/e2e`) |
+
+Unit tests stay on `testkit` fakes — mocking the network at the socket for a single-module test would only slow it down. The **integration** layer is where the kit proves it speaks the same wire a consumer's backend does, so it runs against the MSW mock service through its real `fetch` boundary. **Depth** — smoke (shallow "does it run") through thorough — is a property of an individual test, captured in its filename, not a separate folder.
+
+### Why a separate home
+
+An integration test assembles several `@plainworks/*` packages at once — `http` builds the request, `mocks` (L4) answers it, `query` derives the cache key. A test *inside* `packages/http` can't import `mocks`: that is an upward L1→L4 import the boundary gate rejects. So cross-package tests live in [`internal/integration`](../internal/integration), a dev-only workspace that depends **downward** on the published surfaces; the `no-package-into-apps-or-internal` boundary rule keeps every published package from importing it, so the cross-package tests can never leak into the shipped graph. It compiles and runs against each dependency's built `dist`, so it exercises exactly what a consumer installs. Inside it, tests are organized **by concern folder, one scenario per file** — no `test/`/`smoke/` sub-layer, since the whole package is integration by scope.
+
+### The list wire: one abstract contract, per-transport dialects
+
+The PostgREST/Supabase-style list read splits by concern across three homes, so each transport can serialize the **same** abstract request its own way:
+
+- **The abstract contract** — the typed request (`ListQueryParams`, `ListFilter` and variants), the response envelopes (`PageInfo`, `PaginatedResult`, `CursorResult`, `Facets`), and the operator **vocabulary** `FilterOperator` (the operator *names* as a concept) — is defined **once** in `@plainworks/std` (L0, the lowest common layer of its consumers). It carries no URL or wire token.
+- **The REST wire dialect** — the operator→token map, the longest-first token ordering, the token resolvers, and the value escape/parse codec — lives in `@plainworks/http` (L1), paired with the serializer `buildListQuery`. The `mocks` REST backend (L4) binds **downward** to `@plainworks/http/list` to parse that same dialect, so serializer and parser read one codec and can't drift. A future `connect`/`graphql` transport serializes the same `std` params differently and owns its own keys.
+- **The cache keys** — `query` (L2) derives `listQueryKey`/`infiniteListQueryKey` from the abstract `ListQueryParams` alone; it never touches a wire token. A `query` consumer imports the list **types** from `@plainworks/query` (the facade).
+
+The offset envelope is typechecked against `PageInfo` on both the mock and the consumer, so a renamed field is a compile error. The integration list suite ([`internal/integration/list`](../internal/integration/list)) rides this end-to-end — `buildListQuery(params)` → MSW parse in `mocks` → `PaginatedResult<T>` / `CursorResult<T>` decode → deterministic `listQueryKey` — with one scenario file per behavior (wire serialization, cache keys, offset and cursor paging, aborts, empty pages).
+
+```mermaid
+flowchart LR
+  params["ListQueryParams<br/>(std, L0)"] --> build["buildListQuery<br/>(http, L1)"]
+  build -->|"field=op.value wire"| msw["MSW parse<br/>(mocks, L4)"]
+  msw -->|"{ data, pagination, facets }"| decode["PaginatedResult / CursorResult<br/>(std envelopes)"]
+  params --> key["listQueryKey<br/>(query, L2)"]
+  shapes{{"abstract shapes + FilterOperator<br/>@plainworks/std (L0)"}} -.-> params
+  shapes -.-> key
+  dialect{{"REST wire dialect<br/>@plainworks/http (L1)"}} -.-> build
+  dialect -.->|"bound downward"| msw
+```
+
 ## Governance
 
 | Concern | Tool |

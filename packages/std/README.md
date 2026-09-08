@@ -27,6 +27,7 @@ bun add @plainworks/std
 - **Redaction** — `redact`, structural secret stripping for safe logging.
 - **Randomness** — `systemRandom` and seedable `createSeededRandom` for deterministic tests.
 - **Utilities** — `randomId` / `idempotencyKey` (Web Crypto UUID), `systemClock` + the `Clock` seam.
+- **List contract** — the protocol-independent list-read shapes: the typed request (`ListQueryParams`, the `ListFilter` discriminated union, the `FilterOperator` operator vocabulary) and the response envelopes (`PaginatedResult`, `CursorResult`, `PageInfo`, `CursorInfo`, `Facets`). A transport maps them to its own wire dialect (`@plainworks/http` owns the PostgREST/Supabase REST one); `query` derives cache keys from the same abstract params.
 - **Shared seams** — the single source of truth higher layers implement:
   - `AuthHeaderProvider` / `AuthHeaders` — the header-only auth seam.
   - `PlainEvent` / `Listener` / `Subscription` — the event and teardown shapes.

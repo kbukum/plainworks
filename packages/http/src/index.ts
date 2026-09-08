@@ -30,6 +30,7 @@ export type {
   CursorResult,
   Facets,
   FilterOperator,
+  FilterValue,
   ListFilter,
   ListMembershipFilter,
   ListQueryParams,
@@ -41,9 +42,14 @@ export type {
 } from "./list"
 export {
   buildListQuery,
+  escapeListValue,
+  escapeScalarValue,
   FILTER_OPERATOR_TOKENS,
   FILTER_OPERATOR_TOKENS_LONGEST_FIRST,
   filterOperatorFromToken,
+  parseDelimitedList,
+  splitOperatorToken,
+  unescapeValue,
 } from "./list"
 export type { HttpMethod } from "./method"
 export { isIdempotentMethod } from "./method"

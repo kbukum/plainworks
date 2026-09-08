@@ -11,7 +11,7 @@ description: >-
 
 plainworks is a bun-workspace monorepo (`packages/*`, `apps/*`, `internal/*`) driven by **Turborepo**. The root `package.json` scripts are the canonical gates; they run through `turbo` and are cache-correct (declared inputs/outputs). Prefer them over raw tool invocations, and **always scope to what changed** — the unscoped scripts are for CI sign-off.
 
-## The Definition of Done — six gates
+## The Definition of Done — eight gates
 
 Every change must pass these, in this order (same order CI runs them):
 
@@ -19,6 +19,7 @@ Every change must pass these, in this order (same order CI runs them):
 |---|---|---|
 | Versions | `bun run check-versions` | Sherif + Syncpack: every dep resolves via the bun **catalog**; no inline drift |
 | Lint / format | `bun run lint` | Biome clean (`bun run format` to fix) |
+| Comments | `bun run check-comments` | comment-format: `//` and `/** */` prose within the 100-col width (`bun run format-comments` to fix) |
 | Types | `bun run typecheck` | `tsc --noEmit` across packages + the generator config |
 | Boundaries | `bun run check-boundaries` | dependency-cruiser: zero upward/sideways imports, zero cycles |
 | Build | `bun run build` | tsdown, ESM-only, ships `dist/` |

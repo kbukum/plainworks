@@ -46,6 +46,9 @@ jobs:
       - name: Lint / format (biome)
         run: bun run lint
 
+      - name: Comments (over-width)
+        run: bun run check-comments
+
       - name: Typecheck
         run: bun run typecheck
 
@@ -94,6 +97,7 @@ jobs:
         run: |
           bun run check-versions
           bun run lint
+          bun run check-comments
           bun run typecheck
           bun run check-boundaries
           bun run build

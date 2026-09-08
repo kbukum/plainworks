@@ -1,6 +1,14 @@
 "use client"
 
-import type { StateCapabilities, StateSource } from "@plainworks/std"
+import {
+  isCookieNameToken,
+  isCookiePath,
+  MAX_COOKIE_BYTES,
+  type StateCapabilities,
+  type StateSource,
+  serializeCookieAttributes,
+  utf8ByteLength,
+} from "@plainworks/std"
 import { StateSourceError } from "../../errors"
 import type { Scope, SourceSpec } from "../../scope/scope"
 import { createStringSource, type StringBackend } from "./string-source"
@@ -45,18 +53,6 @@ const COOKIE_CAPABILITIES: StateCapabilities = {
   availableAtImport: false,
 }
 
-// The per-cookie browser budget is ~4096 bytes for the whole `key=value; attrs` entry; refuse a
-// write that would exceed it rather than let the browser silently drop the cookie. The limit is a
-// byte budget, so measure the UTF-8 encoding, not the UTF-16 code-unit count `String.length` returns.
-const MAX_COOKIE_BYTES = 4096
-const utf8 = new TextEncoder()
-
-// A cookie name is an RFC 6265 token: visible ASCII minus controls, whitespace, and separators
-// (`( ) < > @ , ; : \ " / [ ] ? = { }`). A name outside this set (or an attribute-bearing path) can
-// break the `key=value; attrs` grammar or let a value smuggle attributes, so reject it up front.
-const COOKIE_NAME = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/
-const COOKIE_PATH = /^\/[^\s;,]*$/
-
 function resolveHostJar(): CookieJar {
   if (typeof document === "undefined") {
     throw new StateSourceError(
@@ -84,22 +80,18 @@ function readCookie(jar: CookieJar, key: string): string | null {
 
 function cookieAttributes(options: CookieScopeOptions): string {
   const path = options.path ?? "/"
-  if (!COOKIE_PATH.test(path)) {
+  if (!isCookiePath(path)) {
     throw new StateSourceError(
       `Cookie path "${path}" is invalid; it must start with "/" and contain no spaces, ";", or ",".`,
     )
   }
-  const sameSite = options.sameSite ?? "Lax"
   const secure = options.secure ?? !isInsecureHost()
-  const parts = [`Path=${path}`, `SameSite=${sameSite}`]
-  if (options.maxAgeSeconds !== undefined) {
-    parts.push(`Max-Age=${options.maxAgeSeconds}`)
-  }
-  // `SameSite=None` is only honored on a Secure cookie, so force it there regardless of the host.
-  if (secure || sameSite === "None") {
-    parts.push("Secure")
-  }
-  return parts.join("; ")
+  return serializeCookieAttributes({
+    path,
+    sameSite: options.sameSite ?? "Lax",
+    secure,
+    ...(options.maxAgeSeconds !== undefined ? { maxAgeSeconds: options.maxAgeSeconds } : {}),
+  })
 }
 
 function isInsecureHost(): boolean {
@@ -127,7 +119,7 @@ export function createCookieScope(options: CookieScopeOptions = {}): Scope {
       let cached: CookieJar | undefined
       const jar = (): CookieJar => (cached ??= options.jar ?? resolveHostJar())
       const attributes = cookieAttributes(options)
-      if (!COOKIE_NAME.test(spec.key)) {
+      if (!isCookieNameToken(spec.key)) {
         throw new StateSourceError(
           `Cookie name "${spec.key}" is not a valid RFC 6265 token (no controls, spaces, or separators).`,
         )
@@ -136,7 +128,7 @@ export function createCookieScope(options: CookieScopeOptions = {}): Scope {
         read: () => readCookie(jar(), spec.key),
         write: (raw) => {
           const entry = `${spec.key}=${encodeURIComponent(raw)}; ${attributes}`
-          const bytes = utf8.encode(entry).length
+          const bytes = utf8ByteLength(entry)
           if (bytes > MAX_COOKIE_BYTES) {
             throw new StateSourceError(
               `Cookie "${spec.key}" is ${bytes} bytes, over the ~${MAX_COOKIE_BYTES}-byte limit.`,

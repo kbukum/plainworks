@@ -5,6 +5,7 @@ import {
   combineSignals,
   createDeadline,
   type Delay,
+  raceAbort,
   systemDelay,
   TimeoutError,
   withTimeout,
@@ -262,4 +263,53 @@ test("withTimeout leaves no listener on a long-lived caller signal after a norma
   expect(value).toBe("ok")
   expect(everAdded).toBeGreaterThan(0)
   expect(live.size).toBe(0)
+})
+
+test("raceAbort resolves with the promise value when it settles before any abort", async () => {
+  const controller = new AbortController()
+  const value = await raceAbort(Promise.resolve("done"), controller.signal)
+  expect(value).toBe("done")
+})
+
+test("raceAbort forwards the promise's own rejection unchanged", async () => {
+  const controller = new AbortController()
+  const boom = new Error("boom")
+  await expect(raceAbort(Promise.reject(boom), controller.signal)).rejects.toBe(boom)
+})
+
+test("raceAbort rejects with an AbortError the moment the signal aborts, without cancelling the promise", async () => {
+  const controller = new AbortController()
+  let settled = false
+  const pending = new Promise<string>((resolve) => {
+    setTimeout(() => {
+      settled = true
+      resolve("late")
+    }, 0)
+  })
+  const race = raceAbort(pending, controller.signal)
+  controller.abort()
+  await expect(race).rejects.toBeInstanceOf(AbortError)
+  // The underlying promise is untouched — it still settles for its other awaiters.
+  await expect(pending).resolves.toBe("late")
+  expect(settled).toBe(true)
+})
+
+test("raceAbort rejects immediately for an already-aborted signal", async () => {
+  const controller = new AbortController()
+  controller.abort()
+  await expect(raceAbort(Promise.resolve("unused"), controller.signal)).rejects.toBeInstanceOf(
+    AbortError,
+  )
+})
+
+test("raceAbort returns the promise unchanged when no signal is supplied", async () => {
+  const promise = Promise.resolve("passthrough")
+  expect(raceAbort(promise)).toBe(promise)
+})
+
+test("raceAbort removes its abort listener once the promise settles", async () => {
+  const controller = new AbortController()
+  const removeSpy = vi.spyOn(controller.signal, "removeEventListener")
+  await raceAbort(Promise.resolve("ok"), controller.signal)
+  expect(removeSpy).toHaveBeenCalledWith("abort", expect.any(Function))
 })

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { hasProperty, isDefined, isNonEmptyString, isRecord } from "./guards"
+import { hasProperty, isDefined, isNonEmptyString, isRecord } from "./predicate"
 
 describe("isDefined", () => {
   test("rejects null and undefined, accepts other values", () => {

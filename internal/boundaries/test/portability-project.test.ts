@@ -30,7 +30,16 @@ const SHIM = "universal-web.d.ts"
  * from the resolved-neutral set otherwise) rather than passing by omission — fail closed, like the
  * boundary map. Host-bound dev tooling (e.g. `mocks`, which opts into `types: ["node"]`) is not here.
  */
-const EXPECTED_NEUTRAL = ["std", "http", "state", "connect", "channel", "query", "testkit"] as const
+const EXPECTED_NEUTRAL = [
+  "std",
+  "http",
+  "state",
+  "connect",
+  "channel",
+  "query",
+  "testkit",
+  "auth",
+] as const
 
 interface NeutralProject {
   /** The package declares host-independence by pulling in the universal-web shim. */

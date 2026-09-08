@@ -94,6 +94,40 @@ export function combineSignals(
   return controller.signal
 }
 
+/**
+ * Race a `promise` against a `signal`: resolve with the promise's
+ * value if it settles first, or reject with an {@link AbortError}
+ * the instant `signal` aborts — whichever wins. The `promise` is **not** cancelled;
+ * a caller cannot cancel work it does not own, so this only detaches
+ * *this* caller's await while a shared operation keeps running for its other awaiters.
+ * The abort listener is removed as soon as the race settles, so a long-lived `signal`
+ * never accumulates listeners.
+ *
+ * With no `signal`, the `promise` is returned unchanged.
+ */
+export function raceAbort<T>(promise: Promise<T>, signal?: WebAbortSignal): Promise<T> {
+  if (signal === undefined) {
+    return promise
+  }
+  if (signal.aborted) {
+    return Promise.reject(toAbortError(signal))
+  }
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = (): void => reject(toAbortError(signal))
+    signal.addEventListener("abort", onAbort, { once: true })
+    promise.then(
+      (value) => {
+        signal.removeEventListener("abort", onAbort)
+        resolve(value)
+      },
+      (error: unknown) => {
+        signal.removeEventListener("abort", onAbort)
+        reject(error)
+      },
+    )
+  })
+}
+
 /** A disposable deadline: the abort signal plus explicit teardown for the backing timer. */
 export interface Deadline {
   /** Aborts with an {@link AbortError} once the deadline elapses — fatal under the classifier. */

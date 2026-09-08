@@ -22,6 +22,8 @@
     "lint": "biome check .",
     "format": "biome check --write .",
     "check-boundaries": "bun run --filter @plainworks/boundaries check",
+    "check-comments": "bun run --filter @plainworks/comment-format check",
+    "format-comments": "bun run --filter @plainworks/comment-format write",
     "check-packaging": "turbo run check-packaging",
     "check-versions": "sherif && syncpack lint",
     "gen": "gen run",

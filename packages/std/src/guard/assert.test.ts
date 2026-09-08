@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest"
+import { PlainError } from "../errors"
 import { assert, assertNever } from "./assert"
-import { PlainError } from "./errors"
 
 describe("assert", () => {
   test("passes through when the condition is truthy", () => {

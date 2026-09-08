@@ -132,6 +132,39 @@ const forbidden = [
     from: { path: "(^|/)packages/(?!testkit/)[^/]+/src/", pathNot: TEST_FILE },
     to: { path: "(^|/)packages/testkit/" },
   },
+  {
+    // Token-custody quarantine. The server-only auth graph (`server.ts` + `server/**`) holds the
+    // session-signing secret, so it must never be pulled into a `"use client"` bundle. dependency-
+    // cruiser is path-based and cannot read a `"use client"` directive, so the boundary is drawn
+    // structurally: a client entry graph — `src/client.ts` or `src/client/**`, where every
+    // `"use client"` module lives — may not import auth's server graph. The package export map
+    // (`.` vs `./server` vs `./client`) draws the same line for external consumers; together they
+    // keep the signing secret out of any browser bundle. See docs/architecture.md › Server/client split.
+    name: "no-client-into-auth-server",
+    comment:
+      'A client graph (src/client.ts or src/client/**) must not import @plainworks/auth server-only custody (packages/auth/src/server) — server secrets never enter a "use client" bundle.',
+    severity: "error",
+    from: { path: "(^|/)packages/[^/]+/src/client(\\.tsx?$|/)" },
+    to: { path: "(^|/)packages/auth/src/server(\\.tsx?$|/)" },
+  },
+  {
+    // Custody ownership — the incoming half of the quarantine. The rule above only forbids the
+    // *client* graph reaching custody directly; this one forbids the neutral `.` graph (and auth's
+    // own client graph) from importing `server/**` at all, so the ONLY door into the signing secret
+    // is auth's `server.ts` entry (the `./server` export). That closes the transitive hole
+    // dependency-cruiser's direct-edge rules would otherwise leave — a client importing the neutral
+    // `.` barrel can never reach custody, because the barrel can never reach it either. auth's own
+    // server graph (`server.ts` + `server/**`) is exempt so the barrel can re-export its modules.
+    name: "no-nonserver-into-auth-server",
+    comment:
+      "Only @plainworks/auth's own server graph (server.ts + server/**) may import its server-only token-custody modules; the neutral `.` and client graphs must never reach the signing secret, even transitively.",
+    severity: "error",
+    from: {
+      path: "(^|/)packages/auth/src/",
+      pathNot: ["(^|/)packages/auth/src/server(\\.tsx?$|/)", TEST_FILE],
+    },
+    to: { path: "(^|/)packages/auth/src/server(\\.tsx?$|/)" },
+  },
   ...layerRules(),
 ]
 

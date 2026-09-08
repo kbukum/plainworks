@@ -1,8 +1,6 @@
-"use client"
-
 import type { StateCapabilities } from "@plainworks/std"
-import { StateConfigError } from "../../errors"
-import type { Scope } from "../../scope/scope"
+import { StateConfigError } from "../errors"
+import type { Scope } from "./scope"
 
 /**
  * A field's sensitivity class. `"secret"` marks a value that must never reach untrusted client
@@ -19,7 +17,7 @@ export type Sensitivity = "secret"
  * Together they admit only the in-memory access-token fallback; every persisted/cookie/url/session
  * scope reaches storage a script, the server, or a bystander can read.
  */
-function isMemoryEquivalent(capabilities: StateCapabilities): boolean {
+export function isMemoryEquivalent(capabilities: StateCapabilities): boolean {
   return (
     capabilities.authority === "local" &&
     capabilities.availableAtImport &&
@@ -34,6 +32,9 @@ function isMemoryEquivalent(capabilities: StateCapabilities): boolean {
  * check): reject a `sensitivity: "secret"` value placed in any scope whose capabilities are not
  * memory-equivalent. This closes the door on a token landing in `localStorage`/a cookie/the URL —
  * secure token custody is auth's server-owned `__Host-` `HttpOnly` cookie, not a client scope.
+ *
+ * It is host-neutral (capabilities only), so it is reused by both the client scoped composer and
+ * `@plainworks/auth`'s in-memory TMB access-token fallback — one guard, no bespoke re-check.
  */
 export function assertScopeAllowsSensitivity(
   label: string,

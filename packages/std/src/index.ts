@@ -1,9 +1,16 @@
 // Server-safe public entry for `@plainworks/std` — the bottom of the layer graph. Re-export-only barrel (no logic here; implementation lives in concern modules). Zero runtime dependencies and no React or DOM imports, so it runs anywhere: Node, edge, RSC, browser.
-export { assert, assertNever } from "./assert"
+export { base64urlDecode, base64urlEncode } from "./base64url"
+export type { CookieAttributes, CookieSameSite } from "./cookie"
+export {
+  isCookieNameToken,
+  isCookiePath,
+  MAX_COOKIE_BYTES,
+  serializeCookieAttributes,
+  utf8ByteLength,
+} from "./cookie"
 export type { PlainErrorOptions } from "./errors"
 export { ensureError, getErrorMessage, PlainError } from "./errors"
-export { hasProperty, isDefined, isNonEmptyString, isRecord } from "./guards"
-export { idempotencyKey, randomId } from "./id"
+export { assert, assertNever, hasProperty, isDefined, isNonEmptyString, isRecord } from "./guard"
 export type {
   CursorInfo,
   CursorResult,
@@ -22,7 +29,7 @@ export type {
 export type { Handler, Interceptor } from "./pipeline"
 export { composeInterceptors, pipeValues } from "./pipeline"
 export type { RandomSource } from "./random"
-export { createSeededRandom, systemRandom } from "./random"
+export { createSeededRandom, idempotencyKey, randomId, systemRandom } from "./random"
 export type { RedactOptions } from "./redact"
 export { isSensitiveKey, redact } from "./redact"
 export type {
@@ -60,6 +67,7 @@ export {
   QueueFullError,
   QueueWaitersFullError,
   RetryError,
+  raceAbort,
   runWithRetry,
   StatusError,
   systemDelay,
@@ -69,7 +77,10 @@ export {
 export type { Err, Ok, Result } from "./result"
 export { err, isErr, isOk, ok, unwrap, unwrapOr } from "./result"
 export type { AuthContext, AuthHeaderProvider, AuthHeaders } from "./seam/auth"
+export type { AuthorizationRequest, Authorizer, Decision } from "./seam/authorization"
 export type { Listener, PlainEvent, Subscription } from "./seam/events"
+export type { Identity } from "./seam/identity"
+export type { RedirectSignal } from "./seam/redirect"
 export type {
   InferSchemaOutput,
   StandardSchemaFailure,
@@ -98,6 +109,7 @@ export type {
   WebResponse,
   WebResponseInit,
   WebTextDecoder,
+  WebTextEncoder,
   WebURL,
   WebURLSearchParams,
 } from "./web"

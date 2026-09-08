@@ -49,6 +49,11 @@ declare const TextDecoder: {
   ): import("@plainworks/std").WebTextDecoder
 }
 
+declare const TextEncoder: {
+  readonly prototype: import("@plainworks/std").WebTextEncoder
+  new (): import("@plainworks/std").WebTextEncoder
+}
+
 declare const URLSearchParams: {
   readonly prototype: import("@plainworks/std").WebURLSearchParams
   new (

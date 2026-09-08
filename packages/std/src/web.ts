@@ -108,6 +108,11 @@ export interface WebTextDecoder {
   decode(input?: ArrayBufferView | ArrayBuffer, options?: { readonly stream?: boolean }): string
 }
 
+/** The `TextEncoder` surface used to turn a string into its UTF-8 bytes — the WHATWG counterpart of {@link WebTextDecoder}. */
+export interface WebTextEncoder {
+  encode(input?: string): Uint8Array
+}
+
 /** The `URLSearchParams` surface the kit builds and serializes for query strings. */
 export interface WebURLSearchParams {
   /** Number of parameter entries — present on the platform `URLSearchParams` across all targets. */

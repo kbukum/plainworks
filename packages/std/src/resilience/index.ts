@@ -24,6 +24,7 @@ export {
   combineSignals,
   createDeadline,
   MAX_TIMER_MS,
+  raceAbort,
   systemDelay,
   TimeoutError,
   withTimeout,

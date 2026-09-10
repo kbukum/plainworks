@@ -165,6 +165,20 @@ const forbidden = [
     },
     to: { path: "(^|/)packages/auth/src/server(\\.tsx?$|/)" },
   },
+  {
+    // app-F2'/app-F3: the @plainworks/app composition kernel is `ui`-free by charter. `ui` is L1 and
+    // `app` is L4, so the layer rules would *allow* app→ui (a downward import); this rule forbids it
+    // anyway. The neutral `.` core and the headless `./client` binding compose whatever capabilities
+    // are injected and never import @plainworks/ui — the `ui`-backed batteries (theme capability,
+    // error-boundary fallback) live in the showcase/starter, keeping app host-neutral and buildable
+    // before `ui` exists. See packages/app/README.md and the L4 row in docs/architecture.md.
+    name: "no-app-into-ui",
+    comment:
+      "@plainworks/app must not import @plainworks/ui: the composition kernel is ui-free (app-F3). ui-backed batteries live in the showcase/starter, not in app core.",
+    severity: "error",
+    from: { path: "(^|/)packages/app/src/" },
+    to: { path: "(^|/)packages/ui/" },
+  },
   ...layerRules(),
 ]
 

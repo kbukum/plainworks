@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Test project: the only DOM-bound surface. The `./testing` harness (`src/testing.ts` +
+  // `src/testing/`) renders through `@testing-library/react`, and the `*.test.tsx` suites mount
+  // components in jsdom, so they — and only they — layer the DOM libs on top of the base config. The
+  // shipped `.`, `./client`, and `./capabilities` graphs stay DOM-free in their own projects, so an
+  // accidental `window`/`document` in shipped code fails to compile instead of hiding behind these
+  // libs.
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/testing.ts", "src/testing", "src/**/*.test.ts", "src/**/*.test.tsx"]
+}

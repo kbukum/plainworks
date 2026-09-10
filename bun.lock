@@ -60,6 +60,53 @@
         "typescript": "catalog:",
       },
     },
+    "packages/app": {
+      "name": "@plainworks/app",
+      "version": "0.1.0-alpha.1",
+      "dependencies": {
+        "@plainworks/std": "workspace:*",
+      },
+      "devDependencies": {
+        "@arethetypeswrong/cli": "catalog:",
+        "@plainworks/auth": "workspace:*",
+        "@plainworks/query": "workspace:*",
+        "@plainworks/state": "workspace:*",
+        "@plainworks/tsdown-config": "workspace:*",
+        "@tanstack/query-core": "catalog:",
+        "@tanstack/react-query": "catalog:",
+        "@testing-library/react": "catalog:",
+        "@testing-library/user-event": "catalog:",
+        "@types/node": "catalog:",
+        "@types/react": "catalog:",
+        "@types/react-dom": "catalog:",
+        "@vitest/coverage-v8": "catalog:",
+        "axe-core": "catalog:",
+        "jsdom": "catalog:",
+        "publint": "catalog:",
+        "react": "catalog:",
+        "react-dom": "catalog:",
+        "tsdown": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+      },
+      "peerDependencies": {
+        "@plainworks/auth": "workspace:*",
+        "@plainworks/query": "workspace:*",
+        "@plainworks/state": "workspace:*",
+        "@tanstack/query-core": "catalog:",
+        "@testing-library/react": "catalog:",
+        "react": "catalog:",
+        "react-dom": "catalog:",
+      },
+      "optionalPeers": [
+        "@plainworks/auth",
+        "@plainworks/query",
+        "@plainworks/state",
+        "@tanstack/query-core",
+        "@testing-library/react",
+        "react-dom",
+      ],
+    },
     "packages/auth": {
       "name": "@plainworks/auth",
       "version": "0.1.0-alpha.1",
@@ -595,6 +642,8 @@
     "@open-draft/until": ["@open-draft/until@2.1.0", "", {}, "sha512-U69T3ItWHvLwGg5eJ0n3I62nWuE6ilHlmz7zM0npLBRvPRd7e6NYmg54vvRtP5mZG7kZqZCFVdsTWo7BPtBujg=="],
 
     "@oxc-project/types": ["@oxc-project/types@0.148.0", "", {}, "sha512-Nm4s/jB+4FpFsPhWGEC4h7rzksesmtnMXomo6rCMcg/b8zLQuOziRgkCS1fxDCXOlJB/6Q8oABOZ/OP6RIPj9A=="],
+
+    "@plainworks/app": ["@plainworks/app@workspace:packages/app"],
 
     "@plainworks/auth": ["@plainworks/auth@workspace:packages/auth"],
 

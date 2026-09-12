@@ -101,6 +101,18 @@ test("legal higher-to-lower imports are allowed", async () => {
   expect(downward).toBeUndefined()
 })
 
+/**
+ * The @plainworks/app composition kernel is `ui`-free (app-F3). `ui` (L1) sits *below* `app` (L4),
+ * so the layer model permits app -> ui as a legal downward import — this charter rule forbids it
+ * anyway, keeping the kernel host-neutral and buildable before `ui` exists. The fixture is an app
+ * module importing the `ui` stand-in; only `no-app-into-ui` may flag it.
+ */
+test("the app kernel importing ui trips the ui-free rule", async () => {
+  const violations = await cruiseFixtures()
+  const appToUi = violations.filter((v) => v.from.endsWith("app/src/ui-leak.ts"))
+  expect(appToUi.map((v) => v.rule.name)).toEqual(["no-app-into-ui"])
+})
+
 test("intra-package (self) imports are allowed", async () => {
   const violations = await cruiseFixtures()
   // `rogue/src/index.ts -> rogue/src/util.ts` is a legal same-package import; no rule may flag it.

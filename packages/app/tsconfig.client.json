@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Client project, but React-without-DOM: the `./client` binding and the `./capabilities` recipe
+  // graph are pure React context (provider composition, an error boundary, TanStack/auth wiring) with
+  // no DOM global, so they stay DOM-free like the server entry — the universal-web shim, not the DOM
+  // libs. That keeps them usable on React Native/Expo, and makes an accidental `window`/`document`
+  // fail to compile. The DOM-bound `./testing` harness and every `*.test.*` live in
+  // `tsconfig.test.json`, so they are excluded here.
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
+  "include": ["src/client.ts", "src/client", "src/capabilities", "../../types/universal-web.d.ts"]
+}

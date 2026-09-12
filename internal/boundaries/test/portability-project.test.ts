@@ -42,6 +42,7 @@ const EXPECTED_NEUTRAL = [
   "query",
   "testkit",
   "auth",
+  "app",
 ] as const
 
 interface NeutralProject {

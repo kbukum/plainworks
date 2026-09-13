@@ -10,9 +10,9 @@
 // Single source of truth for the layer map (mirrors README + docs/architecture.md):
 //
 //   L0  std
-//   L1  state · ui · http
-//   L2  channel · connect · query
-//   L3  auth
+//   L1  state · http · theme
+//   L2  channel · connect · query · elements
+//   L3  auth · ui
 //   L4  app · testkit · mocks        (dev/test tooling lives here too)
 //
 // Rule: a package in Ln may import @plainworks packages only in a strictly LOWER layer.
@@ -34,12 +34,14 @@ const repoRoot = path.resolve(__dirname, "..", "..")
 const LAYERS = {
   std: 0,
   state: 1,
-  ui: 1,
   http: 1,
+  theme: 1,
   channel: 2,
   connect: 2,
   query: 2,
+  elements: 2,
   auth: 3,
+  ui: 3,
   app: 4,
   testkit: 4,
   mocks: 4,
@@ -166,7 +168,7 @@ const forbidden = [
     to: { path: "(^|/)packages/auth/src/server(\\.tsx?$|/)" },
   },
   {
-    // app-F2'/app-F3: the @plainworks/app composition kernel is `ui`-free by charter. `ui` is L1 and
+    // app-F2'/app-F3: the @plainworks/app composition kernel is `ui`-free by charter. `ui` is L3 and
     // `app` is L4, so the layer rules would *allow* app→ui (a downward import); this rule forbids it
     // anyway. The neutral `.` core and the headless `./client` binding compose whatever capabilities
     // are injected and never import @plainworks/ui — the `ui`-backed batteries (theme capability,

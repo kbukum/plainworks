@@ -2,16 +2,14 @@
 "@plainworks/http": patch
 ---
 
-Add `@plainworks/http` (L1) — a host-independent typed fetch client that **is** the REST/JSON client. The server-safe `.` entry pulls in no DOM or Node types.
+Add `@plainworks/http`, a typed fetch client that doubles as the REST/JSON client. It runs anywhere and depends only on the platform's `fetch`, which you can swap out.
 
-`createHttpClient` is a per-request **factory** (no module singleton, nothing leaks across SSR requests) that depends only on the platform `fetch`, injectable via `options.fetch`. Each `request` runs a fixed pipeline:
+You create a client with a factory, one per request, so nothing leaks between server-rendered requests. Every request runs the same safe pipeline:
 
-- **Safe URL build** — rejects credentials smuggled into the query string or userinfo, and dot-segment paths that escape the base; the final URL is re-checked at the transport so an interceptor cannot reintroduce a credential or rewrite across origins while carrying one.
-- **Interceptor chain** — logging → caller interceptors → header-only auth injection, re-applied on every attempt.
-- **Resilience** — a per-attempt timeout (covering body decode) and bounded, jittered retry for idempotent methods only, honoring a clamped `Retry-After` hint.
-- **Typed failures** — every fault maps to an `HttpError` (`http/status` · `network` · `timeout` · `unsafe-url` · `request` · `encode` · `decode` · `validate`) carrying `category`/`retryable`/`retryAfterMs` and preserving cause; on exhausted retries the underlying failure surfaces, not the wrapping `RetryError`.
-- **Validated boundary** — the body decodes through a pluggable `BodyCodec` (`jsonCodec` default, with a bounded streaming reader that caps and cancels an oversized or stalled body) to an untrusted `unknown`, then the request's Standard Schema validator produces `HttpResponse<T>`. There is no silent `as T`: trusting the wire is an explicit opt-in via `unsafePassthrough<T>()`.
+- **Safe URLs** — rejects credentials hidden in the query string and paths that try to escape the base URL, and re-checks the final URL so nothing can sneak a credential across origins.
+- **Interceptors and header-only auth** — a clear order, re-applied on every attempt; tokens go in headers, never the URL.
+- **Resilience** — a per-attempt timeout and safe, jittered retries for methods that can be repeated.
+- **Typed failures** — every fault becomes a typed error that keeps its cause and says whether it can be retried.
+- **Validated responses** — the body is treated as untrusted and validated before you get a typed result; trusting the wire is an explicit opt-in.
 
-Redacted observability hooks receive structured request/response/error records with sensitive headers, URLs, and error internals stripped before they cross the boundary, reusing the shared `std` credential-key vocabulary so the rules never drift.
-
-Alongside low-level `request` (which returns the full `HttpResponse`), the client exposes ergonomic **resource methods** — `get` · `post` · `put` · `patch` · `delete` — that preset the method and resolve to the **decoded body** (validated + typed with a `schema`, `undefined` on 204). This is the REST/JSON surface: a REST call is an HTTP call against a JSON API the codec already speaks, so it needs no separate package. Writes carry **idempotency-key** semantics — `POST`/`PATCH` are auto-retried only when the caller passes `idempotencyKey`, which sets the `Idempotency-Key` header and marks the write retry-eligible through the shared `std` retry gate; `GET`/`PUT`/`DELETE` retry by default.
+Alongside the low-level request, there are convenient `get`/`post`/`put`/`patch`/`delete` methods that return the decoded body. Writes retry only when you provide an idempotency key. Logging hooks receive records with secrets stripped out.

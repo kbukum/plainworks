@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Client-only project: the owned atoms under `src/atoms/` are the surface allowed to touch the
+  // DOM, so they — and only they — layer the DOM libs on top of the base config. The server
+  // `tsconfig.json` stays DOM-free and excludes this graph, so the `.` manifest can never silently
+  // depend on a browser global.
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "paths": {
+      "@/*": ["./src/*"],
+      // The published per-atom subpaths resolve to owned source during typecheck, so an adoption
+      // test can import `@plainworks/elements/button` before the package is built.
+      "@plainworks/elements/*": ["./src/atoms/*"],
+      "@plainworks/testkit": ["../testkit/src"],
+      "@plainworks/testkit/client": ["../testkit/src/client/index.ts"],
+      "@plainworks/theme": ["../theme/src"],
+      "@plainworks/theme/client": ["../theme/src/client/index.ts"],
+      "@plainworks/*": ["../*/src"]
+    }
+  },
+  "include": ["src/atoms"]
+}

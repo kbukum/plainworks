@@ -5,6 +5,12 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Emitted type declarations never belong in a package's src/ — the build emits them to dist/.
+# This stops a stray `tsc` (without --noEmit) from leaking .d.ts artifacts into source. The global
+# ambient shim lives under types/, not a package src/, so it is unaffected.
+packages/*/src/**/*.d.ts
+internal/*/src/**/*.d.ts
+
 # Test coverage (vitest / v8)
 coverage/
 *.lcov

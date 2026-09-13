@@ -1,0 +1,88 @@
+{
+  "name": "@plainworks/ui",
+  "version": "0.1.0-alpha.1",
+  "description": "Accessible, ownable React components and theme building blocks for plainworks applications.",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "Plainworks",
+  "bugs": "https://github.com/kbukum/plainworks/issues",
+  "dependencies": {
+    "@plainworks/elements": "workspace:*",
+    "@plainworks/theme": "workspace:*"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "catalog:",
+    "@plainworks/testkit": "workspace:*",
+    "@plainworks/tsdown-config": "workspace:*",
+    "@testing-library/react": "catalog:",
+    "@testing-library/user-event": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "axe-core": "catalog:",
+    "jsdom": "catalog:",
+    "msw": "catalog:",
+    "publint": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    },
+    "./error-fallback": {
+      "types": "./dist/error-fallback.d.ts",
+      "import": "./dist/error-fallback.js"
+    },
+    "./styles.css": "./src/styles.css",
+    "./theme": {
+      "types": "./dist/theme-client.d.ts",
+      "import": "./dist/theme-client.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src/styles.css"
+  ],
+  "homepage": "https://github.com/kbukum/plainworks/tree/main/packages/ui#readme",
+  "keywords": [
+    "esm",
+    "host-independent",
+    "plainworks",
+    "typescript"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "react-dom": {
+      "optional": true
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kbukum/plainworks.git",
+    "directory": "packages/ui"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "check-packaging": "publint --strict && attw --pack --profile esm-only --exclude-entrypoints @plainworks/ui/styles.css",
+    "lint": "biome check .",
+    "test": "vitest run --coverage",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.client.json"
+  }
+}

@@ -44,12 +44,25 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
+{{#if hasClient}}
+    "@plainworks/testkit": "workspace:*",
+{{/if}}
     "@plainworks/tsdown-config": "workspace:*",
-    "@types/node": "catalog:",{{#if hasClient}}
+{{#if hasClient}}
+    "@testing-library/react": "catalog:",
+    "@testing-library/user-event": "catalog:",
+{{/if}}
+    "@types/node": "catalog:",
+{{#if hasClient}}
     "@types/react": "catalog:",
-    "@types/react-dom": "catalog:",{{/if}}
-    "@vitest/coverage-v8": "catalog:",{{#if hasClient}}
-    "jsdom": "catalog:",{{/if}}
+    "@types/react-dom": "catalog:",
+{{/if}}
+    "@vitest/coverage-v8": "catalog:",
+{{#if hasClient}}
+    "axe-core": "catalog:",
+    "jsdom": "catalog:",
+    "msw": "catalog:",
+{{/if}}
     "publint": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",

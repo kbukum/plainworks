@@ -46,6 +46,9 @@ jobs:
       - name: Lint / format (biome)
         run: bun run lint
 
+      - name: Owned atom registry validity
+        run: bun run --filter @plainworks/elements registry:validate
+
       - name: Comments (over-width)
         run: bun run check-comments
 

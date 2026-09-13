@@ -5,7 +5,7 @@
 
 plainworks gives you runtime-agnostic cores (no DOM/React/host assumptions) and thin, optional client bindings you opt into. Next.js, a Vite SPA, Astro, TanStack Start, Remix — or something that doesn't exist yet — all *plug in*. You keep your code simple; the seams stay replaceable.
 
-> **Status: scaffold.** The workspace, boundary gate, package generator, and governance layer are in place, and the first packages have landed — `std` (L0), `state` (L1), `http` (L1), the L2 `channel` / `connect` / `query`, and the L4 `app` / `testkit` / `mocks`. Nothing is published to npm yet; the first release will ship on the `0.1.0-alpha.x` line under the `alpha` dist-tag (matching gokit/rskit), and until `0.1.0` APIs may change without back-compat.
+> **Status: pre-release.** The workspace, boundary gate, package generator, governance layer, runtime spine, composition kernel, and initial UI surface are in place. Nothing is published to npm yet; the first release will ship on the `0.1.0-alpha.x` line under the `alpha` dist-tag (matching gokit/rskit), and until `0.1.0` APIs may change without back-compat.
 
 ## Design charter
 
@@ -24,14 +24,14 @@ flowchart TD
   subgraph L4["L4 · composition & tooling"]
     app[app] ~~~ testkit[testkit] ~~~ mocks[mocks]
   end
-  subgraph L3["L3 · auth"]
-    auth[auth]
+  subgraph L3["L3 · auth · ui"]
+    auth[auth] ~~~ ui[ui]
   end
-  subgraph L2["L2 · transport & data"]
-    channel[channel] ~~~ connect[connect] ~~~ query[query]
+  subgraph L2["L2 · transport & data · elements"]
+    channel[channel] ~~~ connect[connect] ~~~ query[query] ~~~ elements[elements]
   end
   subgraph L1["L1 · client & I/O"]
-    state[state] ~~~ http[http] ~~~ ui[ui]
+    state[state] ~~~ http[http] ~~~ theme[theme]
   end
   subgraph L0["L0 · std"]
     std[std]

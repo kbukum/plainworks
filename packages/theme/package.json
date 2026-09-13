@@ -1,0 +1,88 @@
+{
+  "name": "@plainworks/theme",
+  "version": "0.1.0-alpha.1",
+  "description": "The host-independent design substrate for the plainworks UI family: three-tier tokens, color schemes + dark mode, the resolve\u2192hydrate theme runtime, one CSP-safe stylesheet, and the `cn` class merger.",
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "license": "MIT",
+  "author": "Plainworks",
+  "homepage": "https://github.com/kbukum/plainworks/tree/main/packages/theme#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kbukum/plainworks.git",
+    "directory": "packages/theme"
+  },
+  "bugs": "https://github.com/kbukum/plainworks/issues",
+  "keywords": [
+    "plainworks",
+    "typescript",
+    "esm",
+    "host-independent",
+    "design-tokens",
+    "theme",
+    "tailwind"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "src/styles.css"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    },
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.client.json",
+    "test": "vitest run --coverage",
+    "lint": "biome check .",
+    "check-packaging": "publint --strict && attw --pack --profile esm-only --exclude-entrypoints @plainworks/theme/styles.css"
+  },
+  "dependencies": {
+    "@plainworks/std": "workspace:*",
+    "clsx": "catalog:",
+    "tailwind-merge": "catalog:",
+    "tw-animate-css": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "tailwindcss": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "react-dom": {
+      "optional": true
+    },
+    "tailwindcss": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "catalog:",
+    "@plainworks/testkit": "workspace:*",
+    "@plainworks/tsdown-config": "workspace:*",
+    "@testing-library/react": "catalog:",
+    "@testing-library/user-event": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "axe-core": "catalog:",
+    "jsdom": "catalog:",
+    "publint": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

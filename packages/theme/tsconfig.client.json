@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Client-only project: the `./client` graph (`src/client.ts` + `src/client/`) is the surface
+  // allowed to touch the DOM, so it — and only it — layers the DOM libs on top of the base config.
+  // The server `tsconfig.json` stays DOM-free and excludes this graph, so the `.` entry can never
+  // silently depend on a browser global.
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "paths": {
+      "@plainworks/testkit": ["../testkit/src"],
+      "@plainworks/testkit/client": ["../testkit/src/client/index.ts"],
+      "@plainworks/*": ["../*/src"]
+    }
+  },
+  "include": ["src/client.ts", "src/client"]
+}

@@ -2,4 +2,13 @@
 "@plainworks/std": patch
 ---
 
-Add the shared resilience and pipeline primitives to `@plainworks/std` so every transport reuses one implementation instead of forking its own. `resilience/`: failure classification (`classifyStatus`/`classifyError`/`isRetryable`, with `NetworkError` and `StatusError` as the typed failure shapes transports raise), bounded exponential backoff with full/decorrelated jitter (`nextBackoff`/`defaultBackoff`), deadline/timeout composition (`withTimeout`, `combineSignals`, `createDeadline`, `systemDelay`, `TimeoutError`/`AbortError`), idempotent-only retry driving (`runWithRetry`/`RetryPolicy`/`RetryError`), a clock-injected circuit breaker (`createCircuitBreaker`, counting only dependency-health failures via the shared classifier), and a bounded backpressure queue with bounded, abort-cancellable consumers (`createBoundedQueue`). `pipeline/`: the typed interceptor combinator and value pipeline (`composeInterceptors`, `pipeValues`). Plus `redact` for safe logging (separator-insensitive key matching), `systemRandom`, and `idempotencyKey`. All host-independent, injected clock/RNG/delay for determinism.
+Add the shared resilience and pipeline helpers to `@plainworks/std`, so every transport reuses one implementation instead of writing its own.
+
+- Classify failures and decide what is safe to retry.
+- Back off between retries with jitter, and cap the total wait.
+- Apply timeouts and deadlines, and combine cancellation signals.
+- Retry only operations that are safe to repeat.
+- A circuit breaker and a bounded queue for backpressure.
+- Redaction for safe logging, so secrets never reach the logs.
+
+The clock, randomness, and delays are all injectable, so tests are deterministic.

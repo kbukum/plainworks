@@ -2,7 +2,7 @@
 "@plainworks/mocks": patch
 ---
 
-Add `createMockServerHandle()` to `@plainworks/mocks/server` and bind the mock's offset envelope to the canonical list contract, completing the mock-service integration layer.
+Add a paired mock-server helper to `@plainworks/mocks` and align its page envelope with the shared list contract.
 
-- **Paired harness** — `createMockServerHandle(options)` builds a seeded `MockApi` and its MSW node server together and returns both, so a cross-package test gets the `server` to install as the network boundary and the `api` to inspect stores or `reset()` between cases without hand-wiring the two factories. The test still owns the `listen`/`resetHandlers`/`close` lifecycle, keeping MSW decoupled from any test framework.
-- **One envelope source of truth** — the mock's `PaginationResult` now types its `pagination` block as `PageInfo` from `@plainworks/std`, so the offset envelope the mock emits can never drift from the `PaginatedResult<T>` a consumer decodes. The envelope shape is part of the abstract list contract in `@plainworks/std`; the REST wire dialect the parser uses lives in `@plainworks/http/list`.
+- One call builds a seeded mock API and its request-mocking server together, so a cross-package test gets both — the server to intercept the network, and the API to inspect or reset between cases. The test still controls the server's start and stop.
+- The mock's page envelope now uses the shared type from `@plainworks/std`, so what the mock returns can never drift from what a consumer expects to decode.

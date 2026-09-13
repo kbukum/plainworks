@@ -22,7 +22,9 @@ export { fakeSchema, guardSchema } from "./schema"
 export type {
   AsyncStateSource,
   AsyncStateSourceOptions,
+  DeferredRead,
+  DeferredStateSource,
   FakeStateSource,
   FakeStateSourceOptions,
 } from "./state"
-export { asyncStateSource, fakeStateSource } from "./state"
+export { asyncStateSource, deferredStateSource, fakeStateSource } from "./state"

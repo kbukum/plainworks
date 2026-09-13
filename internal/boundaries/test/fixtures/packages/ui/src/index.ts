@@ -1,3 +1,4 @@
-// Fixture: a stand-in `ui` (L1) surface. `state` (also L1) importing this is a sideways
-// (same-layer) import the gate must catch; nothing may flag `ui` itself (it imports nothing).
+// Fixture: a stand-in `ui` (L3) surface, imported only by the app kernel (`app/src/ui-leak.ts`) to
+// prove the `no-app-into-ui` charter rule bites even though app→ui would be a legal downward import.
+// Nothing may flag `ui` itself (it imports nothing).
 export const widget = "widget"

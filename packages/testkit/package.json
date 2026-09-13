@@ -35,18 +35,24 @@
     "./connect": {
       "types": "./dist/connect/index.d.ts",
       "import": "./dist/connect/index.js"
+    },
+    "./client": {
+      "types": "./dist/client/index.d.ts",
+      "import": "./dist/client/index.js"
     }
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.client.json",
     "test": "vitest run --coverage",
     "lint": "biome check .",
     "gen:proto": "buf generate",
     "check-packaging": "publint --strict && attw --pack --profile esm-only"
   },
   "dependencies": {
-    "@plainworks/std": "workspace:*"
+    "@plainworks/std": "workspace:*",
+    "@testing-library/react": "catalog:",
+    "axe-core": "catalog:"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
@@ -56,6 +62,8 @@
     "@connectrpc/connect": "catalog:",
     "@plainworks/tsdown-config": "workspace:*",
     "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "publint": "catalog:",
     "tsdown": "catalog:",
@@ -64,13 +72,18 @@
   },
   "peerDependencies": {
     "@bufbuild/protobuf": "catalog:",
-    "@connectrpc/connect": "catalog:"
+    "@connectrpc/connect": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
   },
   "peerDependenciesMeta": {
     "@bufbuild/protobuf": {
       "optional": true
     },
     "@connectrpc/connect": {
+      "optional": true
+    },
+    "react-dom": {
       "optional": true
     }
   }

@@ -16,6 +16,10 @@ export interface FakeStateSourceOptions<Value> {
   readonly initial?: Value
   /** Override any capability flag — e.g. mark it `durable`/`sentToServer` to stand in for a cookie. */
   readonly capabilities?: Partial<StateCapabilities>
+  /** Reject reads with this value, for deterministic failure-path tests. */
+  readonly getError?: unknown
+  /** Reject writes with this value, for deterministic failure-path tests. */
+  readonly setError?: unknown
 }
 
 /** An in-memory {@link StateSource} fake with introspection for assertions. */
@@ -42,8 +46,16 @@ export function fakeStateSource<Value>(
   }
   return {
     capabilities,
-    get: async () => current,
+    get: async () => {
+      if (options.getError !== undefined) {
+        throw options.getError
+      }
+      return current
+    },
     set: async (value) => {
+      if (options.setError !== undefined) {
+        throw options.setError
+      }
       current = value
       notify()
     },
@@ -165,6 +177,92 @@ export function asyncStateSource<Value>(
     },
     get pendingReads() {
       return pending.length
+    },
+    get current() {
+      return current
+    },
+    get subscriberCount() {
+      return listeners.size
+    },
+  }
+}
+
+/** One read parked inside {@link DeferredStateSource.get}; settle it in any order. */
+export interface DeferredRead<Value> {
+  /** Whether the test has already settled this read. */
+  readonly settled: boolean
+  /** Resolve the read with a value — out-of-order versus later reads, to drive race tests. */
+  readonly resolve: (value: Value | undefined) => void
+  /** Reject the read, for failure-path races. */
+  readonly reject: (reason: unknown) => void
+}
+
+/** A {@link StateSource} whose every `get()` parks until the test settles that read individually. */
+export interface DeferredStateSource<Value> extends StateSource<Value> {
+  /** Every read in arrival order, settled ones included; settle parked ones in any order. */
+  readonly reads: ReadonlyArray<DeferredRead<Value>>
+  /** The stored value read synchronously — for assertions. */
+  readonly current: Value | undefined
+  /** Live subscriber count; `0` proves teardown. */
+  readonly subscriberCount: number
+}
+
+/**
+ * A {@link StateSource} giving the test per-read control over *when* and *with what* each `get()`
+ * resolves — the harness for last-write-wins and stale-read races that the gated
+ * {@link asyncStateSource} (one release for every parked read) cannot express. Honours abort
+ * signals like the other fakes. Build one per test.
+ */
+export function deferredStateSource<Value>(
+  options: FakeStateSourceOptions<Value> = {},
+): DeferredStateSource<Value> {
+  let current = options.initial
+  const capabilities: StateCapabilities = { ...DEFAULT_CAPABILITIES, ...options.capabilities }
+  const listeners = new Set<() => void>()
+  const reads: DeferredRead<Value>[] = []
+  const notify = (): void => {
+    for (const listener of [...listeners]) listener()
+  }
+  return {
+    capabilities,
+    get: (signal) =>
+      new Promise<Value | undefined>((resolvePromise, rejectPromise) => {
+        if (signal?.aborted === true) {
+          rejectPromise(signal.reason)
+          return
+        }
+        const state = { settled: false }
+        const read: DeferredRead<Value> = {
+          get settled() {
+            return state.settled
+          },
+          resolve: (value) => {
+            state.settled = true
+            resolvePromise(value)
+          },
+          reject: (reason) => {
+            state.settled = true
+            rejectPromise(reason)
+          },
+        }
+        reads.push(read)
+        // An aborted parked read rejects so an abandoned caller never resolves into stale state.
+        signal?.addEventListener("abort", () => read.reject(signal.reason), { once: true })
+      }),
+    set: async (value) => {
+      current = value
+      notify()
+    },
+    remove: async () => {
+      current = undefined
+      notify()
+    },
+    subscribe(onChange) {
+      listeners.add(onChange)
+      return { unsubscribe: () => listeners.delete(onChange) }
+    },
+    get reads() {
+      return reads
     },
     get current() {
       return current

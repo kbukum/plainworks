@@ -2,4 +2,4 @@
 "@plainworks/query": patch
 ---
 
-Make `@plainworks/query` the one-stop import root for list DX. Its internal list types now come from `@plainworks/std` (not `@plainworks/http`), and it re-exports the list contract types (`PaginatedResult`, `CursorResult`, `ListQueryParams`, `PageInfo`, `ListFilter` and variants, `SortDirection`, `FilterOperator`, `Facets`) from its public surface, so a consumer imports list types from the same package that provides `listQueryOptions`. The URL serializer `buildListQuery` stays an `@plainworks/http` import. `@plainworks/query` no longer depends on `@plainworks/http`.
+Make `@plainworks/query` the one place to import list types and helpers together. Its list types now come from `@plainworks/std`, and it re-exports the full list contract so a consumer imports the types from the same package that provides the list query helpers. The URL builder still comes from `@plainworks/http`, and `@plainworks/query` no longer depends on `@plainworks/http`.

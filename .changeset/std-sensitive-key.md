@@ -2,4 +2,6 @@
 "@plainworks/std": patch
 ---
 
-Expose `isSensitiveKey` from `@plainworks/std` — the single owner of the credential/secret key vocabulary (separator-insensitive substring matching), which `redact` now reuses internally. `redact` additionally masks the value half of any embedded `key=value` (or `key: value`) credential inside a larger string — a URL query, a thrown error message, a log line — so a token smuggled into free text is caught, not just one sitting as its own property value. Higher layers (e.g. header-only-auth URL guards) match this vocabulary through the shared predicate instead of forking their own list, so the rules never drift.
+Make `@plainworks/std` the single source of truth for what counts as a secret key name. Redaction now reuses that list, and it also masks secrets embedded inside larger strings — such as a token slipped into a URL, an error message, or a log line — not just values sitting in their own field.
+
+Higher layers reuse the same check instead of keeping their own copies, so the rules never drift apart.

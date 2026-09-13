@@ -1,0 +1,10 @@
+@import "@plainworks/elements/styles.css";
+
+/*
+ * Register this package's shipped composites with the consumer's Tailwind build. The path is
+ * relative to this file inside the installed package, so it resolves to `dist/` under any
+ * package-manager layout — Tailwind never auto-detects sources inside node_modules, so an explicit
+ * `@source` per package is the only layer-safe registration. Importing this one stylesheet pulls
+ * in the elements atoms and the theme substrate beneath it.
+ */
+@source "../dist/**/*.js";

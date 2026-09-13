@@ -11,14 +11,14 @@ flowchart TD
   subgraph L4["L4 · composition & tooling"]
     app[app] ~~~ testkit[testkit] ~~~ mocks[mocks]
   end
-  subgraph L3["L3 · auth"]
-    auth[auth]
+  subgraph L3["L3 · auth · ui"]
+    auth[auth] ~~~ ui[ui]
   end
-  subgraph L2["L2 · transport & data"]
-    channel[channel] ~~~ connect[connect] ~~~ query[query]
+  subgraph L2["L2 · transport & data · elements"]
+    channel[channel] ~~~ connect[connect] ~~~ query[query] ~~~ elements[elements]
   end
   subgraph L1["L1 · client & I/O"]
-    state[state] ~~~ http[http] ~~~ ui[ui]
+    state[state] ~~~ http[http] ~~~ theme[theme]
   end
   subgraph L0["L0 · std"]
     std[std]
@@ -109,10 +109,16 @@ Each package sits in a numbered layer and may import `@plainworks` packages only
 | Layer | Packages | Concern |
 |---|---|---|
 | **L0** | `std` | Errors, result, guards, contracts (seams incl. Standard Schema validation), resilience, structural web-platform types. No React. |
-| **L1** | `state` · `http` · `ui` | Client state, the typed fetch client, components. |
-| **L2** | `channel` · `connect` · `query` | Streaming transport, RPC, TanStack wiring. |
-| **L3** | `auth` | Core plus `oidc` / `jwt` / `apikey` / BYO adapters; server/client split. |
+| **L1** | `state` · `http` · `theme` | Client state, the typed fetch client, the UI design substrate. |
+| **L2** | `channel` · `connect` · `query` · `elements` | Streaming transport, RPC, TanStack wiring, the owned shadcn/Base-UI atom set. |
+| **L3** | `auth` · `ui` | Auth core plus `oidc` / `jwt` / `apikey` / BYO adapters (server/client split); UI composites. |
 | **L4** | `app` · `testkit` · `mocks` | Composition, providers, harnesses, test tooling. |
+
+### UI family: `elements` and `ui`
+
+The atoms and the composites are two packages. `@plainworks/elements` (L2) **owns** the ~47 shadcn/Base-UI primitives; `@plainworks/ui` (L3) holds the plainworks-authored composites (`ThemeProvider`, `ThemeToggle`, `ErrorFallback`) and consumes atoms downward from `elements`.
+
+`elements` is fed by a **CLI-driven ingestion pipeline**, not a source checkout: `registry add`/`update` run `shadcn add` against the upstream registry, then apply a deterministic **compat transform** (rewrite the `cn` import onto `@plainworks/theme`, force per-module `"use client"`) and a Biome format, producing an **owned, editable, lint-clean** file under `src/atoms`. `registry diff` is advisory and `registry validate` is an offline schema/existence check — there is no pristine snapshot, `.patch`, or drift gate. `registry.json`, the `exports` map, the tsdown entries, and the `.` manifest are all **codegenerated from the atom files on disk**, so none can drift from the actual set; a test re-derives them and asserts no change. Consumers import published per-atom subpaths (`@plainworks/elements/button`); the internal `@/` alias exists only to keep shadcn upgrades clean.
 
 ### Seams point down, implementations live up
 

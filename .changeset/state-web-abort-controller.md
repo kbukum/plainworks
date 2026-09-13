@@ -2,4 +2,4 @@
 "@plainworks/state": patch
 ---
 
-Keep the scoped-state reconciler DOM-free: the cancellation controller in `createSourceReconciler` is typed as the universal `WebAbortController` shim instead of the DOM-lib global, so the `./client` entry compiles on React Native/Expo (and any DOM-less runtime) without a `lib: ["DOM"]` leak.
+Keep the client state package free of browser-only types so it also compiles on React Native, Expo, and other runtimes without a DOM. The internal cancellation uses a portable type instead of the browser global.

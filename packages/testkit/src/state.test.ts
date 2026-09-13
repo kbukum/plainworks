@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { asyncStateSource, fakeStateSource } from "./state"
+import { asyncStateSource, deferredStateSource, fakeStateSource } from "./state"
 
 describe("fakeStateSource", () => {
   test("reads back writes and reports the value synchronously", async () => {
@@ -37,6 +37,17 @@ describe("fakeStateSource", () => {
     expect(source.subscriberCount).toBe(0)
     await source.set(2)
     expect(changes).toBe(1)
+  })
+
+  test("rejects configured reads and writes", async () => {
+    const source = fakeStateSource<number>({
+      getError: new Error("read failed"),
+      setError: new Error("write failed"),
+    })
+
+    await expect(source.get()).rejects.toThrow("read failed")
+    await expect(source.set(1)).rejects.toThrow("write failed")
+    expect(source.current).toBeUndefined()
   })
 })
 
@@ -77,6 +88,50 @@ describe("asyncStateSource", () => {
     await source.remove()
     expect(source.current).toBeUndefined()
     expect(changes).toBe(2)
+    sub.unsubscribe()
+    expect(source.subscriberCount).toBe(0)
+  })
+})
+
+describe("deferredStateSource", () => {
+  test("parks each read until the test settles that read individually", async () => {
+    const source = deferredStateSource<number>({ initial: 1 })
+    const first = source.get()
+    const second = source.get()
+    expect(source.reads).toHaveLength(2)
+    expect(source.reads[0]?.settled).toBe(false)
+
+    // Resolve out of order: the later read first, the earlier read second.
+    source.reads[1]?.resolve(2)
+    expect(await second).toBe(2)
+    expect(source.reads[0]?.settled).toBe(false)
+
+    source.reads[0]?.resolve(1)
+    expect(await first).toBe(1)
+    expect(source.reads.every((read) => read.settled)).toBe(true)
+  })
+
+  test("rejects a parked read on abort and on test-driven failure", async () => {
+    const source = deferredStateSource<number>()
+    const controller = new AbortController()
+    const cancelled = source.get(controller.signal)
+    controller.abort(new Error("gone"))
+    await expect(cancelled).rejects.toThrow("gone")
+
+    const failed = source.get()
+    source.reads[1]?.reject(new Error("backend down"))
+    await expect(failed).rejects.toThrow("backend down")
+  })
+
+  test("writes notify subscribers like the other fakes", async () => {
+    const source = deferredStateSource<number>({ initial: 1 })
+    let changes = 0
+    const sub = source.subscribe(() => {
+      changes += 1
+    })
+    await source.set(5)
+    expect(changes).toBe(1)
+    expect(source.current).toBe(5)
     sub.unsubscribe()
     expect(source.subscriberCount).toBe(0)
   })

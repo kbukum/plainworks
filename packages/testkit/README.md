@@ -2,6 +2,8 @@
 
 > Shared, deterministic test harnesses and seam fakes for testing plainworks packages.
 
+Client component tests import `renderA11y` and `expectNoAxeViolations` from `@plainworks/testkit/client`. The helper runs axe against the rendered container and reports rule identifiers for actionable failures.
+
 Part of the [plainworks](../../README.md) kit.
 
 ## Install
@@ -81,4 +83,3 @@ expect(fake.calls[0]?.header.get("authorization")).toBe("Bearer …")
 - **Shared fixture** — `EchoService` + typed `echoRequest`/`echoResponse`/`countRequest`/`countResponse` factories, generated from `proto/plainworks/testkit/v1/echo.proto`.
 
 The proto is the source of truth; regenerate the checked-in `*_pb.ts` with `bun run gen:proto` (dev-only buf + `protoc-gen-es` — build, typecheck, and test never need buf).
-

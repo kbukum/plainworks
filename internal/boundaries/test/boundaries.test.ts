@@ -36,7 +36,7 @@ async function cruiseFixtures(): Promise<Violation[]> {
 /**
  * Proves the gate actually bites, in both directions. The fixtures contain the five ways to break
  * the layer model — an upward import (`std` L0 -> `auth` L3), a same-layer import (`state` L1 ->
- * `ui` L1), an unmapped package reaching into another package, a mapped package reaching into an
+ * `theme` L1), an unmapped package reaching into another package, a mapped package reaching into an
  * unmapped one (`state` -> `rogue`), and a package reaching up into app code — plus the legal
  * cases (higher -> lower, intra-package) that must stay green. Without this, a repo with zero
  * feature packages would leave the gate vacuously green, and a reversed layer comparison or
@@ -49,7 +49,7 @@ test("layer violations trip the gate", async () => {
   // std (L0) illegally importing auth (L3).
   expect(tripped.has("no-upward-std")).toBe(true)
   expect(tripped.has("std-is-zero-dep")).toBe(true)
-  // state (L1) illegally importing ui (also L1) — sideways is as forbidden as upward.
+  // state (L1) illegally importing theme (also L1) — sideways is as forbidden as upward.
   expect(tripped.has("no-upward-state")).toBe(true)
   // A package with no entry in the LAYERS map may not import any @plainworks package (fail-closed).
   expect(tripped.has("unmapped-package-no-internal-imports")).toBe(true)
@@ -102,7 +102,7 @@ test("legal higher-to-lower imports are allowed", async () => {
 })
 
 /**
- * The @plainworks/app composition kernel is `ui`-free (app-F3). `ui` (L1) sits *below* `app` (L4),
+ * The @plainworks/app composition kernel is `ui`-free (app-F3). `ui` (L3) sits *below* `app` (L4),
  * so the layer model permits app -> ui as a legal downward import — this charter rule forbids it
  * anyway, keeping the kernel host-neutral and buildable before `ui` exists. The fixture is an app
  * module importing the `ui` stand-in; only `no-app-into-ui` may flag it.

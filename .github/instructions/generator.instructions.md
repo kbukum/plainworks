@@ -8,7 +8,7 @@ Layout:
 
 - `config.ts` — the plop generator (`plop.setGenerator("package", …)`): prompts (`name`, `description`, `hasClient`), the `json` Handlebars helper for safe JSON interpolation, and the `addMany`/`add` actions that stamp the template.
 - `templates/package/**/*.hbs` — the golden package: `package.json`, `tsconfig.json`, `tsdown.config.ts`, `vitest.config.ts`, `README.md`, and `src/` with the placeholder concern module (`hello.ts` + test) and the re-export-only `index.ts` barrel.
-- `templates/client/**/*.hbs` — the re-export-only `src/client.ts` barrel plus the client concern module and its test under `src/client/`, added only when `hasClient` is true.
+- `templates/client/**/*.hbs` — the re-export-only `src/client.ts` barrel plus the client concern module and its test under `src/client/`, and the nested editor-routing `src/client/tsconfig.json` (extends `../../tsconfig.client.json`) so an editor resolves the DOM client graph correctly; added only when `hasClient` is true.
 - `templates/client-root/*.hbs` — the package-root `tsconfig.client.json` (DOM-enabled, client-graph-only), added only when `hasClient` is true.
 
 Rules when editing the generator or template:

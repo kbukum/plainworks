@@ -2,4 +2,6 @@
 "@plainworks/std": patch
 ---
 
-Add `@plainworks/std` (L0), the zero-dependency, host-independent bottom of the layer graph: typed errors (`PlainError` preserving `cause` + `kind`, `ensureError`, `getErrorMessage`), a `Result` model (`ok`/`err`/`isOk`/`isErr`/`unwrap`/`unwrapOr`), type guards (`isDefined`, `isRecord`, `isNonEmptyString`, `hasProperty`), assertions (`assert`, `assertNever`), utilities (`randomId`, `systemClock` + the `Clock` seam), and the shared contracts higher layers implement — the header-only `AuthHeaderProvider`/`AuthHeaders` auth seam and the `PlainEvent`/`Listener`/`Subscription` event shapes (single source of truth, no drifting copies).
+Add `@plainworks/std`, the shared foundation every other package builds on. It has no dependencies and runs anywhere.
+
+It provides the common building blocks the kit reuses instead of each package inventing its own: typed errors that keep their cause, a result type for success-or-failure, small type guards and assertions, and a handful of utilities. It also defines the shared contracts higher layers implement, so things like auth headers and event shapes have a single definition that can never drift.

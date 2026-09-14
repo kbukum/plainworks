@@ -50,7 +50,7 @@ Verify each doc against the code it describes; a doc that lies is worse than non
 
 A doc is for a developer skimming under time pressure. **Simple and organized beats complete** — a crowded, jargon-dense, or overlong explanation is a **defect**, not thoroughness, because the reader gives up on it. Optimize for the shortest organized version that still answers the question, using current documentation best practices rather than old habit.
 
-- **Humanized, plain language.** Write for a developer skimming, not a spec lawyer. One idea per sentence; active voice, direct instructions ("Call `createStore`", "Run `bun run test`"). Cut filler and hedging.
+- **Humanized, plain language.** Write for a developer skimming, not a spec lawyer. One idea per sentence; active voice, direct instructions ("Call `createStore`", "Run `bun run test`"). **Describe the benefit, not the mechanism** — what the reader can now do, not the internal shape — and name a representative identifier or two rather than dumping an exhaustive API list. Cut filler and hedging.
 - **Scannable, uncrowded structure.** Meaningful headings, short lists, tables; bold the load-bearing terms; keep paragraphs to a few sentences. Never a wall of text.
 - **Task-first, quickstart up top.** Lead with the shortest copy-pasteable path to a first working result, before deep reference. Know which Diátaxis mode each page is (tutorial / how-to / reference / explanation) and don't blend them.
 - **Real, runnable examples.** Every non-trivial capability shows a real snippet against the current API — the common path first, then options and failure cases.

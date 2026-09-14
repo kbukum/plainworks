@@ -31,6 +31,8 @@
   "files": [
     "dist",
     "registry.json",
+    "src/atoms",
+    "!src/atoms/**/*.test.*",
     "src/styles.css"
   ],
   "exports": {

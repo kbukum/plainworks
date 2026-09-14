@@ -114,10 +114,11 @@ Checked in review and by the gates, for every package:
 - **Code comments are the exception — wrap them.** A `/** */` TSDoc or `//` comment is read at its source column, not reflowed by a renderer, so wrap its prose to the Biome print width (100 columns) like the code it documents — never a long single line trailing off-screen, and never hard-wrap Markdown to match. Keep TSDoc tags, directives (`@param`, `@throws`, `{@link}`), lists, and code examples intact, and break paragraphs on blank comment lines rather than joining them. Biome does not touch comment content, so `bun run check-comments` reports over-width comments and `bun run format-comments` reflows them safely (via `@plainworks/comment-format`, which edits only comment prose and never code).
 - Comments and docs describe the code **as it is now** — not history, plans, or the process that produced it.
 
-**How it lands (clarity — a doc is for a human skimming under time pressure):**
+**How it lands (clarity — every reader-facing artifact is for a human skimming under time pressure):** the same voice governs docs, READMEs, comment prose, changesets, and PR/commit descriptions.
 
 - **Simple and organized beats complete.** A crowded, jargon-dense, or overlong explanation is a **defect**, not thoroughness — a reader gives up on a wall of text. Prefer the shortest organized version that still answers the question. Follow current documentation best practices, not old habit.
 - **One idea per sentence, plain and active.** Write "Call `createStore`", not a clause-stacked paragraph. Bold the load-bearing terms; keep paragraphs to a few sentences.
+- **Describe the benefit, not the mechanism.** Say what the reader can now do — "you control the table's state" — not the internal shape — "compound, controlled-first, injected labels/icons". Name a representative identifier or two, never dump an exhaustive API list.
 - **Scannable structure.** Lead a page or section with the shortest working path (a quickstart) before deep reference. Use meaningful headings, short lists, and tables. Move dense identifier/option detail **into a table or a runnable example** rather than packing it into a sentence.
 - **Diagram where prose is the wrong tool.** Reach for a focused `mermaid` diagram for architecture, dependency direction, an auth/reconnect flow, or a state machine — one idea per diagram, with a one-line caption. Don't diagram the trivial.
 - The `docs` skill (Pass 3) is the standing check for this; run it when writing or auditing docs.

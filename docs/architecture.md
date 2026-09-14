@@ -35,12 +35,12 @@ Two independent questions decide where each package lives and how it ships:
 
 ## Axis 1 — Distribution
 
-How a consumer takes the code. Two modes, and only the first is built today.
+How a consumer takes the code. Both modes are supported across the kit:
 
 | Mode | What it covers | Consumer relationship | Status |
 |---|---|---|---|
-| **npm** (versioned dependency) | Infrastructure you don't fork: `std`, the channel/auth/query engines, adapters, `testkit`. | Import it, upgrade it via semver. | **This repo.** |
-| **registry** (copy-in) | The *ownable* surface: UI, hooks, presets, templates — a shadcn-style copy-in for complex components. | You paste it in, then own and edit it. | **Parked** — a later deliverable, not part of the foundation. |
+| **npm** (versioned dependency) | Infrastructure you don't fork: `std`, the channel/auth/query engines, adapters, `testkit`, and the UI packages. | Import it, upgrade it via semver. | **This repo.** |
+| **registry** (copy-in) | The *ownable* surface: UI atoms (`elements`), composites (`ui`), hooks, and presets — shadcn-compatible copy-in for components you own and edit. | You paste or `shadcn add` it, then own and edit it. | **This repo** — `elements` and `ui` publish self-contained `registry.json` manifests alongside npm packages. |
 
 ## Axis 2 — Host-independence
 
@@ -116,9 +116,9 @@ Each package sits in a numbered layer and may import `@plainworks` packages only
 
 ### UI family: `elements` and `ui`
 
-The atoms and the composites are two packages. `@plainworks/elements` (L2) **owns** the ~47 shadcn/Base-UI primitives; `@plainworks/ui` (L3) holds the plainworks-authored composites (`ThemeProvider`, `ThemeToggle`, `ErrorFallback`) and consumes atoms downward from `elements`.
+The atoms and the composites are two packages. `@plainworks/elements` (L2) **owns** the ~47 shadcn/Base-UI primitives; `@plainworks/ui` (L3) holds the plainworks-authored composites (`layout`, `feedback`, `overlays`, `display`, `navigation`, `data-table`, `ThemeProvider`, `ThemeToggle`, `ErrorFallback`) and hooks (`useControllableState`, `useDisclosure`, `useListState`, `useSelection`, `useClipboard`, `useKeyboardShortcuts`, `useMediaQuery`), consuming atoms downward from `elements`. Both packages publish standard npm subpaths and maintain an authoring `registry.json` manifest derived directly from disk (hosted registry endpoints and CLI distribution remain future work).
 
-`elements` is fed by a **CLI-driven ingestion pipeline**, not a source checkout: `registry add`/`update` run `shadcn add` against the upstream registry, then apply a deterministic **compat transform** (rewrite the `cn` import onto `@plainworks/theme`, force per-module `"use client"`) and a Biome format, producing an **owned, editable, lint-clean** file under `src/atoms`. `registry diff` is advisory and `registry validate` is an offline schema/existence check — there is no pristine snapshot, `.patch`, or drift gate. `registry.json`, the `exports` map, the tsdown entries, and the `.` manifest are all **codegenerated from the atom files on disk**, so none can drift from the actual set; a test re-derives them and asserts no change. Consumers import published per-atom subpaths (`@plainworks/elements/button`); the internal `@/` alias exists only to keep shadcn upgrades clean.
+`elements` is fed by a **CLI-driven ingestion pipeline**, not a source checkout: `registry add`/`update` run `shadcn add` against the upstream registry, then apply a deterministic **compat transform** (rewrite the `cn` import onto `@plainworks/theme`, force per-module `"use client"`) and a Biome format, producing an **owned, editable, lint-clean** file under `src/atoms`. `registry diff` is advisory and `registry validate` is an offline schema/existence check — there is no pristine snapshot, `.patch`, or drift gate. `registry.json`, the `exports` map, the tsdown entries, and the `.` manifest are all **codegenerated from the atom files on disk**, so none can drift from the actual set; a test re-derives them and asserts no change. Consumers import published per-atom subpaths (`@plainworks/elements/button`); the internal `@/` alias exists only to keep shadcn upgrades clean, while `registry.json` serves as an authoring manifest until registry distribution is hosted.
 
 ### Seams point down, implementations live up
 

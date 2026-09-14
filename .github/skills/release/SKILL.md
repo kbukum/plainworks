@@ -45,7 +45,7 @@ ls .changeset/*.md            # pending changesets (excluding README.md/config.j
 bun run changeset status      # what would be versioned, and at what bump
 ```
 
-If there are no pending changesets, **refuse to release** — nothing to ship. Every merged change should have arrived with a changeset (the `create-pr` / `validate` gates require one); if one is missing, add it now with `bun run changeset` before versioning.
+If there are no pending changesets, **refuse to release** — nothing to ship. Every merged change should have arrived with a changeset (the `create-pr` / `validate` gates require one); if one is missing, add it now with `bun run changeset` before versioning — written in the plain, benefit-first release-note voice (what a consumer gains, not internal mechanics; see the Documentation baseline in `copilot-instructions.md`).
 
 ## Step 2 — Full pre-release gate
 

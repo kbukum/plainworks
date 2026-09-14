@@ -1,0 +1,9 @@
+{
+  // `turbo.json` and `biome.json` are JSONC (they carry `//` rationale comments), but VS Code only
+  // treats `tsconfig*.json` as JSONC out of the box. Map them so the editor stops reporting the
+  // comments as errors. `.gitattributes` does the equivalent for GitHub blob/diff rendering.
+  "files.associations": {
+    "turbo.json": "jsonc",
+    "biome.json": "jsonc"
+  }
+}

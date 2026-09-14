@@ -8,12 +8,26 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "tsconfig.json", "tsdown.config.ts", "package.json"],
+      // tsdown's dts generator reads `tsconfig.src.json` when a package splits its projects and
+      // falls back to `tsconfig.json` otherwise, so both must bust the build cache.
+      "inputs": [
+        "src/**",
+        "tsconfig.json",
+        "tsconfig.src.json",
+        "tsdown.config.ts",
+        "package.json"
+      ],
       "outputs": ["dist/**"]
     },
     "typecheck": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "tsconfig.json", "tsconfig.client.json"],
+      "inputs": [
+        "src/**",
+        "tsconfig.json",
+        "tsconfig.src.json",
+        "tsconfig.client.json",
+        "tsconfig.test.json"
+      ],
       "outputs": []
     },
     "check-packaging": {

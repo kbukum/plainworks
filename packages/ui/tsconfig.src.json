@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Server project: the `.` entry must stay DOM-free. The client graph (`src/client.ts` +
+  // `src/client/`) is excluded here and typechecked with DOM libs via `tsconfig.client.json`. The
+  // design substrate itself lives in `@plainworks/theme`, and the owned atoms in `@plainworks/elements`.
+  "exclude": ["src/client.ts", "src/client", "src/styles.test.ts"],
+  "include": ["src", "../../types/universal-web.d.ts"]
+}

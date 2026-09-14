@@ -35,7 +35,11 @@ coverage/
 .DS_Store
 Thumbs.db
 .idea/
-.vscode/
+.vscode/*
+# Shared editor config: `turbo.json` / `biome.json` are JSONC but VS Code only treats
+# `tsconfig*.json` as JSONC natively, so this workspace file maps them to avoid false "comments not
+# permitted" errors. Kept in git so every contributor gets it (the rest of `.vscode/` stays ignored).
+!.vscode/settings.json
 *.swp
 *.swo
 *~

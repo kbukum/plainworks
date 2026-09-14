@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs"
 import type { UserConfig } from "tsdown"
 
 /**
@@ -34,6 +35,12 @@ export function preset(options: PresetOptions = {}): UserConfig {
     platform: "neutral",
     fixedExtension: false,
     dts: true,
+    // Point type emit at the real server project. A package whose sources split across server /
+    // client / test projects makes its `tsconfig.json` a references-only "solution" file so the
+    // editor routes each file to the right project; that solution file has no `compilerOptions`, so
+    // tsdown's dts generator must read `tsconfig.src.json` instead. Single-project packages keep
+    // only `tsconfig.json`, so fall back to tsdown's default resolution there.
+    tsconfig: existsSync("tsconfig.src.json") ? "tsconfig.src.json" : true,
     clean: true,
     unbundle: true,
     treeshake: true,

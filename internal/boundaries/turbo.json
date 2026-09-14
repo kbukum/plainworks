@@ -7,7 +7,16 @@
       "outputs": []
     },
     "test": {
-      "inputs": ["test/**", ".dependency-cruiser.cjs", "vitest.config.ts"],
+      // The portability test resolves every package's neutral project (`tsconfig.src.json`, or
+      // `tsconfig.json` for a single-project package) from outside this package, so those root-
+      // relative configs must bust the cache — otherwise a package config change reuses a stale pass.
+      "inputs": [
+        "test/**",
+        ".dependency-cruiser.cjs",
+        "vitest.config.ts",
+        "$TURBO_ROOT$/packages/*/tsconfig.json",
+        "$TURBO_ROOT$/packages/*/tsconfig.src.json"
+      ],
       "outputs": []
     }
   }

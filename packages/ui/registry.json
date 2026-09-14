@@ -117,6 +117,60 @@
       ]
     },
     {
+      "name": "forms",
+      "type": "registry:ui",
+      "dependencies": ["@plainworks/elements", "@plainworks/std", "@plainworks/theme"],
+      "files": [
+        {
+          "path": "src/client/forms/field.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/forms/fields.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/forms/form-context.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/forms/form-data.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/forms/form-submit.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/forms/form.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "list",
+      "type": "registry:ui",
+      "dependencies": ["@plainworks/elements", "@plainworks/std", "@plainworks/theme"],
+      "files": [
+        {
+          "path": "src/client/list/filter-bar.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/list/filter-model.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/list/pagination-range.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/list/pagination.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
       "name": "error-fallback",
       "type": "registry:ui",
       "dependencies": ["@plainworks/elements"],

@@ -14,6 +14,8 @@ export default preset({
     display: "src/client/display/index.ts",
     navigation: "src/client/navigation/index.ts",
     "data-table": "src/client/data-table/index.ts",
+    forms: "src/client/forms/index.ts",
+    list: "src/client/list/index.ts",
     "error-fallback": "src/client/components/error-fallback/index.ts",
     "theme-client": "src/client/theme/index.ts",
     accordion: "src/client/atoms/accordion.ts",

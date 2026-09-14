@@ -26,6 +26,8 @@ const CONCERNS = [
   { subpath: "./display", entry: "display", dir: "src/client/display", registry: "ui" },
   { subpath: "./navigation", entry: "navigation", dir: "src/client/navigation", registry: "ui" },
   { subpath: "./data-table", entry: "data-table", dir: "src/client/data-table", registry: "ui" },
+  { subpath: "./forms", entry: "forms", dir: "src/client/forms", registry: "ui" },
+  { subpath: "./list", entry: "list", dir: "src/client/list", registry: "ui" },
   {
     subpath: "./error-fallback",
     entry: "error-fallback",

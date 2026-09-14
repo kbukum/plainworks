@@ -71,6 +71,14 @@
       "types": "./dist/data-table.d.ts",
       "import": "./dist/data-table.js"
     },
+    "./forms": {
+      "types": "./dist/forms.d.ts",
+      "import": "./dist/forms.js"
+    },
+    "./list": {
+      "types": "./dist/list.d.ts",
+      "import": "./dist/list.js"
+    },
     "./error-fallback": {
       "types": "./dist/error-fallback.d.ts",
       "import": "./dist/error-fallback.js"

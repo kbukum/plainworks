@@ -37,7 +37,7 @@
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit{{#if hasClient}} && tsc --noEmit -p tsconfig.client.json{{/if}}",
+    "typecheck": "{{#if hasClient}}tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json{{else}}tsc --noEmit{{/if}}",
     "test": "vitest run --coverage",
     "lint": "biome check .",
     "check-packaging": "publint --strict && attw --pack --profile esm-only"

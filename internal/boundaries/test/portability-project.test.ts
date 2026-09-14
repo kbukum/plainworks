@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs"
+import { existsSync, readdirSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import ts from "typescript"
@@ -12,13 +12,17 @@ import { expect, test } from "vitest"
  * back out.
  *
  * A package declares itself host-independent by including the `types/universal-web.d.ts` shim in
- * its neutral (server `.`) project. The one bypass the compiler fixture can't catch is a package
- * that *does* include the shim yet re-adds the DOM lib (or Node/DOM `@types`) to its own
- * `tsconfig.json`: `document`/`window` would then typecheck and the gate would fail open for that
- * package alone. This reads each package's fully-resolved config (honoring `extends`) and forbids
- * exactly that. Packages that are deliberately host-bound dev tooling (e.g. `mocks`) opt into
- * `types: ["node"]` and do *not* include the shim, so they are correctly out of scope here rather
- * than needing an allowlist.
+ * its neutral (server `.`) project. That neutral project is `tsconfig.src.json` when a package
+ * splits its sources across server / client / test projects (its `tsconfig.json` is then a
+ * references-only solution file for editor routing, carrying no compiler options), and plain
+ * `tsconfig.json` for a single-project package — the same resolution `@plainworks/tsdown-config`
+ * uses for dts. The one bypass the compiler fixture can't catch is a package that *does* include
+ * the shim yet re-adds the DOM lib (or Node/DOM `@types`) to that neutral project: `document`/
+ * `window` would then typecheck and the gate would fail open for that package alone. This reads
+ * each package's fully-resolved neutral config (honoring `extends`) and forbids exactly that.
+ * Packages that are deliberately host-bound dev tooling (e.g. `mocks`) opt into `types: ["node"]`
+ * and do *not* include the shim, so they are correctly out of scope here rather than needing an
+ * allowlist.
  */
 const here = dirname(fileURLToPath(import.meta.url))
 const packagesDir = resolve(here, "../../../packages")
@@ -82,12 +86,24 @@ function inspectNeutralProject(tsconfigPath: string): NeutralProject {
   }
 }
 
+/**
+ * The neutral (server `.`) project for a package. A package that splits its sources makes
+ * `tsconfig.json` a references-only solution file and moves the server project to
+ * `tsconfig.src.json`; a single-project package keeps everything in `tsconfig.json`. Mirror the
+ * `@plainworks/tsdown-config` resolution so the gate inspects the project that actually compiles
+ * the neutral entry.
+ */
+function neutralTsconfigPath(packageDir: string): string {
+  const srcProject = join(packageDir, "tsconfig.src.json")
+  return existsSync(srcProject) ? srcProject : join(packageDir, "tsconfig.json")
+}
+
 function packageProjects(): { name: string; project: NeutralProject }[] {
   return readdirSync(packagesDir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => ({
       name: entry.name,
-      project: inspectNeutralProject(join(packagesDir, entry.name, "tsconfig.json")),
+      project: inspectNeutralProject(neutralTsconfigPath(join(packagesDir, entry.name))),
     }))
 }
 

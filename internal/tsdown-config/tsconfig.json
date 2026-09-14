@@ -1,4 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
+  // Dev-only build tooling that runs on Node (it reads the filesystem to pick a package's tsconfig),
+  // so it opts into Node types rather than the host-independent shim the published packages use.
+  "compilerOptions": {
+    "types": ["node"]
+  },
   "include": ["src"]
 }

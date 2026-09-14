@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Server project: typechecks the shipped `.` surface only and stays DOM-free. The client graphs
+  // (`src/client.ts` + `src/client/`, the `src/capabilities/` recipe graph) live in
+  // `tsconfig.client.json`; the DOM-bound `./testing` harness and every `*.test.*` live in
+  // `tsconfig.test.json`. Excluding tests here keeps the shipped-surface program from dragging in
+  // shim-typed test helpers.
+  "exclude": [
+    "src/client.ts",
+    "src/client",
+    "src/capabilities",
+    "src/testing.ts",
+    "src/testing",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ],
+  "include": ["src", "../../types/universal-web.d.ts"]
+}

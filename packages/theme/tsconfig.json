@@ -1,17 +1,11 @@
 {
-  "extends": "../../tsconfig.base.json",
-  // Server project: the `.` entry must stay DOM-free. The client graph (`src/client.ts` +
-  // `src/client/`) is excluded here and typechecked with DOM libs via `tsconfig.client.json`. The
-  // neutral tokens/theme/`cn` under `src` stay here so a host-only global on the `.` entry fails to
-  // compile (the portability gate).
-  "compilerOptions": {
-    "paths": {
-      "@plainworks/*": ["../*/src"]
-    }
-  },
-  // The token-contract test inspects `styles.css` from disk via Node `fs` — a dev-only assertion of
-  // a build artifact. It sits outside this DOM- and Node-free graph (its `node:` imports would
-  // otherwise, correctly, fail to resolve here) and is exercised by Vitest, not `tsc`.
-  "exclude": ["src/client.ts", "src/client", "src/tokens/tokens.test.ts", "src/styles.test.ts"],
-  "include": ["src", "../../types/universal-web.d.ts"]
+  // Editor routing only. The TypeScript language service (VS Code) auto-discovers a file named
+  // `tsconfig.json` and its `references` — never a differently named `tsconfig.src.json`,
+  // `tsconfig.client.json`, or `tsconfig.test.json`. This solution file carries no files of its own;
+  // it points the language service at the real projects so each source file is checked by the project
+  // that includes it. Without it, any file the server project excludes (the client graph, DOM tests)
+  // falls back to the DOM-free root `tsconfig.json` and mis-reports DOM globals like `document`. The
+  // CLI runs each referenced project directly (`tsc -p ...`), so this file is never passed to `tsc`.
+  "files": [],
+  "references": [{ "path": "./tsconfig.src.json" }, { "path": "./tsconfig.client.json" }]
 }

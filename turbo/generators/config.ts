@@ -79,6 +79,11 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
           },
           {
             type: "add",
+            path: "packages/{{name}}/tsconfig.src.json",
+            templateFile: "templates/client-root/tsconfig.src.json.hbs",
+          },
+          {
+            type: "add",
             path: "packages/{{name}}/tsconfig.client.json",
             templateFile: "templates/client-root/tsconfig.client.json.hbs",
           },

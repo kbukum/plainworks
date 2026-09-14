@@ -1,8 +1,11 @@
 {
-  "extends": "../../tsconfig.base.json",
-  // Server project: the `.` entry (core + sse/ws transports + event router) must stay DOM-free, so
-  // the client graph (`src/client.ts` + `src/client/`) is excluded here and typechecked with the DOM
-  // libs via `tsconfig.client.json`.
-  "exclude": ["src/client.ts", "src/client"],
-  "include": ["src", "../../types/universal-web.d.ts"]
+  // Editor routing only. The TypeScript language service (VS Code) auto-discovers a file named
+  // `tsconfig.json` and its `references` — never a differently named `tsconfig.src.json`,
+  // `tsconfig.client.json`, or `tsconfig.test.json`. This solution file carries no files of its own;
+  // it points the language service at the real projects so each source file is checked by the project
+  // that includes it. Without it, any file the server project excludes (the client graph, DOM tests)
+  // falls back to the DOM-free root `tsconfig.json` and mis-reports DOM globals like `document`. The
+  // CLI runs each referenced project directly (`tsc -p ...`), so this file is never passed to `tsc`.
+  "files": [],
+  "references": [{ "path": "./tsconfig.src.json" }, { "path": "./tsconfig.client.json" }]
 }

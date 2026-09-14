@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Server project: the `.` entry must stay DOM-free. The client graph (`src/client/`) is excluded
+  // here and typechecked with DOM libs via `tsconfig.client.json`, so the two projects are
+  // exclusive rather than additive — a host-only global on the `.` entry fails to compile.
+  "exclude": ["src/client"],
+  "include": ["src", "../../types/universal-web.d.ts"]
+}

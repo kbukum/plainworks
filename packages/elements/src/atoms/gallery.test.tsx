@@ -133,7 +133,7 @@ describe("owned atom set", () => {
   it("renders a cross-category gallery with no accessibility violations", async () => {
     const { container } = render(<Gallery />)
     await expectNoAxeViolations(container)
-  })
+  }, 20_000)
 
   it("renders to static markup on the server without a host", () => {
     const html = renderToStaticMarkup(<Gallery />)

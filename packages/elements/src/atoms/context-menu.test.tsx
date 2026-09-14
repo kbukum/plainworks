@@ -94,12 +94,18 @@ describe("ContextMenu", () => {
     const user = userEvent.setup()
     const onRename = vi.fn()
     render(<Example onRename={onRename} />)
+    const trigger = screen.getByRole("button", { name: "Project card" })
+
+    await user.tab()
+    expect(trigger).toBe(document.activeElement)
 
     await user.pointer({
-      target: screen.getByRole("button", { name: "Project card" }),
+      target: trigger,
       keys: "[MouseRight]",
     })
     expect(await screen.findByRole("menu")).toBeTruthy()
+    expect(await screen.findByRole("menuitem", { name: "Rename project" })).toBeTruthy()
+    await user.keyboard("{ArrowDown}")
     await user.keyboard("{ArrowDown}")
     await user.keyboard("{ArrowUp}")
     await user.keyboard("{Enter}")

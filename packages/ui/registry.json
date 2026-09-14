@@ -1,0 +1,131 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "plainworks-ui",
+  "homepage": "https://github.com/kbukum/plainworks",
+  "items": [
+    {
+      "name": "layout",
+      "type": "registry:ui",
+      "dependencies": ["@plainworks/theme"],
+      "files": [
+        {
+          "path": "src/client/layout/layout.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "feedback",
+      "type": "registry:ui",
+      "dependencies": ["@plainworks/elements", "@plainworks/theme"],
+      "files": [
+        {
+          "path": "src/client/feedback/callout.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/feedback/skeleton.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/feedback/spinner.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "overlays",
+      "type": "registry:ui",
+      "dependencies": ["@plainworks/elements", "@plainworks/theme"],
+      "files": [
+        {
+          "path": "src/client/overlays/drawer.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/overlays/modal.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/overlays/popover.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "display",
+      "type": "registry:ui",
+      "files": [
+        {
+          "path": "src/client/display/date-value.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/display/number-value.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "navigation",
+      "type": "registry:ui",
+      "dependencies": ["@plainworks/elements"],
+      "files": [
+        {
+          "path": "src/client/navigation/breadcrumbs.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "data-table",
+      "type": "registry:ui",
+      "dependencies": ["@plainworks/elements", "@plainworks/theme"],
+      "files": [
+        {
+          "path": "src/client/data-table/columns.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/data-table/context.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/data-table/data-table.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/hooks/index.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/hooks/use-controllable-state.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/hooks/use-disclosure.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/hooks/use-list-state.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/hooks/use-selection.ts",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "error-fallback",
+      "type": "registry:ui",
+      "dependencies": ["@plainworks/elements"],
+      "files": [
+        {
+          "path": "src/client/components/error-fallback/error-fallback.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    }
+  ]
+}

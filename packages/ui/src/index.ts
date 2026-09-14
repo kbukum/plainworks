@@ -1,6 +1,8 @@
 // Server-safe public entry for `@plainworks/ui` — re-export-only barrel (no logic here). No React
 // or DOM imports, so the `.` entry runs anywhere (Node, edge, RSC). The design substrate (tokens,
 // schemes, theme runtime) is re-exported for DX from the `@plainworks/theme` package that owns it.
+// The React behaviour hooks are React (not neutral), so they ship from `./client`, never here.
+
 export type {
   BrandColorRole,
   ColorScheme,

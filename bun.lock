@@ -456,6 +456,7 @@
       "version": "0.1.0-alpha.1",
       "dependencies": {
         "@plainworks/elements": "workspace:*",
+        "@plainworks/std": "workspace:*",
         "@plainworks/theme": "workspace:*",
       },
       "devDependencies": {

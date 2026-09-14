@@ -21,12 +21,23 @@ export type {
   FilterValue,
   ListFilter,
   ListMembershipFilter,
+  ListOperator,
   ListQueryParams,
   PageInfo,
   PaginatedResult,
   PresenceFilter,
+  PresenceOperator,
   ScalarFilter,
+  ScalarOperator,
   SortDirection,
+} from "./list"
+export {
+  isListOperator,
+  isPresenceOperator,
+  isScalarOperator,
+  LIST_OPERATORS,
+  PRESENCE_OPERATORS,
+  SCALAR_OPERATORS,
 } from "./list"
 export type { Handler, Interceptor } from "./pipeline"
 export { composeInterceptors, pipeValues } from "./pipeline"

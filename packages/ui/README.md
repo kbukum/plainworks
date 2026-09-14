@@ -38,6 +38,8 @@ The interactive composites live behind per-concern client subpaths, so you impor
 | `@plainworks/ui/navigation` | `Breadcrumbs` — an accessible trail from an items array |
 | `@plainworks/ui/overlays` | `Modal`, `Drawer`, `PopoverPanel` — labelled, controllable overlays |
 | `@plainworks/ui/data-table` | `DataTable` — the controlled, sortable, selectable table exemplar |
+| `@plainworks/ui/list` | `Pagination`, `FilterBar` — controlled paging and filter building over `std/list` |
+| `@plainworks/ui/forms` | `Form`, the typed `*Field` set, `FormSubmit` — schema-validated forms on React 19 Actions |
 
 ```tsx
 import { DataTable } from "@plainworks/ui/data-table"
@@ -54,6 +56,31 @@ import { DataTable } from "@plainworks/ui/data-table"
 ```
 
 `DataTable` owns only view state (sort direction, row selection) and never reorders `rows`, so remote or paged data stays a prop you control. Copy and icons are injected through `labels`/`icons`.
+
+`Form` validates on submit with any Standard Schema validator and passes the validated value to `onSubmit`; each field wires its own label, description, and error state.
+
+```tsx
+import { Form, TextField, FormSubmit } from "@plainworks/ui/forms"
+
+<Form schema={signInSchema} onSubmit={signIn}>
+  <TextField name="email" label="Email" />
+  <TextField name="password" label="Password" type="password" />
+  <FormSubmit>Sign in</FormSubmit>
+</Form>
+```
+
+`Pagination` and `FilterBar` are controlled: they emit the same `std/list` request shape your query already holds, so paging and filtering key the cache and hit the backend with one contract.
+
+```tsx
+import { Pagination, FilterBar } from "@plainworks/ui/list"
+
+<FilterBar
+  fields={[{ field: "status", label: "Status", type: "select", options: statusOptions }]}
+  value={filters}
+  onChange={setFilters}
+/>
+<Pagination page={page} pageSize={20} total={total} onPageChange={setPage} />
+```
 
 ## Hooks
 

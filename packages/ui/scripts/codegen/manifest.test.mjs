@@ -132,6 +132,8 @@ describe("codegen orchestration writes every artifact from disk", () => {
         "src/client/display",
         "src/client/navigation",
         "src/client/data-table",
+        "src/client/forms",
+        "src/client/list",
         "src/client/components/error-fallback",
       ]
       for (const dir of registryDirs) {
@@ -183,6 +185,8 @@ describe("codegen orchestration writes every artifact from disk", () => {
         "src/client/display",
         "src/client/navigation",
         "src/client/data-table",
+        "src/client/forms",
+        "src/client/list",
         "src/client/components/error-fallback",
       ]
       for (const dir of registryDirs) {

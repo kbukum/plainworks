@@ -23,9 +23,9 @@ Place the package in the map (source of truth: the `LAYERS` table in [`../../../
 
 ```
 L0  std                                   errors/result/guards/contracts (seams), no React
-L1  state · ui
-L2  connection · connect · query
-L3  auth
+L1  state · http · theme
+L2  channel · connect · query · elements
+L3  auth · ui
 L4  app · testkit · mocks
 ```
 

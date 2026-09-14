@@ -19,7 +19,7 @@ Dependency direction is explicit and acyclic; a package in `Ln` imports `@plainw
 The layer map (single source: the `LAYERS` table in `internal/boundaries/.dependency-cruiser.cjs`):
 
 ```
-L0 std · L1 state·ui · L2 connection·connect·query · L3 auth · L4 app·testkit·mocks
+L0 std · L1 state·http·theme · L2 channel·connect·query·elements · L3 auth·ui · L4 app·testkit·mocks
 ```
 
 ## Checks

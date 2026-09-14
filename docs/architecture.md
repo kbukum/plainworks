@@ -114,9 +114,26 @@ Each package sits in a numbered layer and may import `@plainworks` packages only
 | **L3** | `auth` · `ui` | Auth core plus `oidc` / `jwt` / `apikey` / BYO adapters (server/client split); UI composites. |
 | **L4** | `app` · `testkit` · `mocks` | Composition, providers, harnesses, test tooling. |
 
-### UI family: `elements` and `ui`
+### UI family: a family, not one package
 
-The atoms and the composites are two packages. `@plainworks/elements` (L2) **owns** the ~47 shadcn/Base-UI primitives; `@plainworks/ui` (L3) holds the plainworks-authored composites (`layout`, `feedback`, `overlays`, `display`, `navigation`, `data-table`, `ThemeProvider`, `ThemeToggle`, `ErrorFallback`) and hooks (`useControllableState`, `useDisclosure`, `useListState`, `useSelection`, `useClipboard`, `useKeyboardShortcuts`, `useMediaQuery`), consuming atoms downward from `elements`. Both packages publish standard npm subpaths and maintain an authoring `registry.json` manifest derived directly from disk (hosted registry endpoints and CLI distribution remain future work).
+The UI surface is a **family** of packages on one shared design substrate, split by **dependency weight** rather than by naming. `@plainworks/theme` (L1) is the substrate — the three-tier tokens with the neutral role contract, nine color schemes plus dark mode, the resolve→hydrate theme runtime, one CSP-safe `styles.css`, and `cn`. `@plainworks/elements` (L2) **owns** the ~47 shadcn/Base-UI atoms. `@plainworks/ui` (L3) holds the plainworks-authored composites and the interwoven `forms` and `data` concerns, consuming atoms downward from `elements` and styling against `theme` tokens. Every member publishes standard npm subpaths; the two that ingest atoms — `elements` and `ui` — also maintain an authoring `registry.json` derived from disk (hosted registry endpoints and CLI distribution remain future work).
+
+```mermaid
+graph TD
+  std["std (L0)"] --> theme["theme (L1)<br/>tokens · schemes · runtime · cn"]
+  theme --> elements["elements (L2)<br/>owned atoms · registry · CLI"]
+  elements --> ui["ui (L3)<br/>general · forms · data"]
+  ui --> charts["charts (L4, reserved)"]
+  ui --> media["media (L4, reserved)"]
+  ui --> editors["editors (L4, reserved)"]
+  elements --> charts
+  elements --> media
+  elements --> editors
+```
+
+**The membership rule.** A UI concern earns its **own package** only when it is a **leaf** (no other family member imports it) **and** carries **heavy, independent** dependencies. Otherwise it stays a **concern subpath inside `ui`**. That is why `forms` and `data` live inside `ui`: they pull on each other — a data grid uses form fields, and a form field may need a data-driven picker — so as separate packages they would force a guessed layer order and risk a cycle the gate rejects. Keeping them one package lets the internal gate resolve that tension in **one** direction: `data → forms` is legal, and any piece both want (a picker, a shared cell) **sinks to a lower band** rather than creating a `forms → data` back-edge. The heavy leaf domains **`charts`** (recharts), **`media`**, and **`editors`** (tiptap) are reserved **above** `ui` as their own L4 packages so each can reuse `ui`'s Card / EmptyState / theme freely while nothing in `ui` depends on them, keeping the graph acyclic. They are named and layered now but scaffolded only when a real screen needs one; adding the first pushes `app`/`testkit`/`mocks` from L4 to L5. Until then, `ui` at L3 with `app` at L4 is the valid intermediate state.
+
+**Internal order inside `ui`.** The concern folders form their own downward-only order — **foundation** (hooks, atom re-exports) → **general** (layout, feedback, overlays, display, navigation) → **forms** → **data** (data-table, list). A concern imports only a strictly lower band; a sibling or upward concern import is rejected by the same boundary gate (a `no-ui-upward-*` rule per concern), so a piece shared across concerns sinks to a lower band instead of creating a back-edge. `data → forms` is legal; a `forms`-needs-`data` case is solved by sinking the shared piece down, never a back-edge.
 
 `elements` is fed by a **CLI-driven ingestion pipeline**, not a source checkout: `registry add`/`update` run `shadcn add` against the upstream registry, then apply a deterministic **compat transform** (rewrite the `cn` import onto `@plainworks/theme`, force per-module `"use client"`) and a Biome format, producing an **owned, editable, lint-clean** file under `src/atoms`. `registry diff` is advisory and `registry validate` is an offline schema/existence check — there is no pristine snapshot, `.patch`, or drift gate. `registry.json`, the `exports` map, the tsdown entries, and the `.` manifest are all **codegenerated from the atom files on disk**, so none can drift from the actual set; a test re-derives them and asserts no change. Consumers import published per-atom subpaths (`@plainworks/elements/button`); the internal `@/` alias exists only to keep shadcn upgrades clean, while `registry.json` serves as an authoring manifest until registry distribution is hosted.
 
@@ -135,7 +152,7 @@ flowchart TD
 
 ### Enforcement
 
-**dependency-cruiser**, isolated in [`@plainworks/boundaries`](../internal/boundaries), encodes the map from a single `LAYERS` table ([`.dependency-cruiser.cjs`](../internal/boundaries/.dependency-cruiser.cjs)) and fails CI on any upward or sideways import or cycle, naming the offending file and rule. The gate **fails closed**: a package absent from `LAYERS` may import nothing, so it can never go vacuously green. A fixture-backed test proves the gate actually rejects a bad import.
+**dependency-cruiser**, isolated in [`@plainworks/boundaries`](../internal/boundaries), encodes the map from a single `LAYERS` table ([`.dependency-cruiser.cjs`](../internal/boundaries/.dependency-cruiser.cjs)) and fails CI on any upward or sideways import or cycle, naming the offending file and rule. The gate **fails closed**: a package absent from `LAYERS` may import nothing, so it can never go vacuously green. The same config also enforces the internal `foundation → general → forms → data` order inside `@plainworks/ui`. Fixture-backed tests prove the gate actually rejects a bad import — an upward package import, a same-layer one, and an upward or sibling concern import inside `ui`.
 
 ## Invariants
 

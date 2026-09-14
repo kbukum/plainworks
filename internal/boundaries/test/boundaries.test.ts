@@ -34,13 +34,14 @@ async function cruiseFixtures(): Promise<Violation[]> {
 }
 
 /**
- * Proves the gate actually bites, in both directions. The fixtures contain the five ways to break
- * the layer model — an upward import (`std` L0 -> `auth` L3), a same-layer import (`state` L1 ->
- * `theme` L1), an unmapped package reaching into another package, a mapped package reaching into an
- * unmapped one (`state` -> `rogue`), and a package reaching up into app code — plus the legal
- * cases (higher -> lower, intra-package) that must stay green. Without this, a repo with zero
- * feature packages would leave the gate vacuously green, and a reversed layer comparison or
- * over-broad regex could pass unnoticed.
+ * Proves the gate actually bites, in both directions. The fixtures contain the ways to break the
+ * layer model — an upward import (`std` L0 -> `auth` L3), an upward import among the UI family
+ * (`theme` L1 -> `elements` L2), a same-layer import (`state` L1 -> `theme` L1), an unmapped
+ * package reaching into another package, a mapped package reaching into an unmapped one (`state` ->
+ * `rogue`), and a package reaching up into app code — plus the legal cases (higher -> lower,
+ * intra-package) that must stay green. Without this, a repo with zero feature packages would leave
+ * the gate vacuously green, and a reversed layer comparison or over-broad regex could pass
+ * unnoticed.
  */
 test("layer violations trip the gate", async () => {
   const violations = await cruiseFixtures()
@@ -49,6 +50,8 @@ test("layer violations trip the gate", async () => {
   // std (L0) illegally importing auth (L3).
   expect(tripped.has("no-upward-std")).toBe(true)
   expect(tripped.has("std-is-zero-dep")).toBe(true)
+  // theme (L1) illegally importing elements (L2) — an upward import within the new UI family.
+  expect(tripped.has("no-upward-theme")).toBe(true)
   // state (L1) illegally importing theme (also L1) — sideways is as forbidden as upward.
   expect(tripped.has("no-upward-state")).toBe(true)
   // A package with no entry in the LAYERS map may not import any @plainworks package (fail-closed).
@@ -111,6 +114,80 @@ test("the app kernel importing ui trips the ui-free rule", async () => {
   const violations = await cruiseFixtures()
   const appToUi = violations.filter((v) => v.from.endsWith("app/src/ui-leak.ts"))
   expect(appToUi.map((v) => v.rule.name)).toEqual(["no-app-into-ui"])
+})
+
+/**
+ * `@plainworks/ui` (L3) keeps the interwoven `forms`/`data` concerns as internal subpaths rather
+ * than separate packages, so their direction is enforced one band below the package layers: a
+ * concern folder may import only a strictly lower band (`foundation → general → forms → data`), and
+ * a sibling or upward concern import is rejected just like an upward package import. The rule is
+ * fail-closed: it also blocks laundering an upward import through the aggregate `client.ts` barrel.
+ * All three are proven from fixtures — `forms` (band 2) reaching UP into `data` (band 3) trips
+ * `no-ui-upward-forms` and only it, the general sibling edge `layout → feedback` (both band 1)
+ * trips `no-ui-upward-layout`, and a foundation `atoms` (band 0) reaching `data` THROUGH the barrel
+ * trips `no-ui-upward-atoms` — proving neither a sideways, an upward, nor a via-barrel edge slips
+ * through. The legal counterpart is proven too: `data` (band 3) importing the lower `forms` (band
+ * 2) is the sanctioned downward direction and trips nothing.
+ */
+test("ui concern imports respect the internal foundation → general → forms → data order", async () => {
+  const violations = await cruiseFixtures()
+
+  const formsIntoData = violations.filter((v) =>
+    v.from.endsWith("ui/src/client/forms/uses-data.ts"),
+  )
+  expect(formsIntoData.map((v) => v.rule.name)).toEqual(["no-ui-upward-forms"])
+
+  const layoutIntoFeedback = violations.filter((v) =>
+    v.from.endsWith("ui/src/client/layout/uses-feedback.ts"),
+  )
+  expect(layoutIntoFeedback.map((v) => v.rule.name)).toEqual(["no-ui-upward-layout"])
+
+  const atomsViaBarrel = violations.filter((v) =>
+    v.from.endsWith("ui/src/client/atoms/uses-barrel.ts"),
+  )
+  expect(atomsViaBarrel.map((v) => v.rule.name)).toEqual(["no-ui-upward-atoms"])
+
+  // The legal counterpart: `data` (band 3) importing the strictly-lower `forms` (band 2) is the
+  // sanctioned downward direction; no rule may flag it, mirroring the `auth -> std` package check.
+  const dataIntoForms = violations.filter((v) =>
+    v.from.endsWith("ui/src/client/data-table/uses-forms.ts"),
+  )
+  expect(dataIntoForms).toEqual([])
+})
+
+/**
+ * Fail-closed for the concern bands, one level below the package fail-closed. A concern folder that
+ * is NOT in UI_CONCERNS has no band, so none of the `no-ui-upward-*` rules name it as a source — it
+ * would be free to import a sibling, a higher band, or the aggregate barrel. The catch-all rules
+ * close that hole in both concern locations. The fixtures prove it: an unmapped client concern
+ * (`client/experimental`) and an unmapped neutral concern (`stately`) each reaching a mapped
+ * concern trip only their dedicated rule, so an unlisted folder can never go vacuously green. The
+ * same-folder exemption stays legal: an unmapped concern importing within its OWN folder trips
+ * nothing, so a freshly generated concern still compiles its internal relative imports.
+ */
+test("an unmapped ui concern folder may import no other concern (fail-closed)", async () => {
+  const violations = await cruiseFixtures()
+
+  const clientConcern = violations.filter((v) =>
+    v.from.endsWith("ui/src/client/experimental/uses-feedback.ts"),
+  )
+  expect(clientConcern.map((v) => v.rule.name)).toEqual(["unmapped-ui-concern-client"])
+
+  const neutralConcern = violations.filter((v) =>
+    v.from.endsWith("ui/src/stately/uses-feedback.ts"),
+  )
+  expect(neutralConcern.map((v) => v.rule.name)).toEqual(["unmapped-ui-concern-neutral"])
+
+  // The same-folder exemption (`$2`) must stay legal: an unmapped concern importing WITHIN its own
+  // folder is a normal intra-concern relative import, so neither catch-all may flag it — otherwise
+  // a freshly generated concern could not compile its own internal modules.
+  const clientSelf = violations.filter((v) =>
+    v.from.endsWith("ui/src/client/experimental/local-consumer.ts"),
+  )
+  expect(clientSelf).toEqual([])
+
+  const neutralSelf = violations.filter((v) => v.from.endsWith("ui/src/stately/local-consumer.ts"))
+  expect(neutralSelf).toEqual([])
 })
 
 test("intra-package (self) imports are allowed", async () => {

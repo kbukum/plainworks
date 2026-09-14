@@ -15,6 +15,11 @@
 //   L3  auth · ui
 //   L4  app · testkit · mocks        (dev/test tooling lives here too)
 //
+// The heavy leaf UI domains `charts`/`media`/`editors` are reserved for L4 on `ui`+`elements`+
+// `theme` (see docs/architecture.md › UI family); they are added to LAYERS only when built, and
+// their arrival pushes `app`/`testkit`/`mocks` to L5. Until then `ui` at L3 with `app` at L4 is
+// the valid intermediate state.
+//
 // Rule: a package in Ln may import @plainworks packages only in a strictly LOWER layer.
 // Same-layer ("sideways") and upward imports are forbidden. A cross-layer need defines the
 // seam in the lower layer and implements it higher (the gokit/rskit rule).
@@ -45,6 +50,107 @@ const LAYERS = {
   app: 4,
   testkit: 4,
   mocks: 4,
+}
+
+// Internal concern order INSIDE @plainworks/ui — the package LAYERS model, one level down. `ui`
+// (L3) keeps the interwoven `forms`/`data` concerns as subpaths (not separate packages), so their
+// direction is governed here instead of by the package layers. The bands are:
+//
+//   0  foundation   hooks (neutral stately + DOM) · atom re-exports every concern may draw on
+//   1  general      layout · feedback · overlays · display · navigation · theme · components
+//   2  forms
+//   3  data         data-table · list
+//
+// A concern folder may import only a STRICTLY LOWER band; a same-band sibling import (baseline
+// rule A: "a concern folder never imports a sibling concern") and an upward import are both
+// forbidden, so a piece shared across concerns sinks to a lower band instead of creating a
+// back-edge. `dir` is relative to `packages/ui/src/`. The re-export barrels (`index.ts`,
+// `client.ts`) sit OUTSIDE every concern folder, so they aggregate all concerns without tripping.
+// A concern folder absent from this table has no band; `unmappedUiConcernRules` below fails it
+// closed (it may import no other ui concern) so an unlisted folder never goes vacuously green.
+const UI_CONCERNS = {
+  hooks: { band: 0, dir: "hooks" },
+  "client-hooks": { band: 0, dir: "client/hooks" },
+  atoms: { band: 0, dir: "client/atoms" },
+  layout: { band: 1, dir: "client/layout" },
+  feedback: { band: 1, dir: "client/feedback" },
+  overlays: { band: 1, dir: "client/overlays" },
+  display: { band: 1, dir: "client/display" },
+  navigation: { band: 1, dir: "client/navigation" },
+  theme: { band: 1, dir: "client/theme" },
+  components: { band: 1, dir: "client/components" },
+  forms: { band: 2, dir: "client/forms" },
+  "data-table": { band: 3, dir: "client/data-table" },
+  list: { band: 3, dir: "client/list" },
+}
+
+// Directory segments of every classified concern, split by location so the fail-closed catch-all
+// below can name exactly the mapped folders. Neutral concerns sit directly under `src/` (e.g.
+// `hooks`); client concerns sit under `src/client/` (e.g. `atoms`, `forms`).
+const neutralConcernDirs = Object.values(UI_CONCERNS)
+  .map(({ dir }) => dir)
+  .filter((dir) => !dir.includes("/"))
+const clientConcernDirs = Object.values(UI_CONCERNS)
+  .map(({ dir }) => dir)
+  .filter((dir) => dir.startsWith("client/"))
+  .map((dir) => dir.slice("client/".length))
+
+/** @returns {import('dependency-cruiser').IForbiddenRuleType[]} */
+function unmappedUiConcernRules() {
+  // Fail CLOSED for the concern bands, exactly as `unmapped-package-no-internal-imports` does for
+  // the package layers. A concern folder that is NOT in UI_CONCERNS has no band, so none of the
+  // generated `no-ui-upward-*` rules name it as a source — leaving it free to import a sibling, a
+  // higher band, or the aggregate barrel unchecked (the "vacuously green" hole one level down).
+  // These two rules close it: an unclassified concern folder (neutral `src/<x>/` or client
+  // `src/client/<x>/`) may import NOTHING else under `packages/ui/src` until it is added to
+  // UI_CONCERNS with a band. `$2` (its own folder) stays legal so intra-concern relative imports
+  // work, and a freshly generated concern imports nothing cross-concern, so it is still born
+  // gate-passing. `client` and the mapped folders are excluded from each `from` so only genuinely
+  // unmapped folders match.
+  return [
+    {
+      name: "unmapped-ui-concern-neutral",
+      comment:
+        "The packages/ui/src/<concern> folder is not in UI_CONCERNS, so it has no band. Add it to UI_CONCERNS (in .dependency-cruiser.cjs) with a band before importing another @plainworks/ui concern.",
+      severity: "error",
+      from: { path: `(^|/)packages/ui/src/(?!(?:client|${neutralConcernDirs.join("|")})/)([^/]+)/` },
+      to: { path: "(^|/)packages/ui/src/", pathNot: "(^|/)packages/ui/src/$2/" },
+    },
+    {
+      name: "unmapped-ui-concern-client",
+      comment:
+        "The packages/ui/src/client/<concern> folder is not in UI_CONCERNS, so it has no band. Add it to UI_CONCERNS (in .dependency-cruiser.cjs) with a band before importing another @plainworks/ui concern.",
+      severity: "error",
+      from: { path: `(^|/)packages/ui/src/client/(?!(?:${clientConcernDirs.join("|")})/)([^/]+)/` },
+      to: { path: "(^|/)packages/ui/src/", pathNot: "(^|/)packages/ui/src/client/$2/" },
+    },
+  ]
+}
+
+/** @returns {import('dependency-cruiser').IForbiddenRuleType[]} */
+function uiConcernRules() {
+  return Object.entries(UI_CONCERNS).map(([name, { band, dir }]) => {
+    // Fail CLOSED: forbid importing ANYTHING under packages/ui/src except this concern's own folder
+    // and the concern folders in a strictly LOWER band. Listing only the higher/sibling concerns
+    // would leave a hole — a foundation concern could reach a higher one transitively through the
+    // aggregate `client.ts`/`index.ts` barrel (or any uncategorized `src/` module that re-exports
+    // it). So a same-band sibling, an upward concern, a barrel, and a junk-drawer bridge are all
+    // rejected; a piece shared across concerns must sink to a lower band, not hide behind the barrel.
+    const allowed = [
+      `(^|/)packages/ui/src/${dir}/`,
+      ...Object.values(UI_CONCERNS)
+        .filter((other) => other.band < band)
+        .map((other) => `(^|/)packages/ui/src/${other.dir}/`),
+    ]
+
+    return {
+      name: `no-ui-upward-${name}`,
+      comment: `packages/ui/src/${dir} (concern band ${band}) may import only its own folder and a strictly lower @plainworks/ui concern band — no sibling, upward, or via-barrel concern import (baseline rule A).`,
+      severity: "error",
+      from: { path: `(^|/)packages/ui/src/${dir}/` },
+      to: { path: "(^|/)packages/ui/src/", pathNot: allowed },
+    }
+  })
 }
 
 /** @returns {import('dependency-cruiser').IForbiddenRuleType[]} */
@@ -182,6 +288,8 @@ const forbidden = [
     to: { path: "(^|/)packages/ui/" },
   },
   ...layerRules(),
+  ...uiConcernRules(),
+  ...unmappedUiConcernRules(),
 ]
 
 /** @type {import('dependency-cruiser').IConfiguration} */

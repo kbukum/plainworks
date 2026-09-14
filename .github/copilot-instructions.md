@@ -72,9 +72,9 @@ Every published package: `"type": "module"`, `"sideEffects": false`, a server-sa
 
 ```
 L0  std                                   errors/result/guards/contracts (seams), no React
-L1  state (seam + zustand adapter) · ui   (registry later)
-L2  connection (+sse/ws) · connect (RPC) · query (TanStack wiring)
-L3  auth (core + oidc/jwt/apikey/BYO adapters, server/client split)
+L1  state (seam + zustand adapter) · http (typed fetch client) · theme (UI design substrate)
+L2  channel (+sse/ws) · connect (RPC) · query (TanStack wiring) · elements (owned shadcn/Base-UI atoms)
+L3  auth (core + oidc/jwt/apikey/BYO adapters, server/client split) · ui (composites + forms/data)
 L4  app (providers, harness) · testkit · mocks     (route tree stays app-local)
 ```
 

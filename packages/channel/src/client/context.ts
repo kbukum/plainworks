@@ -1,6 +1,6 @@
 "use client"
 
-import type { Listener, Subscription } from "@plainworks/std"
+import type { Listener, StreamFrame, Subscription } from "@plainworks/std"
 import {
   createContext,
   createElement,
@@ -13,7 +13,6 @@ import {
 import { ChannelError } from "../error"
 import { type Channel, type ChannelOptions, createChannel } from "../lifecycle/channel"
 import type { ChannelStatus } from "../lifecycle/status"
-import type { ChannelFrame } from "../transport"
 
 /** Props for the {@link ChannelContext.ChannelProvider}. */
 export interface ChannelProviderProps {
@@ -41,9 +40,9 @@ export interface ChannelContext {
    * called (no stale closure) and the subscription is torn down on unmount — explicit ownership, no
    * leak. Pass `"*"` semantics via {@link useAnyChannelEvent} for every frame.
    */
-  readonly useChannelEvent: (type: string, listener: (frame: ChannelFrame) => void) => void
+  readonly useChannelEvent: (type: string, listener: (frame: StreamFrame) => void) => void
   /** Subscribe to **every** frame for the component's lifetime, torn down on unmount. */
-  readonly useAnyChannelEvent: (listener: (frame: ChannelFrame) => void) => void
+  readonly useAnyChannelEvent: (listener: (frame: StreamFrame) => void) => void
 }
 
 interface ChannelHandle {
@@ -102,7 +101,7 @@ export function createChannelContext(): ChannelContext {
     return useSyncExternalStore(handle.subscribeStatus, handle.getStatus, handle.getStatus)
   }
 
-  function useChannelEvent(type: string, listener: (frame: ChannelFrame) => void): void {
+  function useChannelEvent(type: string, listener: (frame: StreamFrame) => void): void {
     const channel = useChannel()
     const listenerRef = useLatest(listener)
     useEffect(() => {
@@ -111,7 +110,7 @@ export function createChannelContext(): ChannelContext {
     }, [channel, type, listenerRef])
   }
 
-  function useAnyChannelEvent(listener: (frame: ChannelFrame) => void): void {
+  function useAnyChannelEvent(listener: (frame: StreamFrame) => void): void {
     const channel = useChannel()
     const listenerRef = useLatest(listener)
     useEffect(() => {
@@ -136,8 +135,8 @@ function buildHandle(options: ChannelOptions): ChannelHandle {
   interface Binding {
     sub: Subscription | undefined
   }
-  const typeBindings = new Map<string, Map<Listener<ChannelFrame>, Binding>>()
-  const anyBindings = new Map<Listener<ChannelFrame>, Binding>()
+  const typeBindings = new Map<string, Map<Listener<StreamFrame>, Binding>>()
+  const anyBindings = new Map<Listener<StreamFrame>, Binding>()
   const statusListeners = new Set<() => void>()
 
   let inner: Channel | undefined

@@ -1,38 +1,38 @@
-// Server-safe public entry for `@plainworks/mocks` — explicit, minimal surface. The mock servers
-// live in subpath entries: `@plainworks/mocks/server` (msw/node) and
-// `@plainworks/mocks/vite-plugin` (dev middleware). Everything is a factory — importing this module
-// creates no stores, workers, or other state.
-
-// Composition root: one isolated mock graph (handlers + stores + control) per call.
-export type { MockApi, MockApiOptions } from "./api"
-export { createMockApi } from "./api"
+// Server-safe public entry for `@plainworks/mocks` — the reusable mock-building **framework
+// primitives** only: entity factories, an in-memory store, CRUD handler generation, the mock
+// control plane, the REST filter dialect, and the query/fixture utilities. The concrete demo
+// domain (users, orders, products, and the `createMockApi` graph that wires them) lives behind
+// `@plainworks/mocks/domain`; the mock servers live behind `@plainworks/mocks/server` (msw/node)
+// and `@plainworks/mocks/vite-plugin` (dev middleware). Everything is a factory — importing this
+// module creates no stores, workers, or other state.
 
 // Data primitives for custom entities.
 export type { EntityFactory, EntityFactoryConfig, EntityStore, FixtureSources } from "./data/common"
 export { createEntityFactory, createFixtureSources, createStore } from "./data/common"
 
-// Seeded entity factories and settings storage.
-export { createContentFactory } from "./data/content"
-export {
-  createDashboardStats,
-  createRevenueChartData,
-  createUserGrowthChartData,
-  generateDailySales,
-  generateMonthlyRevenue,
-  generateProductSales,
-} from "./data/dashboard"
-export { createNotificationFactory } from "./data/notifications"
-export { createOrderFactory } from "./data/orders"
-export { createProductFactory } from "./data/products"
-export type { SettingsStore } from "./data/settings"
-export { createSettingsStore, createUserSettings, updateUserSettings } from "./data/settings"
-export { createTaskFactory } from "./data/tasks"
-export { createUserFactory } from "./data/users"
+// PostgREST/Supabase-style filter dialect: one codec shared by serializer and parser.
 export type { FilterCondition, FilterOperator, FilterQuery } from "./filter"
-// PostgREST/Supabase-style filter parsing.
 export { parseApiParams } from "./filter"
 
-// Handler builders for custom entities and control endpoints.
+// Fixture-generation primitives: seeded randomness plus id and date helpers.
+export {
+  createSeededRandom,
+  daysAgo,
+  daysFromNow,
+  formatDate,
+  generateId,
+  generateUUID,
+  nowISOString,
+  type RandomSource,
+  randomBoolean,
+  randomElement,
+  randomElements,
+  randomFloat,
+  randomInt,
+  randomString,
+} from "./fixture"
+
+// Handler builders for custom entities and the control plane.
 export { type CrudHandlerConfig, createCrudHandlers } from "./handlers/common"
 export type {
   InternalState,
@@ -42,14 +42,12 @@ export type {
 } from "./handlers/internal"
 export { createMockControl } from "./handlers/internal"
 
-// Domain types.
-export * from "./types"
+// The latency seam applied before a response.
+export { createLatency, type LatencyController } from "./latency"
 
-// Pure utilities (filter/sort/paginate/dates/ids) plus the seeded random source and latency seam.
-export { applyFieldSelection } from "./utils/applyFieldSelection"
-export { daysAgo, daysFromNow, formatDate, nowISOString } from "./utils/date"
-export { createLatency, type LatencyController } from "./utils/delay"
+// List-response query primitives (filter/sort/paginate/field selection).
 export {
+  applyFieldSelection,
   computeFacets,
   computeFacetsWithFilters,
   filterByApiParams,
@@ -57,17 +55,10 @@ export {
   filterByField,
   filterByFields,
   filterBySearch,
-} from "./utils/filtering"
-export { generateId, generateUUID } from "./utils/id"
-export { type PaginationParams, type PaginationResult, paginate } from "./utils/pagination"
-export {
-  createSeededRandom,
-  type RandomSource,
-  randomBoolean,
-  randomElement,
-  randomElements,
-  randomFloat,
-  randomInt,
-  randomString,
-} from "./utils/random"
-export { type SortDirection, type SortParams, sortBy } from "./utils/sorting"
+  type PaginationParams,
+  type PaginationResult,
+  paginate,
+  type SortDirection,
+  type SortParams,
+  sortBy,
+} from "./query"

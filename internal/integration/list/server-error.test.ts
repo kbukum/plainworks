@@ -1,5 +1,5 @@
 import { createHttpClient, HttpError } from "@plainworks/http"
-import type { User } from "@plainworks/mocks"
+import type { User } from "@plainworks/mocks/domain"
 import { createMockServerHandle } from "@plainworks/mocks/server"
 import { createQueryClient, listQueryOptions } from "@plainworks/query"
 import { HttpResponse, http } from "msw"

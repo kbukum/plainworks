@@ -2,9 +2,9 @@
  * User data factory
  */
 
+import { daysAgo, nowISOString } from "../fixture"
+import { randomBoolean, randomElement, randomInt } from "../fixture/random"
 import type { CreateUserInput, User, UserDepartment } from "../types"
-import { daysAgo, nowISOString } from "../utils"
-import { randomBoolean, randomElement, randomInt } from "../utils/random"
 import { createEntityFactory, type EntityFactory, type FixtureSources } from "./common"
 
 const FIRST_NAMES = [

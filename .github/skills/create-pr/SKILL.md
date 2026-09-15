@@ -33,13 +33,13 @@ git diff origin/main...HEAD --stat
 git diff origin/main...HEAD            # skim for the shape of the change, not to transcribe it
 ```
 
-Answer, in your head: what capability/fix/refactor is this, which packages and layer it touches, whether it changes a public seam (`std` contracts, event shapes, the auth-header seam, provider shapes) that other packages implement, and whether the six DoD gates pass.
+Answer, in your head: what capability/fix/refactor is this, which packages and layer it touches, whether it changes a public seam (`std` contracts, event shapes, the auth-header seam, provider shapes) that other packages implement, and whether the DoD gates pass.
 
 ## 3. Write the description — high level, organized, simplified
 
 Fill every section of [`../../PULL_REQUEST_TEMPLATE.md`](../../PULL_REQUEST_TEMPLATE.md). The guiding rule: **a reviewer should grasp the change from the description alone**, without reconstructing it from the diff.
 
-- **Title** — Conventional Commit style naming the change: `feat(connection): SSE reconnect`, `refactor(state): per-request store factory`. No plan/batch/step numbers.
+- **Title** — Conventional Commit style naming the change: `feat(channel): SSE reconnect`, `refactor(state): per-request store factory`. No plan/batch/step numbers.
 - **Description** — a few sentences of *what changed and why it's shaped this way*, at the level of capabilities and decisions.
 - **Motivation** — the problem it solves. Link issues as `Fixes #123`; reference **other repos as full URLs**, never a bare `#45`.
 - **Type of Change / Package(s) Affected** — mark accurately.

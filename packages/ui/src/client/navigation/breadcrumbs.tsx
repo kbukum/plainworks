@@ -4,6 +4,7 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
+  type BreadcrumbLinkProps,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
@@ -16,6 +17,13 @@ export interface BreadcrumbEntry {
   readonly label: ReactNode
   /** Destination link. Omit on an intermediate entry to render it as plain, non-link text. */
   readonly href?: string
+  /**
+   * Host link element rendered in place of the default anchor for this entry — a Next.js `<Link>`,
+   * a typed-router link — so a router-aware app gets client navigation instead of a full reload.
+   * The destination and the atom's own props merge onto it. Ignored on an entry with no `href` (it
+   * is plain text) or the current page. Omit to keep a plain anchor.
+   */
+  readonly render?: BreadcrumbLinkProps["render"]
 }
 
 /** Props for {@link Breadcrumbs}. */
@@ -56,7 +64,9 @@ export function Breadcrumbs({
                 ) : item.href === undefined ? (
                   item.label
                 ) : (
-                  <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
+                  <BreadcrumbLink href={item.href} render={item.render}>
+                    {item.label}
+                  </BreadcrumbLink>
                 )}
               </BreadcrumbItem>
               {index === lastIndex ? null : <BreadcrumbSeparator>{separator}</BreadcrumbSeparator>}

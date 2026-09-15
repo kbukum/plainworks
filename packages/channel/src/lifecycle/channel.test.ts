@@ -1,6 +1,8 @@
 import type { AuthHeaderProvider, BackoffPolicy } from "@plainworks/std"
 import {
+  type FakeStreamTransport,
   fakeAuthHeaderProvider,
+  fakeStreamTransport,
   flushMicrotasks,
   type ManualClock,
   type ManualDelay,
@@ -10,7 +12,6 @@ import {
 } from "@plainworks/testkit"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 import { ChannelError } from "../error"
-import { type FakeTransport, fakeTransport } from "../transport/fake-transport"
 import { type Channel, type ChannelOptions, createChannel } from "./channel"
 import type { ChannelStatus } from "./status"
 
@@ -18,7 +19,7 @@ const NO_JITTER: BackoffPolicy = { baseMs: 100, maxMs: 500, factor: 2, jitter: "
 
 interface Harness {
   readonly channel: Channel
-  readonly transport: FakeTransport
+  readonly transport: FakeStreamTransport
   readonly delay: ManualDelay
   readonly clock: ManualClock
   readonly statuses: ChannelStatus[]
@@ -28,7 +29,7 @@ interface Harness {
 }
 
 function setup(overrides: Partial<ChannelOptions> = {}): Harness {
-  const transport = fakeTransport()
+  const transport = fakeStreamTransport()
   const delay = manualDelay()
   const clock = manualClock()
   const statuses: ChannelStatus[] = []
@@ -93,6 +94,9 @@ describe("createChannel lifecycle", () => {
     h.channel.close()
     expect(h.channel.status).toBe("closed")
     expect(h.transport.current?.aborted).toBe(true)
+    // A caller close is observable to a status subscriber as a `closing` → `closed` transition,
+    // distinguishing a clean teardown from an error-driven close that goes straight to `closed`.
+    expect(h.statuses.slice(-2)).toEqual(["closing", "closed"])
     await flushMicrotasks()
     expect(h.errors).toHaveLength(0)
 
@@ -404,7 +408,7 @@ describe("status reflects the dropped stream during backoff", () => {
 
 describe("transport factory seam", () => {
   test("each (re)connection attempt builds a fresh transport from the factory", async () => {
-    const transport = fakeTransport()
+    const transport = fakeStreamTransport()
     const factory = vi.fn(transport.factory)
     const h = setup({ transport: factory })
     h.channel.connect()

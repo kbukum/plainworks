@@ -1,233 +1,212 @@
 # plainworks architecture
 
-This is the canonical reference for how plainworks is organized: its **naming**, its **layers**, the **two axes** every package is placed against, and the **invariants** the gates enforce. Read it once to understand the shape; come back to it when a change needs to know where it belongs.
+Use this reference to decide **where code belongs**, **which hosts can run it**, and **which boundaries a change must preserve**.
 
-## At a glance
+## Place a change
 
-plainworks is a stack of small packages. Each one owns a single concern, sits in a numbered layer, and may only depend **downward**.
-
-```mermaid
-flowchart TD
-  subgraph L4["L4 · composition & tooling"]
-    app[app] ~~~ testkit[testkit] ~~~ mocks[mocks]
-  end
-  subgraph L3["L3 · auth · ui"]
-    auth[auth] ~~~ ui[ui]
-  end
-  subgraph L2["L2 · transport & data · elements"]
-    channel[channel] ~~~ connect[connect] ~~~ query[query] ~~~ elements[elements]
-  end
-  subgraph L1["L1 · client & I/O"]
-    state[state] ~~~ http[http] ~~~ theme[theme]
-  end
-  subgraph L0["L0 · std"]
-    std[std]
-  end
-  L4 --> L3 --> L2 --> L1 --> L0
-```
-
-*Arrows are the only allowed import direction — a package never imports its own layer or above.*
-
-Two independent questions decide where each package lives and how it ships:
-
-- **How does a consumer get the code?** — the *distribution* axis.
-- **Where can the code run?** — the *host-independence* axis.
-
-## Axis 1 — Distribution
-
-How a consumer takes the code. Both modes are supported across the kit:
-
-| Mode | What it covers | Consumer relationship | Status |
-|---|---|---|---|
-| **npm** (versioned dependency) | Infrastructure you don't fork: `std`, the channel/auth/query engines, adapters, `testkit`, and the UI packages. | Import it, upgrade it via semver. | **This repo.** |
-| **registry** (copy-in) | The *ownable* surface: UI atoms (`elements`), composites (`ui`), hooks, and presets — shadcn-compatible copy-in for components you own and edit. | You paste or `shadcn add` it, then own and edit it. | **This repo** — `elements` and `ui` publish self-contained `registry.json` manifests alongside npm packages. |
-
-## Axis 2 — Host-independence
-
-Where the code can run. The kit **assumes no host** — Next.js, a Vite SPA, Astro, TanStack Start, Remix, Electron, React Native, or a runtime that doesn't exist yet all *plug in*.
-
-The precise promise is narrower and more honest than "runs anywhere": a package runs anywhere its **runtime primitives** exist. Everything is written against the web platform (`fetch`, `AbortController`, `WebSocket`, Streams, Web Crypto), never against a framework.
-
-### The primitive contract
-
-A package sorts every platform primitive it needs into one of two tiers.
-
-| Tier | Rule | Examples |
-|---|---|---|
-| **Universal** | Present on every target (Node, Deno, Bun, browsers, edge, workers, React Native) as a pure, deterministic value type. Use it directly. | `AbortController`/`AbortSignal`, `Headers`, `URL`/`URLSearchParams`, `Response`, `TextDecoder` (the WHATWG value types the shim binds) |
-| **Non-universal** | Has real host variance, or needs test substitution. Take it through an **injected seam** with a platform default — never a hard import. | `fetch`, SSE / `WebSocket`, `crypto.subtle`, token storage |
-
-This is the same rule the layer map uses for packages — *define the seam, inject the implementation* — pointed at the platform instead. A host that has the primitive gets the default for free; a host that lacks it supplies its own. The reference implementation already ships: `http` takes its `fetch` as `options.fetch`.
-
-### Three environment buckets
-
-Every entry point falls into exactly one bucket. The old "server vs client" split hid a third case — React that runs without a DOM.
-
-```mermaid
-flowchart LR
-  N["Neutral · <code>.</code><br/>no React, no DOM"] --> S[Server / edge / workers / RSC]
-  N --> RN[React Native]
-  D["DOM client · <code>./client</code><br/>use client + browser DOM"] --> B[Browser SPA / Next.js]
-  D --> E[Electron renderer]
-```
-
-1. **Neutral (`.`)** — no React, no DOM. The default import and the widest target: server, edge, workers, RSC, and inside React Native.
-2. **DOM client (`./client`)** — React plus browser DOM, marked per-module with `"use client"`. Browser SPAs, Next.js client components, the Electron renderer. `ui` and anything touching `document` or CSS lives here.
-3. **React-without-DOM** — React Native and Expo: React renders, but there is no DOM, no cookies, and Web Crypto needs a polyfill. DOM `ui` is out of scope here, but the *hooks* in `state`, `query`, `channel`, and `auth` stay DOM-free so RN can still use them.
-
-### Where each runtime lands
-
-| Runtime | Neutral `.` | DOM `./client` | Note |
-|---|:---:|:---:|---|
-| Node · Deno · Bun | ✅ | — | server & tooling |
-| Edge · Web / Service Workers | ✅ | — | no `EventSource` in workers → SSE seam |
-| Browser SPA · Next.js client | ✅ | ✅ | full DOM |
-| **Electron** | ✅ | ✅ | Chromium + Node; BFF cookie ⇒ in-memory auth adapter |
-| **React Native · Expo** | ✅ (with polyfills) | ❌ | inject crypto + storage + SSE; DOM `ui` out of scope |
-
-### How it's enforced
-
-Two boundaries keep the promise from decaying into a convention:
-
-- **Server/client split** — a server-only module (especially auth token custody) is never pulled into a `"use client"` graph. Enforced at build and in review.
-- **Portability gate** — the neutral `.` entry may reference no DOM global (`document`, `window`, `localStorage`, `navigator`, `EventSource`) and no Node builtin. This is enforced at compile time, not by a lint heuristic: the shared **ES2023-only** config (`tsconfig.base.json` — no DOM/Node lib, `types: []`) plus the explicit `types/universal-web.d.ts` shim means any host-only name is simply undeclared and fails `typecheck`, and fixtures in `@plainworks/boundaries` prove the gate rejects a DOM global while accepting a universal-only entry. The web-platform surface a neutral entry *does* name in its public API (`fetch`, `Headers`, `Response`, `URL`) is typed against the self-contained structural `Web*` types owned by `std` (`std/web`), not the DOM or `@types/node` libs — so a shipped `.d.ts` typechecks standalone against the ES lib and a consumer is never forced to install host type libs to use the kit.
-
-### Why no `react-server` export condition
-
-The `react-server` condition exists to point an RSC bundler at a *different* build than the client one — the escape hatch for a package whose main entry contains `"use client"` or client-only code. plainworks does not have that problem: the neutral `.` entry is server-safe *by construction* (the portability gate above forbids any client/DOM global in it), and every client binding lives behind the explicit `./client` entry. An RSC graph importing `.` already resolves to the correct server-safe module, so a `react-server` condition would only ever point at the same file as `import` — config with no behavioral effect and a standing maintenance cost. It is deliberately omitted; add it only if a package ever ships a genuinely divergent server build.
-
-## Naming
-
-One concern, one plain word, the **same word everywhere**. Names like `core`, `engine`, `foundation`, and junk-drawer `utils` are banned.
-
-The bottom of the stack is **`std`** (`@plainworks/std`) — a charter-guarded, zero-dependency, host-independent standard library. Anything with a real concern of its own graduates to its own one-word package.
-
-## Layers
-
-Each package sits in a numbered layer and may import `@plainworks` packages only from a **strictly lower** one. Sideways and upward imports are forbidden.
-
-| Layer | Packages | Concern |
-|---|---|---|
-| **L0** | `std` | Errors, result, guards, contracts (seams incl. Standard Schema validation), resilience, structural web-platform types. No React. |
-| **L1** | `state` · `http` · `theme` | Client state, the typed fetch client, the UI design substrate. |
-| **L2** | `channel` · `connect` · `query` · `elements` | Streaming transport, RPC, TanStack wiring, the owned shadcn/Base-UI atom set. |
-| **L3** | `auth` · `ui` | Auth core plus `oidc` / `jwt` / `apikey` / BYO adapters (server/client split); UI composites. |
-| **L4** | `app` · `testkit` · `mocks` | Composition, providers, harnesses, test tooling. |
-
-### UI family: a family, not one package
-
-The UI surface is a **family** of packages on one shared design substrate, split by **dependency weight** rather than by naming. `@plainworks/theme` (L1) is the substrate — the three-tier tokens with the neutral role contract, nine color schemes plus dark mode, the resolve→hydrate theme runtime, one CSP-safe `styles.css`, and `cn`. `@plainworks/elements` (L2) **owns** the ~47 shadcn/Base-UI atoms. `@plainworks/ui` (L3) holds the plainworks-authored composites and the interwoven `forms` and `data` concerns, consuming atoms downward from `elements` and styling against `theme` tokens. Every member publishes standard npm subpaths; the two that ingest atoms — `elements` and `ui` — also maintain an authoring `registry.json` derived from disk (hosted registry endpoints and CLI distribution remain future work).
-
-```mermaid
-graph TD
-  std["std (L0)"] --> theme["theme (L1)<br/>tokens · schemes · runtime · cn"]
-  theme --> elements["elements (L2)<br/>owned atoms · registry · CLI"]
-  elements --> ui["ui (L3)<br/>general · forms · data"]
-  ui --> charts["charts (L4, reserved)"]
-  ui --> media["media (L4, reserved)"]
-  ui --> editors["editors (L4, reserved)"]
-  elements --> charts
-  elements --> media
-  elements --> editors
-```
-
-**The membership rule.** A UI concern earns its **own package** only when it is a **leaf** (no other family member imports it) **and** carries **heavy, independent** dependencies. Otherwise it stays a **concern subpath inside `ui`**. That is why `forms` and `data` live inside `ui`: they pull on each other — a data grid uses form fields, and a form field may need a data-driven picker — so as separate packages they would force a guessed layer order and risk a cycle the gate rejects. Keeping them one package lets the internal gate resolve that tension in **one** direction: `data → forms` is legal, and any piece both want (a picker, a shared cell) **sinks to a lower band** rather than creating a `forms → data` back-edge. The heavy leaf domains **`charts`** (recharts), **`media`**, and **`editors`** (tiptap) are reserved **above** `ui` as their own L4 packages so each can reuse `ui`'s Card / EmptyState / theme freely while nothing in `ui` depends on them, keeping the graph acyclic. They are named and layered now but scaffolded only when a real screen needs one; adding the first pushes `app`/`testkit`/`mocks` from L4 to L5. Until then, `ui` at L3 with `app` at L4 is the valid intermediate state.
-
-**Internal order inside `ui`.** The concern folders form their own downward-only order — **foundation** (hooks, atom re-exports) → **general** (layout, feedback, overlays, display, navigation) → **forms** → **data** (data-table, list). A concern imports only a strictly lower band; a sibling or upward concern import is rejected by the same boundary gate (a `no-ui-upward-*` rule per concern), so a piece shared across concerns sinks to a lower band instead of creating a back-edge. `data → forms` is legal; a `forms`-needs-`data` case is solved by sinking the shared piece down, never a back-edge.
-
-`elements` is fed by a **CLI-driven ingestion pipeline**, not a source checkout: `registry add`/`update` run `shadcn add` against the upstream registry, then apply a deterministic **compat transform** (rewrite the `cn` import onto `@plainworks/theme`, force per-module `"use client"`) and a Biome format, producing an **owned, editable, lint-clean** file under `src/atoms`. `registry diff` is advisory and `registry validate` is an offline schema/existence check — there is no pristine snapshot, `.patch`, or drift gate. `registry.json`, the `exports` map, the tsdown entries, and the `.` manifest are all **codegenerated from the atom files on disk**, so none can drift from the actual set; a test re-derives them and asserts no change. Consumers import published per-atom subpaths (`@plainworks/elements/button`); the internal `@/` alias exists only to keep shadcn upgrades clean, while `registry.json` serves as an authoring manifest until registry distribution is hosted.
-
-### Seams point down, implementations live up
-
-When a higher layer needs to plug into a lower one, the **seam is defined in the lower layer and implemented higher**. The `AuthHeaderProvider` seam and the event shapes live once in `std`; `channel` and `auth` implement against them. No package reaches across a boundary, and no seam is copied twice to drift apart.
+1. Find the package that owns the concern.
+2. Keep the package in its assigned layer.
+3. Import only from a strictly lower layer.
+4. Define a shared seam in the lowest consuming layer and implement it higher.
+5. Put React or browser behavior behind `./client`; keep `.` neutral.
 
 ```mermaid
 flowchart TD
-  auth["auth (L3)<br/>implements the seam"] -. injects .-> seam
-  seam["AuthHeaderProvider seam<br/>defined in std (L0)"]
-  http["http (L1)<br/>consumes the seam"] --> seam
+  L4["L4 · app · testkit · mocks"] --> L3["L3 · auth · ui"]
+  L3 --> L2["L2 · channel · connect · query · elements"]
+  L2 --> L1["L1 · state · http · theme"]
+  L1 --> L0["L0 · std"]
 ```
 
-*The contract lives at the bottom; the two ends meet at composition, not through a cross-layer import.*
+*Arrows show the only allowed `@plainworks/*` import direction.*
 
-### Enforcement
+## Layer map
 
-**dependency-cruiser**, isolated in [`@plainworks/boundaries`](../internal/boundaries), encodes the map from a single `LAYERS` table ([`.dependency-cruiser.cjs`](../internal/boundaries/.dependency-cruiser.cjs)) and fails CI on any upward or sideways import or cycle, naming the offending file and rule. The gate **fails closed**: a package absent from `LAYERS` may import nothing, so it can never go vacuously green. The same config also enforces the internal `foundation → general → forms → data` order inside `@plainworks/ui`. Fixture-backed tests prove the gate actually rejects a bad import — an upward package import, a same-layer one, and an upward or sibling concern import inside `ui`.
+| Layer | Packages | Responsibility |
+|---|---|---|
+| **L0** | `std` | Errors, results, guards, resilience, shared seams, list contracts, and structural web types. No React. |
+| **L1** | `state`, `http`, `theme` | Reactive state, typed HTTP, and the design-token substrate. |
+| **L2** | `channel`, `connect`, `query`, `elements` | Streaming, RPC, TanStack Query integration, and owned UI atoms. |
+| **L3** | `auth`, `ui` | Authentication, OIDC with PKCE, forms, data, navigation, and UI composites. |
+| **L4** | `app`, `testkit`, `mocks` | Application composition, shared test tooling, and deterministic API fixtures. |
 
-## Invariants
+[`internal/boundaries/.dependency-cruiser.cjs`](../internal/boundaries/.dependency-cruiser.cjs) owns the authoritative `LAYERS` table. dependency-cruiser rejects upward imports, same-layer imports, cycles, and imports from packages missing from the table.
 
-Every package holds to these; review and the gates check them.
+The workspace has three roots:
 
-| Invariant | What it means |
+| Root | Purpose |
 |---|---|
-| **No import-time side effects** | Importing a module never dials the network or reads env. Adapters register via an explicit `register()` / `createX({...})`. |
-| **No module-level singletons** | Stores, clients, and sessions come from per-request factories, so they are SSR/RSC-safe. |
-| **Explicit adapter registration** | Adapters go into an injected registry — no global registry, no string-based service locator. |
-| **Header-only auth** | A token never rides in a URL or query string. |
-| **Runtime primitive contract** | Universal primitives used directly; non-universal ones injected as seams; the neutral `.` entry stays DOM- and Node-builtin-free. |
-| **Typed errors, no `any`** | Errors are typed values, never thrown strings; public APIs expose no `any`. |
-| **Accessible & responsive by default** | Interactive `./client` code meets WCAG 2.2 AA, is mobile-first and fluid, honors `prefers-reduced-motion` / `prefers-color-scheme`, and carries an axe assertion per component. |
-| **ESM-only, real `dist`** | Correct `exports` / `types` / `files`; each package ships a tsdown `dist`; `typecheck` is separate from `build`. The `check-packaging` gate (**publint** + **are-the-types-wrong**) validates each built tarball's `exports`/`types` resolution. |
+| `packages/*` | Published `@plainworks/*` packages generated from the golden template. |
+| `apps/*` | Private consumers and examples. Route trees stay app-local. |
+| `internal/*` | Development tooling and cross-package tests that are never published. |
+
+Published packages ship ESM, set `"sideEffects": false`, expose a server-safe `.`, and add `./client` only when needed. Their manifests publish `dist` and keep React dependencies as catalog-managed peers.
+
+## Choose an entry point
+
+plainworks separates code by runtime requirement rather than framework.
+
+| Entry | Runtime contract | Typical hosts |
+|---|---|---|
+| **Neutral `.`** | No React, DOM global, Node builtin, or framework assumption. | Node, Bun, Deno, edge runtimes, workers, React Server Components, and React Native with required polyfills. |
+| **Client `./client`** | React bindings or browser behavior. Browser-only modules carry `"use client"`. | Browser SPAs, client components, and Electron renderers. |
+| **Server `./server`** | Server-only behavior that must stay out of client graphs. | BFFs and server runtimes. |
+
+React Native can use DOM-free hooks from packages such as `state`, `query`, `channel`, and `auth`. DOM UI and browser storage do not belong in its graph.
+
+Workers inject SSE because they do not provide `EventSource`. Electron renderers use the DOM client entry but must keep BFF-managed tokens in memory rather than browser storage. React Native hosts inject missing cryptography, storage, or streaming primitives.
+
+### Runtime primitives
+
+Use standardized value primitives directly. Inject behavior that varies by host or must be replaced in tests.
+
+| Kind | Rule | Examples |
+|---|---|---|
+| **Universal value** | Use directly. | `AbortController`, `AbortSignal`, `Headers`, `URL`, `URLSearchParams`, `Response`, `TextDecoder` |
+| **Host-varying behavior** | Accept through an injected seam with a platform default. | `fetch`, SSE, `WebSocket`, `crypto.subtle`, token storage |
+
+The shared ES2023 compile configuration includes no DOM or Node libraries. `types/universal-web.d.ts` declares the supported universal surface, and `@plainworks/std/web` provides structural public types. A neutral module that names `document`, `window`, `localStorage`, `navigator`, `EventSource`, or a Node builtin fails typecheck. Fixtures in `@plainworks/boundaries` prove this gate.
+
+The neutral entry already gives React Server Components a server-safe build, so packages do not need a duplicate `react-server` export condition.
+
+## Distribution
+
+Published packages use standard npm exports. `elements` and `ui` also derive local `registry.json` authoring manifests from their source files so components can remain owned and editable.
+
+| Surface | Use |
+|---|---|
+| **npm package** | Import versioned infrastructure and UI packages through their public exports. |
+| **Registry manifest** | Describe owned `elements` and `ui` source for component authoring. |
+
+## Naming and structure
+
+Each package owns **one concern with one plain-word name**. Do not create packages or folders named `core`, `engine`, `foundation`, `utils`, `helpers`, or `misc`.
+
+A concern that spans several modules uses a concern-named folder with a re-export-only `index.ts`. A single-module concern stays in a clearly named file. Paths and exports qualify ambiguous verbs, such as `pipeline/interceptor.ts` with `composeInterceptors`.
+
+`@plainworks/std` is the zero-dependency base. Move a concern into its own package when it has a distinct responsibility rather than turning `std` into a catch-all.
+
+## UI package family
+
+The UI packages share one design substrate and split by dependency weight.
+
+```mermaid
+flowchart TD
+  theme["theme · L1<br/>tokens, schemes, runtime"] --> elements["elements · L2<br/>owned atoms"]
+  elements --> ui["ui · L3<br/>forms, data, composites"]
+```
+
+*UI dependencies flow from the theme substrate toward higher-level components.*
+
+`theme` owns token roles, color schemes, theme resolution, `styles.css`, and `cn`. `elements` owns the Base UI and shadcn atoms. `ui` composes those atoms into forms, data surfaces, navigation, overlays, and feedback.
+
+Create a separate UI package only for a **leaf concern** that has heavy, independent dependencies and is not imported by another UI-family package. Keep interdependent concerns inside `ui` so the boundary gate can enforce one direction.
+
+Inside `ui`, concerns follow a second downward-only order: **foundation → general → forms → data**. `data` may use `forms`; `forms` may not import `data`. Shared pieces move to a lower concern instead of creating a back-edge. The boundary configuration enforces this order.
+
+`elements` ingests atoms through its registry commands. `registry add` and `registry update` run shadcn, rewrite shared imports to `@plainworks/theme`, add `"use client"` where required, and format the owned source. `registry diff` is advisory. `registry validate` checks the derived manifest offline. Code generation derives `registry.json`, package exports, and tsdown entries from the atom files, so edit the manifest source rather than generated files.
+
+Consumers import atoms through per-component exports such as `@plainworks/elements/button`.
+
+## Composition rules
+
+### Define seams low
+
+When packages in different layers share a capability, define the contract in the lowest layer that consumes it. Higher layers implement or inject that contract.
+
+```mermaid
+flowchart TD
+  auth["auth · L3<br/>implements"] -. injects .-> seam["AuthHeaderProvider<br/>std · L0"]
+  http["http · L1<br/>consumes"] --> seam
+```
+
+*The packages meet through a lower-layer contract, not a cross-layer import.*
+
+The same rule applies to event shapes, stream transports, state sources, and other host capabilities.
+
+### Inject components at the call site
+
+React components are not neutral data seams. Pass component-valued extensions, such as links, icons, image loaders, or controls, at the call site with their data. For example, a breadcrumb accepts a host-provided `render` function and defaults to a plain anchor. Do not route components through a lower-layer seam or an upward registry lookup.
+
+### Keep construction explicit
+
+Imports must not read environment state, open handles, or dial a network. Create stores, clients, sessions, and registries per request through factories. Register adapters explicitly through an injected registry or `createX({...})`; do not use global mutable registries or string service locators.
+
+## Security and UI invariants
+
+| Invariant | Required behavior |
+|---|---|
+| **Authentication** | Send credentials in headers or secure `__Host-` cookies. Never put tokens in URLs, `localStorage`, or `sessionStorage`. Keep server token custody outside client graphs. |
+| **OIDC** | Use Authorization Code with PKCE `S256`. Reject insecure algorithms and validate redirects and state. |
+| **Errors** | Expose typed, actionable errors that preserve causes. Never throw strings, swallow failures, or return success-shaped fallbacks. |
+| **Async ownership** | Give streams, subscriptions, timers, queues, and abort controllers explicit cancellation and teardown. Bound buffers and retries. |
+| **Accessibility** | Interactive client code meets WCAG 2.2 AA, supports keyboard and visible focus, uses 24×24 CSS-pixel targets, and includes an axe assertion. |
+| **Responsive UI** | Use fluid, mobile-first layouts, container queries, and reduced-motion and color-scheme preferences. Avoid fixed-size traps. |
+| **Packaging** | Ship ESM-only `dist`, correct exports and types, and no committed build output. |
 
 ## Testing
 
-Tests fall into three deliberate layers. The line between them is *what is faked*, not how much code runs.
-
-| Layer | What is assembled | Fakes / doubles | Home |
+| Scope | What runs | External edges | Location |
 |---|---|---|---|
-| **Unit** | One module's pure logic | `@plainworks/testkit` fakes (`fakeFetch`, fake transports) | Each package's `src/**/*.test.ts` |
-| **Integration** | Real `@plainworks/*` packages wired together | Edges faked — the **MSW** mock service (`@plainworks/mocks`, `onUnhandledRequest: "error"`), in-memory doubles | `internal/integration` |
-| **e2e** | An assembled surface with nothing faked | None — a real browser/server/DB | *reserved* (a future `internal/e2e`) |
+| **Unit** | One package or concern | Shared fakes from `@plainworks/testkit` | Package `src/**/*.test.ts` files |
+| **Integration** | Built public exports from several packages | MSW or in-memory doubles | [`internal/integration`](../internal/integration) |
 
-Unit tests stay on `testkit` fakes — mocking the network at the socket for a single-module test would only slow it down. The **integration** layer is where the kit proves it speaks the same wire a consumer's backend does, so it runs against the MSW mock service through its real `fetch` boundary. **Depth** — smoke (shallow "does it run") through thorough — is a property of an individual test, captured in its filename, not a separate folder.
+Unit tests assert behavior with deterministic clocks, seeded randomness, and no real network or filesystem. React tests query by role or label, use `user-event`, and assert accessibility. Integration tests run against built package exports so they exercise what a consumer installs.
 
-### Why a separate home
+Cross-package tests live outside published packages because a lower package cannot import higher-layer fixtures. The boundary gate prevents packages from importing `apps/` or `internal/`.
 
-An integration test assembles several `@plainworks/*` packages at once — `http` builds the request, `mocks` (L4) answers it, `query` derives the cache key. A test *inside* `packages/http` can't import `mocks`: that is an upward L1→L4 import the boundary gate rejects. So cross-package tests live in [`internal/integration`](../internal/integration), a dev-only workspace that depends **downward** on the published surfaces; the `no-package-into-apps-or-internal` boundary rule keeps every published package from importing it, so the cross-package tests can never leak into the shipped graph. It compiles and runs against each dependency's built `dist`, so it exercises exactly what a consumer installs. Inside it, tests are organized **by concern folder, one scenario per file** — no `test/`/`smoke/` sub-layer, since the whole package is integration by scope.
+### List request flow
 
-### The list wire: one abstract contract, per-transport dialects
-
-The PostgREST/Supabase-style list read splits by concern across three homes, so each transport can serialize the **same** abstract request its own way:
-
-- **The abstract contract** — the typed request (`ListQueryParams`, `ListFilter` and variants), the response envelopes (`PageInfo`, `PaginatedResult`, `CursorResult`, `Facets`), and the operator **vocabulary** `FilterOperator` (the operator *names* as a concept) — is defined **once** in `@plainworks/std` (L0, the lowest common layer of its consumers). It carries no URL or wire token.
-- **The REST wire dialect** — the operator→token map, the longest-first token ordering, the token resolvers, and the value escape/parse codec — lives in `@plainworks/http` (L1), paired with the serializer `buildListQuery`. The `mocks` REST backend (L4) binds **downward** to `@plainworks/http/list` to parse that same dialect, so serializer and parser read one codec and can't drift. A future `connect`/`graphql` transport serializes the same `std` params differently and owns its own keys.
-- **The cache keys** — `query` (L2) derives `listQueryKey`/`infiniteListQueryKey` from the abstract `ListQueryParams` alone; it never touches a wire token. A `query` consumer imports the list **types** from `@plainworks/query` (the facade).
-
-The offset envelope is typechecked against `PageInfo` on both the mock and the consumer, so a renamed field is a compile error. The integration list suite ([`internal/integration/list`](../internal/integration/list)) rides this end-to-end — `buildListQuery(params)` → MSW parse in `mocks` → `PaginatedResult<T>` / `CursorResult<T>` decode → deterministic `listQueryKey` — with one scenario file per behavior (wire serialization, cache keys, offset and cursor paging, aborts, empty pages).
+The list capability separates an abstract request from its REST encoding and cache identity.
 
 ```mermaid
 flowchart LR
-  params["ListQueryParams<br/>(std, L0)"] --> build["buildListQuery<br/>(http, L1)"]
-  build -->|"field=op.value wire"| msw["MSW parse<br/>(mocks, L4)"]
-  msw -->|"{ data, pagination, facets }"| decode["PaginatedResult / CursorResult<br/>(std envelopes)"]
-  params --> key["listQueryKey<br/>(query, L2)"]
-  shapes{{"abstract shapes + FilterOperator<br/>@plainworks/std (L0)"}} -.-> params
-  shapes -.-> key
-  dialect{{"REST wire dialect<br/>@plainworks/http (L1)"}} -.-> build
-  dialect -.->|"bound downward"| msw
+  params["ListQueryParams<br/>std · L0"] --> wire["buildListQuery<br/>http · L1"]
+  wire --> mock["REST parser<br/>mocks · L4"]
+  mock --> envelope["PaginatedResult or CursorResult"]
+  params --> key["listQueryKey<br/>query · L2"]
 ```
 
-## Governance
+*One abstract request drives the REST wire and a transport-independent cache key.*
 
-| Concern | Tool |
+`std` owns `ListQueryParams`, filters, operators, and response envelopes without URL tokens. `http` owns the REST operator tokens, escaping, parsing, and `buildListQuery`. `mocks` reuses that HTTP dialect to parse requests. `query` derives cache keys from the abstract parameters and re-exports the list types as the consumer facade.
+
+The integration suite verifies serialization, offset and cursor paging, cache keys, empty results, aborts, and typed server failures across these packages.
+
+## Repository governance
+
+| Concern | Tool or rule |
 |---|---|
-| Task runner / caching | Turborepo |
-| Package generator | `@turbo/gen` via `bun run gen` (golden template; CI regenerates and re-gates the output) |
-| Build | tsdown (ESM-only, per-module `"use client"`, ships `dist`) |
-| Lint / format | Biome |
-| Layer boundaries + cycles | dependency-cruiser (in `@plainworks/boundaries`) |
-| Packaging validation | publint + are-the-types-wrong (`@arethetypeswrong/cli`) over each built tarball, via `bun run check-packaging` |
-| Runtime primitive contract | ES2023-only compile config (no DOM/Node lib) + `types/universal-web.d.ts` shim, enforced at `typecheck`; portability fixtures in `@plainworks/boundaries` |
-| Version sync | Syncpack (`catalog` policy) + Sherif (cross-package divergence) |
-| Tests / coverage | Vitest — ≥ 80% per package, ≥ 85% for security-critical packages like `auth` |
-| Releases | Changesets; published with npm provenance (SLSA attestation) via trusted publishing |
+| Tasks and caching | Turborepo |
+| Package generation | `@turbo/gen` through `bun run gen` |
+| Build | tsdown, ESM-only |
+| Lint and format | Biome |
+| Boundaries and cycles | dependency-cruiser |
+| Packaging | publint and are-the-types-wrong |
+| Portability | ES2023-only typecheck and boundary fixtures |
+| Version synchronization | Syncpack and Sherif against one Bun catalog |
+| Tests and coverage | Vitest; 80% per package and 85% for security-critical packages |
+| Releases | Changesets and npm trusted publishing with provenance |
 
-### One version list
+Every dependency version lives in the root Bun catalog. Package manifests use `catalog:` so Syncpack and Sherif can reject inline or divergent versions.
 
-Dependency versions are pinned in **one place** — the bun **catalog** in the root `package.json`. Every package references `catalog:` instead of an inline version, peer ranges included. Syncpack fails CI if a package inlines a version or names a dependency missing from the catalog, and Sherif flags any dependency that resolves to different versions across packages.
+### TypeScript 6 boundary
 
-### TypeScript: 6 now, 7 later
+The catalog pins TypeScript to `^6.0.3` because dependency-cruiser requires the JavaScript Compiler API. TypeScript 7 does not provide that API. Raising the catalog to TypeScript 7 would stop dependency-cruiser from extracting imports and silently disable the layer gate.
 
-The catalog pins **`typescript` at `^6.0.3`** on purpose. TypeScript 7 (the native Go `tsgo` compiler) does not yet ship a JavaScript Compiler API, so the TS-AST tooling this repo depends on — **dependency-cruiser**, the boundary and cycle gate — cannot run on it. Bumping to 7 would make dependency-cruiser silently stop reading imports and **disable the layer gate** instead of failing loudly. A test in `@plainworks/boundaries` asserts the catalog stays on the 6 line and fails CI the moment someone raises it.
+`@plainworks/boundaries` tests enforce the TypeScript 6 line. Do not raise the catalog past TypeScript 6 unless the boundary package first receives a compiler implementation that can still extract and validate imports.
 
-The migration is pre-wired to be a one-file flip. dependency-cruiser is the only consumer of the TS Compiler API and is isolated in `@plainworks/boundaries` with its own `typescript` dependency. When the Compiler API lands on TS7, alias `typescript` → `@typescript/typescript6` in that one package and relax the guard — no other package moves. Until then, **do not raise the catalog `typescript` past 6** without re-homing the gate first.
+## Definition of Done
+
+Run all gates from the repository root:
+
+```sh
+bun run check-versions
+bun run lint
+bun run check-comments
+bun run typecheck
+bun run check-boundaries
+bun run build
+bun run test
+bun run check-packaging
+```

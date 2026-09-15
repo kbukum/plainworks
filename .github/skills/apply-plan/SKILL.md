@@ -13,7 +13,7 @@ description: >-
 
 ## Input
 
-A plan folder under `tmp/` — e.g. `tmp/connection-sse-reconnect/`. If the caller does not name one, list candidates and ask which to apply:
+A plan folder under `tmp/` — e.g. `tmp/channel-sse-reconnect/`. If the caller does not name one, list candidates and ask which to apply:
 
 ```bash
 ls -d tmp/*/

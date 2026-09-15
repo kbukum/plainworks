@@ -16,7 +16,7 @@ export default preset({
     "data-table": "src/client/data-table/index.ts",
     forms: "src/client/forms/index.ts",
     list: "src/client/list/index.ts",
-    "error-fallback": "src/client/components/error-fallback/index.ts",
+    "error-fallback": "src/client/error-fallback/index.ts",
     "theme-client": "src/client/theme/index.ts",
     accordion: "src/client/atoms/accordion.ts",
     alert: "src/client/atoms/alert.ts",
@@ -66,4 +66,7 @@ export default preset({
     "toggle-group": "src/client/atoms/toggle-group.ts",
     tooltip: "src/client/atoms/tooltip.ts",
   },
+  // tsdown has no CSS pipeline, so the Tailwind-source stylesheet is copied verbatim into
+  // `dist`; the `./styles.css` export resolves from the build output the packaging gate covers.
+  copy: [{ from: "src/styles.css", to: "dist" }],
 })

@@ -274,6 +274,50 @@ const forbidden = [
     to: { path: "(^|/)packages/auth/src/server(\\.tsx?$|/)" },
   },
   {
+    // OIDC token-custody and OAuth stack quarantine. The OIDC adapter modules (`adapter/oidc/**`)
+    // hold the OAuth2 client stack (`oauth4webapi` / `jose`) and in-memory access/refresh tokens.
+    // They must never be pulled into a `"use client"` bundle. The type/constant-only `config.ts`
+    // is exempt so neutral and client code can declare or configure the adapter kind.
+    name: "no-client-into-auth-oidc",
+    comment:
+      'A client graph (src/client.ts or src/client/**) must not import @plainworks/auth OIDC adapter custody (packages/auth/src/adapter/oidc) — OAuth stack and token custody never enter a "use client" bundle (config.ts is exempt).',
+    severity: "error",
+    from: {
+      path: "(^|/)packages/[^/]+/src/client(\\.tsx?$|/)",
+      pathNot: [
+        "(^|/)packages/auth/src/server(\\.tsx?$|/)",
+        "(^|/)packages/auth/src/adapter/oidc/",
+        TEST_FILE,
+      ],
+    },
+    to: {
+      path: "(^|/)packages/auth/src/adapter/oidc/",
+      pathNot: "(^|/)packages/auth/src/adapter/oidc/config(\\.tsx?$)",
+    },
+  },
+  {
+    // OIDC custody ownership — the transitive half of the quarantine. A neutral (non-server) auth
+    // module reaching into `adapter/oidc/**` must trip this rule, proving the OAuth stack and tokens
+    // are reachable only through auth's own server entry — so a client or neutral importer of the
+    // `.` barrel can never reach custody (config.ts is exempt).
+    name: "no-nonserver-into-auth-oidc",
+    comment:
+      "Only @plainworks/auth's own server graph (server.ts + server/**) and the OIDC adapter itself may import OIDC adapter modules; the neutral `.` and client graphs must never reach the OAuth stack or token custody (config.ts is exempt).",
+    severity: "error",
+    from: {
+      path: "(^|/)packages/auth/src/",
+      pathNot: [
+        "(^|/)packages/auth/src/server(\\.tsx?$|/)",
+        "(^|/)packages/auth/src/adapter/oidc/",
+        TEST_FILE,
+      ],
+    },
+    to: {
+      path: "(^|/)packages/auth/src/adapter/oidc/",
+      pathNot: "(^|/)packages/auth/src/adapter/oidc/config(\\.tsx?$)",
+    },
+  },
+  {
     // app-F2'/app-F3: the @plainworks/app composition kernel is `ui`-free by charter. `ui` is L3 and
     // `app` is L4, so the layer rules would *allow* app→ui (a downward import); this rule forbids it
     // anyway. The neutral `.` core and the headless `./client` binding compose whatever capabilities

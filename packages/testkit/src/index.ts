@@ -6,6 +6,8 @@ export type { Deferred } from "./async"
 export { deferred, flushMicrotasks } from "./async"
 export type { FakeAuthOptions, FakeAuthProvider } from "./auth"
 export { fakeAuthHeaderProvider } from "./auth"
+export type { FakeStreamAttempt, FakeStreamTransport } from "./channel"
+export { fakeStreamTransport } from "./channel"
 export type { ManualClock } from "./clock"
 export { manualClock } from "./clock"
 export type { AutoBackoffDelay, ManualDelay, PendingDelay } from "./delay"
@@ -14,6 +16,8 @@ export type { Recorder, TestEmitter } from "./events"
 export { createEmitter, recordEvents } from "./events"
 export type { FakeFetch, FakeFetchImpl, FetchCall, FetchOutcome } from "./http"
 export { fakeFetch } from "./http"
+export type { MockAuthorizeResult, MockIdp, MockIdpAlg, MockIdpOptions } from "./oidc"
+export { createMockIdp } from "./oidc"
 export type { SeededRandom } from "./random"
 export { seededRandom } from "./random"
 export { expectErr, expectOk } from "./result"
@@ -24,6 +28,7 @@ export type {
   AsyncStateSourceOptions,
   DeferredRead,
   DeferredStateSource,
+  DeferredStateSourceOptions,
   FakeStateSource,
   FakeStateSourceOptions,
 } from "./state"

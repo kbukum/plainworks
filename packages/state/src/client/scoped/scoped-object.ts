@@ -1,13 +1,13 @@
 "use client"
 
 import type { StandardSchemaV1, StateSerializer, StateSource } from "@plainworks/std"
+import { createSourceReconciler } from "@plainworks/std"
 import type { ReactNode } from "react"
 import { type StateFieldFailure, StateSourceError } from "../../errors"
 import type { Scope } from "../../scope/scope"
 import { assertScopeAllowsSensitivity, type Sensitivity } from "../../scope/sensitivity"
 import { jsonSerializer } from "../../scope/serializer"
 import { createStore } from "../../store"
-import { createSourceReconciler } from "./reconcile"
 import { createScopedSurface, mergeActions, type Report, type ScopedInstance } from "./surface"
 
 /** A single field in a {@link createScopedObject} composite: where it lives, its default, and how it encodes. */

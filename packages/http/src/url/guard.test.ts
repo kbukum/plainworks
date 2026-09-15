@@ -1,6 +1,6 @@
 import { expect, test } from "vitest"
 import { HttpError } from "../error"
-import { assertSafeRequestUrl } from "./build"
+import { assertSafeRequestUrl } from "./guard"
 
 test("accepts a clean absolute URL", () => {
   expect(() => assertSafeRequestUrl("https://api.test/v1/widgets?page=2")).not.toThrow()

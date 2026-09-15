@@ -83,3 +83,35 @@ expect(fake.calls[0]?.header.get("authorization")).toBe("Bearer …")
 - **Shared fixture** — `EchoService` + typed `echoRequest`/`echoResponse`/`countRequest`/`countResponse` factories, generated from `proto/plainworks/testkit/v1/echo.proto`.
 
 The proto is the source of truth; regenerate the checked-in `*_pb.ts` with `bun run gen:proto` (dev-only buf + `protoc-gen-es` — build, typecheck, and test never need buf).
+
+## Streaming transport double — `fakeStreamTransport`
+
+A scripted `StreamTransportFactory` for testing anything built on the `@plainworks/std` stream seam — a channel, an app's live view, or an integration flow — without SSE or WebSocket sockets. You drive each connection attempt by hand: open it, push frames, then end it cleanly or with an error. It honors the abort seam like a real adapter, so reconnect, resume-from-cursor, and teardown all exercise the same double.
+
+```ts
+import { fakeStreamTransport } from "@plainworks/testkit"
+
+const transport = fakeStreamTransport()
+const channel = createChannel({ transport: transport.factory /* ... */ })
+
+const attempt = transport.current // the live attempt
+attempt.open() // the consumer sees the stream open
+attempt.frame({ data: "hello" }) // push a frame
+attempt.endError(new Error("drop")) // or endOk() to close cleanly
+
+// The consumer resumes with the last cursor it saw:
+expect(transport.attempts[1]?.context.lastEventId).toBe("42")
+transport.assertClosed() // throws if any attempt leaked (never torn down)
+```
+
+## OpenID Provider double — `createMockIdp`
+
+A deterministic, in-process OpenID Provider for testing an OIDC adapter end to end. It mints **real, JWKS-verifiable** tokens with `jose`, so the adapter runs its genuine discovery, PKCE, nonce, and token-verification path — only the network is faked (no MSW, no sockets). It exposes the `fetch` seam the adapter consumes plus an `authorize` helper that stands in for the user-agent's visit to the authorization endpoint, and it drives the failure paths: `failNextTokenExchange`, replayed codes, PKCE-verifier mismatch, and `idTokenNonceOverride` for a replay test.
+
+```ts
+import { createMockIdp } from "@plainworks/testkit"
+
+const idp = await createMockIdp({ claims: { email: "user@idp.test" } })
+// Configure the adapter's `fetch` seam with `idp.fetch`, then, after building the authorization URL:
+const { callbackUrl } = idp.authorize(authorizationUrl) // redirect-back URL with code + state
+```

@@ -28,6 +28,12 @@ export function writeQueryData<T>(
  * for an event that says "something changed, re-read it" without carrying the new value. Matching
  * is a **prefix** match on `filters.queryKey` (as TanStack invalidation always is), so invalidating
  * `["users"]` refetches every `["users", …]` query. Returns the settle promise of the refetches.
+ *
+ * This overlaps `@plainworks/connect`'s `createInvalidator` (both are thin prefix-invalidation
+ * wrappers over TanStack `invalidateQueries`) on purpose: `query` and `connect` are sibling L2
+ * packages, so neither may import the other and the shared shape stays duplicated. Do not "fix"
+ * this into a cross-package import — it would be an illegal sideways layer dependency. This one is
+ * protocol-agnostic; the Connect helper owns Connect-specific key construction.
  */
 export function invalidateCache(
   client: QueryClient,

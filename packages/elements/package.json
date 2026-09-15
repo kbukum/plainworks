@@ -32,8 +32,7 @@
     "dist",
     "registry.json",
     "src/atoms",
-    "!src/atoms/**/*.test.*",
-    "src/styles.css"
+    "!src/atoms/**/*.test.*"
   ],
   "exports": {
     ".": {
@@ -200,7 +199,6 @@
       "types": "./dist/sonner.d.ts",
       "import": "./dist/sonner.js"
     },
-    "./styles.css": "./src/styles.css",
     "./switch": {
       "types": "./dist/switch.d.ts",
       "import": "./dist/switch.js"
@@ -228,7 +226,8 @@
     "./tooltip": {
       "types": "./dist/tooltip.d.ts",
       "import": "./dist/tooltip.js"
-    }
+    },
+    "./styles.css": "./dist/styles.css"
   },
   "scripts": {
     "build": "tsdown",

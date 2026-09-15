@@ -1,6 +1,6 @@
 # @plainworks/mocks
 
-> Shared MSW request handlers, seeded data factories, and mock-server setup for plainworks tests and the showcase.
+> Reusable mock-building primitives — plus a ready-made demo domain — built on MSW for plainworks tests and the showcase.
 
 Part of the [plainworks](../../README.md) kit.
 
@@ -10,13 +10,17 @@ Part of the [plainworks](../../README.md) kit.
 bun add @plainworks/mocks
 ```
 
+## Which half do you want?
+
+The package has two halves, split at the import site. The main `@plainworks/mocks` entry is the **framework**: entity factories, an in-memory store, CRUD handler generation, a mock control plane, the PostgREST-style filter dialect, and the query/fixture utilities — the pieces you compose to mock *your own* API. The `@plainworks/mocks/domain` entry is a **ready-made demo domain**: a fake commerce/SaaS fixture set (users, orders, products, tasks, content, notifications, settings, dashboard) and the `createMockApi()` graph that wires it together — what the showcase and the kit's own integration tests run against. Reach for `/domain` to get a working API instantly; reach for the main entry to build one.
+
 ## Usage
 
-Everything starts from `createMockApi()` — one call builds a complete, isolated mock graph (seeded fixtures, stores, latency, control state, and the MSW handlers closing over them). Nothing lives in module scope, so parallel servers never observe or reset each other. With the same `seed` and a fixed `clock`, fixtures — content, ids, and timestamps — reproduce exactly, independent of request order.
+The ready-made demo domain starts from `createMockApi()` — one call builds a complete, isolated mock graph (seeded fixtures, stores, latency, control state, and the MSW handlers closing over them). Nothing lives in module scope, so parallel servers never observe or reset each other. With the same `seed` and a fixed `clock`, fixtures — content, ids, and timestamps — reproduce exactly, independent of request order.
 
 ```ts
 // Node tests (Vitest, etc.)
-import { createMockApi } from "@plainworks/mocks"
+import { createMockApi } from "@plainworks/mocks/domain"
 import { createMockServer } from "@plainworks/mocks/server"
 
 const api = createMockApi({ seed: 42 }) // fresh, isolated mock graph
@@ -44,18 +48,16 @@ afterAll(() => server.close())
 
 ```ts
 // Vite dev-server middleware
-import { createMockApi } from "@plainworks/mocks"
+import { createMockApi } from "@plainworks/mocks/domain"
 import { mockServerPlugin } from "@plainworks/mocks/vite-plugin"
 
 mockServerPlugin(createMockApi().handlers)
 ```
 
-The server-safe `.` entry also exposes the per-domain fixture sources, entity factories, settings storage, the PostgREST/Supabase-style filter parser, and the pure filter/sort/paginate utilities:
+The main `.` entry exposes the framework primitives you compose to mock your own entities — generic fixture sources, the entity factory and store, CRUD handler generation, the PostgREST/Supabase-style filter parser, and the pure query (filter/sort/paginate) and fixture (seeded random/id/date) utilities:
 
 ```ts
-import { createFixtureSources, createTaskFactory, parseApiParams } from "@plainworks/mocks"
-
-const tasks = createTaskFactory(createFixtureSources(7, "tasks")).createMany(3)
+import { createEntityFactory, createFixtureSources, parseApiParams } from "@plainworks/mocks"
 ```
 
 A few behaviors worth knowing:

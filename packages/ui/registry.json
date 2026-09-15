@@ -176,7 +176,7 @@
       "dependencies": ["@plainworks/elements"],
       "files": [
         {
-          "path": "src/client/components/error-fallback/error-fallback.tsx",
+          "path": "src/client/error-fallback/error-fallback.tsx",
           "type": "registry:ui"
         }
       ]

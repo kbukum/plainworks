@@ -17,10 +17,7 @@ export default defineConfig({
         "src/**/*.d.ts",
         "src/**/index.ts",
         "src/client.ts",
-        // Test-only harness (never shipped) and type-only seams (erase at build; no runtime to
-        // cover).
-        "src/transport/fake-transport.ts",
-        "src/transport/transport.ts",
+        // Type-only seams (erase at build; no runtime to cover).
         "src/events/sink.ts",
         "src/adapter/webtransport/interface.ts",
       ],

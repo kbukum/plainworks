@@ -109,7 +109,7 @@ export function buildExports(names) {
   for (const name of names) {
     exports[`./${name}`] = { types: `./dist/${name}.d.ts`, import: `./dist/${name}.js` }
   }
-  exports["./styles.css"] = "./src/styles.css"
+  exports["./styles.css"] = "./dist/styles.css"
   return exports
 }
 
@@ -149,6 +149,9 @@ export function renderTsdownConfig(names) {
     "  entry: {",
     entries,
     "  },",
+    "  // tsdown has no CSS pipeline, so the Tailwind-source stylesheet is copied verbatim into",
+    "  // `dist`; the `./styles.css` export resolves from the build output the packaging gate covers.",
+    "  copy: [{ from: \"src/styles.css\", to: \"dist\" }],",
     "})",
     "",
   ].join("\n")}`

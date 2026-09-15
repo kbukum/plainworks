@@ -9,7 +9,7 @@ description: >-
 
 # Releasing plainworks
 
-plainworks is a bun-workspace monorepo of independently-versioned `@plainworks/*` packages published to **npm** under the `@plainworks` scope. Releases are **Changesets-driven**: each change carries a changeset (its release-note + semver-bump intent), and Changesets aggregates them into version bumps and a generated changelog. There is no hand-maintained CHANGELOG. Distribution today is npm only — the copy-in registry is a parked, later deliverable.
+plainworks is a bun-workspace monorepo of independently-versioned `@plainworks/*` packages published to **npm** under the `@plainworks` scope. Releases are **Changesets-driven**: each change carries a changeset (its release-note + semver-bump intent), and Changesets aggregates them into version bumps and a generated changelog. There is no hand-maintained CHANGELOG. Distribution is npm only.
 
 ## Alpha stage — pre-release line
 

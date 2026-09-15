@@ -1,14 +1,5 @@
 "use client"
 
-// Client public entry for `@plainworks/ui` — re-export-only barrel over every client concern
-// module (never the server `.` barrel). The per-module `"use client"` directives make tsdown emit
-// this (and only the client graph) as the client entry; the server `.` entry stays clean. Per-
-// concern subpaths (`@plainworks/ui/data-table`, `@plainworks/ui/layout`, …) let consumers import a
-// single concern; this aggregate is the convenience surface. The DOM-free stately behaviour hooks
-// live in the neutral-compiled `src/hooks/` folder but are React, so they ship from here — never
-// from the neutral `.` entry.
-export type { ErrorFallbackProps } from "./client/components/error-fallback"
-export { ErrorFallback } from "./client/components/error-fallback"
 export type {
   ColumnAlign,
   DataTableColumn,
@@ -21,6 +12,15 @@ export type {
 export { DataTable, defaultDataTableLabels } from "./client/data-table"
 export type { DateInput, DateValueProps, NumberValueProps } from "./client/display"
 export { DateValue, NumberValue } from "./client/display"
+// Client public entry for `@plainworks/ui` — re-export-only barrel over every client concern
+// module (never the server `.` barrel). The per-module `"use client"` directives make tsdown emit
+// this (and only the client graph) as the client entry; the server `.` entry stays clean. Per-
+// concern subpaths (`@plainworks/ui/data-table`, `@plainworks/ui/layout`, …) let consumers import a
+// single concern; this aggregate is the convenience surface. The DOM-free stately behaviour hooks
+// live in the neutral-compiled `src/hooks/` folder but are React, so they ship from here — never
+// from the neutral `.` entry.
+export type { ErrorFallbackProps } from "./client/error-fallback"
+export { ErrorFallback } from "./client/error-fallback"
 export type {
   CalloutProps,
   CalloutTone,

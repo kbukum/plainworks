@@ -21,6 +21,12 @@ export interface InvalidateOptions<I extends DescMessage> {
  *
  * React-free: it takes any `@tanstack/query-core` `QueryClient` (the server-safe core of TanStack
  * Query), so it works in an RSC/server action as well as the browser.
+ *
+ * This overlaps `@plainworks/query`'s `invalidateCache` (both are thin prefix-invalidation wrappers
+ * over TanStack `invalidateQueries`) on purpose: `connect` and `query` are sibling L2 packages, so
+ * neither may import the other and the shared shape stays duplicated. Do not "fix" this into a
+ * cross-package import — it would be an illegal sideways layer dependency. This one owns the
+ * Connect-specific key construction (`createConnectQueryKey`) the generic helper cannot.
  */
 export function createInvalidator(queryClient: QueryClient) {
   return function invalidate<I extends DescMessage, O extends DescMessage>(

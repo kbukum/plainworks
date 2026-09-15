@@ -9,6 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@plainworks/channel": "workspace:*",
     "@plainworks/http": "workspace:*",
     "@plainworks/mocks": "workspace:*",
     "@plainworks/query": "workspace:*",

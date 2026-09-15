@@ -3,10 +3,15 @@
 // stays a thin per-attempt adapter. An optional app-level heartbeat sends a periodic ping through
 // the injected `Delay` seam so a NAT/proxy keeps the connection alive; the server's pong is an
 // ordinary inbound frame that resets the core's idle-read timer.
-import { type Delay, systemDelay } from "@plainworks/std"
+import {
+  type Delay,
+  type StreamTransport,
+  type StreamTransportContext,
+  type StreamTransportFactory,
+  systemDelay,
+} from "@plainworks/std"
 import { assertDurationMs } from "../../duration"
 import { ChannelError } from "../../error"
-import type { Transport, TransportContext, TransportFactory } from "../../transport"
 import { resolveUrl, type UrlSource } from "../url"
 import {
   resolveGlobalSocketFactory,
@@ -38,12 +43,12 @@ export interface WsTransportOptions {
 }
 
 /**
- * A pluggable WebSocket {@link TransportFactory} for {@link createChannel}. Each attempt opens one
- * socket (header-only auth via the injected factory), signals `onOpen`, maps every inbound message
- * to an `onFrame` of type `"message"`, and resolves on a clean close / rejects on an error or dirty
- * close.
+ * A pluggable WebSocket {@link StreamTransportFactory} for {@link createChannel}. Each attempt
+ * opens one socket (header-only auth via the injected factory), signals `onOpen`, maps every
+ * inbound message to an `onFrame` of type `"message"`, and resolves on a clean close / rejects on
+ * an error or dirty close.
  */
-export function createWsTransport(options: WsTransportOptions): TransportFactory {
+export function createWsTransport(options: WsTransportOptions): StreamTransportFactory {
   const { url, protocols, heartbeat, delay = systemDelay } = options
   const socketFactory = options.socketFactory ?? resolveGlobalSocketFactory()
   if (heartbeat !== undefined) {
@@ -56,8 +61,8 @@ export function createWsTransport(options: WsTransportOptions): TransportFactory
     }
   }
 
-  return (): Transport => ({
-    async open(context: TransportContext): Promise<void> {
+  return (): StreamTransport => ({
+    async open(context: StreamTransportContext): Promise<void> {
       const endpoint = await resolveUrl(url, context.signal)
       return new Promise<void>((resolve, reject) => {
         // The attempt may have aborted while the endpoint resolved — never open a socket for it.

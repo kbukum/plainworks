@@ -52,7 +52,12 @@ function fakeJar(): { jar: SessionCookieJar; setCookies: string[] } {
 
 function makeStore(
   jar: SessionCookieJar,
-  overrides: { cookieName?: string; ttlSeconds?: number } = {},
+  overrides: {
+    cookieName?: string
+    ttlSeconds?: number
+    clockSkewSeconds?: number
+    maxAgeSeconds?: number
+  } = {},
 ): StateSource<{ sub: string }> {
   return createCookieSessionStore({
     jar,
@@ -61,6 +66,10 @@ function makeStore(
     clock: manualClock(1_700_000_000_000),
     ttlSeconds: overrides.ttlSeconds ?? 3600,
     ...(overrides.cookieName === undefined ? {} : { cookieName: overrides.cookieName }),
+    ...(overrides.clockSkewSeconds === undefined
+      ? {}
+      : { clockSkewSeconds: overrides.clockSkewSeconds }),
+    ...(overrides.maxAgeSeconds === undefined ? {} : { maxAgeSeconds: overrides.maxAgeSeconds }),
   })
 }
 
@@ -78,6 +87,30 @@ describe("createCookieSessionStore configuration", () => {
   test("rejects a ttlSeconds that is not a positive integer → auth/config", () => {
     for (const ttlSeconds of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
       expect(() => makeStore(fakeJar().jar, { ttlSeconds })).toThrow(AuthError)
+    }
+  })
+
+  test("rejects invalid clockSkewSeconds → auth/config", () => {
+    for (const clockSkewSeconds of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => makeStore(fakeJar().jar, { clockSkewSeconds })).toThrow(AuthError)
+      try {
+        makeStore(fakeJar().jar, { clockSkewSeconds })
+        expect.unreachable("expected an AuthError")
+      } catch (error) {
+        expect(error).toMatchObject({ kind: "auth/config" })
+      }
+    }
+  })
+
+  test("rejects invalid maxAgeSeconds → auth/config", () => {
+    for (const maxAgeSeconds of [0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => makeStore(fakeJar().jar, { maxAgeSeconds })).toThrow(AuthError)
+      try {
+        makeStore(fakeJar().jar, { maxAgeSeconds })
+        expect.unreachable("expected an AuthError")
+      } catch (error) {
+        expect(error).toMatchObject({ kind: "auth/config" })
+      }
     }
   })
 })

@@ -68,6 +68,12 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      - name: Owned atom registry validity
+        run: bun run --filter @plainworks/elements registry:validate
+
+      - name: Comments (over-width)
+        run: bun run check-comments
+
       - name: Typecheck
         run: bun run typecheck
 
@@ -83,16 +89,23 @@ jobs:
       - name: Verify packaging before publish
         run: bun run check-packaging
 
-      # Publish lowest layer first (dependency order): std → testkit/http/mocks → state. Each
-      # package is packed by Bun (resolving `catalog:` / `workspace:*`) then published by npm with
-      # provenance. Versions already on the registry are skipped so re-runs are idempotent.
+      # Prove the derived publish set matches the publishable workspaces before touching the
+      # registry, so a bug in the derivation fails the run instead of silently publishing the wrong
+      # set. This is the guard against the fixed-list regression returning.
+      - name: Verify publish set derivation
+        run: node scripts/release-publish-set.mjs --check
+
+      # Publish in dependency order derived from the workspace graph (scripts/release-publish-set.mjs)
+      # — never a hand-maintained list, so a newly added package is published with no workflow edit.
+      # Each package is packed by Bun (resolving `catalog:` / `workspace:*`) then published by npm
+      # with provenance. Versions already on the registry are skipped so re-runs are idempotent.
       - name: Publish with provenance
         env:
           DIST_TAG: ${{ inputs.dist-tag }}
         run: |
           set -euo pipefail
-          for pkg in std testkit http mocks state; do
-            dir="packages/$pkg"
+          while IFS= read -r dir; do
+            [ -n "$dir" ] || continue
             name="$(node -p "require('./$dir/package.json').name")"
             version="$(node -p "require('./$dir/package.json').version")"
             if npm view "$name@$version" version >/dev/null 2>&1; then
@@ -102,4 +115,4 @@ jobs:
             echo "Publishing $name@$version…"
             tarball="$(cd "$dir" && bun pm pack --quiet | tail -n1)"
             npm publish "$dir/$tarball" --provenance --access public --tag "$DIST_TAG"
-          done
+          done < <(node scripts/release-publish-set.mjs)

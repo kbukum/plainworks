@@ -97,6 +97,51 @@ test("a neutral auth module importing server-only custody trips the ownership ru
   expect(tripped).toBeDefined()
 })
 
+/**
+ * OIDC token-custody quarantine. The OIDC adapter graph (`adapter/oidc/**`) carries the OAuth stack
+ * (`oauth4webapi`/`jose`) and the in-memory access/refresh tokens, so a `"use client"` graph must
+ * never import it. The fixture is a client-graph module (`auth/src/client/oidc-leak.ts`) importing
+ * the adapter (`auth/src/adapter/oidc/adapter.ts`) — the edge that must trip the rule.
+ */
+test("a client graph importing auth OIDC adapter custody trips the quarantine rule", async () => {
+  const violations = await cruiseFixtures()
+  const tripped = violations.find(
+    (v) =>
+      v.rule.name === "no-client-into-auth-oidc" &&
+      v.from.endsWith("auth/src/client/oidc-leak.ts") &&
+      v.to.endsWith("auth/src/adapter/oidc/adapter.ts"),
+  )
+  expect(tripped).toBeDefined()
+})
+
+/**
+ * OIDC custody ownership — the transitive half. A neutral (non-server) auth module reaching into
+ * `adapter/oidc/**` must trip `no-nonserver-into-auth-oidc`, proving the OAuth stack and tokens are
+ * reachable only through auth's own server entry. The type/constant-only `config.ts` is exempt, so
+ * the neutral `.` barrel re-exporting `OIDC_ADAPTER_KIND` stays legal (asserted below).
+ */
+test("a neutral auth module importing OIDC adapter custody trips the ownership rule", async () => {
+  const violations = await cruiseFixtures()
+  const tripped = violations.find(
+    (v) =>
+      v.rule.name === "no-nonserver-into-auth-oidc" &&
+      v.from.endsWith("auth/src/neutral-oidc-leak.ts") &&
+      v.to.endsWith("auth/src/adapter/oidc/adapter.ts"),
+  )
+  expect(tripped).toBeDefined()
+})
+
+test("the neutral auth barrel importing OIDC config.ts is allowed", async () => {
+  const violations = await cruiseFixtures()
+  const tripped = violations.find(
+    (v) =>
+      (v.rule.name === "no-client-into-auth-oidc" ||
+        v.rule.name === "no-nonserver-into-auth-oidc") &&
+      v.to.endsWith("auth/src/adapter/oidc/config.ts"),
+  )
+  expect(tripped).toBeUndefined()
+})
+
 test("legal higher-to-lower imports are allowed", async () => {
   const violations = await cruiseFixtures()
   // `auth` (L3) -> `std` (L0) is the layer model working as intended; no rule may flag it.

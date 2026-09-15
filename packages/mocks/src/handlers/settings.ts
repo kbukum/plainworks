@@ -5,8 +5,8 @@
 import { isRecord } from "@plainworks/std"
 import { type HttpHandler, HttpResponse, http } from "msw"
 import type { SettingsStore } from "../data/settings"
+import type { LatencyController } from "../latency"
 import type { UpdateSettingsInput, UserSettings } from "../types"
-import type { LatencyController } from "../utils/delay"
 
 const THEMES: readonly UserSettings["theme"][] = ["light", "dark", "system"]
 

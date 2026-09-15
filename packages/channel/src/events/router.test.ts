@@ -1,22 +1,24 @@
-import type { StateSource, WebAbortSignal } from "@plainworks/std"
-import { fakeStateSource, flushMicrotasks } from "@plainworks/testkit"
+import type { PlainEvent, StateSource, WebAbortSignal } from "@plainworks/std"
+import { fakeStateSource, fakeStreamTransport, flushMicrotasks } from "@plainworks/testkit"
 import { describe, expect, test, vi } from "vitest"
 import { createChannel } from "../lifecycle/channel"
-import { fakeTransport } from "../transport/fake-transport"
 import { jsonDecoder } from "./event"
 import { createEventRouter } from "./router"
 import type { EventSink } from "./sink"
 import { createStateSink } from "./state-sink"
 
+/** The event shape these tests stream: an untyped-discriminant `PlainEvent` carrying `{ n }`. */
+type NEvent = PlainEvent<string, { n: number }>
+
 /** A channel whose frames a test drives directly through the fake transport. */
-function channelOn(transport = fakeTransport()) {
+function channelOn(transport = fakeStreamTransport()) {
   const channel = createChannel({ transport: transport.factory })
   channel.connect()
   return { channel, transport }
 }
 
 /** The current attempt, asserting the transport has been opened by the channel. */
-function takeAttempt(transport: ReturnType<typeof fakeTransport>) {
+function takeAttempt(transport: ReturnType<typeof fakeStreamTransport>) {
   const attempt = transport.current
   if (!attempt) throw new Error("expected an open transport attempt")
   return attempt
@@ -26,8 +28,8 @@ describe("createEventRouter", () => {
   test("decodes frames and delivers to every sink in order", async () => {
     const { channel, transport } = channelOn()
     const seen: string[] = []
-    const sinkA: EventSink<{ n: number }> = { deliver: (e) => void seen.push(`a:${e.payload.n}`) }
-    const sinkB: EventSink<{ n: number }> = { deliver: (e) => void seen.push(`b:${e.payload.n}`) }
+    const sinkA: EventSink<NEvent> = { deliver: (e) => void seen.push(`a:${e.data.n}`) }
+    const sinkB: EventSink<NEvent> = { deliver: (e) => void seen.push(`b:${e.data.n}`) }
     const router = createEventRouter({
       channel,
       decode: jsonDecoder((v) => v as { n: number }),
@@ -95,18 +97,18 @@ describe("createEventRouter", () => {
     const { channel, transport } = channelOn()
     const onError = vi.fn()
     const good: number[] = []
-    const failing: EventSink<{ n: number }> = {
+    const failing: EventSink<NEvent> = {
       deliver: (e) => {
-        if (e.payload.n === 1) {
+        if (e.data.n === 1) {
           return Promise.reject(new Error("sink down"))
         }
         return undefined
       },
     }
-    const router = createEventRouter<{ n: number }>({
+    const router = createEventRouter<NEvent>({
       channel,
       decode: jsonDecoder((v) => v as { n: number }),
-      sinks: [failing, { deliver: (e) => void good.push(e.payload.n) }],
+      sinks: [failing, { deliver: (e) => void good.push(e.data.n) }],
       onError,
     })
 
@@ -125,13 +127,13 @@ describe("createEventRouter", () => {
   test("drops a frame the decoder ignores (returns undefined)", async () => {
     const { channel, transport } = channelOn()
     const seen: number[] = []
-    const router = createEventRouter<{ n: number }>({
+    const router = createEventRouter<NEvent>({
       channel,
       decode: (frame) =>
         frame.type === "heartbeat"
           ? undefined
-          : { type: frame.type, payload: JSON.parse(frame.data) as { n: number } },
-      sinks: [{ deliver: (e) => void seen.push(e.payload.n) }],
+          : { type: frame.type, data: JSON.parse(frame.data) as { n: number } },
+      sinks: [{ deliver: (e) => void seen.push(e.data.n) }],
     })
 
     await flushMicrotasks()
@@ -153,17 +155,17 @@ describe("createEventRouter", () => {
       release = resolve
     })
     let first = true
-    const sink: EventSink<{ n: number }> = {
+    const sink: EventSink<NEvent> = {
       deliver: async (e) => {
         if (first) {
           first = false
           // Stall the drain on the first event so the queue fills to capacity behind it.
           await gate
         }
-        delivered.push(e.payload.n)
+        delivered.push(e.data.n)
       },
     }
-    const router = createEventRouter<{ n: number }>({
+    const router = createEventRouter<NEvent>({
       channel,
       decode: jsonDecoder((v) => v as { n: number }),
       sinks: [sink],
@@ -189,10 +191,10 @@ describe("createEventRouter", () => {
   test("stops delivering after close", async () => {
     const { channel, transport } = channelOn()
     const seen: number[] = []
-    const router = createEventRouter<{ n: number }>({
+    const router = createEventRouter<NEvent>({
       channel,
       decode: jsonDecoder((v) => v as { n: number }),
-      sinks: [{ deliver: (e) => void seen.push(e.payload.n) }],
+      sinks: [{ deliver: (e) => void seen.push(e.data.n) }],
     })
 
     await flushMicrotasks()
@@ -212,15 +214,15 @@ describe("createEventRouter", () => {
     const gate = new Promise<void>((resolve) => {
       release = resolve
     })
-    const sinkA: EventSink<{ n: number }> = {
+    const sinkA: EventSink<NEvent> = {
       deliver: async (e) => {
-        seen.push(`a:${e.payload.n}`)
+        seen.push(`a:${e.data.n}`)
         // Stall mid-delivery so close() lands while the drain is in flight.
         await gate
       },
     }
-    const sinkB: EventSink<{ n: number }> = { deliver: (e) => void seen.push(`b:${e.payload.n}`) }
-    const router = createEventRouter<{ n: number }>({
+    const sinkB: EventSink<NEvent> = { deliver: (e) => void seen.push(`b:${e.data.n}`) }
+    const router = createEventRouter<NEvent>({
       channel,
       decode: jsonDecoder((v) => v as { n: number }),
       sinks: [sinkA, sinkB],
@@ -248,7 +250,7 @@ describe("createEventRouter", () => {
     const gate = new Promise<void>((resolve) => {
       release = resolve
     })
-    const router = createEventRouter<{ n: number }>({
+    const router = createEventRouter<NEvent>({
       channel,
       decode: jsonDecoder((v) => v as { n: number }),
       sinks: [
@@ -278,14 +280,14 @@ describe("createEventRouter", () => {
 describe("createStateSink", () => {
   test("folds events through the StateSource contract (get then set)", async () => {
     const source = fakeStateSource<number[]>()
-    const sink = createStateSink<{ n: number }, number[]>(source, (event, current) => [
+    const sink = createStateSink<NEvent, number[]>(source, (event, current) => [
       ...(current ?? []),
-      event.payload.n,
+      event.data.n,
     ])
 
     const signal = new AbortController().signal
-    await sink.deliver({ type: "t", payload: { n: 1 } }, signal)
-    await sink.deliver({ type: "t", payload: { n: 2 } }, signal)
+    await sink.deliver({ type: "t", data: { n: 1 } }, signal)
+    await sink.deliver({ type: "t", data: { n: 2 } }, signal)
 
     expect(await source.get()).toEqual([1, 2])
   })
@@ -314,10 +316,10 @@ describe("createStateSink", () => {
       remove: () => Promise.resolve(),
       subscribe: () => ({ unsubscribe: () => {} }),
     }
-    const router = createEventRouter<{ n: number }>({
+    const router = createEventRouter<NEvent>({
       channel,
       decode: jsonDecoder((v) => v as { n: number }),
-      sinks: [createStateSink(source, (event, current) => [...(current ?? []), event.payload.n])],
+      sinks: [createStateSink(source, (event, current) => [...(current ?? []), event.data.n])],
     })
 
     await flushMicrotasks()

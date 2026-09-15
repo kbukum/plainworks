@@ -1,75 +1,94 @@
 # plainworks
 
-> A foundational, **host-independent** React/TypeScript kit — core capabilities plus pluggable
-> seams, not a UI library with bolt-on packages.
+> A foundational, **host-independent** React and TypeScript kit with runtime-neutral cores and optional client bindings.
 
-plainworks gives you runtime-agnostic cores (no DOM/React/host assumptions) and thin, optional client bindings you opt into. Next.js, a Vite SPA, Astro, TanStack Start, Remix — or something that doesn't exist yet — all *plug in*. You keep your code simple; the seams stay replaceable.
+## Run the showcase
 
-> **Status: pre-release.** The workspace, boundary gate, package generator, governance layer, runtime spine, composition kernel, and initial UI surface are in place. Nothing is published to npm yet; the first release will ship on the `0.1.0-alpha.x` line under the `alpha` dist-tag (matching gokit/rskit), and until `0.1.0` APIs may change without back-compat.
-
-## Design charter
-
-- **Flexibility over opinionation.** Ship core capability + pluggable adapters. Defaults are swappable via a seam.
-- **Assume no host — any web-standard runtime.** A package runs wherever its **runtime primitives** exist. Universal ones (`AbortController`) are used directly; non-universal ones (`fetch`, SSE/`WebSocket`, `crypto.subtle`, storage) are injected seams with a default. Every entry is neutral (`.`, no React/DOM — server, edge, workers, RSC, React Native) or a DOM client (`./client`, `"use client"` — browser, Electron). See [Axis 2](./docs/architecture.md#axis-2--host-independence).
-- **One concern, one plain word, same word everywhere.** No `core`, `engine`, `foundation`, or junk-drawer `utils`. The bottom module is `@plainworks/std`.
-- **Explicit acyclic layers**, enforced in CI (see below). Lower never imports higher; a cross-layer need defines the seam in the lower layer and implements it higher.
-- **No import-time side effects, no module-level singletons.** Stores, clients, and sessions use per-request factories; adapters register explicitly.
-
-## Layer map
-
-Each package owns one concern, sits in a numbered layer, and imports only **downward**.
-
-```mermaid
-flowchart TD
-  subgraph L4["L4 · composition & tooling"]
-    app[app] ~~~ testkit[testkit] ~~~ mocks[mocks]
-  end
-  subgraph L3["L3 · auth · ui"]
-    auth[auth] ~~~ ui[ui]
-  end
-  subgraph L2["L2 · transport & data · elements"]
-    channel[channel] ~~~ connect[connect] ~~~ query[query] ~~~ elements[elements]
-  end
-  subgraph L1["L1 · client & I/O"]
-    state[state] ~~~ http[http] ~~~ theme[theme]
-  end
-  subgraph L0["L0 · std"]
-    std[std]
-  end
-  L4 --> L3 --> L2 --> L1 --> L0
-```
-
-A package in `Ln` may import only `L<n`; sideways and upward imports fail CI. **dependency-cruiser** enforces it and points at the offending import. Full layer detail and the seam pattern live in [the architecture doc](./docs/architecture.md#layers).
-
-## Two distribution axes
-
-- **npm (versioned dep):** infrastructure you don't fork — `std`, the channel/auth/query engines, adapters, testkit. This repo.
-- **registry (copy-in), later:** the *ownable* surface — UI, hooks, presets, templates. A parked, future deliverable.
-
-## Quickstart (development)
+plainworks is pre-release and is not published to npm. Run the workspace showcase to see the current packages work together through their public exports:
 
 ```sh
 bun install
-bun run gen package        # scaffold a new package from the golden template
-bun run check-versions && bun run lint && bun run typecheck \
-  && bun run check-boundaries && bun run build && bun run test \
-  && bun run check-packaging
+bun run --filter @plainworks/showcase dev
 ```
 
-## Governance
+The showcase server-renders a task dashboard, hydrates it on the client, reads data through the query and HTTP packages, applies the theme before paint, and routes live events into state and cache updates.
+
+## Choose a package
+
+| Need | Package |
+|---|---|
+| Errors, results, guards, resilience, and shared contracts | [`@plainworks/std`](./packages/std) |
+| Reactive state with optional React bindings | [`@plainworks/state`](./packages/state) |
+| Typed HTTP requests and list-query serialization | [`@plainworks/http`](./packages/http) |
+| Theme tokens, schemes, and runtime resolution | [`@plainworks/theme`](./packages/theme) |
+| SSE and WebSocket channels | [`@plainworks/channel`](./packages/channel) |
+| Connect RPC clients and interceptors | [`@plainworks/connect`](./packages/connect) |
+| TanStack Query factories and cache integration | [`@plainworks/query`](./packages/query) |
+| Owned Base UI and shadcn atoms | [`@plainworks/elements`](./packages/elements) |
+| Authentication and OIDC with PKCE | [`@plainworks/auth`](./packages/auth) |
+| Forms, data, navigation, and feedback composites | [`@plainworks/ui`](./packages/ui) |
+| Application composition | [`@plainworks/app`](./packages/app) |
+| Shared test fakes and harnesses | [`@plainworks/testkit`](./packages/testkit) |
+| Deterministic MSW-backed API fixtures | [`@plainworks/mocks`](./packages/mocks) |
+
+Each package exposes a neutral `.` entry. Packages with React or browser bindings expose them separately through `./client`.
+
+## How the packages fit
+
+Each package owns one concern and imports only from a **strictly lower layer**.
+
+```mermaid
+flowchart TD
+  L4["L4 · app · testkit · mocks"] --> L3["L3 · auth · ui"]
+  L3 --> L2["L2 · channel · connect · query · elements"]
+  L2 --> L1["L1 · state · http · theme"]
+  L1 --> L0["L0 · std"]
+```
+
+*Arrows show the only allowed `@plainworks/*` import direction.*
+
+This structure keeps neutral code free from React, DOM, Node, and framework assumptions. Hosts inject capabilities that vary, including `fetch`, streaming transports, cryptography, and token storage. See [Architecture](./docs/architecture.md) for package placement, runtime rules, and enforced invariants.
+
+## Design rules
+
+- **Keep defaults replaceable.** Ship each capability behind a typed seam so a host can supply its own adapter.
+- **Assume no host.** Use universal web value types directly and inject host-varying behavior.
+- **Name one concern.** Use one plain word consistently. Keep `@plainworks/std` as the zero-dependency base.
+- **Import downward.** Define cross-layer seams low and implement them higher.
+- **Construct explicitly.** Use per-request factories and injected registries. Imports must not open handles, read environment state, or create global singletons.
+
+Versioned npm exports are the primary distribution surface. `elements` and `ui` also generate local registry manifests for owned, editable component source.
+
+## Develop the repository
+
+```sh
+bun install
+bun run check-versions
+bun run lint
+bun run check-comments
+bun run typecheck
+bun run check-boundaries
+bun run build
+bun run test
+bun run check-packaging
+```
+
+Use `bun run gen package` to scaffold a package from the golden template. Read [Contributing](./CONTRIBUTING.md) before changing code.
+
+## Tooling
 
 | Concern | Tool |
 |---|---|
-| Task runner / caching | Turborepo (`turbo`) |
-| Package generator | `@turbo/gen` via `bun run gen` (golden template) |
-| Build | tsdown — ESM-only, per-module `"use client"`, ships `dist` |
-| Lint / format | Biome |
-| Layer boundaries + cycles | dependency-cruiser (`@plainworks/boundaries`) |
-| Version sync (single catalog) | Syncpack `catalog` policy (gate + fix) + Sherif (cross-package divergence) |
-| Tests / coverage | Vitest |
+| Tasks and caching | Turborepo |
+| Package generation | `@turbo/gen` |
+| Build | tsdown |
+| Lint and format | Biome |
+| Boundaries and cycles | dependency-cruiser |
+| Version synchronization | Sherif and Syncpack |
+| Tests and coverage | Vitest |
 | Releases | Changesets |
 
-Versions are pinned in **one place** — the bun **catalog** in the root `package.json`. Every package references `catalog:` (peer ranges included); Syncpack's `catalog` policy fails CI if a package inlines a version, and Sherif fails CI on any cross-package version divergence.
+Dependency versions live in the Bun catalog in the root `package.json`. Workspace manifests reference `catalog:` so version checks can reject inline or divergent versions.
 
 ## License
 

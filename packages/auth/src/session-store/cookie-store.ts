@@ -13,7 +13,7 @@ import {
 } from "@plainworks/std"
 import { AuthError } from "../errors"
 import type { SessionSigner } from "../signer/seam"
-import { decodeSession, encodeSession, type SessionCodec } from "./envelope"
+import { decodeSession, encodeSession, type RevocationCheck, type SessionCodec } from "./envelope"
 
 /**
  * The request/response cookie surface the server session store drives — read the inbound cookie
@@ -41,6 +41,12 @@ export interface CookieSessionStoreConfig<Schema extends StandardSchemaV1> {
   readonly cookieName?: string
   /** Absolute session lifetime in seconds; also the cookie `Max-Age`. Defaults to one hour. */
   readonly ttlSeconds?: number
+  /** Clock-skew tolerance in seconds for a future `iat`; forwarded to the codec (default 60). */
+  readonly clockSkewSeconds?: number
+  /** Optional freshness bound in seconds since `iat`; forwarded to the codec (see the codec docs). */
+  readonly maxAgeSeconds?: number
+  /** Optional revocation seam checked at read; forwarded to the codec. */
+  readonly isRevoked?: RevocationCheck<InferSchemaOutput<Schema>>
   /** Injected clock; defaults to {@link systemClock}. */
   readonly clock?: Clock
 }
@@ -93,11 +99,32 @@ export function createCookieSessionStore<Schema extends StandardSchemaV1>(
     schema: config.schema,
     clock: config.clock ?? systemClock,
     ttlSeconds: config.ttlSeconds ?? DEFAULT_TTL_SECONDS,
+    ...(config.clockSkewSeconds === undefined ? {} : { clockSkewSeconds: config.clockSkewSeconds }),
+    ...(config.maxAgeSeconds === undefined ? {} : { maxAgeSeconds: config.maxAgeSeconds }),
+    ...(config.isRevoked === undefined ? {} : { isRevoked: config.isRevoked }),
   }
   if (!Number.isInteger(codec.ttlSeconds) || codec.ttlSeconds <= 0) {
     throw new AuthError(
       "auth/config",
       `session ttlSeconds must be a positive integer, got ${codec.ttlSeconds}`,
+    )
+  }
+  if (
+    config.clockSkewSeconds !== undefined &&
+    (!Number.isInteger(config.clockSkewSeconds) || config.clockSkewSeconds < 0)
+  ) {
+    throw new AuthError(
+      "auth/config",
+      `session clockSkewSeconds must be a non-negative integer, got ${config.clockSkewSeconds}`,
+    )
+  }
+  if (
+    config.maxAgeSeconds !== undefined &&
+    (!Number.isInteger(config.maxAgeSeconds) || config.maxAgeSeconds <= 0)
+  ) {
+    throw new AuthError(
+      "auth/config",
+      `session maxAgeSeconds must be a positive integer, got ${config.maxAgeSeconds}`,
     )
   }
   // `__Host-` requires Secure + Path=/ + no Domain; SameSite=Strict + HttpOnly complete the

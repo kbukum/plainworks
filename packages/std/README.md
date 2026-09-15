@@ -21,7 +21,6 @@ bun add @plainworks/std
   - `nextBackoff` / `defaultBackoff` — bounded exponential backoff with `none` / `full` / `decorrelated` jitter.
   - `withTimeout` / `TimeoutError`, `createDeadline` / `combineSignals` / `AbortError`, `systemDelay` — per-attempt budgets (retryable) vs. overall deadlines (fatal).
   - `runWithRetry` / `RetryError` — policy-driven retries for idempotent operations only.
-  - `createCircuitBreaker` / `CircuitOpenError` — clock-injected breaker that fails fast and probes recovery.
   - `createBoundedQueue` — bounded FIFO hand-off with explicit overflow policy and bounded, cancellable consumers.
 - **Pipeline** — `composeInterceptors` / `pipeValues`, the generic handler/interceptor combinators.
 - **Redaction** — `redact`, structural secret stripping for safe logging.
@@ -31,7 +30,7 @@ bun add @plainworks/std
 - **Shared seams** — the single source of truth higher layers implement:
   - `AuthHeaderProvider` / `AuthHeaders` — the header-only auth seam.
   - `PlainEvent` / `Listener` / `Subscription` — the event and teardown shapes.
-  - `StandardSchemaV1` — the [Standard Schema](https://standardschema.dev) validation seam (owned structurally, so any Zod/Valibot/ArkType schema fits without a dependency), with `validateWithSchema` (validation → `Result`) and the audited `unsafePassthrough<T>()` opt-out. Transports (`http`, and future `rest`/`graphql`) turn an untrusted decoded `unknown` into a typed value through it.
+  - `StandardSchemaV1` — the [Standard Schema](https://standardschema.dev) validation seam (owned structurally, so any Zod/Valibot/ArkType schema fits without a dependency), with `validateWithSchema` (validation → `Result`) and the audited `unsafePassthrough<T>()` opt-out. `http` turns an untrusted decoded `unknown` into a typed value through it.
 - **Web-platform types** — self-contained structural types (`WebFetch`, `WebResponse`, `WebHeaders`, `WebRequestInit`, `WebAbortSignal`, `WebURL`, `WebReadableStream`, `WebTextDecoder`, …) that let a neutral package name `fetch`/`Headers`/`Response`/`URL` in its public API and ship a `.d.ts` that typechecks standalone against the ES lib — no DOM or `@types/node` dependency imposed on consumers.
 
 ## Runtime primitives
@@ -52,11 +51,10 @@ function parsePort(raw: string): Result<number> {
 }
 ```
 
-Compose the resilience primitives to protect a call path — a per-attempt timeout inside a bounded, jittered retry inside a circuit breaker, with failures expressed as the typed shapes the shared classifier understands:
+Compose the resilience primitives to protect a call path — a per-attempt timeout inside a bounded, jittered retry, with failures expressed as the typed shapes the shared classifier understands:
 
 ```ts
 import {
-  createCircuitBreaker,
   defaultBackoff,
   NetworkError,
   runWithRetry,
@@ -64,30 +62,26 @@ import {
   withTimeout,
 } from "@plainworks/std"
 
-const breaker = createCircuitBreaker({ failureThreshold: 3, cooldownMs: 5_000 })
-
 async function getUser(id: string): Promise<unknown> {
-  return breaker.execute(() =>
-    runWithRetry(
-      (_attempt, signal) =>
-        withTimeout(
-          async (attemptSignal) => {
-            let response: Response
-            try {
-              response = await fetch(`/api/users/${encodeURIComponent(id)}`, { signal: attemptSignal })
-            } catch (error) {
-              throw new NetworkError("Failed to fetch", { cause: error })
-            }
-            if (!response.ok) {
-              throw new StatusError(response.status)
-            }
-            return response.json()
-          },
-          2_000,
-          { signal },
-        ),
-      { maxAttempts: 3, backoff: defaultBackoff, idempotent: true },
-    ),
+  return runWithRetry(
+    (_attempt, signal) =>
+      withTimeout(
+        async (attemptSignal) => {
+          let response: Response
+          try {
+            response = await fetch(`/api/users/${encodeURIComponent(id)}`, { signal: attemptSignal })
+          } catch (error) {
+            throw new NetworkError("Failed to fetch", { cause: error })
+          }
+          if (!response.ok) {
+            throw new StatusError(response.status)
+          }
+          return response.json()
+        },
+        2_000,
+        { signal },
+      ),
+    { maxAttempts: 3, backoff: defaultBackoff, idempotent: true },
   )
 }
 ```

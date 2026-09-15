@@ -77,6 +77,30 @@ export function utf8ByteLength(value: string): number {
 }
 
 /**
+ * Parse a `Cookie` request header (`name=value; name2=value2`) into a name→value map. The value is
+ * returned **exactly as sent** (still percent-encoded) — decoding and interpreting it is the
+ * caller's concern, since encoding is per-cookie. Malformed pairs (no `=`, empty name) are skipped,
+ * and the first occurrence of a name wins, matching how a browser jar resolves duplicates. It is
+ * the read half of the cookie grammar {@link serializeCookieAttributes} writes, so both the client
+ * cookie scope and the theme provider share **one** parser instead of hand-rolling the split.
+ */
+export function parseCookieHeader(header: string): Map<string, string> {
+  const jar = new Map<string, string>()
+  for (const part of header.split(";")) {
+    const trimmed = part.trim()
+    const separator = trimmed.indexOf("=")
+    if (separator < 1) {
+      continue
+    }
+    const name = trimmed.slice(0, separator)
+    if (!jar.has(name)) {
+      jar.set(name, trimmed.slice(separator + 1))
+    }
+  }
+  return jar
+}
+
+/**
  * Serialize the attribute suffix of a cookie entry (`Path=/; SameSite=Lax; Max-Age=…; Secure;
  * HttpOnly`) in a fixed order. Pure — it assumes an already-validated `path` (check
  * {@link isCookiePath} first) and enforces the one hard grammar rule: `SameSite=None` is only

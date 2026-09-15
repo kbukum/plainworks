@@ -66,7 +66,7 @@ Skip if: no composition/lifecycle/registry code in scope.
 
 ### Pass E — Security, config & boundaries
 
-**Scope:** auth, transports (sse/connection/connect), config/env handling, redirect/URL handling, cookie/token handling, anything touching untrusted input (network responses, message payloads).
+**Scope:** auth, transports (sse/ws/connect), config/env handling, redirect/URL handling, cookie/token handling, anything touching untrusted input (network responses, message payloads).
 
 Check: untrusted input is validated at the boundary before it flows onward (a redirect target, a message payload, a server response consumed as typed data); tokens are **header-only** or `__Host-` cookies (`Secure` + `HttpOnly` + `SameSite=Strict`), **never** `localStorage`/`sessionStorage` or a query string; auth uses Authorization Code + **PKCE (S256)**, refresh-token rotation, never the implicit flow; current crypto only via Web Crypto (no MD5/SHA-1-for-security, no hard-coded key/IV); no secret in source, logs, or fixtures (`.env.example` only, no secret in a client bundle); unbounded reads of untrusted input get explicit limits; config precedence is explicit and tested. *(Full rule: pass [`03`](./03-security-privacy.md).)*
 

@@ -1,4 +1,5 @@
 export type { BuildUrlInput } from "./build"
-export { assertSafeRequestUrl, buildUrl } from "./build"
+export { buildUrl } from "./build"
+export { assertSafeRequestUrl } from "./guard"
 export type { QueryParams, QueryValue } from "./query"
 export { applyQuery, assertNoCredentialQuery } from "./query"

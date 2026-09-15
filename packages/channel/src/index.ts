@@ -3,13 +3,18 @@
 // core, the sse and ws transports, and the event router — runs anywhere (Node, edge, workers, RSC).
 // The React hooks live at the separate `./client` entry.
 
+// Wire seam (defined in std so a testkit transport double can speak it without a package cycle)
+export type {
+  StreamFrame,
+  StreamTransport,
+  StreamTransportContext,
+  StreamTransportFactory,
+} from "@plainworks/std"
 // Transports
 export { createSseTransport, type SseTransportOptions } from "./adapter/sse"
 export { resolveUrl, type UrlSource } from "./adapter/url"
 export {
   createWsTransport,
-  resolveGlobalSocketFactory,
-  SOCKET_OPEN,
   type WebSocketConnectInit,
   type WebSocketFactory,
   type WebSocketLike,
@@ -22,7 +27,6 @@ export { ChannelError, type ChannelErrorKind } from "./error"
 export {
   createEventRouter,
   createStateSink,
-  type DecodedEvent,
   type EventDecoder,
   type EventRouter,
   type EventRouterOptions,
@@ -33,4 +37,3 @@ export {
 // Core lifecycle
 export { type Channel, type ChannelOptions, createChannel } from "./lifecycle/channel"
 export { type ChannelStatus, isTerminalStatus } from "./lifecycle/status"
-export type { ChannelFrame, Transport, TransportContext, TransportFactory } from "./transport"

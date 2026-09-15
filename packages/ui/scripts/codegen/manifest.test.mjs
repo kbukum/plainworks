@@ -134,7 +134,7 @@ describe("codegen orchestration writes every artifact from disk", () => {
         "src/client/data-table",
         "src/client/forms",
         "src/client/list",
-        "src/client/components/error-fallback",
+        "src/client/error-fallback",
       ]
       for (const dir of registryDirs) {
         mkdirSync(join(root, dir), { recursive: true })
@@ -187,7 +187,7 @@ describe("codegen orchestration writes every artifact from disk", () => {
         "src/client/data-table",
         "src/client/forms",
         "src/client/list",
-        "src/client/components/error-fallback",
+        "src/client/error-fallback",
       ]
       for (const dir of registryDirs) {
         mkdirSync(join(root, dir), { recursive: true })

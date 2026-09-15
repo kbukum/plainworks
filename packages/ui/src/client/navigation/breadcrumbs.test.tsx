@@ -2,6 +2,7 @@
 
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { cleanup, render, screen } from "@testing-library/react"
+import type { ReactElement, ReactNode } from "react"
 import { afterEach, describe, expect, it } from "vitest"
 import { Breadcrumbs } from "./breadcrumbs"
 
@@ -28,6 +29,36 @@ describe("Breadcrumbs", () => {
     expect(screen.queryByRole("link", { name: "INV-42" })).toBeNull()
     const current = screen.getByText("INV-42")
     expect(current.getAttribute("aria-current")).toBe("page")
+    await expectNoAxeViolations(container)
+  })
+
+  it("renders an injected host link that receives the destination", async () => {
+    // A stand-in for a router link (Next.js `<Link>`, a typed-router link): a component that must
+    // be what actually renders, and must receive the entry's destination.
+    function HostLink({
+      href,
+      children,
+      ...props
+    }: {
+      readonly href?: string
+      readonly children?: ReactNode
+    }): ReactElement {
+      return (
+        <a data-host-link="true" href={href} {...props}>
+          {children}
+        </a>
+      )
+    }
+
+    const { container } = render(
+      <Breadcrumbs
+        items={[{ label: "Home", href: "/", render: <HostLink /> }, { label: "INV-42" }]}
+      />,
+    )
+
+    const link = screen.getByRole("link", { name: "Home" })
+    expect(link.getAttribute("data-host-link")).toBe("true")
+    expect(link.getAttribute("href")).toBe("/")
     await expectNoAxeViolations(container)
   })
 

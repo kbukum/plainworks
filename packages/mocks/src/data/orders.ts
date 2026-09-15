@@ -2,9 +2,9 @@
  * Order data factory
  */
 
+import { daysAgo, nowISOString } from "../fixture"
+import { randomElement, randomFloat, randomInt } from "../fixture/random"
 import type { CreateOrderInput, Order, OrderItem } from "../types"
-import { daysAgo, nowISOString } from "../utils"
-import { randomElement, randomFloat, randomInt } from "../utils/random"
 import { createEntityFactory, type EntityFactory, type FixtureSources } from "./common"
 
 const CUSTOMER_NAMES = ["John Doe", "Jane Smith", "Mike Johnson", "Sarah Williams", "Tom Brown"]

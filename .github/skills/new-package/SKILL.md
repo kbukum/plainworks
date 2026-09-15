@@ -13,7 +13,7 @@ plainworks packages are **born from a golden generator**, never hand-written —
 
 ## Step 1 — Name it: one concern, one plain word
 
-- The package name is its **single concern, one plain word, the same word everywhere** — `std`, `state`, `connection`, `connect`, `query`, `auth`, `app`, `testkit`, `mocks`, `ui`. Kebab-case is allowed for a genuinely two-word concern, but avoid it if one word fits.
+- The package name is its **single concern, one plain word, the same word everywhere** — `std`, `state`, `channel`, `connect`, `query`, `auth`, `app`, `testkit`, `mocks`, `ui`. Kebab-case is allowed for a genuinely two-word concern, but avoid it if one word fits.
 - **Banned names:** `core`, `engine`, `foundation`, and junk-drawer `utils`. If you reach for one of those, the concern isn't named yet — find the real word.
 - Before committing to a name, sanity-check the npm scope isn't already taken by something unrelated: `npm view @plainworks/<name> 2>/dev/null`.
 
@@ -42,7 +42,7 @@ bun run gen package
 
 Or non-interactively (as CI does): `bun run gen package --args <name> "<description>" <true|false>`.
 
-Answer `hasClient: true` only when the package has genuinely interactive React that must run client-side (hooks, DOM). A pure server-safe capability (`std`, most of `connection`/`auth` cores) is `false` — it ships only the `.` entry. `hasClient: true` adds the `./client` export, a `"use client"` module, jsdom test env, and `react`/`react-dom` `catalog:` peers.
+Answer `hasClient: true` only when the package has genuinely interactive React that must run client-side (hooks, DOM). A pure server-safe capability (`std`, most of `channel`/`auth` cores) is `false` — it ships only the `.` entry. `hasClient: true` adds the `./client` export, a `"use client"` module, jsdom test env, and `react`/`react-dom` `catalog:` peers.
 
 Then install so the workspace picks it up:
 

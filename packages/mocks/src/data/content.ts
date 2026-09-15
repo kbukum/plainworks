@@ -2,9 +2,9 @@
  * Content/CMS data factory
  */
 
+import { daysAgo, nowISOString } from "../fixture"
+import { randomElement, randomInt } from "../fixture/random"
 import type { ContentPage, CreateContentPageInput } from "../types/content"
-import { daysAgo, nowISOString } from "../utils"
-import { randomElement, randomInt } from "../utils/random"
 import { createEntityFactory, type EntityFactory, type FixtureSources } from "./common"
 
 const CATEGORIES = ["Blog", "News", "Tutorial", "Documentation", "Announcement", "Case Study"]

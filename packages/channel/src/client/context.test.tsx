@@ -1,19 +1,20 @@
 // @vitest-environment jsdom Client tests opt into jsdom per file; the package default stays `node`
 //   so the server-safe `.` entry can never lean on DOM globals unnoticed.
+
+import type { StreamFrame } from "@plainworks/std"
+import { fakeStreamTransport } from "@plainworks/testkit"
 import { act, cleanup, render, renderHook, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import axe from "axe-core"
 import { type ReactNode, StrictMode } from "react"
 import { afterEach, describe, expect, test, vi } from "vitest"
 import type { ChannelOptions } from "../lifecycle/channel"
-import type { ChannelFrame } from "../transport"
-import { fakeTransport } from "../transport/fake-transport"
 import { createChannelContext } from "./context"
 
 afterEach(cleanup)
 
 function withTransport(overrides: Partial<ChannelOptions> = {}) {
-  const transport = fakeTransport()
+  const transport = fakeStreamTransport()
   const options: ChannelOptions = { transport: transport.factory, ...overrides }
   return { transport, options }
 }
@@ -47,18 +48,20 @@ describe("createChannelContext", () => {
   test("useChannelEvent delivers matching frames and unsubscribes on unmount", async () => {
     const { transport, options } = withTransport()
     const { ChannelProvider, useChannelEvent } = createChannelContext()
-    const received: ChannelFrame[] = []
+    const received: StreamFrame[] = []
 
     function Listener(): ReactNode {
       useChannelEvent("tick", (frame) => received.push(frame))
       return null
     }
 
-    const view = render(
-      <ChannelProvider options={options}>
-        <Listener />
-      </ChannelProvider>,
-    )
+    // The listener mounts and unmounts independently of the provider, so the channel stays open
+    // after the listener is gone — a late frame reaches a live channel with no listener.
+    function App({ listening }: { readonly listening: boolean }): ReactNode {
+      return <ChannelProvider options={options}>{listening ? <Listener /> : null}</ChannelProvider>
+    }
+
+    const view = render(<App listening />)
     await act(async () => {
       await Promise.resolve()
       transport.current?.open()
@@ -68,10 +71,14 @@ describe("createChannelContext", () => {
 
     expect(received).toEqual([{ type: "tick", data: "a" }])
 
-    view.unmount()
-    // A frame after unmount must not reach the (torn-down) listener.
-    transport.current?.frame({ type: "tick", data: "late" })
+    view.rerender(<App listening={false} />)
+    // A frame after the listener unmounts must not reach the (torn-down) listener.
+    await act(async () => {
+      transport.current?.frame({ type: "tick", data: "late" })
+    })
     expect(received).toHaveLength(1)
+
+    view.unmount()
   })
 
   test("useAnyChannelEvent delivers every frame regardless of type", async () => {

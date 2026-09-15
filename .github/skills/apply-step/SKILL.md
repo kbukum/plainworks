@@ -13,7 +13,7 @@ description: >-
 
 ## Input
 
-A path to one step file, e.g. `tmp/connection-sse-reconnect/02-sse-adapter.md`.
+A path to one step file, e.g. `tmp/channel-sse-reconnect/02-sse-adapter.md`.
 
 ## 1. Load full context before editing
 

@@ -19,7 +19,7 @@ The authoritative doc policy lives in the Documentation section of [`../../copil
 
 ## Docs in scope
 
-- `docs/**` — `architecture.md` and any future design/policy docs.
+- `docs/**` — `architecture.md` and other design or policy docs.
 - `README.md` and any top-level `*.md`; per-package `README.md` (the generator ships one per package).
 - `.github/skills/**/SKILL.md` and their `references/*.md`; `.github/instructions/*.instructions.md`.
 - TSDoc (`/** */`) and `//` comment prose in the packages in scope (these are docs too).

@@ -85,7 +85,7 @@ describe("createChannel lifecycle", () => {
     expect(h.channel.lastEventId).toBe("e1")
   })
 
-  test("close aborts the live attempt and moves to closed terminally", async () => {
+  test("close aborts the live attempt and moves to closed", async () => {
     const h = setup()
     h.channel.connect()
     await nextAttempt(h)
@@ -100,9 +100,44 @@ describe("createChannel lifecycle", () => {
     await flushMicrotasks()
     expect(h.errors).toHaveLength(0)
 
-    // Idempotent + inert after close.
+    // Re-connectable: a fresh connect() after close starts a new session, not an inert no-op.
     h.channel.connect()
+    expect(h.channel.status).toBe("connecting")
+    h.channel.close()
+  })
+
+  test("reconnects after a close and resumes from the last event id", async () => {
+    const h = setup()
+    h.channel.connect()
+    await nextAttempt(h)
+    h.transport.current?.open()
+    h.transport.current?.frame({ type: "tick", data: "1", id: "e1" })
+
+    // Close ends the session and aborts the live attempt; nothing is left open.
+    h.channel.close()
     expect(h.channel.status).toBe("closed")
+    h.transport.assertClosed()
+
+    // A fresh connect() opens a new session that resumes from the retained cursor.
+    h.channel.connect()
+    expect(h.channel.status).toBe("connecting")
+    await nextAttempt(h)
+    expect(h.transport.attempts).toHaveLength(2)
+    expect(h.transport.current?.context.lastEventId).toBe("e1")
+    h.transport.current?.open()
+    expect(h.channel.status).toBe("open")
+    h.channel.close()
+    h.transport.assertClosed()
+  })
+
+  test("a connect() while a session is already active is an idempotent no-op", async () => {
+    const h = setup()
+    h.channel.connect()
+    await nextAttempt(h)
+    h.channel.connect()
+    // No second transport attempt was started by the redundant connect().
+    expect(h.transport.attempts).toHaveLength(1)
+    h.channel.close()
   })
 
   test("a listener that throws is isolated and reported, later listeners still run", async () => {
@@ -138,6 +173,120 @@ describe("createChannel lifecycle", () => {
     expect(h.channel.status).toBe("closed")
     // The observer fault is reported through onError, not propagated into the lifecycle.
     expect(h.errors.some((e) => e.kind === "channel/protocol")).toBe(true)
+  })
+
+  test("a reentrant connect() from the closing callback cannot resurrect a live session", async () => {
+    const transport = fakeStreamTransport()
+    const statuses: ChannelStatus[] = []
+    let reentered = false
+    const channel = createChannel({
+      transport: transport.factory,
+      onStatusChange: (status) => {
+        statuses.push(status)
+        // A caller callback that reconnects mid-teardown must not leave a live session that this
+        // close() then overwrites with `closed`.
+        if (status === "closing" && !reentered) {
+          reentered = true
+          channel.connect()
+        }
+      },
+    })
+    channel.connect()
+    await flushMicrotasks()
+    transport.current?.open()
+
+    channel.close()
+    await flushMicrotasks()
+
+    expect(reentered).toBe(true)
+    // The reentrant connect() was a no-op, so close() lands on a real terminal state.
+    expect(channel.status).toBe("closed")
+    expect(statuses.slice(-2)).toEqual(["closing", "closed"])
+    // A reentrant close() from within teardown is idempotent — no throw, still closed.
+    expect(() => channel.close()).not.toThrow()
+    expect(channel.status).toBe("closed")
+  })
+
+  test("a subscription registered before the first connect survives a close and reconnect", async () => {
+    const h = setup()
+    const seen: string[] = []
+    // Register before any connection; the listener must outlive every session.
+    h.channel.onAny((frame) => seen.push(frame.data))
+
+    h.channel.connect()
+    await nextAttempt(h)
+    h.transport.current?.open()
+    h.transport.current?.frame({ type: "tick", data: "first" })
+    h.channel.close()
+
+    // A fresh session must still deliver to the same listener.
+    h.channel.connect()
+    await nextAttempt(h)
+    h.transport.current?.open()
+    h.transport.current?.frame({ type: "tick", data: "second" })
+
+    expect(seen).toEqual(["first", "second"])
+    h.channel.close()
+  })
+
+  test("closing from the open notification does not leak an idle timer", async () => {
+    const h = setup({ idleTimeoutMs: 10_000 })
+    let closeOnOpen = true
+    // A caller that tears down synchronously from the `open` transition.
+    const channel = createChannel({
+      transport: h.transport.factory,
+      idleTimeoutMs: 10_000,
+      delay: h.delay.delay,
+      clock: h.clock,
+      onStatusChange: (status) => {
+        if (status === "open" && closeOnOpen) {
+          closeOnOpen = false
+          channel.close()
+        }
+      },
+    })
+    channel.connect()
+    await flushMicrotasks()
+    h.transport.current?.open()
+    await flushMicrotasks()
+
+    expect(channel.status).toBe("closed")
+    // The attempt settled during the `open` notification, so no idle timer may remain armed.
+    expect(h.delay.pending.some((p) => p.ms === 10_000)).toBe(false)
+  })
+
+  test("a terminal onError that reconnects cannot abort the fresh session it opens", async () => {
+    const h = setup()
+    let reconnectOnError = true
+    const errorStatuses: ChannelStatus[] = []
+    // onError closes-then-reconnects on a fatal error, the classic cross-session hazard.
+    const channel = createChannel({
+      transport: h.transport.factory,
+      delay: h.delay.delay,
+      clock: h.clock,
+      random: seededRandom(1),
+      onStatusChange: (status) => errorStatuses.push(status),
+      onError: () => {
+        if (reconnectOnError) {
+          reconnectOnError = false
+          channel.connect()
+        }
+      },
+    })
+    channel.connect()
+    await flushMicrotasks()
+    h.transport.current?.open()
+    h.transport.current?.endError(ChannelError.protocol("unauthorized", { status: 401 }))
+    await flushMicrotasks()
+
+    // The reentrant connect() during terminal settlement is a no-op: the terminal `closed` stands
+    // and no new attempt was started from inside the callback.
+    expect(channel.status).toBe("closed")
+    expect(h.transport.attempts).toHaveLength(1)
+    // A fresh connect() after settlement still works, proving the channel is not wedged.
+    channel.connect()
+    expect(channel.status).toBe("connecting")
+    channel.close()
   })
 })
 
@@ -321,6 +470,22 @@ describe("retry ceiling", () => {
     expect(h.channel.status).toBe("closed")
     expect(h.transport.attempts).toHaveLength(1)
     expect(h.delay.waits.filter((ms) => ms < 1_000)).toEqual([])
+  })
+
+  test("reconnects after a terminal failure closed the previous session", async () => {
+    const h = setup({ maxRetries: 0 })
+    h.channel.connect()
+    await nextAttempt(h)
+    h.transport.current?.endError(ChannelError.connect("down"))
+    await flushMicrotasks()
+    expect(h.channel.status).toBe("closed")
+
+    // The loop (not a caller close) ended the session; the channel still reconnects on demand.
+    h.channel.connect()
+    expect(h.channel.status).toBe("connecting")
+    await nextAttempt(h)
+    expect(h.transport.attempts).toHaveLength(2)
+    h.channel.close()
   })
 
   test("an injected delay that rejects (not a cancellation) fails the attempt terminally", async () => {

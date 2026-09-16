@@ -86,11 +86,15 @@ export interface ChannelOptions {
  * A transport-agnostic streaming connection: one logical stream whose lifetime is bounded by
  * {@link Channel.connect} and {@link Channel.close}. Reconnection, backoff, timeouts, and frame
  * dispatch live here; the wire differences live in the injected transport.
+ *
+ * The channel is **re-connectable**: `connect()` starts a session, `close()` ends it, and a later
+ * `connect()` starts a fresh session that resumes from the last event id. Subscriptions and the
+ * resume cursor outlive any single session, so a caller holds one channel across reconnects.
  */
 export interface Channel {
-  /** Open the stream (idempotent while already active or closed). */
+  /** Open the stream. Idempotent while a session is already active; after `close()` it starts a fresh session. */
   connect(): void
-  /** Abort the stream and stop reconnecting (idempotent). */
+  /** Abort the active session and stop reconnecting (idempotent; a later `connect()` reconnects). */
   close(): void
   /** Subscribe to frames of one `type`. */
   on(type: string, listener: Listener<StreamFrame>): Subscription
@@ -106,7 +110,9 @@ export interface Channel {
  * Create a {@link Channel} over a transport. The reconnect loop is driven by `std`'s retry engine —
  * classification (a `401`/`403` is fatal and stops the loop), bounded jittered backoff, and the
  * retry ceiling all come from `std`, so this package owns only the lifecycle and the stable-open
- * gating, never a private backoff copy. Never a module singleton — build one per stream.
+ * gating, never a private backoff copy. Never a module singleton — build one per stream. The
+ * returned channel is re-connectable: each `connect()` owns a fresh `AbortController`, so a session
+ * can be closed and connected again.
  */
 export function createChannel(options: ChannelOptions): Channel {
   const {
@@ -138,13 +144,20 @@ export function createChannel(options: ChannelOptions): Channel {
   const typeListeners = new Map<string, Set<Listener<StreamFrame>>>()
   const anyListeners = new Set<Listener<StreamFrame>>()
 
+  // One connect()/close() cycle. Its `AbortController` is the session's cancellation root; `closed`
+  // records a caller close so the reconnect loop can tell it apart from a failure. A fresh session
+  // per connect() makes the channel re-connectable; identity guards a superseded loop from
+  // clobbering a newer session's state.
+  interface Session {
+    readonly controller: WebAbortController
+    closed: boolean
+  }
+
   let status: ChannelStatus = "idle"
-  let running = false
-  let closed = false
   let attemptsStarted = 0
   let lastEventId = options.lastEventId
   let serverRetryMs: number | undefined
-  let controller: WebAbortController | undefined
+  let activeSession: Session | undefined
 
   /** Observers are untrusted callbacks: a throw must never interrupt lifecycle teardown. */
   const notifyError = (error: ChannelError): void => {
@@ -234,7 +247,7 @@ export function createChannel(options: ChannelOptions): Channel {
    * retryable {@link TimeoutError} on a connect/idle timeout, the transport's typed failure, or a
    * fatal {@link AbortError} when the caller closes.
    */
-  const runOneConnection = (attemptSignal: WebAbortSignal): Promise<void> => {
+  const runOneConnection = (session: Session, attemptSignal: WebAbortSignal): Promise<void> => {
     setStatus(attemptsStarted === 0 ? "connecting" : "reconnecting")
     attemptsStarted++
     // A fresh transport per attempt: no attempt-local state leaks across a reconnect.
@@ -282,7 +295,7 @@ export function createChannel(options: ChannelOptions): Channel {
           // A pre-stable flap that will be retried within this session: surface `reconnecting` now,
           // so the observable status reflects the dropped stream through the backoff wait instead
           // of lingering on a stale `open` until the next attempt starts.
-          if (reconnect && !closed) {
+          if (reconnect && !session.closed) {
             setStatus("reconnecting")
           }
         }
@@ -324,6 +337,11 @@ export function createChannel(options: ChannelOptions): Channel {
           opened = true
           openedAt = clock.now()
           setStatus("open")
+          // An observer may close() during the `open` notification, settling the attempt; arming
+          // the idle timer after cleanup would leak a pending timer, so bail if we were settled.
+          if (settled) {
+            return
+          }
           armIdle()
         },
         onFrame: (frame: StreamFrame): void => {
@@ -331,6 +349,11 @@ export function createChannel(options: ChannelOptions): Channel {
             return
           }
           dispatch(frame)
+          // A frame listener may close() during dispatch, settling the attempt; skip the idle
+          // rearm in that case so cleanup's cancellation is not undone by a leaked timer.
+          if (settled) {
+            return
+          }
           armIdle()
         },
         // Cursor-only control blocks (e.g. an SSE `id:` line with no data) still move the resume
@@ -367,12 +390,13 @@ export function createChannel(options: ChannelOptions): Channel {
     })
   }
 
-  const runReconnectLoop = async (channelSignal: WebAbortSignal): Promise<void> => {
+  const runReconnectLoop = async (session: Session): Promise<void> => {
+    const channelSignal = session.controller.signal
     let terminalError: ChannelError | undefined
-    while (!closed) {
+    while (!session.closed) {
       try {
         await runWithRetry(
-          (_attempt, attemptSignal) => runOneConnection(attemptSignal),
+          (_attempt, attemptSignal) => runOneConnection(session, attemptSignal),
           {
             maxAttempts: reconnect ? maxRetries + 1 : 1,
             backoff,
@@ -385,7 +409,7 @@ export function createChannel(options: ChannelOptions): Channel {
       } catch (error) {
         // A caller close aborts `channelSignal`; that surfaces as an AbortError we swallow
         // silently.
-        if (closed) {
+        if (session.closed) {
           break
         }
         terminalError = toTerminalError(error)
@@ -393,7 +417,7 @@ export function createChannel(options: ChannelOptions): Channel {
       }
       // A session resolved: a stable connection ended cleanly. Reconnect with a fresh session
       // (backoff reset) unless reconnection is disabled or the caller has closed.
-      if (!reconnect || closed) {
+      if (!reconnect || session.closed) {
         break
       }
       // Honor a server-sent `retry:` hint before the next session — consumed once and capped at the
@@ -404,43 +428,57 @@ export function createChannel(options: ChannelOptions): Channel {
         try {
           await delay(hintMs, channelSignal)
         } catch (error) {
-          // A caller close aborts the wait and exits via `closed` below; any other delay failure is
-          // terminal rather than a silently unbounded reconnect.
-          if (!closed) {
+          // A caller close aborts the wait and exits via `session.closed` below; any other delay
+          // failure is terminal rather than a silently unbounded reconnect.
+          if (!session.closed) {
             terminalError = ChannelError.config("channel timer failed", { cause: error })
           }
           break
         }
       }
     }
-    running = false
-    if (!closed) {
-      closed = true
+    // Only the still-active session settles the observable state. A caller close() already emitted
+    // closed and cleared the session; a superseded loop must not overwrite a newer session.
+    if (activeSession !== session) {
+      return
     }
+    // Mark the session finished and keep it installed while emitting the terminal status and error,
+    // so a reentrant connect()/close() from an observer is a no-op: settlement stays atomic and a
+    // callback can never cross into a fresh session (e.g. an onError that closes on a fatal error
+    // must not abort a connection the same callback just opened).
+    session.closed = true
     setStatus("closed")
     if (terminalError !== undefined) {
       notifyError(terminalError)
     }
+    activeSession = undefined
   }
 
   return {
     connect(): void {
-      if (running || closed) {
+      if (activeSession !== undefined) {
         return
       }
-      running = true
       attemptsStarted = 0
-      controller = new AbortController()
-      void runReconnectLoop(controller.signal)
+      serverRetryMs = undefined
+      const session: Session = { controller: new AbortController(), closed: false }
+      activeSession = session
+      void runReconnectLoop(session)
     },
     close(): void {
-      if (closed) {
+      const session = activeSession
+      if (session === undefined || session.closed) {
         return
       }
-      closed = true
-      running = false
+      session.closed = true
+      // Keep the session installed across the closing notification and abort: a reentrant
+      // connect() from the `closing` callback then finds an active session and is a no-op, so a
+      // caller callback can never resurrect a live session that this close() would report `closed`.
       setStatus("closing")
-      controller?.abort(new AbortError({ cause: ChannelError.closed("channel closed by caller") }))
+      session.controller.abort(
+        new AbortError({ cause: ChannelError.closed("channel closed by caller") }),
+      )
+      activeSession = undefined
       setStatus("closed")
     },
     on(type: string, listener: Listener<StreamFrame>): Subscription {

@@ -172,7 +172,7 @@ describe("createChannelContext", () => {
     view.unmount()
   })
 
-  test("an autoConnect true→false transition rebuilds the channel and resyncs status to idle", async () => {
+  test("an autoConnect true→false transition closes the channel and reflects closed", async () => {
     const { transport, options } = withTransport()
     const { ChannelProvider, useChannelStatus } = createChannelContext()
 
@@ -195,12 +195,14 @@ describe("createChannelContext", () => {
     expect(screen.getByRole("status").textContent).toBe("open")
 
     view.rerender(<Tree autoConnect={false} />)
-    // Effect cleanup closed the previous channel; the rebuilt one must read idle, not stale closed.
-    expect(screen.getByRole("status").textContent).toBe("idle")
+    // Effect cleanup closed the channel; status reflects the closed session (a later connect would
+    // reopen it, since the channel is re-connectable).
+    expect(screen.getByRole("status").textContent).toBe("closed")
+    expect(transport.current?.aborted).toBe(true)
     view.unmount()
   })
 
-  test("an empty-id cursor reset survives a rebuild instead of restoring the seed", async () => {
+  test("an empty-id cursor reset survives a reconnect instead of restoring the seed", async () => {
     const { transport, options } = withTransport({ lastEventId: "seed-1" })
     const { ChannelProvider } = createChannelContext()
 
@@ -219,7 +221,7 @@ describe("createChannelContext", () => {
     })
     expect(transport.current?.context.lastEventId).toBe("seed-1")
 
-    // The server resets the cursor (SSE empty id), then the provider rebuilds the channel.
+    // The server resets the cursor (SSE empty id), then the provider closes and reconnects.
     transport.current?.context.onId?.("")
     view.rerender(<Tree autoConnect={false} />)
     view.rerender(<Tree autoConnect={true} />)

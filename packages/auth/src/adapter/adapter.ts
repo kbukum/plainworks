@@ -1,6 +1,8 @@
 import type { AuthHeaders, Clock, Identity, WebAbortSignal } from "@plainworks/std"
 import type { AuthCrypto } from "../crypto"
 import type { TokenSet } from "../session"
+import type { ApiKeyAdapterConfig } from "./apikey/config"
+import type { JwtAdapterConfig } from "./jwt/config"
 import type { OidcAdapterConfig } from "./oidc/config"
 
 /**
@@ -14,7 +16,10 @@ export interface AuthAdapterDeps {
   readonly clock: Clock
 }
 
-/** A request to resolve an {@link Identity} from inbound credentials (a bearer token, API key, cookie). */
+/**
+ * A request to resolve an {@link Identity} from inbound credentials (a bearer token, API key,
+ * cookie).
+ */
 export interface AuthenticateRequest {
   /** Inbound request headers carrying the credential (header-only — never a URL/query string). */
   readonly headers?: AuthHeaders
@@ -29,11 +34,15 @@ export interface BeginLoginRequest {
   readonly signal?: WebAbortSignal
 }
 
-/** The instruction to start an interactive login — where to send the user agent and what to persist. */
+/**
+ * The instruction to start an interactive login — where to send the user agent and what to persist.
+ */
 export interface LoginRedirect {
   /** The provider authorization URL to redirect the user agent to. */
   readonly authorizationUrl: string
-  /** Opaque, integrity-protected transaction state to persist until the callback (PKCE/state/nonce). */
+  /**
+   * Opaque, integrity-protected transaction state to persist until the callback (PKCE/state/nonce).
+   */
   readonly transaction: string
 }
 
@@ -48,7 +57,9 @@ export interface CompleteLoginRequest {
   readonly sessionHandle?: string
 }
 
-/** The result of a completed login — the resolved caller plus the credential material to custody. */
+/**
+ * The result of a completed login — the resolved caller plus the credential material to custody.
+ */
 export interface AuthSession {
   readonly identity: Identity
   readonly tokens: TokenSet
@@ -111,6 +122,11 @@ export interface CustomAdapterConfig {
  * member as it lands, and `custom` covers bring-your-own — so selecting a mechanism is
  * config-driven with no core change. `oidc` ships from the token-bearing `@plainworks/auth/server`
  * entry (its factory custodies refresh tokens); its config type lives here, in the neutral seam,
- * because it is pure types with no runtime dependency on the OAuth stack.
+ * because it is pure types with no runtime dependency on the OAuth stack. The stateless `jwt` and
+ * `apikey` verifiers custody nothing, so they ship from the neutral `.` entry.
  */
-export type AuthAdapterConfig = CustomAdapterConfig | OidcAdapterConfig
+export type AuthAdapterConfig =
+  | CustomAdapterConfig
+  | OidcAdapterConfig
+  | JwtAdapterConfig
+  | ApiKeyAdapterConfig

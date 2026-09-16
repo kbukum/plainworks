@@ -14,7 +14,7 @@ bun add @plainworks/query @tanstack/query-core @tanstack/react-query
 
 ## Runtime primitives
 
-`query` is a **neutral (`.`)** package touching no host global, so it runs on server, edge, workers, and RSC. Its `./client` bindings are the **React-without-DOM** bucket — pure React context over TanStack's `QueryClientProvider`/`HydrationBoundary`, no DOM — so the provider runs on React Native/Expo too, not just the browser. See [`docs/architecture.md › Axis 2`](../../docs/architecture.md).
+`query` is a **neutral (`.`)** package touching no host global, so it runs on server, edge, workers, and RSC. Its `./client` bindings are the **React-without-DOM** bucket — pure React context over TanStack's `QueryClientProvider`/`HydrationBoundary`, no DOM — so the provider runs on React Native/Expo too, not just the browser. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives).
 
 ## The client factory (`.`)
 

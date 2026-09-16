@@ -35,7 +35,7 @@ bun add @plainworks/std
 
 ## Runtime primitives
 
-`std` is a **neutral (`.`)** package — no React, no DOM, no Node builtins — so it runs on every target runtime (server, edge, workers, RSC, browser, React Native). It touches only **universal** platform primitives directly (`AbortController` / `AbortSignal`, `TextDecoder`, and the WHATWG value types it models as the self-contained `Web*` structural contract). Its one host-resolved primitive, `crypto.randomUUID` (backing `randomId`), is resolved lazily at call time and throws a typed `std/unsupported` error when the runtime lacks it — never an import-time host assumption. `Math.random` backs the non-cryptographic `systemRandom` seam. See [`docs/architecture.md › Axis 2`](../../docs/architecture.md) for the universal-vs-injected primitive contract.
+`std` is a **neutral (`.`)** package — no React, no DOM, no Node builtins — so it runs on every target runtime (server, edge, workers, RSC, browser, React Native). It touches only **universal** platform primitives directly (`AbortController` / `AbortSignal`, `TextDecoder`, and the WHATWG value types it models as the self-contained `Web*` structural contract). Its one host-resolved primitive, `crypto.randomUUID` (backing `randomId`), is resolved lazily at call time and throws a typed `std/unsupported` error when the runtime lacks it — never an import-time host assumption. `Math.random` backs the non-cryptographic `systemRandom` seam. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives) for the universal-vs-injected primitive contract.
 
 ## Usage
 

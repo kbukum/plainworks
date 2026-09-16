@@ -12,7 +12,7 @@ bun add @plainworks/state
 
 ## Runtime primitives
 
-The neutral `.` core (`createStore` and the facade) touches **no** host primitives at all — it is pure state, so it runs on every target runtime (server, edge, workers, RSC, browser, React Native). The `./client` bindings are the **React-without-DOM** bucket: the scoped-state hooks use React (`useSyncExternalStore`) only and reference no `document` / `window` / `localStorage`, so they run in a browser and under React Native / Expo alike. The host-backed **scope backends** that *do* touch the DOM (`persistentScope`, `sessionScope`, `cookieScope`, `urlScope`) live at the separate DOM-only `@plainworks/state/client/scope` subpath, so importing the hooks never drags a browser global into a native bundle. See [`docs/architecture.md › Axis 2`](../../docs/architecture.md) for the three entry buckets.
+The neutral `.` core (`createStore` and the facade) touches **no** host primitives at all — it is pure state, so it runs on every target runtime (server, edge, workers, RSC, browser, React Native). The `./client` bindings are the **React-without-DOM** bucket: the scoped-state hooks use React (`useSyncExternalStore`) only and reference no `document` / `window` / `localStorage`, so they run in a browser and under React Native / Expo alike. The host-backed **scope backends** that *do* touch the DOM (`persistentScope`, `sessionScope`, `cookieScope`, `urlScope`) live at the separate DOM-only `@plainworks/state/client/scope` subpath, so importing the hooks never drags a browser global into a native bundle. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives) for the three entry buckets.
 
 ## Server-safe core (`.`)
 

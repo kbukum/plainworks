@@ -20,9 +20,13 @@ import { type AuthCrypto, defaultAuthCrypto } from "./crypto"
 import { type AuthStore, createAuthStore } from "./session"
 
 /** Options for {@link createAuth} — the explicit, per-request composition of an auth runtime. */
-export interface CreateAuthConfig {
-  /** The config-driven adapter selection (discriminated union; `custom` for bring-your-own). */
-  readonly adapter: AuthAdapterConfig
+export interface CreateAuthConfig<Adapter extends { readonly kind: string } = AuthAdapterConfig> {
+  /**
+   * The config-driven adapter selection. Defaults to the built-in {@link AuthAdapterConfig} union
+   * (`oidc`/`jwt`/`apikey`/`custom`); a consumer that registers a third-party `kind` widens this
+   * type parameter to its own `{ kind: string }` config so it flows through without a cast.
+   */
+  readonly adapter: Adapter
   /**
    * The registry resolving `adapter.kind` to a factory. Defaults to a fresh registry with only the
    * `custom` pass-through registered — built-in adapters register their factories explicitly.
@@ -67,7 +71,9 @@ export interface AuthRuntime {
  * factory the kit uses everywhere: no import-time side effects, no shared mutable state — the
  * registry, crypto, clock, and session store are all resolved or built here, per call.
  */
-export function createAuth(config: CreateAuthConfig): AuthRuntime {
+export function createAuth<Adapter extends { readonly kind: string } = AuthAdapterConfig>(
+  config: CreateAuthConfig<Adapter>,
+): AuthRuntime {
   const crypto = config.crypto ?? defaultAuthCrypto()
   const clock = config.clock ?? systemClock
   const deps: AuthAdapterDeps = { crypto, clock }

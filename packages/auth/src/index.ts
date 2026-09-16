@@ -5,6 +5,8 @@
 // `createServerSession` flow — live on the (server-quarantined) `./server` entry. The React
 // `useSession`/login/logout bindings live on `./client`, and never touch a token.
 export type {
+  ApiKeyAdapterConfig,
+  ApiKeyVerifier,
   AuthAdapter,
   AuthAdapterConfig,
   AuthAdapterDeps,
@@ -16,17 +18,32 @@ export type {
   CompleteLoginRequest,
   CustomAdapterConfig,
   InteractiveAuthAdapter,
+  JwtAdapterConfig,
+  JwtVerifier,
+  JwtVerifierConfig,
   LoginRedirect,
   OidcAdapterConfig,
+  VerifiedClaims,
 } from "./adapter"
 export {
+  APIKEY_ADAPTER_KIND,
+  apiKeyAdapter,
   CUSTOM_ADAPTER_KIND,
   createAdapterRegistry,
+  createJwtVerifier,
   customAdapter,
+  JWT_ADAPTER_KIND,
+  jwtAdapter,
   OIDC_ADAPTER_KIND,
+  registerApiKeyAdapter,
+  registerJwtAdapter,
+  validateApiKeyAdapterConfig,
+  validateJwtAdapterConfig,
 } from "./adapter"
+export type { AllowListPolicyConfig, AllowRule, AuthzGuardConfig, AuthzOutcome } from "./authz"
+export { createAllowListPolicy, guardDecision, requireClaim } from "./authz"
 export type { AuthCrypto } from "./crypto"
-export { defaultAuthCrypto } from "./crypto"
+export { constantTimeEqual, defaultAuthCrypto } from "./crypto"
 export type { CsrfConfig, CsrfProtection } from "./csrf"
 export { createCsrf } from "./csrf"
 export type { AuthErrorCode } from "./errors"
@@ -46,9 +63,16 @@ export { createAuthStore } from "./session"
 export type {
   CookieSessionStoreConfig,
   RevocationCheck,
+  RevocationRegistry,
+  RevocationRegistryOptions,
   SessionCodec,
   SessionCookieJar,
   SessionEnvelope,
 } from "./session-store"
-export { createCookieSessionStore, decodeSession, encodeSession } from "./session-store"
+export {
+  createCookieSessionStore,
+  createRevocationRegistry,
+  decodeSession,
+  encodeSession,
+} from "./session-store"
 export type { SessionSigner } from "./signer"

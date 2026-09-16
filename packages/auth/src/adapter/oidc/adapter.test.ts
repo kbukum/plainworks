@@ -8,9 +8,8 @@ import type { AuthAdapterDeps } from "../adapter"
 import { createAdapterRegistry } from "../registry"
 import { oidcAdapter } from "./adapter"
 import { type OidcAdapterConfig, validateOidcAdapterConfig } from "./config"
+import { createRefreshTokenStore } from "./refresh-store"
 import { registerOidcAdapter } from "./register"
-import { createMemoryTokenStore } from "./token-store"
-import { createJwtVerifier } from "./verify"
 
 const REDIRECT_URI = "https://app.test/auth/callback"
 
@@ -103,6 +102,135 @@ describe("oidcAdapter happy path", () => {
   test("refresh without a held token is a typed auth/refresh-failed error", async () => {
     const { adapter } = await buildAdapter()
     await expect(adapter.refresh()).rejects.toMatchObject({ kind: "auth/refresh-failed" })
+  })
+
+  test("detects a replayed refresh token and denies the refresh while signaling revocation", async () => {
+    const inner = createRefreshTokenStore()
+    const revoked: string[] = []
+    let armed = false
+    const tokenStore = {
+      issue: (h: string, t: string) => inner.issue(h, t),
+      current: (h: string) => inner.current(h),
+      rotate: (h: string, p: string, n: string) =>
+        armed ? ({ status: "reuse-detected" } as const) : inner.rotate(h, p, n),
+      revoke: (h: string) => inner.revoke(h),
+    }
+    const { adapter, idp } = await buildAdapter({
+      tokenStore,
+      onReuseDetected: (h) => {
+        revoked.push(h)
+      },
+    })
+    const redirect = await adapter.beginLogin({})
+    const { callbackUrl } = idp.authorize(redirect.authorizationUrl)
+    const session = await adapter.completeLogin({
+      params: paramsFromCallback(callbackUrl),
+      transaction: redirect.transaction,
+    })
+    const handle = session.sessionHandle as string
+    armed = true
+    await expect(adapter.refresh(undefined, handle)).rejects.toMatchObject({
+      kind: "auth/session-revoked",
+    })
+    expect(revoked).toEqual([handle])
+  })
+
+  test("treats a provider invalid_grant on refresh as reuse and signals revocation", async () => {
+    const revoked: string[] = []
+    // A store that never advances custody: after the provider consumes the login refresh token on
+    // the first refresh, the second presents the same (now-retired) token, so the provider's own
+    // reuse detection rejects it with `invalid_grant`.
+    let held: string | undefined
+    const tokenStore = {
+      issue: (_h: string, t: string) => {
+        held = t
+      },
+      current: () => held,
+      rotate: () => ({ status: "rotated" }) as const,
+      revoke: () => {
+        held = undefined
+      },
+    }
+    const { adapter, idp } = await buildAdapter({
+      tokenStore,
+      onReuseDetected: (h) => {
+        revoked.push(h)
+      },
+    })
+    const redirect = await adapter.beginLogin({})
+    const { callbackUrl } = idp.authorize(redirect.authorizationUrl)
+    const session = await adapter.completeLogin({
+      params: paramsFromCallback(callbackUrl),
+      transaction: redirect.transaction,
+    })
+    const handle = session.sessionHandle as string
+    await adapter.refresh(undefined, handle)
+    await expect(adapter.refresh(undefined, handle)).rejects.toMatchObject({
+      kind: "auth/session-revoked",
+    })
+    expect(revoked).toEqual([handle])
+  })
+
+  test("still denies with auth/session-revoked when the revocation signal itself throws", async () => {
+    const inner = createRefreshTokenStore()
+    let armed = false
+    const tokenStore = {
+      issue: (h: string, t: string) => inner.issue(h, t),
+      current: (h: string) => inner.current(h),
+      rotate: (h: string, p: string, n: string) =>
+        armed ? ({ status: "reuse-detected" } as const) : inner.rotate(h, p, n),
+      revoke: (h: string) => inner.revoke(h),
+    }
+    const { adapter, idp } = await buildAdapter({
+      tokenStore,
+      onReuseDetected: () => {
+        throw new Error("registry offline")
+      },
+    })
+    const redirect = await adapter.beginLogin({})
+    const { callbackUrl } = idp.authorize(redirect.authorizationUrl)
+    const session = await adapter.completeLogin({
+      params: paramsFromCallback(callbackUrl),
+      transaction: redirect.transaction,
+    })
+    armed = true
+    await expect(adapter.refresh(undefined, session.sessionHandle as string)).rejects.toMatchObject(
+      { kind: "auth/session-revoked" },
+    )
+  })
+
+  test("makes both revocation attempts and still denies when tokenStore.revoke throws", async () => {
+    const inner = createRefreshTokenStore()
+    const signaled: string[] = []
+    let armed = false
+    const tokenStore = {
+      issue: (h: string, t: string) => inner.issue(h, t),
+      current: (h: string) => inner.current(h),
+      rotate: (h: string, p: string, n: string) =>
+        armed ? ({ status: "reuse-detected" } as const) : inner.rotate(h, p, n),
+      revoke: () => {
+        throw new Error("token store offline")
+      },
+    }
+    const { adapter, idp } = await buildAdapter({
+      tokenStore,
+      onReuseDetected: (h) => {
+        signaled.push(h)
+      },
+    })
+    const redirect = await adapter.beginLogin({})
+    const { callbackUrl } = idp.authorize(redirect.authorizationUrl)
+    const session = await adapter.completeLogin({
+      params: paramsFromCallback(callbackUrl),
+      transaction: redirect.transaction,
+    })
+    const handle = session.sessionHandle as string
+    armed = true
+    await expect(adapter.refresh(undefined, handle)).rejects.toMatchObject({
+      kind: "auth/session-revoked",
+    })
+    // A failing tokenStore.revoke never skips the out-of-band signal or downgrades the deny.
+    expect(signaled).toEqual([handle])
   })
 })
 
@@ -350,9 +478,13 @@ describe("oidcAdapter failure paths", () => {
 
     // timeoutMs invalid
     expect(() => validateOidcAdapterConfig({ ...base, timeoutMs: -1 })).toThrowError(AuthError)
+    expect(() => validateOidcAdapterConfig({ ...base, timeoutMs: 1.5 })).toThrowError(AuthError)
 
     // cooldownDurationMs invalid
     expect(() => validateOidcAdapterConfig({ ...base, cooldownDurationMs: -1 })).toThrowError(
+      AuthError,
+    )
+    expect(() => validateOidcAdapterConfig({ ...base, cooldownDurationMs: 1.5 })).toThrowError(
       AuthError,
     )
 
@@ -394,28 +526,6 @@ describe("oidcAdapter failure paths", () => {
     expect(redirect.authorizationUrl).toContain("response_type=code")
   })
 
-  test("createJwtVerifier supports local jwks and handles token verification failure", async () => {
-    const verifier = createJwtVerifier({
-      jwks: { keys: [] },
-      issuer: "https://idp.test",
-      audience: "client",
-      algorithms: ["RS256"],
-    })
-    await expect(verifier.verifyIdToken("invalid.token.here")).rejects.toMatchObject({
-      kind: "auth/adapter",
-    })
-    await expect(verifier.verifyAccessToken("invalid.token.here")).rejects.toMatchObject({
-      kind: "auth/adapter",
-    })
-    expect(() =>
-      createJwtVerifier({
-        issuer: "https://idp.test",
-        audience: "client",
-        algorithms: ["RS256"],
-      }),
-    ).toThrowError(AuthError)
-  })
-
   test("logout aborts and invalidates in-flight refresh to prevent post-logout token resurrection", async () => {
     let releaseTokenExchange: () => void = () => {}
     const tokenGate = new Promise<void>((resolve) => {
@@ -437,7 +547,7 @@ describe("oidcAdapter failure paths", () => {
       return idp.fetch(input, init)
     }
 
-    const tokenStore = createMemoryTokenStore()
+    const tokenStore = createRefreshTokenStore()
     const { adapter } = await buildAdapter({
       issuer: idp.issuer,
       clientId: idp.clientId,
@@ -453,7 +563,7 @@ describe("oidcAdapter failure paths", () => {
     })
 
     const sessionHandle = session.sessionHandle ?? "test-session"
-    expect(await tokenStore.get(sessionHandle)).toBeTruthy()
+    expect(await tokenStore.current(sessionHandle)).toBeTruthy()
 
     // Arm gate and start refresh (which blocks waiting for tokenGate)
     gateRefresh = true
@@ -461,7 +571,7 @@ describe("oidcAdapter failure paths", () => {
 
     // User logs out while refresh is in flight
     await adapter.logout(undefined, sessionHandle)
-    expect(await tokenStore.get(sessionHandle)).toBeUndefined()
+    expect(await tokenStore.current(sessionHandle)).toBeUndefined()
 
     // Release token exchange
     releaseTokenExchange()
@@ -470,7 +580,7 @@ describe("oidcAdapter failure paths", () => {
     await expect(refreshPromise).rejects.toThrow()
 
     // Token store must remain clean - NO resurrection
-    expect(await tokenStore.get(sessionHandle)).toBeUndefined()
+    expect(await tokenStore.current(sessionHandle)).toBeUndefined()
   })
 
   test("rejects discovery metadata with endpoints outside allowedOrigins", async () => {

@@ -21,6 +21,7 @@ import {
   decodeSessionEnvelope,
   encodeSession,
   type RevocationCheck,
+  type RevocationRegistry,
   type SessionCodec,
 } from "../session-store"
 import type { SessionSigner } from "../signer"
@@ -63,6 +64,16 @@ export interface ServerSessionConfig<Schema extends StandardSchemaV1> {
   readonly clockSkewSeconds?: number
   /** Optional revocation seam checked at read; forwarded to the session codec. */
   readonly isRevoked?: RevocationCheck<InferSchemaOutput<Schema>>
+  /**
+   * An app-scoped {@link RevocationRegistry} shared across requests. Wired in two directions for
+   * secure-by-default revocation: its `isRevoked` is checked at every session read, and when the
+   * adapter reports a refresh-token compromise (`auth/session-revoked`) the flow records the
+   * session handle here so the signed cookie is rejected on its next read — closing the window
+   * where a revoked-but-unexpired cookie would still authenticate. Must be retained for the
+   * protected session lifetime (not rebuilt per request); a distributed deployment supplies a
+   * shared-store `isRevoked` instead. Composed with an explicit `isRevoked` when both are given.
+   */
+  readonly revocation?: RevocationRegistry<InferSchemaOutput<Schema>>
   /** Login-transaction cookie base name; stored as `__Host-<name>`. Defaults to `login_tx`. */
   readonly transactionCookieName?: string
   /** How long the login transaction cookie lives, in seconds. Defaults to 600 (10 minutes). */
@@ -73,7 +84,10 @@ export interface ServerSessionConfig<Schema extends StandardSchemaV1> {
   readonly csrfByteLength?: number
 }
 
-/** The request/response cookie surface the flow drives — read an inbound value, append a `Set-Cookie`. */
+/**
+ * The request/response cookie surface the flow drives — read an inbound value, append a
+ * `Set-Cookie`.
+ */
 export interface ServerSessionJar {
   /** The inbound value of cookie `name`, or `undefined` when absent. */
   get(name: string): string | undefined
@@ -190,6 +204,23 @@ function isTransactionEnvelope(value: unknown): value is TransactionEnvelope {
 }
 
 /**
+ * Combine an explicit revocation seam with the shared registry's; a session is revoked if either
+ * is.
+ */
+function composeRevocation<Value>(
+  explicit: RevocationCheck<Value> | undefined,
+  registry: RevocationCheck<Value> | undefined,
+): RevocationCheck<Value> | undefined {
+  if (explicit === undefined) {
+    return registry
+  }
+  if (registry === undefined) {
+    return explicit
+  }
+  return async (envelope) => (await explicit(envelope)) || (await registry(envelope))
+}
+
+/**
  * Assemble a {@link ServerSession}. A per-request factory — no import-time side effects and no
  * module-level singleton — so two concurrent requests never share custody. It composes the pieces
  * that already exist (the session codec, the signer, CSRF, the redirect guard) into the one flow a
@@ -239,6 +270,10 @@ export function createServerSession<Schema extends StandardSchemaV1>(
   const transactionName = hostCookieName(config.transactionCookieName ?? "login_tx")
   const csrfName = hostCookieName(config.csrfCookieName ?? "csrf")
 
+  // One read-time revocation check from the explicit seam and/or the shared registry — a session
+  // is revoked when either says so.
+  const revocationCheck = composeRevocation(config.isRevoked, config.revocation?.isRevoked)
+
   const codec: SessionCodec<Schema> = {
     signer,
     schema: config.sessionSchema,
@@ -246,7 +281,7 @@ export function createServerSession<Schema extends StandardSchemaV1>(
     ttlSeconds,
     ...(config.clockSkewSeconds === undefined ? {} : { clockSkewSeconds: config.clockSkewSeconds }),
     ...(config.maxAgeSeconds === undefined ? {} : { maxAgeSeconds: config.maxAgeSeconds }),
-    ...(config.isRevoked === undefined ? {} : { isRevoked: config.isRevoked }),
+    ...(revocationCheck === undefined ? {} : { isRevoked: revocationCheck }),
   }
   const csrf: CsrfProtection = createCsrf({
     signer,
@@ -407,13 +442,32 @@ export function createServerSession<Schema extends StandardSchemaV1>(
       if (raw === undefined) {
         return undefined
       }
+      let env: Awaited<ReturnType<typeof decodeSessionEnvelope>>
       try {
-        const env = await decodeSessionEnvelope(codec, raw)
-        if (env.sid === undefined) {
+        env = await decodeSessionEnvelope(codec, raw)
+      } catch (error) {
+        if (error instanceof AuthError && error.kind.startsWith("auth/session-")) {
           return undefined
         }
+        throw error
+      }
+      if (env.sid === undefined) {
+        return undefined
+      }
+      try {
         return await config.adapter.refresh?.(signal, env.sid)
       } catch (error) {
+        // The adapter detected a refresh-token compromise mid-flight. Record the handle in the
+        // shared registry so this session's cookie is rejected on its next read — retained only to
+        // its own expiry — then report no refresh. Without a writable revocation path the cookie
+        // cannot be invalidated here, so the compromise stays visible rather than being swallowed.
+        if (error instanceof AuthError && error.kind === "auth/session-revoked") {
+          if (config.revocation === undefined) {
+            throw error
+          }
+          config.revocation.revoke(env.sid, env.exp)
+          return undefined
+        }
         if (error instanceof AuthError && error.kind.startsWith("auth/session-")) {
           return undefined
         }

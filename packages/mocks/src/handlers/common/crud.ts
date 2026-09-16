@@ -31,7 +31,7 @@ export interface CrudHandlerConfig<T, TInput> {
   /** Clock used for `updatedAt` timestamps */
   clock: Clock
   /** Client-writable fields and their shapes; bodies failing this decode are rejected with 400 */
-  inputSpec: InputSpec
+  inputSpec: InputSpec<TInput>
   /** Fields to search in (for text search) */
   searchFields?: (keyof T & string)[]
   /** Fields that can be filtered exactly */
@@ -323,7 +323,7 @@ export function createCrudHandlers<
     // PATCH update
     http.patch(itemPath, async ({ params, request }) => {
       await latency.wait(request.signal)
-      const decoded = decodeInput<T>(await readJsonBody(request), inputSpec)
+      const decoded = decodeInput<TInput>(await readJsonBody(request), inputSpec)
       if (decoded === null) {
         return badRequest(`invalid ${entityName} update body`)
       }

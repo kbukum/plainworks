@@ -448,6 +448,13 @@ describe("dashboard handlers", () => {
     expect(body).toHaveLength(24)
     expect(body.every((point) => /^\w{3} \d{4}$/.test(point.month))).toBe(true)
   })
+
+  it("replays identical stats after reset", async () => {
+    const first = await (await fetch(`${base}/api/dashboard/stats`)).text()
+    api.reset()
+    const second = await (await fetch(`${base}/api/dashboard/stats`)).text()
+    expect(second).toBe(first)
+  })
 })
 
 describe("settings handlers", () => {

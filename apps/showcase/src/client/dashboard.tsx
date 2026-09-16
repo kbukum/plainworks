@@ -1,8 +1,8 @@
 "use client"
 
 import { logout } from "@plainworks/auth/client"
+import type { Task } from "@plainworks/demo"
 import type { HttpClient } from "@plainworks/http"
-import type { Task } from "@plainworks/mocks/domain"
 import type { PaginatedResult } from "@plainworks/query"
 import type { StateSource } from "@plainworks/std"
 import { Breadcrumbs, type BreadcrumbsProps } from "@plainworks/ui/client"

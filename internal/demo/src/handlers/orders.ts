@@ -2,14 +2,13 @@
  * Order API handlers
  */
 
+import type { EntityFactory, EntityStore, LatencyController } from "@plainworks/mocks"
+import { createCrudHandlers, type InputSpec } from "@plainworks/mocks"
 import type { Clock } from "@plainworks/std"
 import type { HttpHandler } from "msw"
-import type { EntityFactory, EntityStore } from "../data/common"
-import type { LatencyController } from "../latency"
 import type { CreateOrderInput, Order } from "../types"
-import { createCrudHandlers, type InputSpec } from "./common"
 
-const ORDER_INPUT_SPEC: InputSpec = {
+const ORDER_INPUT_SPEC: InputSpec<CreateOrderInput> = {
   customerId: { kind: "string" },
   customerName: { kind: "string" },
   customerEmail: { kind: "string" },

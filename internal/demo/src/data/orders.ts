@@ -2,10 +2,17 @@
  * Order data factory
  */
 
-import { daysAgo, nowISOString } from "../fixture"
-import { randomElement, randomFloat, randomInt } from "../fixture/random"
+import {
+  createEntityFactory,
+  daysAgo,
+  type EntityFactory,
+  type FixtureSources,
+  nowISOString,
+  randomElement,
+  randomFloat,
+  randomInt,
+} from "@plainworks/mocks"
 import type { CreateOrderInput, Order, OrderItem } from "../types"
-import { createEntityFactory, type EntityFactory, type FixtureSources } from "./common"
 
 const CUSTOMER_NAMES = ["John Doe", "Jane Smith", "Mike Johnson", "Sarah Williams", "Tom Brown"]
 const ORDER_STATUSES: Order["status"][] = [

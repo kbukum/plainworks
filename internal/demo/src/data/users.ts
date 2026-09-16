@@ -2,10 +2,17 @@
  * User data factory
  */
 
-import { daysAgo, nowISOString } from "../fixture"
-import { randomBoolean, randomElement, randomInt } from "../fixture/random"
+import {
+  createEntityFactory,
+  daysAgo,
+  type EntityFactory,
+  type FixtureSources,
+  nowISOString,
+  randomBoolean,
+  randomElement,
+  randomInt,
+} from "@plainworks/mocks"
 import type { CreateUserInput, User, UserDepartment } from "../types"
-import { createEntityFactory, type EntityFactory, type FixtureSources } from "./common"
 
 const FIRST_NAMES = [
   "Alice",

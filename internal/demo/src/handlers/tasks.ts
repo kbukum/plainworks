@@ -2,14 +2,13 @@
  * Task API handlers
  */
 
+import type { EntityFactory, EntityStore, LatencyController } from "@plainworks/mocks"
+import { createCrudHandlers, type InputSpec } from "@plainworks/mocks"
 import type { Clock } from "@plainworks/std"
 import type { HttpHandler } from "msw"
-import type { EntityFactory, EntityStore } from "../data/common"
-import type { LatencyController } from "../latency"
 import type { CreateTaskInput, Task } from "../types"
-import { createCrudHandlers, type InputSpec } from "./common"
 
-const TASK_INPUT_SPEC: InputSpec = {
+const TASK_INPUT_SPEC: InputSpec<CreateTaskInput> = {
   title: { kind: "string" },
   description: { kind: "string" },
   status: { kind: "enum", values: ["todo", "in-progress", "done", "blocked"] },

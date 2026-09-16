@@ -1,5 +1,5 @@
+import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
-import { createMockServerHandle } from "@plainworks/mocks/server"
 import { createMockIdp } from "@plainworks/testkit"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { createShowcaseAuth, type ShowcaseAuth } from "../app/auth"
@@ -8,7 +8,7 @@ import { renderApp } from "./render"
 
 // The SSR render proven the way a consumer assembles the kit: the composition kernel resolves the
 // snapshot (theme + session), `@plainworks/query` prefetches the task list through
-// `@plainworks/http`, and `@plainworks/mocks` (MSW) stands in for the backend. The session is read
+// `@plainworks/http`, and `@plainworks/demo` (MSW) stands in for the backend. The session is read
 // through `@plainworks/auth`'s own `createServerSession`, and an in-process mock IdP mints a real
 // signed session for the authenticated cases.
 

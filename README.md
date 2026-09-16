@@ -30,7 +30,7 @@ The showcase server-renders a task dashboard, hydrates it on the client, reads d
 | Forms, data, navigation, and feedback composites | [`@plainworks/ui`](./packages/ui) |
 | Application composition | [`@plainworks/app`](./packages/app) |
 | Shared test fakes and harnesses | [`@plainworks/testkit`](./packages/testkit) |
-| Deterministic MSW-backed API fixtures | [`@plainworks/mocks`](./packages/mocks) |
+| Reusable MSW mock-building primitives | [`@plainworks/mocks`](./packages/mocks) |
 
 Each package exposes a neutral `.` entry. Packages with React or browser bindings expose them separately through `./client`.
 

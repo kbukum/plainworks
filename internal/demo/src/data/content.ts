@@ -2,10 +2,16 @@
  * Content/CMS data factory
  */
 
-import { daysAgo, nowISOString } from "../fixture"
-import { randomElement, randomInt } from "../fixture/random"
+import {
+  createEntityFactory,
+  daysAgo,
+  type EntityFactory,
+  type FixtureSources,
+  nowISOString,
+  randomElement,
+  randomInt,
+} from "@plainworks/mocks"
 import type { ContentPage, CreateContentPageInput } from "../types/content"
-import { createEntityFactory, type EntityFactory, type FixtureSources } from "./common"
 
 const CATEGORIES = ["Blog", "News", "Tutorial", "Documentation", "Announcement", "Case Study"]
 const STATUSES: ContentPage["status"][] = ["draft", "published", "archived"]

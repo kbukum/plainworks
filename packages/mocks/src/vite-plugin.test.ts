@@ -1,8 +1,23 @@
 import { EventEmitter } from "node:events"
 import type { IncomingMessage } from "node:http"
+import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vitest"
-import { createMockApi } from "./api"
 import { mockServerPlugin } from "./vite-plugin"
+
+/**
+ * A minimal generic handler set — the plugin serves any MSW handlers, so its middleware is proven
+ * against a two-endpoint fixture rather than a full demo domain: a `GET` that lists and a `POST`
+ * that echoes its body.
+ */
+function testHandlers() {
+  return [
+    http.get("*/api/tasks", () => HttpResponse.json({ data: [{ id: "t1", title: "seed" }] })),
+    http.post("*/api/tasks", async ({ request }) => {
+      const body = await request.json()
+      return HttpResponse.json({ data: body }, { status: 201 })
+    }),
+  ]
+}
 
 interface FakeResponse {
   statusCode: number
@@ -24,7 +39,7 @@ interface Captured {
 
 /** Capture the middleware the plugin registers, without standing up a real Vite dev server. */
 function captureMiddleware(options?: Parameters<typeof mockServerPlugin>[1]): Captured {
-  const plugin = mockServerPlugin(createMockApi().handlers, options)
+  const plugin = mockServerPlugin(testHandlers(), options)
   let captured: Captured["middleware"] | undefined
   const fakeServer = {
     middlewares: {
@@ -132,7 +147,7 @@ describe("mockServerPlugin middleware", () => {
   })
 
   it("registers no middleware when disabled", () => {
-    const plugin = mockServerPlugin(createMockApi().handlers, { enabled: false })
+    const plugin = mockServerPlugin(testHandlers(), { enabled: false })
     let used = false
     const fakeServer = { middlewares: { use: () => (used = true) } }
     if (typeof plugin.configureServer === "function") {
@@ -158,7 +173,7 @@ describe("mockServerPlugin middleware", () => {
   })
 
   it("rejects invalid options at creation time", () => {
-    const handlers = createMockApi().handlers
+    const handlers = testHandlers()
     expect(() => mockServerPlugin(handlers, { maxBodyBytes: Number.NaN })).toThrow(RangeError)
     expect(() => mockServerPlugin(handlers, { maxBodyBytes: 0 })).toThrow(RangeError)
     expect(() => mockServerPlugin(handlers, { latency: -1 })).toThrow(RangeError)

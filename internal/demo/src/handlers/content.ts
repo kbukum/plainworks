@@ -2,12 +2,11 @@
  * Content/CMS API handlers
  */
 
+import type { EntityFactory, EntityStore, LatencyController } from "@plainworks/mocks"
+import { createCrudHandlers, type InputSpec } from "@plainworks/mocks"
 import type { Clock } from "@plainworks/std"
 import type { HttpHandler } from "msw"
-import type { EntityFactory, EntityStore } from "../data/common"
-import type { LatencyController } from "../latency"
 import type { ContentPage, CreateContentPageInput } from "../types/content"
-import { createCrudHandlers, type InputSpec } from "./common"
 
 function slugify(text: string): string {
   return text
@@ -16,7 +15,7 @@ function slugify(text: string): string {
     .replace(/(^-|-$)/g, "")
 }
 
-const CONTENT_INPUT_SPEC: InputSpec = {
+const CONTENT_INPUT_SPEC: InputSpec<CreateContentPageInput> = {
   title: { kind: "string" },
   status: { kind: "enum", values: ["draft", "published", "archived"] },
   category: { kind: "string" },

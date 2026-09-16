@@ -21,6 +21,7 @@
         "@plainworks/app": "workspace:*",
         "@plainworks/auth": "workspace:*",
         "@plainworks/channel": "workspace:*",
+        "@plainworks/demo": "workspace:*",
         "@plainworks/http": "workspace:*",
         "@plainworks/mocks": "workspace:*",
         "@plainworks/query": "workspace:*",
@@ -70,13 +71,30 @@
         "vitest": "catalog:",
       },
     },
+    "internal/demo": {
+      "name": "@plainworks/demo",
+      "version": "0.0.0",
+      "dependencies": {
+        "@plainworks/mocks": "workspace:*",
+        "@plainworks/std": "workspace:*",
+        "msw": "catalog:",
+      },
+      "devDependencies": {
+        "@plainworks/tsdown-config": "workspace:*",
+        "@types/node": "catalog:",
+        "@vitest/coverage-v8": "catalog:",
+        "tsdown": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "internal/integration": {
       "name": "@plainworks/integration",
       "version": "0.0.0",
       "dependencies": {
         "@plainworks/channel": "workspace:*",
+        "@plainworks/demo": "workspace:*",
         "@plainworks/http": "workspace:*",
-        "@plainworks/mocks": "workspace:*",
         "@plainworks/query": "workspace:*",
         "@plainworks/std": "workspace:*",
         "@plainworks/testkit": "workspace:*",
@@ -939,6 +957,8 @@
     "@plainworks/comment-format": ["@plainworks/comment-format@workspace:internal/comment-format"],
 
     "@plainworks/connect": ["@plainworks/connect@workspace:packages/connect"],
+
+    "@plainworks/demo": ["@plainworks/demo@workspace:internal/demo"],
 
     "@plainworks/elements": ["@plainworks/elements@workspace:packages/elements"],
 

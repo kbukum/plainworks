@@ -1,6 +1,6 @@
+import type { User } from "@plainworks/demo"
+import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
-import type { User } from "@plainworks/mocks/domain"
-import { createMockServerHandle } from "@plainworks/mocks/server"
 import { createQueryClient, listQueryOptions } from "@plainworks/query"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { readUserPage } from "./user-reads"

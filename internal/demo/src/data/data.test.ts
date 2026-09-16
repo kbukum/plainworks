@@ -1,5 +1,5 @@
+import { createFixtureSources, createStore } from "@plainworks/mocks"
 import { describe, expect, it } from "vitest"
-import { createFixtureSources, createStore } from "./common"
 import {
   createDashboardStats,
   createRevenueChartData,

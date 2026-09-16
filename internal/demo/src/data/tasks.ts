@@ -2,10 +2,19 @@
  * Task data factory
  */
 
-import { daysAgo, daysFromNow, nowISOString } from "../fixture"
-import { randomBoolean, randomElement, randomElements, randomInt } from "../fixture/random"
+import {
+  createEntityFactory,
+  daysAgo,
+  daysFromNow,
+  type EntityFactory,
+  type FixtureSources,
+  nowISOString,
+  randomBoolean,
+  randomElement,
+  randomElements,
+  randomInt,
+} from "@plainworks/mocks"
 import type { CreateTaskInput, Task } from "../types"
-import { createEntityFactory, type EntityFactory, type FixtureSources } from "./common"
 
 const TASK_TITLES = [
   "Review pull request",

@@ -157,6 +157,22 @@ A field may declare `sensitivity: "secret"`. The composer **rejects at construct
 
 Persisted media are **untrusted** — anyone can edit `localStorage`, a cookie, or the URL. Pass a Standard Schema validator as `schema` (on a `createScopedState` config or a per-field descriptor) to validate a decoded value at the read boundary; a tampered or wrong-shaped value becomes a typed `StateSourceError` (routed to `onError`) instead of a fabricated value, so the mirror falls back to `initial` rather than adopting garbage. The JSON serializer is a **syntax codec only** — it does not prove shape.
 
+Shapes change over time. Pass a `versioning` policy to stamp the current schema `version` on every write and upgrade an older stored value on read instead of silently discarding it. A value written before you added `versioning` reads as **version 0**, so `migrate(oldValue, 0)` is your upgrade path from unversioned state; a value stamped with a version *newer* than the current one, or a `migrate` that throws, becomes a typed `StateSourceError` rather than a fabricated shape. The `version` must be a positive integer — a non-positive or non-integer value is rejected at construction with a `StateConfigError`.
+
+```ts
+const usePrefs = createScopedState({
+  scope: persistentScope,
+  key: "prefs",
+  initial: { label: "system" },
+  // v1 stored `{ name }`; v2 renamed it to `{ label }`.
+  versioning: {
+    version: 2,
+    migrate: (old, from) =>
+      from === 1 ? { label: (old as { name: string }).name } : (old as { label: string }),
+  },
+})
+```
+
 ### The scopes
 
 | Scope             | Backend          | Durable | Cross-tab | Sent to server | Notes                              |

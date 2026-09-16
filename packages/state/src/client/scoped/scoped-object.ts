@@ -4,7 +4,7 @@ import type { StandardSchemaV1, StateSerializer, StateSource } from "@plainworks
 import { createSourceReconciler } from "@plainworks/std"
 import type { ReactNode } from "react"
 import { type StateFieldFailure, StateSourceError } from "../../errors"
-import type { Scope } from "../../scope/scope"
+import type { PersistedVersioning, Scope } from "../../scope/scope"
 import { assertScopeAllowsSensitivity, type Sensitivity } from "../../scope/sensitivity"
 import { jsonSerializer } from "../../scope/serializer"
 import { createStore } from "../../store"
@@ -26,6 +26,12 @@ export interface FieldDescriptor<Value> {
    * or wrong-shaped value becomes a typed `StateSourceError` instead of a fabricated `Value`.
    */
   readonly schema?: StandardSchemaV1<unknown, Value>
+  /**
+   * Optional schema-evolution policy for this field when it lives in a persisted scope: the current
+   * integer `version` a write stamps and a `migrate` that upgrades an older payload forward instead
+   * of discarding it. Ignored by `memory`.
+   */
+  readonly versioning?: PersistedVersioning<Value>
   /**
    * Marks this field a secret — rejected at construction unless its `scope` is memory-equivalent,
    * so a token can never be placed in `persistent`/`cookie`/`url`.
@@ -187,6 +193,7 @@ export function createScopedObject<
         key: spec.key,
         serializer: spec.serializer,
         ...(spec.field.schema !== undefined ? { schema: spec.field.schema } : {}),
+        ...(spec.field.versioning !== undefined ? { versioning: spec.field.versioning } : {}),
       })
       sources.set(spec.name, source)
       reconcilers.set(

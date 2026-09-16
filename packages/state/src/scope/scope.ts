@@ -6,11 +6,33 @@ import type {
 } from "@plainworks/std"
 
 /**
+ * A persisted value's **schema-evolution** story: the current integer `version` a write stamps, and
+ * a `migrate` that upgrades a value read at an older version to the current shape. Without it a
+ * shape change silently discards persisted state; with it an old payload is upgraded, not dropped.
+ *
+ * A pre-versioning payload (persisted before `versioning` was added) is read as **version 0**, so
+ * `migrate(oldValue, 0)` is the upgrade path from unversioned state. A value stamped with a version
+ * **newer** than the current one, or a `migrate` that throws, is a typed error at the read boundary
+ * — a value from an unknown future is never fabricated into the current shape.
+ */
+export interface PersistedVersioning<Value> {
+  /** The current schema version a write stamps; a positive integer (a pre-versioning read is `0`). */
+  readonly version: number
+  /**
+   * Upgrade a value decoded at `oldVersion` (`< version`) to the current shape. Receives the
+   * decoded old value as `unknown` — its shape predates the current type — so narrow it before
+   * returning the current `Value`. Throw to reject an unmigratable value rather than fabricate one.
+   */
+  readonly migrate: (oldValue: unknown, oldVersion: number) => Value
+}
+
+/**
  * Everything a {@link Scope} needs to build a backend for one value slot: the `key` naming the slot
  * within the scope's medium, the `serializer` that encodes/decodes the value for a string medium
- * (Web Storage, a cookie, a URL param), and an optional `schema` that validates a decoded value at
- * the read boundary. An in-memory scope holds the live reference and ignores the serializer and
- * schema; passing them anyway keeps `createSource` uniform across every scope.
+ * (Web Storage, a cookie, a URL param), an optional `schema` that validates a decoded value at the
+ * read boundary, and optional `versioning` that migrates an older persisted payload forward. An
+ * in-memory scope holds the live reference and ignores all three; passing them anyway keeps
+ * `createSource` uniform across every scope.
  */
 export interface SourceSpec<Value> {
   /** Stable key identifying this value slot within the scope. */
@@ -25,6 +47,12 @@ export interface SourceSpec<Value> {
    * an explicit trust decision.
    */
   readonly schema?: StandardSchemaV1<unknown, Value>
+  /**
+   * Optional schema-evolution policy for a persisted medium: stamp the current `version` on write
+   * and run `migrate` forward when a read finds an older one. Omit it when the value's shape is
+   * stable or the medium is trusted (in-memory).
+   */
+  readonly versioning?: PersistedVersioning<Value>
 }
 
 /**

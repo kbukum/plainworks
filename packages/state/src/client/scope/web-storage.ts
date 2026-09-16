@@ -3,7 +3,7 @@
 import type { StateCapabilities, StateSource } from "@plainworks/std"
 import { StateSourceError } from "../../errors"
 import type { Scope, SourceSpec } from "../../scope/scope"
-import { createStringSource, type StringBackend } from "./string-source"
+import { createStringSource, type StringBackend } from "./persisted-source"
 
 /** Which Web Storage a scope binds — `localStorage` (persistent) or `sessionStorage` (session). */
 export type WebStorageKind = "persistent" | "session"
@@ -127,6 +127,7 @@ export function createWebStorageScope(options: WebStorageScopeOptions): Scope {
         backend,
         medium: `${kind} Web Storage`,
         ...(spec.schema !== undefined ? { schema: spec.schema } : {}),
+        ...(spec.versioning !== undefined ? { versioning: spec.versioning } : {}),
       })
     },
   }

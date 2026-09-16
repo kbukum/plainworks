@@ -3,7 +3,7 @@
 import type { StandardSchemaV1, StateSerializer, StateSource } from "@plainworks/std"
 import { createSourceReconciler } from "@plainworks/std"
 import type { ReactNode } from "react"
-import type { Scope } from "../../scope/scope"
+import type { PersistedVersioning, Scope } from "../../scope/scope"
 import { assertScopeAllowsSensitivity, type Sensitivity } from "../../scope/sensitivity"
 import { jsonSerializer } from "../../scope/serializer"
 import { createStore } from "../../store"
@@ -52,6 +52,12 @@ export interface ScopedStateConfig<Value, Actions extends object = Record<never,
    * instead of a fabricated `Value`. Unnecessary for `memory` (it holds the live typed reference).
    */
   readonly schema?: StandardSchemaV1<unknown, Value>
+  /**
+   * Optional schema-evolution policy for a persisted scope. Give the current integer `version` and
+   * a `migrate` that upgrades an older payload; a write then stamps the version and a read migrates
+   * an older value forward instead of silently discarding it. Unnecessary for `memory`.
+   */
+  readonly versioning?: PersistedVersioning<Value>
   /**
    * Marks the value a secret — rejected at construction unless `scope` is memory-equivalent (the
    * in-memory access-token fallback), so a token can never be placed in
@@ -124,6 +130,7 @@ export function createScopedState<Value, Actions extends object = Record<never, 
       key,
       serializer,
       ...(config.schema !== undefined ? { schema: config.schema } : {}),
+      ...(config.versioning !== undefined ? { versioning: config.versioning } : {}),
     })
     const store = createStore<Value>(() => (seed !== undefined ? seed : initial))
     const reconciler = createSourceReconciler<Value>({

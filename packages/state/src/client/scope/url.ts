@@ -3,7 +3,7 @@
 import type { StateCapabilities, StateSource } from "@plainworks/std"
 import { StateSourceError } from "../../errors"
 import type { Scope, SourceSpec } from "../../scope/scope"
-import { createStringSource, type StringBackend } from "./string-source"
+import { createStringSource, type StringBackend } from "./persisted-source"
 
 /**
  * The navigation surface a URL scope reads and writes. `read` returns the current href; `replace`
@@ -123,6 +123,7 @@ export function createUrlScope(options: UrlScopeOptions = {}): Scope {
         backend,
         medium: "url",
         ...(spec.schema !== undefined ? { schema: spec.schema } : {}),
+        ...(spec.versioning !== undefined ? { versioning: spec.versioning } : {}),
       })
     },
   }

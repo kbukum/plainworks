@@ -10,7 +10,7 @@
 // Single source of truth for the layer map (mirrors README + docs/architecture.md):
 //
 //   L0  std
-//   L1  state · http · theme
+//   L1  state · http · theme · observability
 //   L2  channel · connect · query · elements
 //   L3  auth · ui
 //   L4  app · testkit · mocks        (dev/test tooling lives here too)
@@ -41,6 +41,7 @@ const LAYERS = {
   state: 1,
   http: 1,
   theme: 1,
+  observability: 1,
   channel: 2,
   connect: 2,
   query: 2,

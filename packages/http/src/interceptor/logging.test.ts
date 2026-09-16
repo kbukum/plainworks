@@ -107,6 +107,23 @@ test("masks an embedded credential inside an error message before onError", asyn
   expect(view.message).toBe("upstream rejected access_token=[REDACTED] for tenant 7")
 })
 
+test("preserves the discriminants of a non-Error thrown value while redacting secrets", async () => {
+  const failure = { kind: "http", status: 401, message: "denied", apiKey: "live-key-value" }
+  const errors: unknown[] = []
+  const handler: HttpHandler = async () => {
+    throw failure
+  }
+
+  await expect(
+    loggingInterceptor({ onError: (error) => errors.push(error) })(handler)(requestWithAuth()),
+  ).rejects.toBe(failure)
+  const view = errors[0] as Record<string, unknown>
+  expect(view).not.toBe(failure)
+  expect(view.kind).toBe("http")
+  expect(view.status).toBe(401)
+  expect(view.apiKey).toBe("[REDACTED]")
+})
+
 test("surfaces an error accessor without invoking it, so logging never runs getter code", async () => {
   let invoked = false
   const failure = new Error("boom")

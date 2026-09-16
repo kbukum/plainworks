@@ -1,4 +1,11 @@
-import { isRecord, type RedactOptions, redact, type WebHeaders, type WebURL } from "@plainworks/std"
+import {
+  createErrorSnapshot,
+  isRecord,
+  type RedactOptions,
+  redact,
+  type WebHeaders,
+  type WebURL,
+} from "@plainworks/std"
 import type { HttpRequest } from "../exchange/request"
 import type { HttpInterceptor } from "./handler"
 
@@ -55,52 +62,6 @@ function sanitizeUrl(rawUrl: string): string {
 }
 
 /**
- * Read a property from an error without invoking any accessor: walk the prototype chain for the
- * first descriptor, so a non-enumerable `name`/`message`/`cause` on `Error.prototype` is still
- * found.
- */
-function findDescriptor(target: object, key: string): PropertyDescriptor | undefined {
-  let current: object | null = target
-  while (current !== null) {
-    const descriptor = Object.getOwnPropertyDescriptor(current, key)
-    if (descriptor !== undefined) {
-      return descriptor
-    }
-    current = Object.getPrototypeOf(current)
-  }
-  return undefined
-}
-
-/**
- * Build a plain, structural view of an error for redaction. `name`/`message`/`cause` are
- * non-enumerable on the `Error` prototype, so a naive object walk would miss them; each is read via
- * its descriptor and any accessor is surfaced as `"[Getter]"` rather than invoked, so logging an
- * untrusted error never executes getter code that could leak a secret or throw.
- */
-function describeErrorSafely(error: Error): Record<string, unknown> {
-  const view: Record<string, unknown> = {}
-  const surface = (key: string, descriptor: PropertyDescriptor | undefined): void => {
-    if (descriptor === undefined) {
-      return
-    }
-    view[key] = descriptor.get !== undefined ? "[Getter]" : descriptor.value
-  }
-  surface("name", findDescriptor(error, "name"))
-  surface("message", findDescriptor(error, "message"))
-  for (const key of Object.keys(error)) {
-    if (key === "name" || key === "message" || key === "cause") {
-      continue
-    }
-    surface(key, Object.getOwnPropertyDescriptor(error, key))
-  }
-  const cause = findDescriptor(error, "cause")
-  if (cause !== undefined && (cause.get !== undefined || cause.value !== undefined)) {
-    surface("cause", cause)
-  }
-  return view
-}
-
-/**
  * Reduce a thrown value to a redacted, structural view safe for a log sink. An error can carry a
  * credential in its `message` or in an enumerable field (a `fetch` failure, or a custom
  * interceptor's error), so a descriptor-safe view of the error — one that surfaces accessors
@@ -110,10 +71,7 @@ function describeErrorSafely(error: Error): Record<string, unknown> {
  * never handed across the boundary; only this redacted copy is.
  */
 function redactError(error: unknown, redactOptions?: RedactOptions): unknown {
-  if (!(error instanceof Error)) {
-    return redact(error, redactOptions)
-  }
-  return redact(describeErrorSafely(error), redactOptions)
+  return redact(createErrorSnapshot(error), redactOptions)
 }
 
 /**

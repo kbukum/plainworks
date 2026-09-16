@@ -21,6 +21,7 @@ The showcase server-renders a task dashboard, hydrates it on the client, reads d
 | Reactive state with optional React bindings | [`@plainworks/state`](./packages/state) |
 | Typed HTTP requests and list-query serialization | [`@plainworks/http`](./packages/http) |
 | Theme tokens, schemes, and runtime resolution | [`@plainworks/theme`](./packages/theme) |
+| Structured logging, error reporting, and Web Vitals | [`@plainworks/observability`](./packages/observability) |
 | SSE and WebSocket channels | [`@plainworks/channel`](./packages/channel) |
 | Connect RPC clients and interceptors | [`@plainworks/connect`](./packages/connect) |
 | TanStack Query factories and cache integration | [`@plainworks/query`](./packages/query) |
@@ -41,7 +42,7 @@ Each package owns one concern and imports only from a **strictly lower layer**.
 flowchart TD
   L4["L4 · app · testkit · mocks"] --> L3["L3 · auth · ui"]
   L3 --> L2["L2 · channel · connect · query · elements"]
-  L2 --> L1["L1 · state · http · theme"]
+  L2 --> L1["L1 · state · http · theme · observability"]
   L1 --> L0["L0 · std"]
 ```
 

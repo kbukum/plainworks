@@ -14,7 +14,7 @@ Use this reference to decide **where code belongs**, **which hosts can run it**,
 flowchart TD
   L4["L4 · app · testkit · mocks"] --> L3["L3 · auth · ui"]
   L3 --> L2["L2 · channel · connect · query · elements"]
-  L2 --> L1["L1 · state · http · theme"]
+  L2 --> L1["L1 · state · http · theme · observability"]
   L1 --> L0["L0 · std"]
 ```
 
@@ -25,7 +25,7 @@ flowchart TD
 | Layer | Packages | Responsibility |
 |---|---|---|
 | **L0** | `std` | Errors, results, guards, resilience, shared seams, list contracts, and structural web types. No React. |
-| **L1** | `state`, `http`, `theme` | Reactive state, typed HTTP, and the design-token substrate. |
+| **L1** | `state`, `http`, `theme`, `observability` | Reactive state, typed HTTP, the design-token substrate, and logging/error-reporting/Web Vitals seams. |
 | **L2** | `channel`, `connect`, `query`, `elements` | Streaming, RPC, TanStack Query integration, and owned UI atoms. |
 | **L3** | `auth`, `ui` | Authentication, OIDC with PKCE, forms, data, navigation, and UI composites. |
 | **L4** | `app`, `testkit`, `mocks` | Application composition, shared test tooling, and deterministic API fixtures. |

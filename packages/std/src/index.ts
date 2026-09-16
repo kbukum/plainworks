@@ -11,8 +11,8 @@ export {
   serializeCookieAttributes,
   utf8ByteLength,
 } from "./cookie"
-export type { PlainErrorOptions } from "./errors"
-export { ensureError, getErrorMessage, PlainError } from "./errors"
+export type { ErrorSnapshot, PlainErrorOptions } from "./errors"
+export { createErrorSnapshot, ensureError, getErrorMessage, PlainError } from "./errors"
 export { assert, assertNever, hasProperty, isDefined, isNonEmptyString, isRecord } from "./guard"
 export type {
   CursorInfo,

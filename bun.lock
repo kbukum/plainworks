@@ -347,6 +347,25 @@
         "vite",
       ],
     },
+    "packages/observability": {
+      "name": "@plainworks/observability",
+      "version": "0.1.0-alpha.1",
+      "dependencies": {
+        "@plainworks/std": "workspace:*",
+      },
+      "devDependencies": {
+        "@arethetypeswrong/cli": "catalog:",
+        "@plainworks/testkit": "workspace:*",
+        "@plainworks/tsdown-config": "workspace:*",
+        "@types/node": "catalog:",
+        "@vitest/coverage-v8": "catalog:",
+        "jsdom": "catalog:",
+        "publint": "catalog:",
+        "tsdown": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "packages/query": {
       "name": "@plainworks/query",
       "version": "0.1.0-alpha.1",
@@ -928,6 +947,8 @@
     "@plainworks/integration": ["@plainworks/integration@workspace:internal/integration"],
 
     "@plainworks/mocks": ["@plainworks/mocks@workspace:packages/mocks"],
+
+    "@plainworks/observability": ["@plainworks/observability@workspace:packages/observability"],
 
     "@plainworks/query": ["@plainworks/query@workspace:packages/query"],
 

@@ -1,6 +1,7 @@
 import type { AuthHeaders, Clock, Identity, WebAbortSignal } from "@plainworks/std"
 import type { AuthCrypto } from "../crypto"
 import type { TokenSet } from "../session"
+import type { OidcAdapterConfig } from "./oidc/config"
 
 /**
  * Shared services an adapter is handed at construction — injected, never reached for as globals, so
@@ -43,12 +44,31 @@ export interface CompleteLoginRequest {
   /** The transaction persisted by {@link LoginRedirect}. */
   readonly transaction: string
   readonly signal?: WebAbortSignal
+  /** Optional session handle to custody tokens under. */
+  readonly sessionHandle?: string
 }
 
 /** The result of a completed login — the resolved caller plus the credential material to custody. */
 export interface AuthSession {
   readonly identity: Identity
   readonly tokens: TokenSet
+  /** Opaque session handle identifying the server-side token custody slot. */
+  readonly sessionHandle?: string
+}
+
+/**
+ * An {@link AuthAdapter} that implements the full interactive login flow — `beginLogin`,
+ * `completeLogin`, `refresh`, and `logout` are all present, not optional. A redirect-based
+ * mechanism (OIDC) returns this narrower shape so a caller (and its tests) can drive the flow
+ * without re-narrowing each optional method; the wider `AuthAdapter` remains the registry contract
+ * that a stateless verifier also satisfies.
+ */
+export interface InteractiveAuthAdapter extends AuthAdapter {
+  init(deps: AuthAdapterDeps): void | Promise<void>
+  beginLogin(request: BeginLoginRequest): Promise<LoginRedirect>
+  completeLogin(request: CompleteLoginRequest): Promise<AuthSession>
+  refresh(signal?: WebAbortSignal, sessionHandle?: string): Promise<TokenSet>
+  logout(signal?: WebAbortSignal, sessionHandle?: string): Promise<void>
 }
 
 /**
@@ -70,9 +90,9 @@ export interface AuthAdapter {
   /** Complete an interactive login from the provider callback. */
   completeLogin?(request: CompleteLoginRequest): Promise<AuthSession>
   /** Obtain a fresh token set (refresh-token rotation lives in the adapter). */
-  refresh?(signal: WebAbortSignal): Promise<TokenSet>
+  refresh?(signal?: WebAbortSignal, sessionHandle?: string): Promise<TokenSet>
   /** Tear down provider/RP session state on logout, where the mechanism supports it. */
-  logout?(signal?: WebAbortSignal): Promise<void>
+  logout?(signal?: WebAbortSignal, sessionHandle?: string): Promise<void>
 }
 
 /**
@@ -88,7 +108,9 @@ export interface CustomAdapterConfig {
 
 /**
  * The discriminated-union selection of an adapter. Open by design: each built-in adds its own
- * member (`{ kind: "oidc"; ... }`, etc.) as it lands, and `custom` covers bring-your-own — so
- * selecting a mechanism is config-driven with no core change.
+ * member as it lands, and `custom` covers bring-your-own — so selecting a mechanism is
+ * config-driven with no core change. `oidc` ships from the token-bearing `@plainworks/auth/server`
+ * entry (its factory custodies refresh tokens); its config type lives here, in the neutral seam,
+ * because it is pure types with no runtime dependency on the OAuth stack.
  */
-export type AuthAdapterConfig = CustomAdapterConfig
+export type AuthAdapterConfig = CustomAdapterConfig | OidcAdapterConfig

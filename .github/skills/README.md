@@ -18,7 +18,7 @@ Each skill is a folder with a `SKILL.md` (YAML frontmatter + workflow) and optio
 | [`validate`](validate/SKILL.md) | Run the DoD gates (`check-versions · lint · typecheck · check-boundaries · build · test · check-packaging`) through `bun run`/`turbo`, scoped to the changed package(s). |
 | [`review`](review/SKILL.md) | Run the standing engineering-baseline review over a diff or the tree, in a fresh clean-context agent (high-capability model). |
 | [`new-package`](new-package/SKILL.md) | Scaffold a new `@plainworks/*` package by driving the `turbo gen` golden generator — never hand-rolled — then place it in the layer map. |
-| [`new-backend`](new-backend/SKILL.md) | Add an adapter (state / connection transport / auth / query) as an explicit-registration module, with the default kept in core. |
+| [`new-backend`](new-backend/SKILL.md) | Add an adapter (state / channel transport / auth / query) as an explicit-registration module, with the default kept in core. |
 | [`release`](release/SKILL.md) | Cut a release with Changesets — version, ESM/exports/gates green, publish to npm, SHA-pinned CI. |
 | [`docs`](docs/SKILL.md) | Review/update docs to the repo's standards (flowing paragraphs, no hard wraps) and keep commands/structure/examples matching the code. |
 

@@ -12,7 +12,7 @@ turbo run test --filter @plainworks/integration
 
 - **By concern, one scenario per file.** Concern folders live directly under the package (no `test/`, `smoke/`, or kind sub-layer — the whole package *is* integration by scope). The **filename is the scenario** it proves; **depth** (smoke → thorough) is a property of the file, not a folder.
 - Add a scenario by dropping a `<scenario>.test.ts` into the matching concern folder (e.g. `list/`). Add a concern by creating a new folder next to `list/`. The vitest `include` globs every `*/**/*.test.ts`, so no config change is needed.
-- Split into a **separate package** only when tests need different machinery or scope — a real browser/server/DB **e2e** suite would become a future `internal/e2e` (Playwright), not another folder here.
+- Split tests into a **separate package** only when they need different machinery or scope. Keep real browser, server, or database e2e tests out of this integration package.
 
 ### `list/` — the PostgREST list contract, assembled
 

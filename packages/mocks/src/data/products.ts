@@ -2,9 +2,9 @@
  * Product data factory
  */
 
+import { daysAgo, nowISOString } from "../fixture"
+import { randomElement, randomFloat, randomInt } from "../fixture/random"
 import type { CreateProductInput, Product } from "../types"
-import { daysAgo, nowISOString } from "../utils"
-import { randomElement, randomFloat, randomInt } from "../utils/random"
 import { createEntityFactory, type EntityFactory, type FixtureSources } from "./common"
 
 const PRODUCT_NAMES = [

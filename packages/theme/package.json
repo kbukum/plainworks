@@ -28,8 +28,7 @@
     "access": "public"
   },
   "files": [
-    "dist",
-    "src/styles.css"
+    "dist"
   ],
   "exports": {
     ".": {
@@ -40,7 +39,7 @@
       "types": "./dist/client.d.ts",
       "import": "./dist/client.js"
     },
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./dist/styles.css"
   },
   "scripts": {
     "build": "tsdown",

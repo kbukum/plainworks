@@ -7,6 +7,7 @@ export {
   isCookieNameToken,
   isCookiePath,
   MAX_COOKIE_BYTES,
+  parseCookieHeader,
   serializeCookieAttributes,
   utf8ByteLength,
 } from "./cookie"
@@ -48,9 +49,6 @@ export { isSensitiveKey, redact } from "./redact"
 export type {
   BackoffPolicy,
   BoundedQueue,
-  CircuitBreaker,
-  CircuitBreakerOptions,
-  CircuitState,
   Classification,
   Deadline,
   Delay,
@@ -64,12 +62,10 @@ export type {
 export {
   AbortError,
   assertTimerMs,
-  CircuitOpenError,
   classifyError,
   classifyStatus,
   combineSignals,
   createBoundedQueue,
-  createCircuitBreaker,
   createDeadline,
   defaultBackoff,
   isRetryable,
@@ -91,7 +87,7 @@ export type { Err, Ok, Result } from "./result"
 export { err, isErr, isOk, ok, unwrap, unwrapOr } from "./result"
 export type { AuthContext, AuthHeaderProvider, AuthHeaders } from "./seam/auth"
 export type { AuthorizationRequest, Authorizer, Decision } from "./seam/authorization"
-export type { Listener, PlainEvent, Subscription } from "./seam/events"
+export type { EventSink, Listener, PlainEvent, Subscription } from "./seam/events"
 export type { Identity } from "./seam/identity"
 export type { RedirectSignal } from "./seam/redirect"
 export type {
@@ -107,6 +103,14 @@ export type {
 } from "./seam/schema"
 export { unsafePassthrough, validateWithSchema } from "./seam/schema"
 export type { StateCapabilities, StateSerializer, StateSource } from "./seam/state"
+export type {
+  StreamFrame,
+  StreamTransport,
+  StreamTransportContext,
+  StreamTransportFactory,
+} from "./seam/stream"
+export type { ReconcilerReport, StateReconciler } from "./state-reconciler"
+export { createSourceReconciler } from "./state-reconciler"
 export type { Clock } from "./time"
 export { systemClock } from "./time"
 export type {

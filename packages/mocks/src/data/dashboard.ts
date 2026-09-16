@@ -2,6 +2,8 @@
  * Dashboard data generators
  */
 
+import { daysAgo } from "../fixture"
+import { randomElements, randomFloat, randomInt } from "../fixture/random"
 import type {
   ChartDataPoint,
   DailySales,
@@ -11,8 +13,6 @@ import type {
   RevenueChartData,
   UserGrowthChartData,
 } from "../types"
-import { daysAgo } from "../utils"
-import { randomElements, randomFloat, randomInt } from "../utils/random"
 import type { FixtureSources } from "./common"
 
 const PRODUCT_NAMES = [

@@ -6,4 +6,4 @@
  * layout — Tailwind never auto-detects sources inside node_modules, so an explicit `@source` per
  * package is the only layer-safe registration.
  */
-@source "../dist/**/*.js";
+@source "./**/*.js";

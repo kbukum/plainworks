@@ -33,7 +33,7 @@ Check the working tree with `git status` first. Uncommitted changes follow you o
 
 ## Naming: describe the change, not internal details
 
-- **Prefix with your username**, then a short kebab-case summary of the change: `kbukum/<short-change-summary>` (e.g. `kbukum/connection-sse-reconnect`, `kbukum/auth-bff-cookie-seam`).
+- **Prefix with your username**, then a short kebab-case summary of the change: `kbukum/<short-change-summary>` (e.g. `kbukum/channel-sse-reconnect`, `kbukum/auth-bff-cookie-seam`).
 - Name by the actual change: the package/capability touched and the outcome.
 - Short, lowercase, hyphen-separated; no spaces, no `wip`, no trailing noise.
 

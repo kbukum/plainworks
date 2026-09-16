@@ -2,9 +2,9 @@
  * Notification data factory
  */
 
+import { daysAgo } from "../fixture"
+import { randomBoolean, randomElement, randomInt } from "../fixture/random"
 import type { CreateNotificationInput, Notification } from "../types"
-import { daysAgo } from "../utils"
-import { randomBoolean, randomElement, randomInt } from "../utils/random"
 import { createEntityFactory, type EntityFactory, type FixtureSources } from "./common"
 
 const NOTIFICATION_TEMPLATES = [

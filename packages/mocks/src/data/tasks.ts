@@ -2,9 +2,9 @@
  * Task data factory
  */
 
+import { daysAgo, daysFromNow, nowISOString } from "../fixture"
+import { randomBoolean, randomElement, randomElements, randomInt } from "../fixture/random"
 import type { CreateTaskInput, Task } from "../types"
-import { daysAgo, daysFromNow, nowISOString } from "../utils"
-import { randomBoolean, randomElement, randomElements, randomInt } from "../utils/random"
 import { createEntityFactory, type EntityFactory, type FixtureSources } from "./common"
 
 const TASK_TITLES = [

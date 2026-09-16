@@ -49,7 +49,7 @@ A channel moves through `idle → connecting → open → reconnecting → closi
 
 ## Transports
 
-A transport is a `TransportFactory` injected into `createChannel`. The core never imports a wire global — it calls the factory.
+A transport is a `StreamTransportFactory` injected into `createChannel`. The core never imports a wire global — it calls the factory. The transport contract (`StreamTransport`, `StreamFrame`, and friends) is a neutral, host-independent seam owned by `@plainworks/std`; `channel` re-exports it for convenience.
 
 ### SSE — `createSseTransport`
 
@@ -72,7 +72,7 @@ createWsTransport({
 
 ## Event router
 
-The channel delivers raw `ChannelFrame`s. The **event router** adds a typed layer: decode a frame to `{ type, payload, id }`, then fan it out to sinks. Delivery is drained through `std`'s bounded queue, so a slow sink applies backpressure instead of buffering without limit.
+The channel delivers raw `StreamFrame`s. The **event router** adds a typed layer: decode a frame to `{ type, payload, id }`, then fan it out to sinks. Delivery is drained through `std`'s bounded queue, so a slow sink applies backpressure instead of buffering without limit.
 
 ```ts
 import { createEventRouter, createStateSink, jsonDecoder } from "@plainworks/channel"

@@ -25,15 +25,20 @@ const auth = createAuth({
 const headers = await auth.getAuthHeader()
 ```
 
-The in-memory session store custodies the access token (memory only — never `localStorage`),
-refreshes lazily and single-flight, and neutralizes a late refresh on logout.
+The in-memory session store custodies the access token (memory only — never `localStorage`), refreshes lazily and single-flight, and neutralizes a late refresh on logout.
 
 ## Runtime primitives
 
-`@plainworks/auth`'s `.` entry is a **neutral** package touching no host globals, so it runs on every
-target runtime (Node, edge, RSC, React Native). The one non-universal primitive it needs — **Web
-Crypto** (`crypto.subtle` / `getRandomValues`, for PKCE and CSPRNG randomness) — is an injected seam
-({@link AuthCrypto}) with a lazy platform default and a typed `auth/crypto-unavailable` error when a
-host lacks it. Token custody, OIDC exchange, and cookie minting arrive on the server-quarantined
-`./server` entry; React bindings on `./client`. See
-[`docs/architecture.md › Axis 2`](../../docs/architecture.md) for the primitive contract.
+`@plainworks/auth`'s `.` entry is a **neutral** package touching no host globals, so it runs on every target runtime (Node, edge, RSC, React Native). The one non-universal primitive it needs — **Web Crypto** (`crypto.subtle` / `getRandomValues`, for PKCE and CSPRNG randomness) — is an injected seam ({@link AuthCrypto}) with a lazy platform default and a typed `auth/crypto-unavailable` error when a host lacks it. Cookie **minting**, the session-signing key, and the OIDC token exchange live on the server-quarantined `./server` entry, kept out of any `"use client"` graph. The React `useSession` hooks and login/logout navigation live on `./client` and carry only identity — never a token. See [`docs/architecture.md › Axis 2`](../../docs/architecture.md) for the primitive contract.
+
+## Adapters and the login flow
+
+Two adapters ship: the **custom / bring-your-own** adapter (`kind: "custom"`), and a full **OIDC Authorization Code + PKCE** adapter (`kind: "oidc"`) that discovers the provider, verifies the ID token signature, and custodies tokens in memory. `AuthAdapterConfig` is an open discriminated union, so a new adapter kind extends it without touching the core.
+
+On the server, `createServerSession` composes an interactive adapter, a `SessionSigner`, and the hardened cookie jar into the full BFF login flow — `beginLogin` / `completeLogin` / `logout` / `read` / `guard` — with session-bound signed CSRF and verify-before-parse session cookies:
+
+```ts
+import { createServerSession, oidcAdapter, hmacSessionSigner } from "@plainworks/auth/server"
+```
+
+On the browser, `./client` exposes `createSessionContext` (a `SessionProvider` + `useSession` / `useIdentity` / `useIsAuthenticated`) and `login` / `logout` that bounce to the BFF routes. Tokens never cross into this graph — a dependency-cruiser boundary rule proves it.

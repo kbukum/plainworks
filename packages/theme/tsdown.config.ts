@@ -5,4 +5,5 @@ export default preset({
     index: "src/index.ts",
     client: "src/client.ts",
   },
+  copy: [{ from: "src/styles.css", to: "dist" }],
 })

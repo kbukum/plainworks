@@ -2,10 +2,16 @@
 // `EventSource` (which cannot attach an `Authorization` header — the reason this kit streams over
 // `fetch`). It implements one attempt of the transport seam; reconnect/backoff/timeouts live in the
 // channel core. Runs anywhere `fetch` and `TextDecoder` exist (Node, edge, workers, browser).
-import type { WebFetch, WebReadableStream, WebResponse } from "@plainworks/std"
+import type {
+  StreamTransport,
+  StreamTransportContext,
+  StreamTransportFactory,
+  WebFetch,
+  WebReadableStream,
+  WebResponse,
+} from "@plainworks/std"
 import { createParser } from "eventsource-parser"
 import { ChannelError } from "../../error"
-import type { Transport, TransportContext, TransportFactory } from "../../transport"
 import { resolveUrl, type UrlSource } from "../url"
 
 const DEFAULT_MAX_BUFFER_CHARS = 1_048_576
@@ -25,13 +31,13 @@ export interface SseTransportOptions {
 }
 
 /**
- * A pluggable SSE {@link TransportFactory} for {@link createChannel}. Each attempt issues one `GET`
- * with the channel's resolved headers plus the SSE protocol headers (`Accept: text/event-stream`,
- * `Cache-Control: no-cache`, and header-only `Last-Event-ID` resume), verifies the response is an
- * `ok` event stream, signals `onOpen`, then pulls the body one chunk at a time — pull-based
- * backpressure, no unbounded internal queue — decoding frames to `onFrame`.
+ * A pluggable SSE {@link StreamTransportFactory} for {@link createChannel}. Each attempt issues one
+ * `GET` with the channel's resolved headers plus the SSE protocol headers
+ * (`Accept: text/event-stream`, `Cache-Control: no-cache`, and header-only `Last-Event-ID` resume),
+ * verifies the response is an `ok` event stream, signals `onOpen`, then pulls the body one chunk at
+ * a time — pull-based backpressure, no unbounded internal queue — decoding frames to `onFrame`.
  */
-export function createSseTransport(options: SseTransportOptions): TransportFactory {
+export function createSseTransport(options: SseTransportOptions): StreamTransportFactory {
   const { url, maxBufferChars = DEFAULT_MAX_BUFFER_CHARS } = options
   // A non-integer/overflowing bound (e.g. Infinity) would make the parser's size check permanently
   // pass, defeating the memory bound — reject it at construction.
@@ -40,8 +46,8 @@ export function createSseTransport(options: SseTransportOptions): TransportFacto
   }
   const fetchImpl = options.fetch ?? resolveGlobalFetch()
 
-  return (): Transport => ({
-    async open(context: TransportContext): Promise<void> {
+  return (): StreamTransport => ({
+    async open(context: StreamTransportContext): Promise<void> {
       const endpoint = await resolveUrl(url, context.signal)
       const headers = new Headers()
       headers.set("Accept", "text/event-stream")
@@ -94,7 +100,7 @@ export function createSseTransport(options: SseTransportOptions): TransportFacto
 /** Pull the body one chunk at a time and dispatch each decoded SSE frame; resolve on clean EOF. */
 async function readEventStream(
   body: WebReadableStream<Uint8Array>,
-  context: TransportContext,
+  context: StreamTransportContext,
   maxBufferChars: number,
 ): Promise<void> {
   const reader = body.getReader()

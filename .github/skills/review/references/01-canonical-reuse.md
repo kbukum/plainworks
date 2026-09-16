@@ -16,7 +16,7 @@ Reuse or enhance the canonical lower owner before writing new code. Never duplic
 
 - **Errors & result.** The `std` typed error / result type, cause preserved. A new local error class or a `throw "string"` for a shared concern is duplication.
 - **Retry / backoff / timeout.** Come from `std` (backoff+jitter, retry ceiling), not a hand-rolled loop or ad-hoc `setTimeout` retry scattered per call site.
-- **Contracts / seams / event shapes.** The auth-header seam and event shapes are defined once in the lowest package; a second copy in `connection`/`auth` is a fork.
+- **Contracts / seams / event shapes.** The auth-header seam and event shapes are defined once in the lowest package; a second copy in `channel`/`auth` is a fork.
 - **Platform first (keep code current).** Before adding a dependency or helper, verify a current Web/platform API doesn't already cover it — `AbortController`/`AbortSignal` for cancellation, `structuredClone`, `crypto.subtle`, `URL`, `EventTarget`. Reinventing a platform facility (a custom deep-clone, a bespoke event emitter where the seam-into-Query/store pattern is intended) is a should-fix.
 - **Test doubles.** Fakes/harnesses come from `@plainworks/testkit`, never hand-rolled inline in a test that duplicates one.
 - **"Almost the same" counts.** A near-copy with one tweaked line is still a fork — enhance the owner to cover the new case.
@@ -36,4 +36,4 @@ For each hit: is there a lower owner for this concern? If yes and the code doesn
 
 ## Output for this pass
 
-Per finding, name the concrete package/type that should have been used (e.g. "use the `std` retry policy instead of a hand-rolled `setTimeout` loop", "define the event shape in `std`, not a second copy in `connection`").
+Per finding, name the concrete package/type that should have been used (e.g. "use the `std` retry policy instead of a hand-rolled `setTimeout` loop", "define the event shape in `std`, not a second copy in `channel`").

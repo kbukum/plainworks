@@ -36,10 +36,12 @@
 
 - [ ] `bun run check-versions` — catalog / dedupe clean (Sherif + Syncpack)
 - [ ] `bun run lint` — Biome clean
+- [ ] `bun run check-comments` — comment prose within the 100-col width
 - [ ] `bun run typecheck` — no type errors
 - [ ] `bun run check-boundaries` — dependency-cruiser layer gate green
 - [ ] `bun run build` — tsdown builds all affected packages
 - [ ] `bun run test` — Vitest green, coverage floors met (≥ 80% package / ≥ 85% security-critical)
+- [ ] `bun run check-packaging` — publint + are-the-types-wrong on the built tarballs
 - [ ] New behavior was written test-first (a test that fails without this change)
 
 ### Test Evidence

@@ -1,7 +1,7 @@
 ---
 name: new-backend
 description: >-
-    Add a pluggable adapter/backend to plainworks the canonical way — a state store, connection
+    Add a pluggable adapter/backend to plainworks the canonical way — a state store, channel
     transport (sse/ws), auth mechanism (oidc/jwt/apikey/BYO), or query wiring — implementing the
     core package's seam, selected via config through an explicit register()/createX({...}), with no
     import-time side effects and the lean default kept in core. Use when integrating a transport, an
@@ -14,10 +14,10 @@ plainworks' abstraction packages follow a **seam + explicit-registration** patte
 
 ## Where adapters live
 
-Match the genesis layer map — the adapter is part of, or sits beside, the core package that owns the seam:
+Match the layer map — the adapter is part of, or sits beside, the core package that owns the seam:
 
 - **State** (`state`, L1) — the **Zustand** store-factory is the blessed default behind the state seam; a secondary adapter (e.g. Jotai) implements the same seam.
-- **Connection** (`connection`, L2) — the core owns backoff+jitter, retry ceiling, `minUptime` gating, the lifecycle state machine, and the header-only token-provider seam; `sse` and `ws` are **transport adapters** implementing the wire seam. WebTransport is a seam only, not shipped.
+- **Channel** (`channel`, L2) — the core owns backoff+jitter, retry ceiling, `minUptime` gating, the lifecycle state machine, and the header-only token-provider seam; `sse` and `ws` are **transport adapters** implementing the wire seam. WebTransport is a seam only, not shipped.
 - **Connect / Query** (`connect`, `query`, L2) — Connect-RPC transport and TanStack Query wiring plug into the same event→cache seam.
 - **Auth** (`auth`, L3) — a small core (session + header/identity seam, server/client split) with **swappable adapters**: `oidc`, `jwt`, `apikey`, and bring-your-own. New auth styles integrate **without touching the core**.
 

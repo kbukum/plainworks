@@ -4,6 +4,7 @@ import {
   isCookieNameToken,
   isCookiePath,
   MAX_COOKIE_BYTES,
+  parseCookieHeader,
   serializeCookieAttributes,
   utf8ByteLength,
 } from "./cookie"
@@ -83,5 +84,35 @@ describe("serialize cookie attributes", () => {
 describe("cookie byte budget", () => {
   test("exposes the ~4KB per-cookie limit", () => {
     expect(MAX_COOKIE_BYTES).toBe(4096)
+  })
+})
+
+describe("parse cookie header", () => {
+  test("splits a multi-cookie header into a name→value map", () => {
+    const jar = parseCookieHeader("theme=dark; session=abc; lang=en")
+    expect(jar.get("theme")).toBe("dark")
+    expect(jar.get("session")).toBe("abc")
+    expect(jar.get("lang")).toBe("en")
+  })
+
+  test("returns values still percent-encoded, leaving decoding to the caller", () => {
+    expect(parseCookieHeader("theme=%7B%22mode%22%3A%22dark%22%7D").get("theme")).toBe(
+      "%7B%22mode%22%3A%22dark%22%7D",
+    )
+  })
+
+  test("keeps `=` inside a value intact", () => {
+    expect(parseCookieHeader("token=a=b=c").get("token")).toBe("a=b=c")
+  })
+
+  test("skips malformed pairs and keeps the first occurrence of a name", () => {
+    const jar = parseCookieHeader("; novalue; =novalue; theme=first; theme=second")
+    expect(jar.get("theme")).toBe("first")
+    expect(jar.has("novalue")).toBe(false)
+    expect(jar.size).toBe(1)
+  })
+
+  test("returns an empty map for an empty header", () => {
+    expect(parseCookieHeader("").size).toBe(0)
   })
 })

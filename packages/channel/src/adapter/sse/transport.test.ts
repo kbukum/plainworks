@@ -1,5 +1,7 @@
 import type {
   AuthHeaders,
+  StreamFrame,
+  StreamTransportContext,
   WebFetch,
   WebHeaders,
   WebRequestInit,
@@ -7,7 +9,6 @@ import type {
 } from "@plainworks/std"
 import { describe, expect, test } from "vitest"
 import { ChannelError } from "../../error"
-import type { ChannelFrame, TransportContext } from "../../transport"
 import { createSseTransport } from "./transport"
 
 /** A `WebResponse`-shaped SSE response whose body is the concatenated chunks. */
@@ -19,13 +20,13 @@ function sseResponse(chunks: readonly string[], init?: { status?: number; conten
   })
 }
 
-/** A collecting {@link TransportContext} plus the fetch init the transport issued. */
+/** A collecting {@link StreamTransportContext} plus the fetch init the transport issued. */
 function collect(options: { lastEventId?: string; headers?: AuthHeaders } = {}) {
-  const frames: ChannelFrame[] = []
+  const frames: StreamFrame[] = []
   const ids: string[] = []
   let opened = 0
   let seenInit: WebRequestInit | undefined
-  const context: TransportContext = {
+  const context: StreamTransportContext = {
     headers: options.headers ?? ({} as AuthHeaders),
     signal: new AbortController().signal,
     lastEventId: options.lastEventId,
@@ -201,8 +202,8 @@ describe("createSseTransport", () => {
 
   test("rethrows the signal reason when the attempt is aborted during fetch", async () => {
     const controller = new AbortController()
-    const frames: ChannelFrame[] = []
-    const context: TransportContext = {
+    const frames: StreamFrame[] = []
+    const context: StreamTransportContext = {
       headers: {} as AuthHeaders,
       signal: controller.signal,
       onOpen: () => {},

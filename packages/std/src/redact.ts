@@ -131,6 +131,12 @@ export function isSensitiveKey(key: string, extraKeys: readonly string[] = []): 
  * `"[Getter]"` rather than invoked, and a callable value is surfaced as `"[Function]"`, so
  * redaction never executes untrusted getter or `toJSON` code and never carries an executable hook
  * onto the copy — safe on arbitrary log payloads.
+ *
+ * This is a **defense-in-depth floor, not a guarantee**: detection is by key name
+ * ({@link isSensitiveKey}) and by recognizable token shape (bearer/JWT, embedded `key=value`). A
+ * bare credential passed positionally — a plain secret string with no sensitive key and no known
+ * token shape — is not detected. Redact at the source (name the field, or mask before logging)
+ * rather than relying on this to catch every secret.
  */
 export function redact(value: unknown, options: RedactOptions = {}): unknown {
   const mask = options.mask ?? "[REDACTED]"

@@ -76,6 +76,6 @@ The minimum passing standard for a self-contained change: `check-versions`, `lin
 
 Treat a green run as **necessary but not sufficient**: it does not catch unbounded streams/buffers, missing timeouts/cancellation, module-level singletons, import-time side effects, or a token leaking into a URL. Those are on the reviewer.
 
-For a client/UI package, accessibility and responsiveness are part of the acceptance bar (review pass [`08`](../review/references/08-ui-accessibility.md)): each component test asserts axe cleanliness in-band with the scoped `turbo run test`. There is **no separate a11y CI script today** — don't invent one; the axe assertion lives in the component's own Vitest test, and a dedicated a11y/visual gate (e.g. Playwright + axe over the showcase) is a deferred gate for the `ui`/`examples` steps.
+For a client/UI package, accessibility and responsiveness are part of the acceptance bar (review pass [`08`](../review/references/08-ui-accessibility.md)): each component test asserts axe cleanliness in-band with the scoped `turbo run test`. There is **no separate a11y CI script** — don't invent one; the axe assertion lives in the component's own Vitest test.
 
 Per repo workflow, **make edits only** — the maintainer commits and pushes.

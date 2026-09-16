@@ -28,7 +28,6 @@ export type {
   OptimisticUpdate,
   QueryCacheAction,
   QueryEventRouter,
-  QueryEventSink,
 } from "./cache"
 export {
   createQueryEventSink,

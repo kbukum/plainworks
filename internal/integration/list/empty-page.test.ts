@@ -1,5 +1,5 @@
 import { createHttpClient } from "@plainworks/http"
-import type { User } from "@plainworks/mocks"
+import type { User } from "@plainworks/mocks/domain"
 import { createMockServerHandle } from "@plainworks/mocks/server"
 import { createQueryClient, listQueryOptions, type PaginatedResult } from "@plainworks/query"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"

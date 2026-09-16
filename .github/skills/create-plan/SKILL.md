@@ -13,7 +13,7 @@ A plan is a written contract for a change set: what to do, in what order, and ho
 
 ## Where plans live: `tmp/<plan-name>/`
 
-Always create plans under `tmp/` at the repo root. `tmp/` is **gitignored** (only `tmp/.keep` is tracked) — plans are local working scratch, never committed and never shipped. Name the folder by the change itself in kebab-case (`tmp/connection-sse-reconnect/`, `tmp/auth-bff-cookie/`) — the same high-level naming rule as branches: no `step-N`, plan numbers, or session detail.
+Always create plans under `tmp/` at the repo root. `tmp/` is **gitignored** (only `tmp/.keep` is tracked) — plans are local working scratch, never committed and never shipped. Name the folder by the change itself in kebab-case (`tmp/channel-sse-reconnect/`, `tmp/auth-bff-cookie/`) — the same high-level naming rule as branches: no `step-N`, plan numbers, or session detail.
 
 ```bash
 mkdir -p tmp/<plan-name>
@@ -45,7 +45,7 @@ What this step changes and, explicitly, what it does not.
 
 ## Acceptance criteria
 - [ ] Behavior written test-first; vitest green, race/shuffle safe on the affected package(s).
-- [ ] The seven DoD gates green for the package: check-versions · lint · typecheck · check-boundaries · build · test · check-packaging.
+- [ ] The eight DoD gates green for the package: check-versions · lint · check-comments · typecheck · check-boundaries · build · test · check-packaging.
 - [ ] A Changeset added.
 - [ ] <step-specific, verifiable outcomes>
 ```
@@ -70,7 +70,7 @@ Order steps so each starts only when its dependencies are green, and so each map
 
 ## Carrying prior review findings
 
-If the work ports code that already has recorded review findings (e.g. the `web_framework` W1–W6 reviews mapped in the genesis crosswalk), list each carried finding in the step that resolves it and require a **regression test first** for behavioral carries. Structural findings that the scaffold/generator/seam already make impossible are confirmed in review, not re-fixed.
+If the work ports code that already has recorded review findings, list each carried finding in the step that resolves it and require a **regression test first** for behavioral carries. Structural findings that the scaffold/generator/seam already make impossible are confirmed in review, not re-fixed.
 
 ## Handoff
 

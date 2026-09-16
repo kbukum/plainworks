@@ -15,6 +15,8 @@ import {
   RetryError,
   runWithRetry,
   StatusError,
+  type StreamFrame,
+  type StreamTransportFactory,
   type Subscription,
   systemClock,
   systemDelay,
@@ -25,7 +27,6 @@ import {
 } from "@plainworks/std"
 import { assertDurationMs } from "../duration"
 import { ChannelError } from "../error"
-import type { ChannelFrame, TransportFactory } from "../transport"
 import type { ChannelStatus } from "./status"
 
 const DEFAULT_CONNECT_TIMEOUT_MS = 30_000
@@ -35,7 +36,7 @@ const DEFAULT_MAX_RETRIES = 10
 /** Construction options for {@link createChannel}. */
 export interface ChannelOptions {
   /** The wire adapter (sse / ws / …). A factory so each connection attempt gets an isolated transport. */
-  readonly transport: TransportFactory
+  readonly transport: StreamTransportFactory
   /** Header-only credential seam; its headers are attached to every (re)connection attempt. */
   readonly authProvider?: AuthHeaderProvider
   /** Static non-secret headers merged into every attempt (auth headers win on conflict). */
@@ -92,9 +93,9 @@ export interface Channel {
   /** Abort the stream and stop reconnecting (idempotent). */
   close(): void
   /** Subscribe to frames of one `type`. */
-  on(type: string, listener: Listener<ChannelFrame>): Subscription
+  on(type: string, listener: Listener<StreamFrame>): Subscription
   /** Subscribe to every frame regardless of type. */
-  onAny(listener: Listener<ChannelFrame>): Subscription
+  onAny(listener: Listener<StreamFrame>): Subscription
   /** Current lifecycle status. */
   readonly status: ChannelStatus
   /** Most recent event id seen — sent as `Last-Event-ID` on reconnect. */
@@ -134,8 +135,8 @@ export function createChannel(options: ChannelOptions): Channel {
     assertDurationMs("idleTimeoutMs", idleTimeoutMs)
   }
 
-  const typeListeners = new Map<string, Set<Listener<ChannelFrame>>>()
-  const anyListeners = new Set<Listener<ChannelFrame>>()
+  const typeListeners = new Map<string, Set<Listener<StreamFrame>>>()
+  const anyListeners = new Set<Listener<StreamFrame>>()
 
   let status: ChannelStatus = "idle"
   let running = false
@@ -171,14 +172,14 @@ export function createChannel(options: ChannelOptions): Channel {
     lastEventId = id === "" ? undefined : id
   }
 
-  const dispatch = (frame: ChannelFrame): void => {
+  const dispatch = (frame: StreamFrame): void => {
     if (frame.id !== undefined) {
       trackEventId(frame.id)
     }
     if (frame.retry !== undefined) {
       serverRetryMs = frame.retry
     }
-    const deliver = (listener: Listener<ChannelFrame>): void => {
+    const deliver = (listener: Listener<StreamFrame>): void => {
       try {
         listener(frame)
       } catch (cause) {
@@ -325,7 +326,7 @@ export function createChannel(options: ChannelOptions): Channel {
           setStatus("open")
           armIdle()
         },
-        onFrame: (frame: ChannelFrame): void => {
+        onFrame: (frame: StreamFrame): void => {
           if (settled) {
             return
           }
@@ -442,7 +443,7 @@ export function createChannel(options: ChannelOptions): Channel {
       controller?.abort(new AbortError({ cause: ChannelError.closed("channel closed by caller") }))
       setStatus("closed")
     },
-    on(type: string, listener: Listener<ChannelFrame>): Subscription {
+    on(type: string, listener: Listener<StreamFrame>): Subscription {
       let set = typeListeners.get(type)
       if (set === undefined) {
         set = new Set()
@@ -455,7 +456,7 @@ export function createChannel(options: ChannelOptions): Channel {
         },
       }
     },
-    onAny(listener: Listener<ChannelFrame>): Subscription {
+    onAny(listener: Listener<StreamFrame>): Subscription {
       anyListeners.add(listener)
       return {
         unsubscribe: () => {

@@ -2,6 +2,7 @@
 // React or DOM imports, so the `.` entry runs anywhere (Node, edge, RSC, React Native); the theme
 // provider lives behind the `./client` subpath.
 export { cn } from "./class-name"
+export { ThemeError } from "./errors"
 export type {
   ColorScheme,
   ResolvedTheme,

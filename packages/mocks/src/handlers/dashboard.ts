@@ -12,7 +12,7 @@ import {
   generateMonthlyRevenue,
   generateProductSales,
 } from "../data/dashboard"
-import type { LatencyController } from "../utils/delay"
+import type { LatencyController } from "../latency"
 
 // Endpoint-specific ceilings: counts are network-controlled, so generators never allocate or loop
 // beyond these bounds.

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
-import { cleanup, render, screen } from "@testing-library/react"
+import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import {
@@ -84,8 +84,15 @@ describe("DropdownMenu", () => {
 
     await user.click(screen.getByRole("button", { name: "Project actions" }))
     expect(await screen.findByRole("menu")).toBeTruthy()
+    const archive = screen.getByRole("menuitem", { name: "Archive project" })
+    const share = screen.getByRole("menuitem", { name: "Share project" })
+
     await user.keyboard("{ArrowDown}")
+    await waitFor(() => expect(archive).toBe(document.activeElement))
+    await user.keyboard("{ArrowDown}")
+    await waitFor(() => expect(share).toBe(document.activeElement))
     await user.keyboard("{ArrowUp}")
+    await waitFor(() => expect(archive).toBe(document.activeElement))
     await user.keyboard("{Enter}")
 
     expect(onArchive).toHaveBeenCalledTimes(1)

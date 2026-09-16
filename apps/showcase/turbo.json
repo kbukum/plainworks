@@ -1,0 +1,21 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "index.html", "vite.config.ts", "tsconfig.json", "package.json"],
+      "outputs": ["dist/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "server.ts", "vite.config.ts", "vitest.config.ts", "tsconfig.json"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["src/**", "vitest.config.ts", "tsconfig.json"],
+      "outputs": []
+    }
+  }
+}

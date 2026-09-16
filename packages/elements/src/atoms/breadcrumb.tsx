@@ -6,6 +6,14 @@ import { cn } from "@plainworks/theme"
 import { ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
 import type * as React from "react"
 
+/**
+ * Props for {@link BreadcrumbLink}, including its `render` extension point: pass a host link
+ * element (a Next.js `<Link>`, a typed-router link) and it renders in place of the default anchor,
+ * receiving the merged link props — the destination included — so a router-aware app gets client
+ * navigation.
+ */
+export type BreadcrumbLinkProps = useRender.ComponentProps<"a">
+
 function Breadcrumb({ className, ...props }: React.ComponentProps<"nav">): React.ReactElement {
   return <nav aria-label="breadcrumb" data-slot="breadcrumb" className={cn(className)} {...props} />
 }
@@ -33,11 +41,7 @@ function BreadcrumbItem({ className, ...props }: React.ComponentProps<"li">): Re
   )
 }
 
-function BreadcrumbLink({
-  className,
-  render,
-  ...props
-}: useRender.ComponentProps<"a">): React.ReactElement {
+function BreadcrumbLink({ className, render, ...props }: BreadcrumbLinkProps): React.ReactElement {
   return useRender({
     defaultTagName: "a",
     props: mergeProps<"a">(

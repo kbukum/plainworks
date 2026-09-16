@@ -275,7 +275,7 @@
       "types": "./dist/tooltip.d.ts",
       "import": "./dist/tooltip.js"
     },
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./dist/styles.css"
   },
   "files": [
     "dist",
@@ -283,8 +283,7 @@
     "src/client",
     "src/hooks",
     "!src/client/**/*.test.*",
-    "!src/hooks/**/*.test.*",
-    "src/styles.css"
+    "!src/hooks/**/*.test.*"
   ],
   "homepage": "https://github.com/kbukum/plainworks/tree/main/packages/ui#readme",
   "keywords": [

@@ -36,8 +36,8 @@ import { createProductHandlers } from "./handlers/products"
 import { createSettingsHandlers } from "./handlers/settings"
 import { createTaskHandlers } from "./handlers/tasks"
 import { createUserHandlers } from "./handlers/users"
+import { createLatency, type LatencyController } from "./latency"
 import type { ContentPage, Notification, Order, Product, Task, User } from "./types"
-import { createLatency, type LatencyController } from "./utils/delay"
 
 /** Options for {@link createMockApi}. */
 export interface MockApiOptions {

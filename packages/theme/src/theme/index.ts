@@ -3,10 +3,10 @@ export type {
   ResolvedTheme,
   ThemeMode,
   ThemePreference,
-} from "./theme"
+} from "./resolution"
 export {
   COLOR_SCHEMES,
   DEFAULT_THEME,
   parseThemeCookie,
   resolveTheme,
-} from "./theme"
+} from "./resolution"

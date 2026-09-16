@@ -31,7 +31,7 @@ const CONCERNS = [
   {
     subpath: "./error-fallback",
     entry: "error-fallback",
-    dir: "src/client/components/error-fallback",
+    dir: "src/client/error-fallback",
     registry: "ui",
   },
   { subpath: "./theme", entry: "theme-client", source: "src/client/theme/index.ts" },
@@ -195,7 +195,7 @@ export function buildExports(atoms) {
   for (const atom of atoms) {
     exports[`./${atom}`] = { types: `./dist/${atom}.d.ts`, import: `./dist/${atom}.js` }
   }
-  exports["./styles.css"] = "./src/styles.css"
+  exports["./styles.css"] = "./dist/styles.css"
   return exports
 }
 
@@ -238,6 +238,9 @@ export function renderTsdownConfig(atoms) {
     "  entry: {",
     entries,
     "  },",
+    "  // tsdown has no CSS pipeline, so the Tailwind-source stylesheet is copied verbatim into",
+    "  // `dist`; the `./styles.css` export resolves from the build output the packaging gate covers.",
+    '  copy: [{ from: "src/styles.css", to: "dist" }],',
     "})",
     "",
   ].join("\n")}`

@@ -18,7 +18,10 @@ describe("createQueryEventSink", () => {
         : undefined,
     )
 
-    await sink.deliver({ type: "user.renamed", data: { id: 1, name: "new" } })
+    await sink.deliver(
+      { type: "user.renamed", data: { id: 1, name: "new" } },
+      new AbortController().signal,
+    )
     expect(client.getQueryData(["user", 1])).toEqual({ id: 1, name: "new" })
   })
 
@@ -31,7 +34,7 @@ describe("createQueryEventSink", () => {
       filters: { queryKey: ["user"], refetchType: "none" },
     }))
 
-    await sink.deliver({ type: "user.touched", data: undefined })
+    await sink.deliver({ type: "user.touched", data: undefined }, new AbortController().signal)
     expect(query?.state.isInvalidated).toBe(true)
   })
 
@@ -40,7 +43,7 @@ describe("createQueryEventSink", () => {
     client.setQueryData(["user", 1], { id: 1, name: "keep" })
     const sink = createQueryEventSink<UserEvent>(client, () => undefined)
 
-    await sink.deliver({ type: "user.touched", data: undefined })
+    await sink.deliver({ type: "user.touched", data: undefined }, new AbortController().signal)
     expect(client.getQueryData(["user", 1])).toEqual({ id: 1, name: "keep" })
   })
 

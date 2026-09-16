@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
-import { cleanup, render, screen } from "@testing-library/react"
+import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { Drawer } from "./drawer"
@@ -54,6 +54,51 @@ describe("Modal", () => {
     expect(triggers[0]?.querySelector("button")).toBeNull()
     await user.click(triggers[0] as HTMLElement)
     expect(screen.getByRole("dialog", { name: "Titled" })).toBeDefined()
+  })
+
+  it("moves focus into the dialog when it opens (focus trap)", async () => {
+    const user = userEvent.setup()
+    render(
+      <Modal trigger="Open" title="Titled" footer={<button type="button">Save</button>}>
+        body
+      </Modal>,
+    )
+    await user.click(screen.getByRole("button", { name: "Open" }))
+    const dialog = screen.getByRole("dialog", { name: "Titled" })
+
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true))
+  })
+
+  it("dismisses on Escape and returns focus to its trigger", async () => {
+    const user = userEvent.setup()
+    render(
+      <Modal trigger="Open" title="Titled">
+        body
+      </Modal>,
+    )
+    const trigger = screen.getByRole("button", { name: "Open" })
+    await user.click(trigger)
+    expect(screen.getByRole("dialog", { name: "Titled" })).toBeDefined()
+
+    await user.keyboard("{Escape}")
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+    await waitFor(() => expect(trigger).toBe(document.activeElement))
+  })
+
+  it("dismisses on an outside click", async () => {
+    const user = userEvent.setup()
+    render(
+      <Modal trigger="Open" title="Titled">
+        body
+      </Modal>,
+    )
+    await user.click(screen.getByRole("button", { name: "Open" }))
+    expect(screen.getByRole("dialog", { name: "Titled" })).toBeDefined()
+
+    await user.click(document.body)
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
   })
 })
 

@@ -7,14 +7,14 @@ import type { Clock } from "@plainworks/std"
 import { type HttpHandler, HttpResponse, http } from "msw"
 import type { EntityStore } from "../../data/common/store"
 import { type FilterCondition, parseApiParams } from "../../filter"
+import type { LatencyController } from "../../latency"
 import {
   computeFacetsWithFilters,
   filterByConditions,
   filterBySearch,
   paginate,
   sortBy,
-} from "../../utils"
-import type { LatencyController } from "../../utils/delay"
+} from "../../query"
 import { decodeInput, type InputSpec } from "./decode"
 
 export interface CrudHandlerConfig<T, TInput> {

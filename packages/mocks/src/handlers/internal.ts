@@ -13,7 +13,7 @@
 
 import { type Clock, isRecord } from "@plainworks/std"
 import { type HttpHandler, HttpResponse, http } from "msw"
-import type { LatencyController } from "../utils/delay"
+import type { LatencyController } from "../latency"
 
 /** A single logged request captured by the logging handler. */
 export interface RequestLogEntry {

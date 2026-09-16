@@ -21,7 +21,7 @@ import {
   type WebAbortSignal,
   withTimeout,
 } from "@plainworks/std"
-import { isConnectRetryable } from "./classify"
+import { isConnectRetryable } from "./retry-classification"
 
 /**
  * Retry configuration for the resilience interceptor — a `std` {@link RetryPolicy} **minus**

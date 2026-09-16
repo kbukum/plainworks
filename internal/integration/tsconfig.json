@@ -9,5 +9,5 @@
     // it must compile against what a consumer installs — hence `typecheck` depends on `^build`.
     "paths": {}
   },
-  "include": ["list"]
+  "include": ["list", "stream"]
 }

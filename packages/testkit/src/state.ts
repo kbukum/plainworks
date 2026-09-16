@@ -207,6 +207,17 @@ export interface DeferredStateSource<Value> extends StateSource<Value> {
   readonly subscriberCount: number
 }
 
+/** Options for {@link deferredStateSource}. */
+export interface DeferredStateSourceOptions<Value> extends FakeStateSourceOptions<Value> {
+  /**
+   * Whether a local `set`/`remove` notifies subscribers. Defaults to `true`. Set `false` to model a
+   * backend that does not echo the local writer back through its own subscription — the case that
+   * exercises a reconciler's local-write marking, since no subscription-triggered read then masks a
+   * stale read still in flight.
+   */
+  readonly echoesLocalWrites?: boolean
+}
+
 /**
  * A {@link StateSource} giving the test per-read control over *when* and *with what* each `get()`
  * resolves — the harness for last-write-wins and stale-read races that the gated
@@ -214,9 +225,10 @@ export interface DeferredStateSource<Value> extends StateSource<Value> {
  * signals like the other fakes. Build one per test.
  */
 export function deferredStateSource<Value>(
-  options: FakeStateSourceOptions<Value> = {},
+  options: DeferredStateSourceOptions<Value> = {},
 ): DeferredStateSource<Value> {
   let current = options.initial
+  const echoesLocalWrites = options.echoesLocalWrites ?? true
   const capabilities: StateCapabilities = { ...DEFAULT_CAPABILITIES, ...options.capabilities }
   const listeners = new Set<() => void>()
   const reads: DeferredRead<Value>[] = []
@@ -251,11 +263,15 @@ export function deferredStateSource<Value>(
       }),
     set: async (value) => {
       current = value
-      notify()
+      if (echoesLocalWrites) {
+        notify()
+      }
     },
     remove: async () => {
       current = undefined
-      notify()
+      if (echoesLocalWrites) {
+        notify()
+      }
     },
     subscribe(onChange) {
       listeners.add(onChange)

@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs"
-import type { UserConfig } from "tsdown"
+import type { CopyOptions, UserConfig } from "tsdown"
 
 /**
  * Options for the shared plainworks build preset.
@@ -12,6 +12,14 @@ export interface PresetOptions {
    * `{ index: "src/index.ts", client: "src/client.ts" }`, which tsdown emits as `./client`.
    */
   entry?: string[] | Record<string, string>
+
+  /**
+   * Static assets to copy verbatim into `dist`. tsdown has no CSS pipeline, so a package that ships
+   * a Tailwind-source stylesheet copies it here (e.g. `[{ from: "src/styles.css", to: "dist" }]`)
+   * instead of exporting it from `src`. Every published entrypoint then resolves from the build
+   * output and is covered by the packaging gate.
+   */
+  copy?: CopyOptions
 }
 
 /**
@@ -45,6 +53,7 @@ export function preset(options: PresetOptions = {}): UserConfig {
     unbundle: true,
     treeshake: true,
     outDir: "dist",
+    ...(options.copy !== undefined ? { copy: options.copy } : {}),
     deps: {
       neverBundle: [/^react($|\/)/, /^react-dom($|\/)/, /^@plainworks\//],
     },

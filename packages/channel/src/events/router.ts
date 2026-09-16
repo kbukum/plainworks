@@ -1,19 +1,19 @@
-import { createBoundedQueue, type OverflowPolicy } from "@plainworks/std"
+import { createBoundedQueue, type OverflowPolicy, type PlainEvent } from "@plainworks/std"
 import { ChannelError } from "../error"
 import type { Channel } from "../lifecycle/channel"
-import type { DecodedEvent, EventDecoder } from "./event"
+import type { EventDecoder } from "./event"
 import type { EventSink } from "./sink"
 
 const DEFAULT_CAPACITY = 1_024
 
 /** Construction options for {@link createEventRouter}. */
-export interface EventRouterOptions<T> {
+export interface EventRouterOptions<TEvent extends PlainEvent> {
   /** The channel whose frames are decoded and routed. */
   readonly channel: Channel
   /** Decode each raw frame into a typed event (or drop it) at the trust boundary. */
-  readonly decode: EventDecoder<T>
+  readonly decode: EventDecoder<TEvent>
   /** Sinks fed every decoded event, in order, one event at a time. */
-  readonly sinks: readonly EventSink<T>[]
+  readonly sinks: readonly EventSink<TEvent>[]
   /**
    * Bound on buffered-but-undelivered events between the (sync) frame callback and the (async)
    * drain. Keeps memory bounded when sinks fall behind the stream. Default 1024.
@@ -39,9 +39,11 @@ export interface EventRouter {
  * is dropped — one bad event never stalls the stream. Build one per channel; never a module
  * singleton.
  */
-export function createEventRouter<T>(options: EventRouterOptions<T>): EventRouter {
+export function createEventRouter<TEvent extends PlainEvent>(
+  options: EventRouterOptions<TEvent>,
+): EventRouter {
   const { channel, decode, sinks, capacity = DEFAULT_CAPACITY, overflow, onError } = options
-  const queue = createBoundedQueue<DecodedEvent<T>>(capacity, overflow ? { overflow } : {})
+  const queue = createBoundedQueue<TEvent>(capacity, overflow ? { overflow } : {})
   const drainCanceller = new AbortController()
 
   /** Observers are untrusted callbacks: a throw must never interrupt the frame callback or drain. */
@@ -54,7 +56,7 @@ export function createEventRouter<T>(options: EventRouterOptions<T>): EventRoute
   }
 
   const subscription = channel.onAny((frame) => {
-    let event: DecodedEvent<T> | undefined
+    let event: TEvent | undefined
     try {
       event = decode(frame)
     } catch (cause) {
@@ -68,7 +70,7 @@ export function createEventRouter<T>(options: EventRouterOptions<T>): EventRoute
 
   const drain = async (): Promise<void> => {
     while (!drainCanceller.signal.aborted) {
-      let event: DecodedEvent<T>
+      let event: TEvent
       try {
         event = await queue.pop({ signal: drainCanceller.signal })
       } catch {

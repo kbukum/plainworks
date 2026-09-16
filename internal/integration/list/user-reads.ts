@@ -4,7 +4,7 @@
 // the read instead of being trusted by an unchecked cast.
 
 import { buildListQuery, type createHttpClient } from "@plainworks/http"
-import type { User, UserDepartment, UserRole, UserStatus } from "@plainworks/mocks"
+import type { User, UserDepartment, UserRole, UserStatus } from "@plainworks/mocks/domain"
 import type { CursorResult, Facets, ListQueryParams, PaginatedResult } from "@plainworks/query"
 import {
   isNonEmptyString,

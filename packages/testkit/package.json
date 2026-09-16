@@ -52,7 +52,8 @@
   "dependencies": {
     "@plainworks/std": "workspace:*",
     "@testing-library/react": "catalog:",
-    "axe-core": "catalog:"
+    "axe-core": "catalog:",
+    "jose": "catalog:"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",

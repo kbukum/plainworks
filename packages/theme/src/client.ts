@@ -6,5 +6,5 @@
 export type {
   ThemeContextValue,
   ThemeProviderProps,
-} from "./client/theme"
-export { ThemeProvider, useTheme } from "./client/theme"
+} from "./client/theme-provider"
+export { ThemeProvider, useTheme } from "./client/theme-provider"

@@ -5,8 +5,8 @@
 import type { Clock } from "@plainworks/std"
 import type { HttpHandler } from "msw"
 import type { EntityFactory, EntityStore } from "../data/common"
+import type { LatencyController } from "../latency"
 import type { CreateOrderInput, Order } from "../types"
-import type { LatencyController } from "../utils/delay"
 import { createCrudHandlers, type InputSpec } from "./common"
 
 const ORDER_INPUT_SPEC: InputSpec = {

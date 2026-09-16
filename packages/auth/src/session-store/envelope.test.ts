@@ -140,3 +140,68 @@ describe("decodeSession fuzz", () => {
     }
   })
 })
+
+describe("decodeSession freshness, impossible stamps, and revocation", () => {
+  test("an envelope whose exp <= iat is rejected as impossible → session-invalid", async () => {
+    const { codec } = makeCodec(0)
+    const cookie = await signedCookie(JSON.stringify({ v: { sub: "user-1" }, iat: 100, exp: 100 }))
+    await expectAuthError(decodeSession(codec, cookie), "auth/session-invalid")
+    const inverted = await signedCookie(
+      JSON.stringify({ v: { sub: "user-1" }, iat: 200, exp: 100 }),
+    )
+    await expectAuthError(decodeSession(codec, inverted), "auth/session-invalid")
+  })
+
+  test("an envelope issued in the future beyond the skew tolerance → session-invalid", async () => {
+    const { codec, clock } = makeCodec(0)
+    clock.set(1_000_000) // now = 1000s
+    // iat 1000s ahead of now, well past the default 60s skew tolerance.
+    const cookie = await signedCookie(
+      JSON.stringify({ v: { sub: "user-1" }, iat: 2000, exp: 2000 + TTL_SECONDS }),
+    )
+    await expectAuthError(decodeSession(codec, cookie), "auth/session-invalid")
+  })
+
+  test("an iat within the skew tolerance is accepted", async () => {
+    const { codec, clock } = makeCodec(0)
+    clock.set(1_000_000) // now = 1000s
+    const cookie = await signedCookie(
+      JSON.stringify({ v: { sub: "user-1" }, iat: 1030, exp: 1030 + TTL_SECONDS }),
+    )
+    await expect(decodeSession(codec, cookie)).resolves.toEqual({ sub: "user-1" })
+  })
+
+  test("a session older than the freshness bound → session-expired", async () => {
+    const clock = manualClock(0)
+    const codec: SessionCodec<typeof sessionSchema> = {
+      signer: fakeSigner,
+      schema: sessionSchema,
+      clock,
+      ttlSeconds: TTL_SECONDS,
+      maxAgeSeconds: 600,
+    }
+    const cookie = await encodeSession(codec, { sub: "user-1" })
+    // Still fresh at 599s, stale at 601s (before the absolute 3600s exp).
+    clock.set(599 * 1000)
+    await expect(decodeSession(codec, cookie)).resolves.toEqual({ sub: "user-1" })
+    clock.set(601 * 1000)
+    await expectAuthError(decodeSession(codec, cookie), "auth/session-expired")
+  })
+
+  test("a revoked but otherwise valid session → session-revoked", async () => {
+    const clock = manualClock(0)
+    const revoked = new Set<string>(["user-1"])
+    const codec: SessionCodec<typeof sessionSchema> = {
+      signer: fakeSigner,
+      schema: sessionSchema,
+      clock,
+      ttlSeconds: TTL_SECONDS,
+      isRevoked: (envelope) => revoked.has(envelope.v.sub),
+    }
+    const cookie = await encodeSession(codec, { sub: "user-1" })
+    await expectAuthError(decodeSession(codec, cookie), "auth/session-revoked")
+
+    const live = await encodeSession(codec, { sub: "user-2" })
+    await expect(decodeSession(codec, live)).resolves.toEqual({ sub: "user-2" })
+  })
+})

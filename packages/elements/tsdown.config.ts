@@ -53,4 +53,7 @@ export default preset({
     "toggle-group": "src/atoms/toggle-group.tsx",
     tooltip: "src/atoms/tooltip.tsx",
   },
+  // tsdown has no CSS pipeline, so the Tailwind-source stylesheet is copied verbatim into
+  // `dist`; the `./styles.css` export resolves from the build output the packaging gate covers.
+  copy: [{ from: "src/styles.css", to: "dist" }],
 })

@@ -20,6 +20,8 @@ export type AuthErrorCode =
   | "auth/session-invalid"
   /** A validly-signed session cookie is past its absolute lifetime — the caller must re-authenticate. */
   | "auth/session-expired"
+  /** A validly-signed, unexpired session was explicitly revoked (server-side invalidation) — treat as unauthenticated. */
+  | "auth/session-revoked"
   /** An anti-CSRF token was missing, malformed, or did not match on a state-changing request. */
   | "auth/csrf"
 

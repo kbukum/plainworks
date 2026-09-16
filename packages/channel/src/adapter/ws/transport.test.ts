@@ -1,8 +1,7 @@
-import type { AuthHeaders } from "@plainworks/std"
+import type { AuthHeaders, StreamFrame, StreamTransportContext } from "@plainworks/std"
 import { flushMicrotasks, manualDelay } from "@plainworks/testkit"
 import { describe, expect, test } from "vitest"
 import { ChannelError } from "../../error"
-import type { ChannelFrame, TransportContext } from "../../transport"
 import { SOCKET_OPEN, type WebSocketConnectInit, type WebSocketLike } from "./socket"
 import { createWsTransport } from "./transport"
 
@@ -50,10 +49,10 @@ class FakeSocket implements WebSocketLike {
 }
 
 function collect(lastEventId?: string) {
-  const frames: ChannelFrame[] = []
+  const frames: StreamFrame[] = []
   let opened = 0
   const controller = new AbortController()
-  const context: TransportContext = {
+  const context: StreamTransportContext = {
     headers: { authorization: "Bearer t" } as AuthHeaders,
     signal: controller.signal,
     lastEventId,

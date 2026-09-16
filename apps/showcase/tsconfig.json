@@ -1,0 +1,19 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // A host application, not a published package: it renders on the server (react-dom/server) and
+    // hydrates in the browser (react-dom/client), so it opts into both the Node and DOM libs the
+    // host-independent packages forbid. This never leaks upward — the packages it consumes still
+    // compile under the DOM-free base config; only this leaf sees host globals.
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    // An app emits no declarations, so `isolatedDeclarations` (a `.d.ts`-publishing constraint)
+    // buys nothing here; the published packages it consumes are already held to it.
+    "isolatedDeclarations": false,
+    // Resolve every `@plainworks/*` import to the built `dist` package surface a consumer installs,
+    // not the source paths the base config aliases — so the app proves the *published* exports and
+    // types. Hence `typecheck`/`build`/`test` depend on `^build`.
+    "paths": {}
+  },
+  "include": ["src", "server.ts", "vite.config.ts", "vitest.config.ts"]
+}

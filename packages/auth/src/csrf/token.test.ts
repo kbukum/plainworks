@@ -1,61 +1,97 @@
-import { createSeededRandom } from "@plainworks/std"
 import { describe, expect, test } from "vitest"
-import type { AuthCrypto } from "../crypto"
 import { defaultAuthCrypto } from "../crypto"
-import { mintCsrfToken, verifyCsrfToken } from "./token"
+import { AuthError } from "../errors"
+import { hmacSessionSigner } from "../server/hmac-signer"
+import type { SessionSigner } from "../signer/seam"
+import { createCsrf } from "./token"
 
-describe("mintCsrfToken", () => {
-  test("returns a URL-safe token derived from CSPRNG bytes", () => {
-    const token = mintCsrfToken(defaultAuthCrypto())
-    // 32 bytes -> ceil(32*8/6) = 43 base64url chars, no padding or unsafe characters.
-    expect(token).toHaveLength(43)
-    expect(token).toMatch(/^[A-Za-z0-9_-]+$/)
+const key = new Uint8Array(32).fill(0x2a)
+const signer: SessionSigner = hmacSessionSigner({ keys: [key] })
+const crypto = defaultAuthCrypto()
+
+describe("createCsrf issue", () => {
+  test("mints a `random.mac` token from CSPRNG bytes bound to the session", async () => {
+    const csrf = createCsrf({ signer, crypto })
+    const token = await csrf.issue("session-1")
+    expect(token).toMatch(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/)
   })
 
-  test("draws from the injected crypto for its length", () => {
+  test("draws its random half from the injected crypto for its length", async () => {
     let requested = -1
-    const crypto: AuthCrypto = {
-      ...defaultAuthCrypto(),
-      randomBytes: (length) => {
+    const spy = {
+      ...crypto,
+      randomBytes: (length: number) => {
         requested = length
-        return new Uint8Array(length)
+        return new Uint8Array(length).fill(1)
       },
     }
-    mintCsrfToken(crypto, 16)
+    const csrf = createCsrf({ signer, crypto: spy, byteLength: 16 })
+    await csrf.issue("session-1")
     expect(requested).toBe(16)
   })
 
-  test("two mints do not collide", () => {
-    const crypto = defaultAuthCrypto()
-    expect(mintCsrfToken(crypto)).not.toBe(mintCsrfToken(crypto))
+  test("two mints for the same session do not collide", async () => {
+    const csrf = createCsrf({ signer, crypto })
+    expect(await csrf.issue("session-1")).not.toBe(await csrf.issue("session-1"))
   })
 })
 
-describe("verifyCsrfToken", () => {
-  test("accepts an exact match", () => {
-    const token = mintCsrfToken(defaultAuthCrypto())
-    expect(verifyCsrfToken(token, token)).toBe(true)
+describe("createCsrf verify", () => {
+  test("accepts a valid double-submit pair bound to the session", async () => {
+    const csrf = createCsrf({ signer, crypto })
+    const token = await csrf.issue("session-1")
+    await expect(csrf.verify("session-1", token, token)).resolves.toBe(true)
   })
 
-  test("rejects a mismatch and an empty token on either side", () => {
-    expect(verifyCsrfToken("aaaa", "aaab")).toBe(false)
-    expect(verifyCsrfToken("", "aaaa")).toBe(false)
-    expect(verifyCsrfToken("aaaa", "")).toBe(false)
-    expect(verifyCsrfToken("", "")).toBe(false)
+  test("rejects a missing token on either side → false", async () => {
+    const csrf = createCsrf({ signer, crypto })
+    const token = await csrf.issue("session-1")
+    await expect(csrf.verify("session-1", "", token)).resolves.toBe(false)
+    await expect(csrf.verify("session-1", token, "")).resolves.toBe(false)
   })
 
-  test("rejects a token that is a prefix of the other (length-sensitive)", () => {
-    expect(verifyCsrfToken("aaaa", "aaaaa")).toBe(false)
+  test("rejects a mismatched pair (cookie != header) → false", async () => {
+    const csrf = createCsrf({ signer, crypto })
+    const a = await csrf.issue("session-1")
+    const b = await csrf.issue("session-1")
+    await expect(csrf.verify("session-1", a, b)).resolves.toBe(false)
   })
 
-  test("fuzz: a fresh token never verifies against a different fresh token", () => {
-    const crypto = defaultAuthCrypto()
-    const rng = createSeededRandom(0xc57f)
-    for (let iteration = 0; iteration < 200; iteration++) {
-      const a = mintCsrfToken(crypto, 8 + Math.floor(rng.next() * 24))
-      const b = mintCsrfToken(crypto, 8 + Math.floor(rng.next() * 24))
-      expect(verifyCsrfToken(a, b)).toBe(false)
-      expect(verifyCsrfToken(a, a)).toBe(true)
+  test("rejects a token minted for a different (foreign) session → false", async () => {
+    const csrf = createCsrf({ signer, crypto })
+    // A token issued while bound to session-2, replayed against session-1, must fail: its MAC does
+    // not verify under session-1's binding even though cookie and header match.
+    const foreign = await csrf.issue("session-2")
+    await expect(csrf.verify("session-1", foreign, foreign)).resolves.toBe(false)
+    // Sanity: it still verifies for its own session.
+    await expect(csrf.verify("session-2", foreign, foreign)).resolves.toBe(true)
+  })
+
+  test("rejects a tampered token whose signature no longer binds → false", async () => {
+    const csrf = createCsrf({ signer, crypto })
+    const token = await csrf.issue("session-1")
+    const [random, mac] = token.split(".")
+    const tampered = `${random}x.${mac}`
+    await expect(csrf.verify("session-1", tampered, tampered)).resolves.toBe(false)
+  })
+
+  test("rejects a token without a `random.mac` shape → false", async () => {
+    const csrf = createCsrf({ signer, crypto })
+    await expect(csrf.verify("session-1", "nodot", "nodot")).resolves.toBe(false)
+    await expect(csrf.verify("session-1", "a.b.c", "a.b.c")).resolves.toBe(false)
+  })
+})
+
+describe("createCsrf configuration", () => {
+  test("rejects invalid or insufficient byteLength with auth/config error", () => {
+    for (const byteLength of [0, -1, 15, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => createCsrf({ signer, crypto, byteLength })).toThrow(AuthError)
+      try {
+        createCsrf({ signer, crypto, byteLength })
+        expect.unreachable("expected an AuthError")
+      } catch (error) {
+        expect(error).toMatchObject({ kind: "auth/config" })
+      }
     }
   })
 })

@@ -1,0 +1,46 @@
+{
+  "name": "@plainworks/showcase",
+  "version": "0.0.0",
+  "description": "Reference application: a server-rendered React dashboard that assembles the published @plainworks/* surfaces the way a consumer does — composition kernel, theme, query, channel, state, and ui — over the mock backend. Never published; nothing depends on it.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run server.ts",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@plainworks/app": "workspace:*",
+    "@plainworks/auth": "workspace:*",
+    "@plainworks/channel": "workspace:*",
+    "@plainworks/http": "workspace:*",
+    "@plainworks/mocks": "workspace:*",
+    "@plainworks/query": "workspace:*",
+    "@plainworks/state": "workspace:*",
+    "@plainworks/std": "workspace:*",
+    "@plainworks/theme": "workspace:*",
+    "@plainworks/ui": "workspace:*",
+    "@tanstack/react-query": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "devDependencies": {
+    "@plainworks/testkit": "workspace:*",
+    "@tailwindcss/vite": "catalog:",
+    "@testing-library/dom": "catalog:",
+    "@testing-library/react": "catalog:",
+    "@testing-library/user-event": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "axe-core": "catalog:",
+    "jsdom": "catalog:",
+    "msw": "catalog:",
+    "tailwindcss": "catalog:",
+    "tw-animate-css": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

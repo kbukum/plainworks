@@ -11,7 +11,7 @@ import {
 } from "@plainworks/std"
 import { StateSourceError } from "../../errors"
 import type { Scope, SourceSpec } from "../../scope/scope"
-import { createStringSource, type StringBackend } from "./string-source"
+import { createStringSource, type StringBackend } from "./persisted-source"
 
 /**
  * The read/write surface of the document's cookies a scope uses. `read` returns the raw
@@ -148,6 +148,7 @@ export function createCookieScope(options: CookieScopeOptions = {}): Scope {
         backend,
         medium: "cookie",
         ...(spec.schema !== undefined ? { schema: spec.schema } : {}),
+        ...(spec.versioning !== undefined ? { versioning: spec.versioning } : {}),
       })
     },
   }

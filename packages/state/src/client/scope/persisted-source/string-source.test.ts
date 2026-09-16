@@ -4,7 +4,8 @@
 
 import type { StandardSchemaV1, StateCapabilities, StateSerializer } from "@plainworks/std"
 import { describe, expect, test } from "vitest"
-import { StateSourceError } from "../../errors"
+import { StateConfigError, StateSourceError } from "../../../errors"
+import { decodeEnvelope, encodeEnvelope } from "./envelope"
 import { createStringSource, type StringBackend } from "./string-source"
 
 const capabilities: StateCapabilities = {
@@ -192,5 +193,114 @@ describe("createStringSource schema validation at the read boundary", () => {
       medium: "test",
     })
     await expect(source.get()).resolves.toBeUndefined()
+  })
+})
+
+describe("createStringSource schema versioning and migration", () => {
+  interface Prefs {
+    readonly label: string
+  }
+  const jsonSerializer: StateSerializer<Prefs> = {
+    serialize: (value) => JSON.stringify(value),
+    deserialize: (raw) => JSON.parse(raw) as Prefs,
+  }
+  // Version 1 stored `{ name }`; the current version 2 renamed it to `{ label }`.
+  const versioning = {
+    version: 2,
+    migrate: (oldValue: unknown, oldVersion: number): Prefs => {
+      if (oldVersion === 1) {
+        return { label: (oldValue as { name: string }).name }
+      }
+      // A pre-versioning (v0) payload was already the current shape.
+      return oldValue as Prefs
+    },
+  }
+  const versioned = (backend: StringBackend) =>
+    createStringSource({
+      capabilities,
+      serializer: jsonSerializer,
+      backend,
+      versioning,
+      medium: "test",
+    })
+
+  test("a current-version payload is read unchanged", async () => {
+    const backend = memoryBackend()
+    backend.write(encodeEnvelope(2, JSON.stringify({ label: "dark" })))
+    await expect(versioned(backend).get()).resolves.toEqual({ label: "dark" })
+  })
+
+  test("an older-version payload is migrated forward, never dropped", async () => {
+    const backend = memoryBackend()
+    backend.write(encodeEnvelope(1, JSON.stringify({ name: "dark" })))
+    await expect(versioned(backend).get()).resolves.toEqual({ label: "dark" })
+  })
+
+  test("a pre-versioning payload is migrated from version 0", async () => {
+    const backend = memoryBackend()
+    // Persisted before versioning existed: a bare value, no envelope.
+    backend.write(JSON.stringify({ label: "dark" }))
+    await expect(versioned(backend).get()).resolves.toEqual({ label: "dark" })
+  })
+
+  test("a value from a newer, unknown version is a typed error, never fabricated", async () => {
+    const backend = memoryBackend()
+    backend.write(encodeEnvelope(3, JSON.stringify({ label: "dark" })))
+    await expect(versioned(backend).get()).rejects.toBeInstanceOf(StateSourceError)
+  })
+
+  test("a migration that throws surfaces a typed error, preserving the cause", async () => {
+    const boom = new Error("unmigratable")
+    const backend = memoryBackend()
+    backend.write(encodeEnvelope(1, JSON.stringify({ name: "dark" })))
+    const source = createStringSource({
+      capabilities,
+      serializer: jsonSerializer,
+      backend,
+      versioning: {
+        version: 2,
+        migrate: () => {
+          throw boom
+        },
+      },
+      medium: "test",
+    })
+    await expect(source.get()).rejects.toMatchObject({ constructor: StateSourceError, cause: boom })
+  })
+
+  test("a write stamps the current version so the next read reconciles it", async () => {
+    const backend = memoryBackend()
+    await versioned(backend).set({ label: "light" })
+    expect(decodeEnvelope(backend.read() as string)).toEqual({
+      version: 2,
+      payload: JSON.stringify({ label: "light" }),
+    })
+    await expect(versioned(backend).get()).resolves.toEqual({ label: "light" })
+  })
+
+  test("an empty slot is undefined without invoking migration", async () => {
+    await expect(versioned(memoryBackend()).get()).resolves.toBeUndefined()
+  })
+})
+
+describe("createStringSource versioning policy validation", () => {
+  const withVersion = (version: number) =>
+    createStringSource({
+      capabilities,
+      serializer: identity,
+      backend: memoryBackend(),
+      versioning: { version, migrate: (value) => value as string },
+      medium: "test",
+    })
+
+  test.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+    "rejects a non-positive-integer version (%p) with a config error",
+    (version) => {
+      expect(() => withVersion(version)).toThrow(StateConfigError)
+    },
+  )
+
+  test("accepts a positive integer version", () => {
+    expect(() => withVersion(1)).not.toThrow()
   })
 })

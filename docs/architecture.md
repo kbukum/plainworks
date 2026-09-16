@@ -28,7 +28,7 @@ flowchart TD
 | **L1** | `state`, `http`, `theme`, `observability` | Reactive state, typed HTTP, the design-token substrate, and logging/error-reporting/Web Vitals seams. |
 | **L2** | `channel`, `connect`, `query`, `elements` | Streaming, RPC, TanStack Query integration, and owned UI atoms. |
 | **L3** | `auth`, `ui` | Authentication, OIDC with PKCE, forms, data, navigation, and UI composites. |
-| **L4** | `app`, `testkit`, `mocks` | Application composition, shared test tooling, and deterministic API fixtures. |
+| **L4** | `app`, `testkit`, `mocks` | Application composition, shared test tooling, and reusable MSW mock-building primitives. |
 
 [`internal/boundaries/.dependency-cruiser.cjs`](../internal/boundaries/.dependency-cruiser.cjs) owns the authoritative `LAYERS` table. dependency-cruiser rejects upward imports, same-layer imports, cycles, and imports from packages missing from the table.
 

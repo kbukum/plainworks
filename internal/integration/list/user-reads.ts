@@ -3,8 +3,8 @@
 // `client.get` seam — the same validation path a consumer uses — so a malformed mock response fails
 // the read instead of being trusted by an unchecked cast.
 
+import type { User, UserDepartment, UserRole, UserStatus } from "@plainworks/demo"
 import { buildListQuery, type createHttpClient } from "@plainworks/http"
-import type { User, UserDepartment, UserRole, UserStatus } from "@plainworks/mocks/domain"
 import type { CursorResult, Facets, ListQueryParams, PaginatedResult } from "@plainworks/query"
 import {
   isNonEmptyString,

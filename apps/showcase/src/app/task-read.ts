@@ -4,8 +4,8 @@
 // malformed response fails the read instead of being trusted by an unchecked cast. Neutral and
 // server-safe: it names no host global, so the server prefetch and the browser query run it alike.
 
+import type { Task } from "@plainworks/demo"
 import { buildListQuery, type createHttpClient } from "@plainworks/http"
-import type { Task } from "@plainworks/mocks/domain"
 import {
   type ListQueryParams,
   type ListQueryPlan,

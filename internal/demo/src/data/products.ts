@@ -2,10 +2,17 @@
  * Product data factory
  */
 
-import { daysAgo, nowISOString } from "../fixture"
-import { randomElement, randomFloat, randomInt } from "../fixture/random"
+import {
+  createEntityFactory,
+  daysAgo,
+  type EntityFactory,
+  type FixtureSources,
+  nowISOString,
+  randomElement,
+  randomFloat,
+  randomInt,
+} from "@plainworks/mocks"
 import type { CreateProductInput, Product } from "../types"
-import { createEntityFactory, type EntityFactory, type FixtureSources } from "./common"
 
 const PRODUCT_NAMES = [
   "Wireless Headphones",

@@ -54,11 +54,15 @@ class BodyTooLargeError extends Error {
  * ```ts
  * // vite.config.ts
  * import { mockServerPlugin } from '@plainworks/mocks/vite-plugin'
- * import { createMockApi } from '@plainworks/mocks/domain'
+ * import { http, HttpResponse } from 'msw'
+ *
+ * const handlers = [
+ *   http.get('*\/api/health', () => HttpResponse.json({ ok: true })),
+ * ]
  *
  * export default defineConfig({
  *   plugins: [
- *     mockServerPlugin(createMockApi().handlers),
+ *     mockServerPlugin(handlers),
  *   ],
  * })
  * ```

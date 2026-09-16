@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
 import type { AppSnapshot } from "@plainworks/app"
+import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
-import { createMockServerHandle } from "@plainworks/mocks/server"
 import { createQueryClient, dehydrateClient, prefetchQuery } from "@plainworks/query"
 import { fakeStreamTransport } from "@plainworks/testkit"
 import { cleanup, render, screen } from "@testing-library/react"

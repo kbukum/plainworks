@@ -1,11 +1,11 @@
+import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient, HttpError } from "@plainworks/http"
-import { createMockServerHandle } from "@plainworks/mocks/server"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { readUserPage } from "./user-reads"
 
 // The builder ↔ parser ↔ envelope agreement, proven end-to-end and in one place: `@plainworks/http`
-// serializes a typed param object to the exact PostgREST wire, the `@plainworks/mocks` MSW service
+// serializes a typed param object to the exact PostgREST wire, the `@plainworks/demo` MSW service
 // parses that wire, and the response is exactly the `{ data, pagination, facets }` envelope the
 // contract specifies. Both ends bind to the one contract in `@plainworks/std`, so the operator
 // tokens can't drift by construction — this asserts they are actually wired to it, and that a

@@ -2,14 +2,13 @@
  * Notification API handlers
  */
 
+import type { EntityFactory, EntityStore, LatencyController } from "@plainworks/mocks"
+import { createCrudHandlers, type InputSpec } from "@plainworks/mocks"
 import type { Clock } from "@plainworks/std"
 import type { HttpHandler } from "msw"
-import type { EntityFactory, EntityStore } from "../data/common"
-import type { LatencyController } from "../latency"
 import type { CreateNotificationInput, Notification } from "../types"
-import { createCrudHandlers, type InputSpec } from "./common"
 
-const NOTIFICATION_INPUT_SPEC: InputSpec = {
+const NOTIFICATION_INPUT_SPEC: InputSpec<CreateNotificationInput> = {
   userId: { kind: "string" },
   type: { kind: "enum", values: ["info", "success", "warning", "error"] },
   title: { kind: "string" },

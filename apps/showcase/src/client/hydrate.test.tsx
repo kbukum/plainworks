@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
 import { deserializeSnapshot } from "@plainworks/app"
+import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
-import { createMockServerHandle } from "@plainworks/mocks/server"
 import { createQueryClient, type DehydratedState } from "@plainworks/query"
 import { act } from "react"
 import { hydrateRoot } from "react-dom/client"

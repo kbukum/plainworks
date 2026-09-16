@@ -1,6 +1,6 @@
 // The dev SSR host — a small Node/bun HTTP server that renders each request through the same
 // `renderApp` seam the smoke tests drive, then hands hydration to Vite. Vite runs in middleware
-// mode so the browser gets HMR and on-the-fly module transforms; `@plainworks/mocks`' MSW server
+// mode so the browser gets HMR and on-the-fly module transforms; `@plainworks/demo`' MSW server
 // intercepts the *server-side* task fetch (the browser's own `/api/*` calls are served by the Vite
 // mock plugin), so both render paths read one set of fixtures.
 //
@@ -15,8 +15,8 @@ import {
   type ServerResponse,
 } from "node:http"
 import type { ServerSessionJar } from "@plainworks/auth/server"
+import { createMockServer } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
-import { createMockServer } from "@plainworks/mocks/server"
 import { parseCookieHeader } from "@plainworks/std"
 import { createMockIdp } from "@plainworks/testkit"
 import { createServer as createViteServer } from "vite"

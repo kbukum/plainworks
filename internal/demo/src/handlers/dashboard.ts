@@ -2,8 +2,8 @@
  * Dashboard API handlers
  */
 
+import type { FixtureSources, LatencyController } from "@plainworks/mocks"
 import { type HttpHandler, HttpResponse, http } from "msw"
-import type { FixtureSources } from "../data/common"
 import {
   createDashboardStats,
   createRevenueChartData,
@@ -12,7 +12,6 @@ import {
   generateMonthlyRevenue,
   generateProductSales,
 } from "../data/dashboard"
-import type { LatencyController } from "../latency"
 
 // Endpoint-specific ceilings: counts are network-controlled, so generators never allocate or loop
 // beyond these bounds.

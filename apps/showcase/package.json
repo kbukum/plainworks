@@ -14,6 +14,7 @@
     "@plainworks/app": "workspace:*",
     "@plainworks/auth": "workspace:*",
     "@plainworks/channel": "workspace:*",
+    "@plainworks/demo": "workspace:*",
     "@plainworks/http": "workspace:*",
     "@plainworks/mocks": "workspace:*",
     "@plainworks/query": "workspace:*",

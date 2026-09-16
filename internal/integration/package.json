@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@plainworks/channel": "workspace:*",
+    "@plainworks/demo": "workspace:*",
     "@plainworks/http": "workspace:*",
-    "@plainworks/mocks": "workspace:*",
     "@plainworks/query": "workspace:*",
     "@plainworks/std": "workspace:*",
     "@plainworks/testkit": "workspace:*"

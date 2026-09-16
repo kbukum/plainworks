@@ -2,14 +2,13 @@
  * Product API handlers
  */
 
+import type { EntityFactory, EntityStore, LatencyController } from "@plainworks/mocks"
+import { createCrudHandlers, type InputSpec } from "@plainworks/mocks"
 import type { Clock } from "@plainworks/std"
 import type { HttpHandler } from "msw"
-import type { EntityFactory, EntityStore } from "../data/common"
-import type { LatencyController } from "../latency"
 import type { CreateProductInput, Product } from "../types"
-import { createCrudHandlers, type InputSpec } from "./common"
 
-const PRODUCT_INPUT_SPEC: InputSpec = {
+const PRODUCT_INPUT_SPEC: InputSpec<CreateProductInput> = {
   name: { kind: "string" },
   description: { kind: "string" },
   price: { kind: "number" },

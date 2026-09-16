@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Dev/test fixtures: the MSW handlers and the mock graph use Web/Fetch globals (URL, Request,
+  // Response, Headers, crypto) and Node APIs the host-independent base config hides via `types: []`.
+  // Opt back into Node's typings, per the base config's note for host-bound tooling.
+  "compilerOptions": {
+    "types": ["node"],
+    // Resolve every `@plainworks/*` import to the built `dist` surface a consumer installs, not the
+    // source paths the base config aliases — this fixtures package consumes the *published*
+    // @plainworks/mocks primitives. Hence `typecheck`/`build` depend on `^build`.
+    "paths": {}
+  },
+  "include": ["src"]
+}

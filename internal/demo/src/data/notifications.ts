@@ -2,10 +2,16 @@
  * Notification data factory
  */
 
-import { daysAgo } from "../fixture"
-import { randomBoolean, randomElement, randomInt } from "../fixture/random"
+import {
+  createEntityFactory,
+  daysAgo,
+  type EntityFactory,
+  type FixtureSources,
+  randomBoolean,
+  randomElement,
+  randomInt,
+} from "@plainworks/mocks"
 import type { CreateNotificationInput, Notification } from "../types"
-import { createEntityFactory, type EntityFactory, type FixtureSources } from "./common"
 
 const NOTIFICATION_TEMPLATES = [
   {

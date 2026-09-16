@@ -1,9 +1,9 @@
-// Public entry for the `@plainworks/mocks` **demo domain** — the concrete fake commerce/SaaS
-// fixture set (users, orders, products, tasks, content, notifications, settings, dashboard) and the
-// `createMockApi` graph that statically wires them together. It is the demonstration payload, not
-// framework infrastructure: a consumer building mocks for *their own* entities wants the primitives
-// on the main `@plainworks/mocks` surface instead. Everything here is a factory — importing this
-// module creates no stores or other state.
+// Public entry for `@plainworks/demo` — the concrete fake commerce/SaaS fixture set (users, orders,
+// products, tasks, content, notifications, settings, dashboard) and the `createMockApi` graph that
+// statically wires them together. It is the demonstration payload built on the `@plainworks/mocks`
+// primitives, not framework infrastructure: a consumer building mocks for *their own* entities
+// reaches for the `@plainworks/mocks` surface instead. Everything here is a factory — importing
+// this module creates no stores or other state.
 
 // Composition root: one isolated demo mock graph (handlers + stores + control) per call.
 export type { MockApi, MockApiOptions } from "./api"

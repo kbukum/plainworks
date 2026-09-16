@@ -1,4 +1,4 @@
-import { createMockApi } from "@plainworks/mocks/domain"
+import { createMockApi } from "@plainworks/demo"
 import { mockServerPlugin } from "@plainworks/mocks/vite-plugin"
 import tailwindcss from "@tailwindcss/vite"
 import { defineConfig } from "vite"

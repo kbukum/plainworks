@@ -2,8 +2,8 @@
  * Dashboard data generators
  */
 
-import { daysAgo } from "../fixture"
-import { randomElements, randomFloat, randomInt } from "../fixture/random"
+import type { FixtureSources } from "@plainworks/mocks"
+import { daysAgo, randomElements, randomFloat, randomInt } from "@plainworks/mocks"
 import type {
   ChartDataPoint,
   DailySales,
@@ -13,7 +13,6 @@ import type {
   RevenueChartData,
   UserGrowthChartData,
 } from "../types"
-import type { FixtureSources } from "./common"
 
 const PRODUCT_NAMES = [
   "Widget Pro",

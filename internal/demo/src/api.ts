@@ -12,14 +12,18 @@
  * runs (sources rewind and replay exactly).
  */
 
-import { type Clock, systemClock } from "@plainworks/std"
-import type { HttpHandler } from "msw"
 import {
+  createLatency,
+  createMockControl,
   createReloadableFixtureSources,
   createStore,
   type EntityStore,
+  type LatencyController,
+  type MockControl,
   type ReloadableFixtureSources,
-} from "./data/common"
+} from "@plainworks/mocks"
+import { type Clock, systemClock } from "@plainworks/std"
+import type { HttpHandler } from "msw"
 import { createContentFactory } from "./data/content"
 import { createNotificationFactory } from "./data/notifications"
 import { createOrderFactory } from "./data/orders"
@@ -29,14 +33,12 @@ import { createTaskFactory } from "./data/tasks"
 import { createUserFactory } from "./data/users"
 import { createContentHandlers } from "./handlers/content"
 import { createDashboardHandlers } from "./handlers/dashboard"
-import { createMockControl, type MockControl } from "./handlers/internal"
 import { createNotificationHandlers } from "./handlers/notifications"
 import { createOrderHandlers } from "./handlers/orders"
 import { createProductHandlers } from "./handlers/products"
 import { createSettingsHandlers } from "./handlers/settings"
 import { createTaskHandlers } from "./handlers/tasks"
 import { createUserHandlers } from "./handlers/users"
-import { createLatency, type LatencyController } from "./latency"
 import type { ContentPage, Notification, Order, Product, Task, User } from "./types"
 
 /** Options for {@link createMockApi}. */
@@ -80,7 +82,7 @@ const DEFAULT_SEED = 42
 
 /**
  * Build a fresh, isolated mock API. Pass `api.handlers` to `setupServer`/`setupWorker` (or use
- * `@plainworks/mocks/server`, which does this for you).
+ * `@plainworks/demo/server`, which does this for you).
  */
 export function createMockApi(options: MockApiOptions = {}): MockApi {
   const seed = options.seed ?? DEFAULT_SEED
@@ -102,6 +104,7 @@ export function createMockApi(options: MockApiOptions = {}): MockApi {
     taskSources,
     notificationSources,
     contentSources,
+    dashboardSources,
   ]
 
   const userFactory = createUserFactory(userSources)

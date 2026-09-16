@@ -1,14 +1,26 @@
 // Server-safe public entry for `@plainworks/mocks` — the reusable mock-building **framework
-// primitives** only: entity factories, an in-memory store, CRUD handler generation, the mock
-// control plane, the REST filter dialect, and the query/fixture utilities. The concrete demo
-// domain (users, orders, products, and the `createMockApi` graph that wires them) lives behind
-// `@plainworks/mocks/domain`; the mock servers live behind `@plainworks/mocks/server` (msw/node)
-// and `@plainworks/mocks/vite-plugin` (dev middleware). Everything is a factory — importing this
-// module creates no stores, workers, or other state.
+// primitives**: entity factories, an in-memory store, CRUD handler generation, the mock control
+// plane, the REST filter dialect, and the query/fixture utilities — the pieces you compose to mock
+// your own API. The `msw/node` server harness a test installs is built from the api you assemble;
+// the Vite dev middleware lives behind `@plainworks/mocks/vite-plugin`. A worked example that wires
+// these primitives into a full commerce/SaaS mock graph lives in the dev-only `@plainworks/demo`
+// fixtures package. Everything is a factory — importing this module creates no stores, workers, or
+// other state.
 
 // Data primitives for custom entities.
-export type { EntityFactory, EntityFactoryConfig, EntityStore, FixtureSources } from "./data/common"
-export { createEntityFactory, createFixtureSources, createStore } from "./data/common"
+export type {
+  EntityFactory,
+  EntityFactoryConfig,
+  EntityStore,
+  FixtureSources,
+  ReloadableFixtureSources,
+} from "./data/common"
+export {
+  createEntityFactory,
+  createFixtureSources,
+  createReloadableFixtureSources,
+  createStore,
+} from "./data/common"
 
 // PostgREST/Supabase-style filter dialect: one codec shared by serializer and parser.
 export type { FilterCondition, FilterOperator, FilterQuery } from "./filter"
@@ -33,7 +45,7 @@ export {
 } from "./fixture"
 
 // Handler builders for custom entities and the control plane.
-export { type CrudHandlerConfig, createCrudHandlers } from "./handlers/common"
+export { type CrudHandlerConfig, createCrudHandlers, type InputSpec } from "./handlers/common"
 export type {
   InternalState,
   MockControl,

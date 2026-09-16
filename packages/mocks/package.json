@@ -1,7 +1,7 @@
 {
   "name": "@plainworks/mocks",
   "version": "0.1.0-alpha.1",
-  "description": "Shared MSW request handlers, seeded data factories, and mock-server setup for plainworks tests and the showcase.",
+  "description": "Reusable MSW mock-building primitives for plainworks tests: entity factories, an in-memory store, CRUD handler generation, a mock control plane, the REST filter dialect, and query/fixture utilities.",
   "type": "module",
   "sideEffects": false,
   "license": "MIT",
@@ -31,14 +31,6 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    },
-    "./domain": {
-      "types": "./dist/domain.d.ts",
-      "import": "./dist/domain.js"
-    },
-    "./server": {
-      "types": "./dist/server.d.ts",
-      "import": "./dist/server.js"
     },
     "./vite-plugin": {
       "types": "./dist/vite-plugin.d.ts",

@@ -12,7 +12,7 @@ import { TASK_LIST_PARAMS } from "../app/constants"
 import { taskListPlan } from "../app/task-read"
 import { type LiveTasks, useLiveTasks } from "./live-stream"
 import { routerLinkRender, useRouter } from "./router"
-import { useIdentity } from "./session"
+import { Can, canManageAccount, useIdentity } from "./session"
 
 /** Props for {@link Dashboard}. */
 export interface DashboardProps {
@@ -74,7 +74,7 @@ function LiveActivity({ source }: { readonly source: StateSource<LiveTasks> }): 
   )
 }
 
-function AccountBar(): ReactElement {
+function AccountBar({ onManageAccount }: { readonly onManageAccount: () => void }): ReactElement {
   const identity = useIdentity()
   const name =
     (typeof identity?.claims.name === "string" ? identity.claims.name : undefined) ??
@@ -85,6 +85,11 @@ function AccountBar(): ReactElement {
       <span>
         Signed in as <strong>{name}</strong>
       </span>{" "}
+      <Can authorizer={canManageAccount} action="account:manage">
+        <button type="button" onClick={onManageAccount}>
+          Account settings
+        </button>
+      </Can>{" "}
       <button type="button" onClick={() => logout()}>
         Log out
       </button>
@@ -103,16 +108,20 @@ export function Dashboard({ httpClient, liveSource }: DashboardProps): ReactElem
 
   const linkRender = routerLinkRender(navigate)
   const onTasks = path === "/tasks"
-  const items: BreadcrumbsProps["items"] = onTasks
+  const onAccount = path === "/account"
+  const title = onTasks ? "Tasks" : onAccount ? "Account settings" : "Overview"
+  const crumbTrail: BreadcrumbsProps["items"] = onTasks
     ? [{ label: "Home", href: "/", render: linkRender }, { label: "Tasks" }]
-    : [{ label: "Home" }]
+    : onAccount
+      ? [{ label: "Home", href: "/", render: linkRender }, { label: "Account settings" }]
+      : [{ label: "Home" }]
 
   return (
     <main>
-      <AccountBar />
-      <Breadcrumbs items={items} />
+      <AccountBar onManageAccount={() => navigate("/account")} />
+      <Breadcrumbs items={crumbTrail} />
       <nav aria-label="Sections">
-        <button type="button" onClick={() => navigate("/")} disabled={!onTasks}>
+        <button type="button" onClick={() => navigate("/")} disabled={path === "/"}>
           Overview
         </button>{" "}
         <button type="button" onClick={() => navigate("/tasks")} disabled={onTasks}>
@@ -120,7 +129,7 @@ export function Dashboard({ httpClient, liveSource }: DashboardProps): ReactElem
         </button>
       </nav>
 
-      <h1>{onTasks ? "Tasks" : "Overview"}</h1>
+      <h1>{title}</h1>
 
       {onTasks ? (
         tasks.status === "success" ? (
@@ -130,6 +139,17 @@ export function Dashboard({ httpClient, liveSource }: DashboardProps): ReactElem
         ) : (
           <p>Loading tasks…</p>
         )
+      ) : onAccount ? (
+        <Can
+          authorizer={canManageAccount}
+          action="account:manage"
+          fallback={<p role="alert">You do not have access to account settings.</p>}
+        >
+          <section aria-labelledby="account-heading">
+            <h2 id="account-heading">Manage your account</h2>
+            <p>The account view is gated by the same authorization decision as its affordance.</p>
+          </section>
+        </Can>
       ) : (
         <p>
           A server-rendered reference dashboard assembled from the plainworks kit. Open the{" "}

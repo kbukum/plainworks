@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import type { AppSnapshot } from "@plainworks/app"
 import { createHttpClient } from "@plainworks/http"
 import { createMockServerHandle } from "@plainworks/mocks/server"
 import { createQueryClient, dehydrateClient, prefetchQuery } from "@plainworks/query"
@@ -8,7 +9,7 @@ import { cleanup, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import axe from "axe-core"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import { TASK_LIST_PARAMS } from "../app/constants"
+import { AUTH_CAPABILITY_ID, TASK_LIST_PARAMS } from "../app/constants"
 import { taskListPlan } from "../app/task-read"
 import { buildClientCapabilities } from "./capabilities"
 import { Showcase } from "./showcase"
@@ -47,7 +48,8 @@ afterEach(() => {
 })
 afterAll(() => handle.server.close())
 
-async function renderDashboard() {
+async function renderDashboard(options: { snapshot?: AppSnapshot; initialPath?: string } = {}) {
+  const { snapshot = { capabilities: {} }, initialPath = "/tasks" } = options
   const httpClient = createHttpClient({ baseUrl: "http://showcase.test" })
   const queryClient = createQueryClient()
   await prefetchQuery(queryClient, taskListPlan(httpClient, TASK_LIST_PARAMS))
@@ -58,11 +60,11 @@ async function renderDashboard() {
   return render(
     <Showcase
       capabilities={capabilities}
-      snapshot={{ capabilities: {} }}
+      snapshot={snapshot}
       dehydratedState={dehydrateClient(queryClient, { shouldDehydrateQuery: () => true })}
       httpClient={httpClient}
       liveSource={createLiveTasksSource()}
-      initialPath="/tasks"
+      initialPath={initialPath}
       transport={quietTransport}
     />,
   )
@@ -83,6 +85,26 @@ describe("router-aware navigation", () => {
     // the overview without a full navigation.
     expect(window.location.pathname).toBe("/")
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Overview")
+  })
+
+  it("navigates to the gated account view when the affordance is activated", async () => {
+    const user = userEvent.setup()
+    await renderDashboard({
+      snapshot: {
+        capabilities: {
+          [AUTH_CAPABILITY_ID]: { authenticated: true, subject: "user-123", name: "Ada" },
+        },
+      },
+    })
+
+    await user.click(await screen.findByRole("button", { name: "Account settings" }))
+
+    // The affordance has a real destination: the URL and the view both move to the account page.
+    expect(window.location.pathname).toBe("/account")
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Account settings")
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "Manage your account" }),
+    ).toBeDefined()
   })
 
   it("has no detectable accessibility violations", async () => {

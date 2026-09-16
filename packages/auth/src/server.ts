@@ -6,8 +6,12 @@
 // `adapter/oidc/` concern modules. Host-neutral TS (no React/DOM), but quarantined from any client
 // graph.
 export { oidcAdapter, registerOidcAdapter } from "./adapter/oidc"
-export type { MemoryTokenStoreOptions } from "./adapter/oidc/token-store"
-export { createMemoryTokenStore } from "./adapter/oidc/token-store"
+export type {
+  RefreshRotation,
+  RefreshTokenStore,
+  RefreshTokenStoreOptions,
+} from "./adapter/oidc/refresh-store"
+export { createRefreshTokenStore } from "./adapter/oidc/refresh-store"
 export type { HmacSignerConfig } from "./server/hmac-signer"
 export { hmacSessionSigner } from "./server/hmac-signer"
 export type {

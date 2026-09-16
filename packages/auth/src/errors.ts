@@ -16,11 +16,26 @@ export type AuthErrorCode =
   | "auth/crypto-unavailable"
   /** An adapter could not resolve, verify, or complete an authentication step. */
   | "auth/adapter"
-  /** A persisted session cookie failed integrity/signature/shape verification at read — treat as unauthenticated, never fabricate a session. */
+  /**
+   * A presented token is itself invalid — bad signature, wrong claims, or expired — so the caller
+   * is unauthenticated. Distinct from an infrastructure fault (`auth/adapter`) so a key-service
+   * outage is never mistaken for a bad credential.
+   */
+  | "auth/token-invalid"
+  /**
+   * A persisted session cookie failed integrity/signature/shape verification at read — treat as
+   * unauthenticated, never fabricate a session.
+   */
   | "auth/session-invalid"
-  /** A validly-signed session cookie is past its absolute lifetime — the caller must re-authenticate. */
+  /**
+   * A validly-signed session cookie is past its absolute lifetime — the caller must
+   * re-authenticate.
+   */
   | "auth/session-expired"
-  /** A validly-signed, unexpired session was explicitly revoked (server-side invalidation) — treat as unauthenticated. */
+  /**
+   * A validly-signed, unexpired session was explicitly revoked (server-side invalidation) — treat
+   * as unauthenticated.
+   */
   | "auth/session-revoked"
   /** An anti-CSRF token was missing, malformed, or did not match on a state-changing request. */
   | "auth/csrf"

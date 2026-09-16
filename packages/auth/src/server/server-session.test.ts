@@ -4,6 +4,7 @@ import { describe, expect, test } from "vitest"
 import { oidcAdapter } from "../adapter/oidc"
 import { defaultAuthCrypto } from "../crypto"
 import { AuthError } from "../errors"
+import { createRevocationRegistry } from "../session-store"
 import { hmacSessionSigner } from "./hmac-signer"
 import { createServerSession, type ServerSession, type ServerSessionJar } from "./server-session"
 
@@ -257,5 +258,94 @@ describe("createServerSession teardown and failure paths", () => {
     jar.set("__Host-session=tampered.envelope; Path=/; SameSite=Strict; Secure; HttpOnly")
     jar.commit()
     expect(await session.refresh(jar)).toBeUndefined()
+  })
+})
+
+describe("createServerSession revocation wiring", () => {
+  test("a detected refresh-token reuse revokes the session cookie on its next read", async () => {
+    const idp = await createMockIdp()
+    const signer = hmacSessionSigner({ keys: [new Uint8Array(32).fill(0x33)] })
+    // A store that never advances custody, so the second refresh replays the retired token and the
+    // provider rejects it with `invalid_grant` — the reuse signal.
+    let held: string | undefined
+    const tokenStore = {
+      issue: (_h: string, t: string) => {
+        held = t
+      },
+      current: () => held,
+      rotate: () => ({ status: "rotated" }) as const,
+      revoke: () => {
+        held = undefined
+      },
+    }
+    const adapter = oidcAdapter(
+      {
+        kind: "oidc",
+        issuer: idp.issuer,
+        clientId: idp.clientId,
+        redirectUri: REDIRECT_URI,
+        signer,
+        fetch: idp.fetch,
+        tokenStore,
+      },
+      { crypto: defaultAuthCrypto(), clock: systemClock },
+    )
+    const revocation = createRevocationRegistry<SessionValue>()
+    const session = createServerSession({
+      adapter,
+      signer,
+      sessionSchema,
+      toSessionValue: (result) => ({ subject: result.identity.subject }),
+      revocation,
+    })
+    const jar = await login(session, idp)
+
+    expect(await session.read(jar)).toBeDefined()
+    await session.refresh(jar)
+    // The replayed token is rejected by the provider; the flow records the revocation.
+    expect(await session.refresh(jar)).toBeUndefined()
+    // The still-unexpired signed cookie is now rejected at read — secure-by-default, no manual
+    // onReuseDetected wiring required.
+    expect(await session.read(jar)).toBeUndefined()
+  })
+
+  test("surfaces a mid-refresh compromise when no writable revocation path is configured", async () => {
+    const idp = await createMockIdp()
+    const signer = hmacSessionSigner({ keys: [new Uint8Array(32).fill(0x44)] })
+    let held: string | undefined
+    const tokenStore = {
+      issue: (_h: string, t: string) => {
+        held = t
+      },
+      current: () => held,
+      rotate: () => ({ status: "rotated" }) as const,
+      revoke: () => {
+        held = undefined
+      },
+    }
+    const adapter = oidcAdapter(
+      {
+        kind: "oidc",
+        issuer: idp.issuer,
+        clientId: idp.clientId,
+        redirectUri: REDIRECT_URI,
+        signer,
+        fetch: idp.fetch,
+        tokenStore,
+      },
+      { crypto: defaultAuthCrypto(), clock: systemClock },
+    )
+    // No `revocation` field: the cookie cannot be invalidated here, so the compromise must not be
+    // swallowed — it surfaces for the caller to clear the session.
+    const session = createServerSession({
+      adapter,
+      signer,
+      sessionSchema,
+      toSessionValue: (result) => ({ subject: result.identity.subject }),
+    })
+    const jar = await login(session, idp)
+
+    await session.refresh(jar)
+    await expect(session.refresh(jar)).rejects.toMatchObject({ kind: "auth/session-revoked" })
   })
 })

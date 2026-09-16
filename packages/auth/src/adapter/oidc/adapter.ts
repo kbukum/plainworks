@@ -27,15 +27,10 @@ import type {
   InteractiveAuthAdapter,
   LoginRedirect,
 } from "../adapter"
-import {
-  OIDC_ADAPTER_KIND,
-  type OidcAdapterConfig,
-  type SessionTokenStore,
-  validateOidcAdapterConfig,
-} from "./config"
-import { createMemoryTokenStore } from "./token-store"
+import { createJwtVerifier, type JwtVerifier, type VerifiedClaims } from "../jwt/verify"
+import { OIDC_ADAPTER_KIND, type OidcAdapterConfig, validateOidcAdapterConfig } from "./config"
+import { createRefreshTokenStore, type RefreshTokenStore } from "./refresh-store"
 import { signTransaction, verifyTransaction } from "./transaction"
-import { createJwtVerifier, type JwtVerifier, type VerifiedClaims } from "./verify"
 
 const DEFAULT_SCOPES = ["openid", "profile", "email"] as const
 const DEFAULT_ALGS = ["RS256", "ES256"] as const
@@ -65,7 +60,9 @@ interface DiscoveredProvider {
   readonly verifier: JwtVerifier
 }
 
-/** Resolve the runtime `fetch` lazily — never at import time — so the module has no import-time I/O. */
+/**
+ * Resolve the runtime `fetch` lazily — never at import time — so the module has no import-time I/O.
+ */
 function resolveFetch(configured: WebFetch | undefined): WebFetch {
   if (configured !== undefined) {
     return configured
@@ -122,7 +119,7 @@ export function oidcAdapter(
   const algorithms = validated.idTokenSigningAlgs ?? DEFAULT_ALGS
   const transactionTtl = validated.transactionTtlSeconds ?? DEFAULT_TRANSACTION_TTL_SECONDS
   const timeoutMs = validated.timeoutMs ?? DEFAULT_TIMEOUT_MS
-  const tokenStore: SessionTokenStore = validated.tokenStore ?? createMemoryTokenStore()
+  const tokenStore: RefreshTokenStore = validated.tokenStore ?? createRefreshTokenStore()
   const client: oauth.Client = { client_id: validated.clientId }
   const clientAuth = oauth.None()
   const issuerUrl = new URL(validated.issuer)
@@ -247,6 +244,30 @@ export function oidcAdapter(
   const refreshGenerations = new Map<string, number>()
   const refreshControllers = new Map<string, WebAbortController>()
 
+  // A detected refresh-token compromise — locally (a replayed retired token) or upstream (the
+  // provider's `invalid_grant`). Purge local custody and signal out-of-band revocation so the
+  // session cookie is rejected too, then always surface a security-class `auth/session-revoked`
+  // deny. Both revocation attempts are made even if one throws; a failing attempt only rides along
+  // as the cause, it never downgrades the deny or skips the other attempt.
+  async function signalReuse(handle: string, message: string): Promise<AuthError> {
+    const causes: unknown[] = []
+    try {
+      await tokenStore.revoke(handle)
+    } catch (cause) {
+      causes.push(cause)
+    }
+    try {
+      await validated.onReuseDetected?.(handle)
+    } catch (cause) {
+      causes.push(cause)
+    }
+    const cause =
+      causes.length === 0 ? undefined : causes.length === 1 ? causes[0] : new AggregateError(causes)
+    return new AuthError("auth/session-revoked", message, {
+      ...(cause !== undefined ? { cause } : {}),
+    })
+  }
+
   return {
     id: OIDC_ADAPTER_KIND,
 
@@ -331,7 +352,7 @@ export function oidcAdapter(
       const identity = identityFrom(claims)
       const sessionHandle = request.sessionHandle ?? base64urlEncode(crypto.randomBytes(32))
       if (result.refresh_token !== undefined) {
-        await tokenStore.set(sessionHandle, result.refresh_token)
+        await tokenStore.issue(sessionHandle, result.refresh_token)
         lastSessionHandle = sessionHandle
       }
       return {
@@ -352,12 +373,15 @@ export function oidcAdapter(
       }
       const { verifier } = await ready(request.signal)
       try {
-        const claims = await verifier.verifyAccessToken(bearer)
+        const claims = await verifier.verifyAccessToken(bearer, request.signal)
         return identityFrom(claims)
-      } catch {
-        // An invalid/expired/forged credential is unauthenticated, never an error the caller
-        // catches.
-        return null
+      } catch (error) {
+        // A bad credential is unauthenticated; an infrastructure fault (JWKS outage) is a typed
+        // error the caller surfaces, never a silent deny.
+        if (error instanceof AuthError && error.kind === "auth/token-invalid") {
+          return null
+        }
+        throw error
       }
     },
 
@@ -377,7 +401,7 @@ export function oidcAdapter(
       refreshControllers.set(handle, exchangeController)
 
       async function doRefresh(): Promise<TokenSet> {
-        const currentRefreshToken = await tokenStore.get(handle)
+        const currentRefreshToken = await tokenStore.current(handle)
         if (currentRefreshToken === undefined) {
           throw new AuthError("auth/refresh-failed", "no refresh token is held for this session")
         }
@@ -398,6 +422,12 @@ export function oidcAdapter(
           )
           result = await oauth.processRefreshTokenResponse(as, client, response)
         } catch (cause) {
+          // `invalid_grant` is the provider's own reuse/revocation signal: the presented refresh
+          // token was already consumed or revoked upstream — the fingerprint of a leaked, replayed
+          // credential. Treat it as a compromise, not a transient failure.
+          if (cause instanceof oauth.ResponseBodyError && cause.error === "invalid_grant") {
+            throw await signalReuse(handle, "refresh token rejected by provider (invalid_grant)")
+          }
           throw new AuthError("auth/refresh-failed", "refresh token exchange failed", { cause })
         } finally {
           deadline.dispose()
@@ -406,9 +436,18 @@ export function oidcAdapter(
         if ((refreshGenerations.get(handle) ?? 0) !== generation) {
           throw new AuthError("auth/refresh-failed", "session was invalidated during refresh")
         }
-        // Refresh-token rotation: adopt the provider's new refresh token when it issues one.
+        // Refresh-token rotation with reuse detection: hand the store the token we presented and
+        // the provider's replacement. A replay of an already-retired token means the credential
+        // leaked — deny the refresh and signal revocation so the session cookie is rejected too.
         if (result.refresh_token !== undefined) {
-          await tokenStore.set(handle, result.refresh_token)
+          const rotation = await tokenStore.rotate(
+            handle,
+            currentRefreshToken,
+            result.refresh_token,
+          )
+          if (rotation.status === "reuse-detected") {
+            throw await signalReuse(handle, "refresh token reuse detected")
+          }
         }
         const tokens: TokenSet = {
           accessToken: result.access_token,
@@ -443,7 +482,7 @@ export function oidcAdapter(
           refreshControllers.delete(targetHandle)
         }
         inFlightRefreshes.delete(targetHandle)
-        await tokenStore.delete(targetHandle)
+        await tokenStore.revoke(targetHandle)
         if (lastSessionHandle === targetHandle) {
           lastSessionHandle = undefined
         }

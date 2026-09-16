@@ -1,0 +1,10 @@
+---
+"@plainworks/auth": minor
+---
+
+Complete the auth hardening with refresh-token rotation and automatic reuse detection (OAuth 2.0 Security BCP, RFC 9700), and expose a revocation bridge for it.
+
+- **Refresh-token rotation with reuse detection** — the OIDC refresh-token store holds one live refresh token per session handle and rotates it whenever the provider returns a replacement. Any other token presented for that handle — a superseded one the legitimate client already rotated past, or an unknown one — is treated as a replay: it purges the whole session family, denies the refresh with `auth/session-revoked`, and signals compromise through the new `onReuseDetected` hook. A provider that itself rejects a refresh with `invalid_grant` is treated the same way. Token comparison is constant-time.
+- **`createRevocationRegistry`** — a revocation source keyed by the session handle. A revocation is retained until the revoked session's own expiry — past that the cookie is already rejected as expired — so a record never outlives the session it blocks; memory is hard-capped by `maxEntries` with fail-closed admission, so a full registry surfaces an error rather than evicting a still-live revocation. `createServerSession` accepts it as a `revocation` field and wires it in both directions automatically: its check runs at every session read, and a refresh that trips reuse detection records the handle so the signed cookie is rejected on its next read — closing the window a revoked-but-unexpired cookie would otherwise authenticate. When no writable revocation path is configured, a mid-refresh compromise stays visible instead of being swallowed. A distributed deployment supplies its own shared-store `isRevoked` instead.
+
+The signed double-submit CSRF token and the rotating session-signing keyset (sign-newest / verify-any) already shipped; this closes the remaining hardening. The former `SessionTokenStore` / `createMemoryTokenStore` are redesigned into the rotation-aware `RefreshTokenStore` / `createRefreshTokenStore`.

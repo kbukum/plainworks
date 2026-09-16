@@ -1,16 +1,10 @@
 import type { WebFetch } from "@plainworks/std"
 import { AuthError } from "../../errors"
 import type { SessionSigner } from "../../signer/seam"
+import type { RefreshTokenStore } from "./refresh-store"
 
 /** The registry kind under which the OIDC Authorization Code + PKCE adapter registers. */
 export const OIDC_ADAPTER_KIND = "oidc"
-
-/** A server-side per-session store for custodying refresh tokens keyed by an opaque session handle. */
-export interface SessionTokenStore {
-  get(sessionId: string): string | undefined | Promise<string | undefined>
-  set(sessionId: string, refreshToken: string): void | Promise<void>
-  delete(sessionId: string): void | Promise<void>
-}
 
 /**
  * Config for the OIDC Authorization Code + PKCE (S256) adapter. Selecting `{ kind: "oidc", ... }`
@@ -20,13 +14,17 @@ export interface SessionTokenStore {
  */
 export interface OidcAdapterConfig {
   readonly kind: typeof OIDC_ADAPTER_KIND
-  /** The OpenID Provider issuer URL — discovery reads `{issuer}/.well-known/openid-configuration`. */
+  /**
+   * The OpenID Provider issuer URL — discovery reads `{issuer}/.well-known/openid-configuration`.
+   */
   readonly issuer: string
   /** The registered client identifier (a public client using PKCE, no client secret). */
   readonly clientId: string
   /** The registered redirect URI the provider returns the authorization code to. */
   readonly redirectUri: string
-  /** Requested scopes; defaults to `["openid", "profile", "email"]`. `openid` is always included. */
+  /**
+   * Requested scopes; defaults to `["openid", "profile", "email"]`. `openid` is always included.
+   */
   readonly scopes?: readonly string[]
   /**
    * The signer that integrity-protects the login transaction (PKCE verifier / state / nonce) across
@@ -49,10 +47,19 @@ export interface OidcAdapterConfig {
   readonly transactionTtlSeconds?: number
   /** Maximum time in milliseconds for remote provider requests; defaults to 10_000. */
   readonly timeoutMs?: number
-  /** Cooldown duration between remote JWKS refreshes on unknown kid in milliseconds; defaults to 5_000. */
+  /**
+   * Cooldown duration between remote JWKS refreshes on unknown kid in milliseconds; defaults to
+   * 5_000.
+   */
   readonly cooldownDurationMs?: number
   /** Server-side per-session store custodying refresh tokens; defaults to an in-memory store. */
-  readonly tokenStore?: SessionTokenStore
+  readonly tokenStore?: RefreshTokenStore
+  /**
+   * Called with the session handle when the token store detects a refresh-token reuse (a replayed,
+   * retired token — a compromise signal). Wire it to a {@link RevocationRegistry}'s `revoke` so the
+   * session's cookie is rejected at its next read, propagating the revocation beyond this request.
+   */
+  readonly onReuseDetected?: (handle: string) => void | Promise<void>
   /**
    * Additional allowed origins for endpoints discovered from the provider (e.g. `jwks_uri`,
    * `token_endpoint`, `authorization_endpoint`). By default, endpoints must share the issuer's
@@ -156,24 +163,24 @@ export function validateOidcAdapterConfig(config: unknown): OidcAdapterConfig {
   if (candidate.timeoutMs !== undefined) {
     if (
       typeof candidate.timeoutMs !== "number" ||
-      !Number.isFinite(candidate.timeoutMs) ||
+      !Number.isInteger(candidate.timeoutMs) ||
       candidate.timeoutMs <= 0
     ) {
       throw new AuthError(
         "auth/config",
-        "OIDC adapter config `timeoutMs` must be a positive finite number",
+        "OIDC adapter config `timeoutMs` must be a positive integer",
       )
     }
   }
   if (candidate.cooldownDurationMs !== undefined) {
     if (
       typeof candidate.cooldownDurationMs !== "number" ||
-      !Number.isFinite(candidate.cooldownDurationMs) ||
+      !Number.isInteger(candidate.cooldownDurationMs) ||
       candidate.cooldownDurationMs < 0
     ) {
       throw new AuthError(
         "auth/config",
-        "OIDC adapter config `cooldownDurationMs` must be a non-negative finite number",
+        "OIDC adapter config `cooldownDurationMs` must be a non-negative integer",
       )
     }
   }
@@ -182,15 +189,19 @@ export function validateOidcAdapterConfig(config: unknown): OidcAdapterConfig {
     if (
       typeof tokenStore !== "object" ||
       tokenStore === null ||
-      typeof (tokenStore as { get?: unknown }).get !== "function" ||
-      typeof (tokenStore as { set?: unknown }).set !== "function" ||
-      typeof (tokenStore as { delete?: unknown }).delete !== "function"
+      typeof (tokenStore as { issue?: unknown }).issue !== "function" ||
+      typeof (tokenStore as { current?: unknown }).current !== "function" ||
+      typeof (tokenStore as { rotate?: unknown }).rotate !== "function" ||
+      typeof (tokenStore as { revoke?: unknown }).revoke !== "function"
     ) {
       throw new AuthError(
         "auth/config",
-        "OIDC adapter config `tokenStore` must provide get, set, and delete methods",
+        "OIDC adapter config `tokenStore` must provide issue, current, rotate, and revoke methods",
       )
     }
+  }
+  if (candidate.onReuseDetected !== undefined && typeof candidate.onReuseDetected !== "function") {
+    throw new AuthError("auth/config", "OIDC adapter config `onReuseDetected` must be a function")
   }
   if (candidate.allowedOrigins !== undefined) {
     if (

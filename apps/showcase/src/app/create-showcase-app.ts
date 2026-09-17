@@ -1,8 +1,8 @@
 // The neutral (server) half of the theme capability: a resolver that reads the theme preference
 // from the request's cookie during SSR, so the resolved value lands in the AppSnapshot and the very
-// first paint is already the user's theme — no flash, no client round-trip. React-free, so it lives
-// in the server-safe graph; its client provider counterpart is authored separately and joined by
-// the shared capability id.
+// first paint can use a persisted explicit theme without a client round-trip. React-free, so it
+// lives in the server-safe graph; its client provider counterpart is authored separately and joined
+// by the shared capability id.
 
 import { type App, type Capability, createApp, defineCapability } from "@plainworks/app"
 import { DEFAULT_THEME, parseThemeCookie, type ThemePreference } from "@plainworks/theme"

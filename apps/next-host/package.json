@@ -1,0 +1,47 @@
+{
+  "name": "@plainworks/next-host",
+  "version": "0.0.0",
+  "description": "Second reference host: a Next.js App Router / RSC application that assembles the published @plainworks/* surfaces — composition kernel, theme, query, channel, state, ui, and auth — over the @plainworks/demo mock backend, proving host-independence beside the Vite SPA showcase. Never published; nothing depends on it.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@plainworks/app": "workspace:*",
+    "@plainworks/auth": "workspace:*",
+    "@plainworks/channel": "workspace:*",
+    "@plainworks/demo": "workspace:*",
+    "@plainworks/http": "workspace:*",
+    "@plainworks/query": "workspace:*",
+    "@plainworks/state": "workspace:*",
+    "@plainworks/std": "workspace:*",
+    "@plainworks/testkit": "workspace:*",
+    "@plainworks/theme": "workspace:*",
+    "@plainworks/ui": "workspace:*",
+    "@tanstack/react-query": "catalog:",
+    "next": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "server-only": "catalog:"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "catalog:",
+    "@testing-library/dom": "catalog:",
+    "@testing-library/react": "catalog:",
+    "@testing-library/user-event": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "axe-core": "catalog:",
+    "jsdom": "catalog:",
+    "tailwindcss": "catalog:",
+    "tw-animate-css": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

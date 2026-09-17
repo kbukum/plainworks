@@ -1,0 +1,9 @@
+/*
+ * The app's stylesheet entry — it composes the kit's two design-system stylesheets so Tailwind v4
+ * compiles one sheet for the whole app. `@plainworks/theme` brings the tokens, base layer, and the
+ * `theme-*` color schemes the zero-flash `<html>` class selects; `@plainworks/ui` brings the
+ * composite/element styles. A consumer app owns this composition — the kit ships the sources; the
+ * showcase composes the same two sheets through the Tailwind Vite plugin, this host through PostCSS.
+ */
+@import "@plainworks/theme/styles.css";
+@import "@plainworks/ui/styles.css";

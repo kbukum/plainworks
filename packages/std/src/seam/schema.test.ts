@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { type StandardSchemaV1, unsafePassthrough, validateWithSchema } from "./schema"
+import { guardSchema, type StandardSchemaV1, unsafePassthrough, validateWithSchema } from "./schema"
 
 interface Widget {
   readonly id: number
@@ -51,5 +51,30 @@ describe("unsafePassthrough", () => {
     const schema = unsafePassthrough<Widget>()
     expect(schema["~standard"].version).toBe(1)
     expect(schema["~standard"].vendor).toBe("plainworks")
+  })
+})
+
+describe("guardSchema", () => {
+  const isWidget = (value: unknown): value is Widget =>
+    typeof value === "object" && value !== null && typeof (value as Widget).id === "number"
+
+  test("accepts and narrows a value satisfying the guard", async () => {
+    const result = await validateWithSchema(guardSchema(isWidget), { id: 7 })
+    expect(result).toEqual({ ok: true, value: { id: 7 } })
+  })
+
+  test("rejects a failing value with the supplied message", async () => {
+    const result = await validateWithSchema(guardSchema(isWidget, "not a widget"), { id: "7" })
+    expect(result).toEqual({ ok: false, error: [{ message: "not a widget" }] })
+  })
+
+  test("falls back to a default message and advertises the plainworks vendor", async () => {
+    const schema = guardSchema(isWidget)
+    expect(schema["~standard"].vendor).toBe("plainworks")
+    const result = await validateWithSchema(schema, null)
+    expect(result).toEqual({
+      ok: false,
+      error: [{ message: "Value did not match the expected shape" }],
+    })
   })
 })

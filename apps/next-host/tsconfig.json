@@ -1,0 +1,31 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // A Next.js host, not a published package: it renders on the server (React Server Components)
+    // and hydrates in the browser, so it opts into the DOM libs the host-independent packages
+    // forbid. This never leaks upward — the packages it consumes still compile under the DOM-free
+    // base config; only this leaf sees host globals.
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    // Next compiles JSX with its own SWC pipeline, so TypeScript preserves it rather than lowering.
+    "jsx": "preserve",
+    // The Next TS plugin powers editor diagnostics for App Router files.
+    "plugins": [{ "name": "next" }],
+    // Next requires an incremental program; an app emits no declarations, so `isolatedDeclarations`
+    // (a `.d.ts`-publishing constraint) buys nothing here.
+    "incremental": true,
+    "isolatedDeclarations": false,
+    "allowJs": true,
+    // `verbatimModuleSyntax` conflicts with Next's implicit-default-export route/page modules;
+    // Next's own baseline leaves it off, so this leaf does too.
+    "verbatimModuleSyntax": false,
+    // Resolve every `@plainworks/*` import to the built `dist` package surface a consumer installs,
+    // not the source paths the base config aliases — so the app proves the *published* exports and
+    // types. Hence `typecheck`/`build`/`test` depend on `^build`.
+    "paths": {}
+  },
+  // `.next/types` carries the route/page contracts `next typegen` generates, so the standalone
+  // typecheck verifies them; nothing else under `.next` is rooted by an include.
+  "include": ["src", "next-env.d.ts", "next.config.ts", "vitest.config.ts", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}

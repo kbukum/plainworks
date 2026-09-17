@@ -1,10 +1,5 @@
-import { type RetryPolicy, unsafePassthrough, type WebResponse } from "@plainworks/std"
-import {
-  autoBackoffDelay,
-  fakeAuthHeaderProvider,
-  fakeFetch,
-  guardSchema,
-} from "@plainworks/testkit"
+import { guardSchema, type RetryPolicy, unsafePassthrough, type WebResponse } from "@plainworks/std"
+import { autoBackoffDelay, fakeAuthHeaderProvider, fakeFetch } from "@plainworks/testkit"
 import { expect, test } from "vitest"
 import { HttpError } from "../../error"
 import { createHttpClient } from "../client"

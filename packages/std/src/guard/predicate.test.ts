@@ -1,5 +1,12 @@
 import { describe, expect, test } from "vitest"
-import { hasProperty, isDefined, isNonEmptyString, isRecord } from "./predicate"
+import {
+  hasProperty,
+  isAbsentOr,
+  isDefined,
+  isNonEmptyString,
+  isOneOf,
+  isRecord,
+} from "./predicate"
 
 describe("isDefined", () => {
   test("rejects null and undefined, accepts other values", () => {
@@ -60,5 +67,34 @@ describe("hasProperty", () => {
   test("rejects inherited (non-own) properties", () => {
     expect(hasProperty({}, "toString")).toBe(false)
     expect(hasProperty(Object.create({ inherited: 1 }), "inherited")).toBe(false)
+  })
+})
+
+describe("isOneOf", () => {
+  const roles = ["admin", "viewer"] as const
+
+  test("narrows a value that is a member of the closed set", () => {
+    const value: unknown = "admin"
+    expect(isOneOf(value, roles)).toBe(true)
+    if (isOneOf(value, roles)) {
+      expect(value satisfies (typeof roles)[number]).toBe("admin")
+    }
+  })
+
+  test("rejects a non-member", () => {
+    expect(isOneOf("owner", roles)).toBe(false)
+    expect(isOneOf(undefined, roles)).toBe(false)
+  })
+})
+
+describe("isAbsentOr", () => {
+  test("accepts an absent field", () => {
+    expect(isAbsentOr(undefined, (v) => typeof v === "string")).toBe(true)
+  })
+
+  test("checks a present field, including null", () => {
+    expect(isAbsentOr("x", (v) => typeof v === "string")).toBe(true)
+    expect(isAbsentOr(1, (v) => typeof v === "string")).toBe(false)
+    expect(isAbsentOr(null, (v) => typeof v === "string")).toBe(false)
   })
 })

@@ -20,3 +20,13 @@ export function hasProperty<K extends PropertyKey>(
 ): value is Record<K, unknown> {
   return isRecord(value) && Object.hasOwn(value, key)
 }
+
+/** Narrow to one of a closed set of allowed values, e.g. a string-union enum read off the wire. */
+export function isOneOf<T>(value: unknown, options: readonly T[]): value is T {
+  return options.some((option) => option === value)
+}
+
+/** An absent (`undefined`) optional field is valid; a present one must satisfy `check`. */
+export function isAbsentOr(value: unknown, check: (present: unknown) => boolean): boolean {
+  return value === undefined || check(value)
+}

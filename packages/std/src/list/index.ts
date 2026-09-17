@@ -5,6 +5,13 @@
 // one abstract source of truth. The REST wire dialect (operator→token map, escape/parse codec)
 // lives in `@plainworks/http`; the URL serializer `buildListQuery` lives there too.
 
+export {
+  isCursorInfo,
+  isCursorResult,
+  isFacets,
+  isPageInfo,
+  isPaginatedResult,
+} from "./guards"
 export type { ListOperator, PresenceOperator, ScalarOperator } from "./operators"
 export {
   isListOperator,

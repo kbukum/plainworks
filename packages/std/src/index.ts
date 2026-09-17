@@ -13,7 +13,16 @@ export {
 } from "./cookie"
 export type { ErrorSnapshot, PlainErrorOptions } from "./errors"
 export { createErrorSnapshot, ensureError, getErrorMessage, PlainError } from "./errors"
-export { assert, assertNever, hasProperty, isDefined, isNonEmptyString, isRecord } from "./guard"
+export {
+  assert,
+  assertNever,
+  hasProperty,
+  isAbsentOr,
+  isDefined,
+  isNonEmptyString,
+  isOneOf,
+  isRecord,
+} from "./guard"
 export type {
   CursorInfo,
   CursorResult,
@@ -33,7 +42,12 @@ export type {
   SortDirection,
 } from "./list"
 export {
+  isCursorInfo,
+  isCursorResult,
+  isFacets,
   isListOperator,
+  isPageInfo,
+  isPaginatedResult,
   isPresenceOperator,
   isScalarOperator,
   LIST_OPERATORS,
@@ -101,7 +115,7 @@ export type {
   StandardSchemaTypes,
   StandardSchemaV1,
 } from "./seam/schema"
-export { unsafePassthrough, validateWithSchema } from "./seam/schema"
+export { guardSchema, unsafePassthrough, validateWithSchema } from "./seam/schema"
 export type { StateCapabilities, StateSerializer, StateSource } from "./seam/state"
 export type {
   StreamFrame,

@@ -16,7 +16,7 @@ export const TASK_LIST_PARAMS: ListQueryParams = {
   order: "desc",
 }
 
-/** Cookie the theme preference is persisted under; read on the server for a zero-flash first paint. */
+/** Cookie the theme preference is persisted under so the server can render an explicit mode. */
 export const THEME_COOKIE = "theme"
 
 /** Capability id joining the neutral theme resolver to its client provider. */

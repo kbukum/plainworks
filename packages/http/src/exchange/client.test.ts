@@ -1,4 +1,5 @@
 import {
+  guardSchema,
   RetryError,
   type RetryPolicy,
   TimeoutError,
@@ -10,7 +11,6 @@ import {
   fakeAuthHeaderProvider,
   fakeFetch,
   fakeSchema,
-  guardSchema,
 } from "@plainworks/testkit"
 import { expect, test, vi } from "vitest"
 import { HttpError } from "../error"

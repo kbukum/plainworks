@@ -5,14 +5,18 @@
 
 import type { User, UserDepartment, UserRole, UserStatus } from "@plainworks/demo"
 import { buildListQuery, type createHttpClient } from "@plainworks/http"
-import type { CursorResult, Facets, ListQueryParams, PaginatedResult } from "@plainworks/query"
+import type { CursorResult, ListQueryParams, PaginatedResult } from "@plainworks/query"
 import {
+  guardSchema,
+  isAbsentOr,
+  isCursorResult,
   isNonEmptyString,
+  isOneOf,
+  isPaginatedResult,
   isRecord,
   type StandardSchemaV1,
   type WebAbortSignal,
 } from "@plainworks/std"
-import { guardSchema } from "@plainworks/testkit"
 
 type HttpClient = ReturnType<typeof createHttpClient>
 
@@ -31,15 +35,6 @@ const USER_DEPARTMENTS: readonly UserDepartment[] = [
   "Product",
 ]
 
-function isOneOf<T>(value: unknown, options: readonly T[]): value is T {
-  return options.some((option) => option === value)
-}
-
-/** An absent optional field is fine; a present one must carry its declared type. */
-function optional(value: unknown, check: (present: unknown) => boolean): boolean {
-  return value === undefined || check(value)
-}
-
 // A sound `User` guard: required fields, enum membership for role/status/department, and every
 // optional field type-checked when present — a malformed row never crosses as a typed `User`.
 function isUserRow(value: unknown): value is User {
@@ -51,53 +46,25 @@ function isUserRow(value: unknown): value is User {
     isOneOf(value.status, USER_STATUSES) &&
     typeof value.createdAt === "string" &&
     typeof value.updatedAt === "string" &&
-    optional(value.name, isNonEmptyString) &&
-    optional(value.firstName, isNonEmptyString) &&
-    optional(value.lastName, isNonEmptyString) &&
-    optional(value.avatar, isNonEmptyString) &&
-    optional(value.department, (v) => isOneOf(v, USER_DEPARTMENTS)) &&
-    optional(value.age, (v) => typeof v === "number") &&
-    optional(value.score, (v) => typeof v === "number") &&
-    optional(value.verified, (v) => typeof v === "boolean") &&
-    optional(value.lastLoginAt, (v) => typeof v === "string")
-  )
-}
-
-/** The optional `facets` block — per field, per value, a count. */
-function isFacets(value: unknown): value is Facets {
-  return (
-    isRecord(value) &&
-    Object.values(value).every(
-      (counts) =>
-        isRecord(counts) && Object.values(counts).every((count) => typeof count === "number"),
-    )
+    isAbsentOr(value.name, isNonEmptyString) &&
+    isAbsentOr(value.firstName, isNonEmptyString) &&
+    isAbsentOr(value.lastName, isNonEmptyString) &&
+    isAbsentOr(value.avatar, isNonEmptyString) &&
+    isAbsentOr(value.department, (v) => isOneOf(v, USER_DEPARTMENTS)) &&
+    isAbsentOr(value.age, (v) => typeof v === "number") &&
+    isAbsentOr(value.score, (v) => typeof v === "number") &&
+    isAbsentOr(value.verified, (v) => typeof v === "boolean") &&
+    isAbsentOr(value.lastLoginAt, (v) => typeof v === "string")
   )
 }
 
 const userPageSchema: StandardSchemaV1<unknown, PaginatedResult<User>> = guardSchema(
-  (value): value is PaginatedResult<User> =>
-    isRecord(value) &&
-    Array.isArray(value.data) &&
-    value.data.every(isUserRow) &&
-    isRecord(value.pagination) &&
-    typeof value.pagination.page === "number" &&
-    typeof value.pagination.pageSize === "number" &&
-    typeof value.pagination.total === "number" &&
-    typeof value.pagination.totalPages === "number" &&
-    optional(value.facets, isFacets),
+  (value): value is PaginatedResult<User> => isPaginatedResult(value, isUserRow),
   "response is not a PaginatedResult<User>",
 )
 
 const userCursorSchema: StandardSchemaV1<unknown, CursorResult<User>> = guardSchema(
-  (value): value is CursorResult<User> =>
-    isRecord(value) &&
-    Array.isArray(value.data) &&
-    value.data.every(isUserRow) &&
-    isRecord(value.pagination) &&
-    typeof value.pagination.pageSize === "number" &&
-    (typeof value.pagination.nextCursor === "string" || value.pagination.nextCursor === null) &&
-    (typeof value.pagination.prevCursor === "string" || value.pagination.prevCursor === null) &&
-    optional(value.facets, isFacets),
+  (value): value is CursorResult<User> => isCursorResult(value, isUserRow),
   "response is not a CursorResult<User>",
 )
 

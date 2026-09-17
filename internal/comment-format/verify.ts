@@ -1,6 +1,6 @@
-import { readdirSync, readFileSync } from "node:fs"
-import { join } from "node:path"
+import { readFileSync } from "node:fs"
 import ts from "typescript"
+import { collectFiles } from "./collect"
 import { reflowSource } from "./reflow"
 import { codeTokens } from "./safety"
 
@@ -15,19 +15,6 @@ import { codeTokens } from "./safety"
  *
  * Usage: bun verify.ts <root> [<root> ...]
  */
-
-const EXCLUDE = /(^|\/)(node_modules|dist|\.turbo|coverage|gen|fixtures)(\/|$)/
-
-function collectFiles(root: string): string[] {
-  const files: string[] = []
-  for (const entry of readdirSync(root, { recursive: true, withFileTypes: true })) {
-    if (!entry.isFile()) continue
-    const path = join(entry.parentPath, entry.name)
-    if (EXCLUDE.test(path)) continue
-    if (path.endsWith(".ts") || path.endsWith(".tsx")) files.push(path)
-  }
-  return files
-}
 
 /** Every word inside every comment, delimiters and star/slash prefixes stripped. */
 function commentWords(path: string, text: string): string[] {

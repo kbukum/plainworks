@@ -1,3 +1,5 @@
+export type { AuthSnapshot } from "./snapshot"
+export { ANONYMOUS_AUTH, authSnapshotOf, sessionSnapshotOf } from "./snapshot"
 export type {
   AuthStore,
   AuthStoreConfig,

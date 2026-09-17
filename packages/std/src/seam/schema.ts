@@ -89,6 +89,25 @@ export async function validateWithSchema<S extends StandardSchemaV1>(
 }
 
 /**
+ * Build a {@link StandardSchemaV1} from a type-guard predicate — the canonical way to turn a
+ * narrowing guard into the validation seam a transport speaks. A value satisfying `predicate` is
+ * accepted and typed as `Output`; anything else is rejected with a single issue carrying `message`,
+ * so an untrusted payload fails the boundary instead of being trusted as a fabricated type.
+ */
+export function guardSchema<Output>(
+  predicate: (value: unknown) => value is Output,
+  message = "Value did not match the expected shape",
+): StandardSchemaV1<unknown, Output> {
+  return {
+    "~standard": {
+      version: 1,
+      vendor: "plainworks",
+      validate: (value) => (predicate(value) ? { value } : { issues: [{ message }] }),
+    },
+  }
+}
+
+/**
  * The explicit, opt-in escape hatch for "I trust this wire": a {@link StandardSchemaV1} that
  * performs no validation and returns the decoded value as `T`. The cast is unchecked, so this must
  * be a deliberate choice at the call site — the safe default is to receive the decoded `unknown`

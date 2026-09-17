@@ -9,8 +9,9 @@ import type { LiveTasks } from "./live-stream"
 
 /**
  * Build the theme's backing {@link StateSource} — a non-secret, client-readable cookie the server
- * also reads for the zero-flash first paint. Host access is deferred to the first read/write, so
- * building it during SSR touches no `document`. Per-request factory, no module singleton.
+ * also reads for a persisted explicit-mode first paint. Host access is deferred to the first
+ * read/write, so building it during SSR touches no `document`. Per-request factory, no module
+ * singleton.
  */
 export function createThemeSource(): StateSource<ThemePreference> {
   return cookieScope.createSource<ThemePreference>({

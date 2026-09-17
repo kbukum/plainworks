@@ -1,19 +1,19 @@
 // The SSR render — the neutral composition seam the dev server and the smoke tests both drive. It
 // resolves the per-request snapshot through the composition kernel, prefetches the task list into a
 // request-scoped query client, renders the one shared `<Showcase>` tree to a string, and wraps it
-// in the document shell with the snapshot, the dehydrated cache, and the zero-flash theme class
+// in the document shell with the snapshot, the dehydrated cache, and the persisted theme class
 // inlined. It builds every store/client/source per call — no module-level singleton — so two
 // concurrent requests never share state. The network is an injected seam: the caller sets up the
 // mock (MSW in a test, the mock server in dev) and hands in the request-scoped `httpClient`.
 
 import { createApp, serializeSnapshot, snapshotFor } from "@plainworks/app"
-import { unauthenticatedRedirect } from "@plainworks/auth"
+import { authSnapshotOf, unauthenticatedRedirect } from "@plainworks/auth"
 import type { HttpClient } from "@plainworks/http"
 import { createQueryClient, dehydrateClient, prefetchQuery } from "@plainworks/query"
 import type { WebAbortSignal } from "@plainworks/std"
 import { renderToString } from "react-dom/server"
 import type { ReadShowcaseSession } from "../app/auth"
-import { authServerCapability, authSnapshotOf } from "../app/auth"
+import { authServerCapability } from "../app/auth"
 import {
   AUTH_CAPABILITY_ID,
   LOGIN_PATH,

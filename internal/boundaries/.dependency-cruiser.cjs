@@ -57,8 +57,8 @@ const LAYERS = {
 // (L3) keeps the interwoven `forms`/`data` concerns as subpaths (not separate packages), so their
 // direction is governed here instead of by the package layers. The bands are:
 //
-//   0  foundation   hooks (neutral stately + DOM) · atom re-exports every concern may draw on
-//   1  general      layout · feedback · overlays · display · navigation · theme · components
+//   0  foundation   hooks (neutral stately + DOM) · client hooks
+//   1  general      layout · feedback · overlays · display · navigation · theme
 //   2  forms
 //   3  data         data-table · list
 //
@@ -72,14 +72,12 @@ const LAYERS = {
 const UI_CONCERNS = {
   hooks: { band: 0, dir: "hooks" },
   "client-hooks": { band: 0, dir: "client/hooks" },
-  atoms: { band: 0, dir: "client/atoms" },
   layout: { band: 1, dir: "client/layout" },
   feedback: { band: 1, dir: "client/feedback" },
   overlays: { band: 1, dir: "client/overlays" },
   display: { band: 1, dir: "client/display" },
   navigation: { band: 1, dir: "client/navigation" },
   theme: { band: 1, dir: "client/theme" },
-  components: { band: 1, dir: "client/components" },
   forms: { band: 2, dir: "client/forms" },
   "data-table": { band: 3, dir: "client/data-table" },
   list: { band: 3, dir: "client/list" },
@@ -87,7 +85,7 @@ const UI_CONCERNS = {
 
 // Directory segments of every classified concern, split by location so the fail-closed catch-all
 // below can name exactly the mapped folders. Neutral concerns sit directly under `src/` (e.g.
-// `hooks`); client concerns sit under `src/client/` (e.g. `atoms`, `forms`).
+// `hooks`); client concerns sit under `src/client/` (e.g. `layout`, `forms`).
 const neutralConcernDirs = Object.values(UI_CONCERNS)
   .map(({ dir }) => dir)
   .filter((dir) => !dir.includes("/"))

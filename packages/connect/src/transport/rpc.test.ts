@@ -3,7 +3,7 @@ import type { WebResponse } from "@plainworks/std"
 import { fakeAuthHeaderProvider, fakeFetch, manualDelay } from "@plainworks/testkit"
 import { EchoService } from "@plainworks/testkit/connect"
 import { describe, expect, test } from "vitest"
-import { createConnectRpcTransport } from "./transport"
+import { createConnectRpcTransport } from "./rpc"
 
 const BASE_URL = "https://api.test"
 

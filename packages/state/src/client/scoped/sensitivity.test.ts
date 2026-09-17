@@ -4,7 +4,7 @@
 import { describe, expect, test } from "vitest"
 import { StateConfigError } from "../../errors"
 import { memoryScope } from "../../scope/memory"
-import type { Scope } from "../../scope/scope"
+import type { Scope } from "../../scope/seam"
 import { cookieScope } from "../scope/cookie"
 import { urlScope } from "../scope/url"
 import { persistentScope, sessionScope } from "../scope/web-storage"

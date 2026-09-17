@@ -22,17 +22,18 @@ export interface StoreSet<State> {
 }
 
 /**
- * A framework-agnostic store — a plain subscribable state container usable outside React. This is
- * **plainworks-owned**: the public surface never names the underlying engine, so the default engine
- * can change without a breaking change and consumers are not coupled to it. `getInitialState`
- * returns the creation-time state, which is what a `useSyncExternalStore` server snapshot reads.
+ * A framework-agnostic store — a plain subscribable state container usable outside React.
+ * This is **plainworks-owned**: the public surface never names the underlying engine, so the
+ * default engine can change without a breaking change and consumers are not coupled to it.
+ * `getInitialState` returns the creation-time state, which is what a `useSyncExternalStore` server
+ * snapshot reads.
  *
  * **Snapshots are immutable.** Every update must publish a *new* state reference rather than mutate
  * the existing object in place; `getState()` between two `subscribe` notifications returns a stable
- * reference. `useSyncExternalStore` bindings (and {@link toAdapter}) detect change with `Object.is`
- * on that reference and cache the selected slice against it — an in-place mutation would notify
- * subscribers while leaving the reference unchanged, so the binding would serve a stale slice. A
- * bring-your-own {@link Store} must honor this contract.
+ * reference. `useSyncExternalStore` bindings (and {@link toExternalStore}) detect change with
+ * `Object.is` on that reference and cache the selected slice against it — an in-place mutation
+ * would notify subscribers while leaving the reference unchanged, so the binding would serve a
+ * stale slice. A bring-your-own {@link Store} must honor this contract.
  */
 export interface Store<State> {
   /** The current live state — a new reference after every update (never mutated in place). */

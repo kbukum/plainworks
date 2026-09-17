@@ -18,6 +18,7 @@ import { AuthError } from "../../errors"
 import { sanitizeReturnTo } from "../../redirect"
 import type { TokenSet } from "../../session"
 import type { SessionSigner } from "../../signer/seam"
+import { createJwtVerifier, type JwtVerifier, type VerifiedClaims } from "../jwt/verify"
 import type {
   AuthAdapterDeps,
   AuthenticateRequest,
@@ -26,8 +27,7 @@ import type {
   CompleteLoginRequest,
   InteractiveAuthAdapter,
   LoginRedirect,
-} from "../adapter"
-import { createJwtVerifier, type JwtVerifier, type VerifiedClaims } from "../jwt/verify"
+} from "../seam"
 import { OIDC_ADAPTER_KIND, type OidcAdapterConfig, validateOidcAdapterConfig } from "./config"
 import { createRefreshTokenStore, type RefreshTokenStore } from "./refresh-store"
 import { signTransaction, verifyTransaction } from "./transaction"

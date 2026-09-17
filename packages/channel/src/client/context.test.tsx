@@ -8,7 +8,7 @@ import userEvent from "@testing-library/user-event"
 import axe from "axe-core"
 import { type ReactNode, StrictMode } from "react"
 import { afterEach, describe, expect, test, vi } from "vitest"
-import type { ChannelOptions } from "../lifecycle/channel"
+import type { ChannelOptions } from "../lifecycle"
 import { createChannelContext } from "./context"
 
 afterEach(cleanup)

@@ -61,8 +61,8 @@ describe("dependency scan", () => {
 
   it("includes relative imports that escape the concern so an item installs self-contained", () => {
     const files = collectItemFiles(packageRoot, "src/client/data-table")
-    expect(files).toContain("src/client/data-table/data-table.tsx")
-    // `data-table.tsx` imports `../../hooks`; that barrel and the hook modules behind it must ship
+    expect(files).toContain("src/client/data-table/table.tsx")
+    // `table.tsx` imports `../../hooks`; that barrel and the hook modules behind it must ship
     // with the item, or a shadcn install resolves `../../hooks` to nothing.
     expect(files).toContain("src/hooks/index.ts")
     expect(files).toContain("src/hooks/use-selection.ts")

@@ -1,6 +1,6 @@
 import { createBoundedQueue, type OverflowPolicy, type PlainEvent } from "@plainworks/std"
 import { ChannelError } from "../error"
-import type { Channel } from "../lifecycle/channel"
+import type { Channel } from "../lifecycle"
 import type { EventDecoder } from "./event"
 import type { EventSink } from "./sink"
 

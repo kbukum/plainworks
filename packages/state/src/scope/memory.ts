@@ -1,6 +1,6 @@
 import type { StateCapabilities, StateSource } from "@plainworks/std"
 import { createStore } from "../store"
-import type { Scope } from "./scope"
+import type { Scope } from "./seam"
 
 /**
  * In-memory state lives only for the life of its owning store: not durable, not shared across tabs,

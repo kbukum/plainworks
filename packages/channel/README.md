@@ -1,6 +1,6 @@
 # @plainworks/channel
 
-> Host-independent streaming-connection core — one lifecycle/reconnect state machine, pluggable `sse` and `ws` transport adapters, header-only resume, and a typed event router — with `std`-powered backoff, retry classification, and bounded backpressure.
+> Host-independent streaming-connection core — one lifecycle/reconnect state machine, pluggable `sse` and `ws` transports, header-only resume, and a typed event router — with `std`-powered backoff, retry classification, and bounded backpressure.
 
 Part of the [plainworks](../../README.md) kit.
 

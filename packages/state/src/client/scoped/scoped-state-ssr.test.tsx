@@ -7,7 +7,7 @@ import type { ReactNode } from "react"
 import { renderToString } from "react-dom/server"
 import { describe, expect, test } from "vitest"
 import { memoryScope } from "../../scope/memory"
-import type { Scope, SourceSpec } from "../../scope/scope"
+import type { Scope, SourceSpec } from "../../scope/seam"
 import { cookieScope, persistentScope, sessionScope, urlScope } from "../scope"
 import { createScopedState } from "./scoped-state"
 

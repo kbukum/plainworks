@@ -1,4 +1,4 @@
-import type { StateSource } from "./seam/state"
+import type { StateSource } from "./seam"
 import type { WebAbortController } from "./web"
 
 /** Where a rejected reconciler read is routed — never swallowed. */

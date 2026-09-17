@@ -1,7 +1,7 @@
 import type { PlainEvent, StateSource, WebAbortSignal } from "@plainworks/std"
 import { fakeStateSource, fakeStreamTransport, flushMicrotasks } from "@plainworks/testkit"
 import { describe, expect, test, vi } from "vitest"
-import { createChannel } from "../lifecycle/channel"
+import { createChannel } from "../lifecycle"
 import { jsonDecoder } from "./event"
 import { createEventRouter } from "./router"
 import type { EventSink } from "./sink"

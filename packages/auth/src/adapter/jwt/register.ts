@@ -1,5 +1,5 @@
-import type { AuthAdapterDeps } from "../adapter"
 import type { AuthRegistry } from "../registry"
+import type { AuthAdapterDeps } from "../seam"
 import { jwtAdapter } from "./adapter"
 import { JWT_ADAPTER_KIND, validateJwtAdapterConfig } from "./config"
 

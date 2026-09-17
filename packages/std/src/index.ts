@@ -99,13 +99,19 @@ export {
 } from "./resilience"
 export type { Err, Ok, Result } from "./result"
 export { err, isErr, isOk, ok, unwrap, unwrapOr } from "./result"
-export type { AuthContext, AuthHeaderProvider, AuthHeaders } from "./seam/auth"
-export type { AuthorizationRequest, Authorizer, Decision } from "./seam/authorization"
-export type { EventSink, Listener, PlainEvent, Subscription } from "./seam/events"
-export type { Identity } from "./seam/identity"
-export type { RedirectSignal } from "./seam/redirect"
 export type {
+  AuthContext,
+  AuthHeaderProvider,
+  AuthHeaders,
+  AuthorizationRequest,
+  Authorizer,
+  Decision,
+  EventSink,
+  Identity,
   InferSchemaOutput,
+  Listener,
+  PlainEvent,
+  RedirectSignal,
   StandardSchemaFailure,
   StandardSchemaIssue,
   StandardSchemaPathSegment,
@@ -114,15 +120,16 @@ export type {
   StandardSchemaSuccess,
   StandardSchemaTypes,
   StandardSchemaV1,
-} from "./seam/schema"
-export { guardSchema, unsafePassthrough, validateWithSchema } from "./seam/schema"
-export type { StateCapabilities, StateSerializer, StateSource } from "./seam/state"
-export type {
+  StateCapabilities,
+  StateSerializer,
+  StateSource,
   StreamFrame,
   StreamTransport,
   StreamTransportContext,
   StreamTransportFactory,
-} from "./seam/stream"
+  Subscription,
+} from "./seam"
+export { guardSchema, unsafePassthrough, validateWithSchema } from "./seam"
 export type { ReconcilerReport, StateReconciler } from "./state-reconciler"
 export { createSourceReconciler } from "./state-reconciler"
 export type { Clock } from "./time"

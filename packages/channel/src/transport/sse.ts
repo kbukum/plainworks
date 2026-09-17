@@ -11,8 +11,8 @@ import type {
   WebResponse,
 } from "@plainworks/std"
 import { createParser } from "eventsource-parser"
-import { ChannelError } from "../../error"
-import { resolveUrl, type UrlSource } from "../url"
+import { ChannelError } from "../error"
+import { resolveUrl, type UrlSource } from "./url"
 
 const DEFAULT_MAX_BUFFER_CHARS = 1_048_576
 

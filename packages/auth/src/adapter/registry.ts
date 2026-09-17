@@ -1,5 +1,5 @@
 import { AuthError } from "../errors"
-import type { AuthAdapter, AuthAdapterDeps } from "./adapter"
+import type { AuthAdapter, AuthAdapterDeps } from "./seam"
 
 /**
  * Builds an {@link AuthAdapter} from an opaque, mechanism-specific config plus the injected deps.

@@ -10,17 +10,6 @@ export type {
   StreamTransportContext,
   StreamTransportFactory,
 } from "@plainworks/std"
-// Transports
-export { createSseTransport, type SseTransportOptions } from "./adapter/sse"
-export { resolveUrl, type UrlSource } from "./adapter/url"
-export {
-  createWsTransport,
-  type WebSocketConnectInit,
-  type WebSocketFactory,
-  type WebSocketLike,
-  type WsHeartbeat,
-  type WsTransportOptions,
-} from "./adapter/ws"
 // Typed error + wire seam
 export { ChannelError, type ChannelErrorKind } from "./error"
 // Event router + sinks
@@ -35,5 +24,23 @@ export {
   type StateProjection,
 } from "./events"
 // Core lifecycle
-export { type Channel, type ChannelOptions, createChannel } from "./lifecycle/channel"
-export { type ChannelStatus, isTerminalStatus } from "./lifecycle/status"
+export {
+  type Channel,
+  type ChannelOptions,
+  type ChannelStatus,
+  createChannel,
+  isTerminalStatus,
+} from "./lifecycle"
+// Transports
+export {
+  createSseTransport,
+  createWsTransport,
+  resolveUrl,
+  type SseTransportOptions,
+  type UrlSource,
+  type WebSocketConnectInit,
+  type WebSocketFactory,
+  type WebSocketLike,
+  type WsHeartbeat,
+  type WsTransportOptions,
+} from "./transport"

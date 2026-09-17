@@ -59,17 +59,19 @@ function LiveActivity({ source }: { readonly source: StateSource<LiveTasks> }): 
   return (
     <section aria-labelledby="live-heading">
       <h2 id="live-heading">Live activity</h2>
-      {error !== undefined ? (
-        <p role="alert">Could not load live activity.</p>
-      ) : entries.length === 0 ? (
-        <p>Waiting for the first streamed update…</p>
-      ) : (
-        <ul>
-          {entries.map(([id, title]) => (
-            <li key={id}>{title}</li>
-          ))}
-        </ul>
-      )}
+      <div aria-live="polite">
+        {error !== undefined ? (
+          <p>Could not load live activity.</p>
+        ) : entries.length === 0 ? (
+          <p>Waiting for the first streamed update…</p>
+        ) : (
+          <ul>
+            {entries.map(([id, title]) => (
+              <li key={id}>{title}</li>
+            ))}
+          </ul>
+        )}
+      </div>
     </section>
   )
 }
@@ -132,13 +134,15 @@ export function Dashboard({ httpClient, liveSource }: DashboardProps): ReactElem
       <h1>{title}</h1>
 
       {onTasks ? (
-        tasks.status === "success" ? (
-          <TaskTable page={tasks.data} />
-        ) : tasks.status === "error" ? (
-          <p role="alert">Could not load tasks.</p>
-        ) : (
-          <p>Loading tasks…</p>
-        )
+        <div aria-live="polite" aria-busy={tasks.status === "pending"}>
+          {tasks.status === "success" ? (
+            <TaskTable page={tasks.data} />
+          ) : tasks.status === "error" ? (
+            <p>Could not load tasks.</p>
+          ) : (
+            <p>Loading tasks…</p>
+          )}
+        </div>
       ) : onAccount ? (
         <Can
           authorizer={canManageAccount}

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { parseThemeCookie, resolveTheme } from "./resolution"
+import {
+  DEFAULT_THEME,
+  isThemePreference,
+  parseThemeCookie,
+  resolveTheme,
+  themePreferenceOf,
+} from "./resolution"
 
 describe("resolveTheme", () => {
   it("resolves an explicit dark theme before hydration", () => {
@@ -38,5 +44,33 @@ describe("parseThemeCookie", () => {
         "theme",
       ),
     ).toEqual({ mode: "system", colorScheme: "indigo" })
+  })
+})
+
+describe("isThemePreference", () => {
+  it("accepts a well-formed preference", () => {
+    expect(isThemePreference({ mode: "dark", colorScheme: "violet" })).toBe(true)
+  })
+
+  it("rejects an unknown mode, unknown scheme, or non-object", () => {
+    expect(isThemePreference({ mode: "neon", colorScheme: "violet" })).toBe(false)
+    expect(isThemePreference({ mode: "dark", colorScheme: "not-a-scheme" })).toBe(false)
+    expect(isThemePreference(null)).toBe(false)
+    expect(isThemePreference("dark")).toBe(false)
+  })
+})
+
+describe("themePreferenceOf", () => {
+  it("returns a valid preference unchanged", () => {
+    const preference = { mode: "light", colorScheme: "rose" } as const
+    expect(themePreferenceOf(preference)).toEqual(preference)
+  })
+
+  it("falls back to the default, or to an explicit fallback, for an untrusted value", () => {
+    expect(themePreferenceOf(undefined)).toEqual(DEFAULT_THEME)
+    expect(themePreferenceOf({ mode: "neon" }, { mode: "dark", colorScheme: "cyan" })).toEqual({
+      mode: "dark",
+      colorScheme: "cyan",
+    })
   })
 })

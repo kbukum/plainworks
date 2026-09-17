@@ -53,13 +53,14 @@ export { guardSession, sanitizeReturnTo, unauthenticatedRedirect } from "./redir
 export type { AuthRuntime, CreateAuthConfig } from "./runtime"
 export { createAuth } from "./runtime"
 export type {
+  AuthSnapshot,
   AuthStore,
   AuthStoreConfig,
   RefreshFn,
   SessionSnapshot,
   TokenSet,
 } from "./session"
-export { createAuthStore } from "./session"
+export { ANONYMOUS_AUTH, authSnapshotOf, createAuthStore, sessionSnapshotOf } from "./session"
 export type {
   CookieSessionStoreConfig,
   RevocationCheck,

@@ -3,11 +3,19 @@
   "extends": ["//"],
   "tasks": {
     "typecheck": {
-      "inputs": ["reflow.ts", "cli.ts", "test/**", "tsconfig.json"],
+      "inputs": [
+        "reflow.ts",
+        "cli.ts",
+        "verify.ts",
+        "safety.ts",
+        "collect.ts",
+        "test/**",
+        "tsconfig.json"
+      ],
       "outputs": []
     },
     "test": {
-      "inputs": ["reflow.ts", "cli.ts", "test/**", "vitest.config.ts"],
+      "inputs": ["reflow.ts", "cli.ts", "safety.ts", "collect.ts", "test/**", "vitest.config.ts"],
       "outputs": []
     }
   }

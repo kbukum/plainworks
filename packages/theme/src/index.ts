@@ -12,8 +12,10 @@ export type {
 export {
   COLOR_SCHEMES,
   DEFAULT_THEME,
+  isThemePreference,
   parseThemeCookie,
   resolveTheme,
+  themePreferenceOf,
 } from "./theme"
 export type {
   BrandColorRole,

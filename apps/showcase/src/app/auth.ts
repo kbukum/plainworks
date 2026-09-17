@@ -7,7 +7,7 @@
 // smoke test), so the render graph never imports the dev/test provider.
 
 import { type Capability, defineCapability } from "@plainworks/app"
-import { defaultAuthCrypto } from "@plainworks/auth"
+import { ANONYMOUS_AUTH, type AuthSnapshot, defaultAuthCrypto } from "@plainworks/auth"
 import {
   createServerSession,
   hmacSessionSigner,
@@ -16,13 +16,15 @@ import {
   type ServerSessionJar,
 } from "@plainworks/auth/server"
 import {
+  guardSchema,
+  isAbsentOr,
+  isRecord,
   parseCookieHeader,
   type StandardSchemaV1,
   systemClock,
   type WebFetch,
 } from "@plainworks/std"
 import { AUTH_CAPABILITY_ID, LOGIN_PATH } from "./constants"
-import { guardSchema } from "./guard-schema"
 
 /** The value persisted in the signed session cookie — identity only, never a token. */
 export interface ShowcaseSessionValue {
@@ -30,45 +32,14 @@ export interface ShowcaseSessionValue {
   readonly name?: string
 }
 
-/** The client-safe auth slice the capability resolves into the snapshot. */
-export interface AuthSnapshot {
-  readonly authenticated: boolean
-  readonly subject: string | null
-  readonly name: string | null
-}
-
 /** Resolve the client-safe auth slice from a request `Cookie` header. */
 export type ReadShowcaseSession = (cookieHeader: string) => Promise<AuthSnapshot>
 
-const ANONYMOUS: AuthSnapshot = { authenticated: false, subject: null, name: null }
-
-/**
- * Narrow the resolved (untrusted) auth slice back to an {@link AuthSnapshot}. The snapshot is a
- * trust boundary — it round-trips through serialization — so the render reads it through this guard
- * rather than asserting a shape.
- */
-export function authSnapshotOf(resolved: unknown): AuthSnapshot {
-  if (
-    typeof resolved === "object" &&
-    resolved !== null &&
-    (resolved as { authenticated?: unknown }).authenticated === true &&
-    typeof (resolved as { subject?: unknown }).subject === "string"
-  ) {
-    const slice = resolved as { subject: string; name?: unknown }
-    return {
-      authenticated: true,
-      subject: slice.subject,
-      name: typeof slice.name === "string" ? slice.name : null,
-    }
-  }
-  return ANONYMOUS
-}
-
 const sessionSchema: StandardSchemaV1<unknown, ShowcaseSessionValue> = guardSchema(
   (value): value is ShowcaseSessionValue =>
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as { subject?: unknown }).subject === "string",
+    isRecord(value) &&
+    typeof value.subject === "string" &&
+    isAbsentOr(value.name, (name) => typeof name === "string"),
   "session cookie payload is not a valid showcase session",
 )
 
@@ -126,7 +97,7 @@ export function createShowcaseAuth(config: ShowcaseAuthConfig): ShowcaseAuth {
   const read: ReadShowcaseSession = async (cookieHeader) => {
     const value = await session.read(readOnlyJar(cookieHeader))
     return value === undefined
-      ? ANONYMOUS
+      ? ANONYMOUS_AUTH
       : { authenticated: true, subject: value.subject, name: value.name ?? null }
   }
 

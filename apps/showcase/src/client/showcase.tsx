@@ -16,7 +16,7 @@ import { RouterProvider } from "./router"
 export interface ShowcaseProps {
   /** The client capability registry (query, theme, scopes) handed to `AppProvider`. */
   readonly capabilities: readonly ClientCapability[]
-  /** The server-resolved snapshot each capability hydrates from — the zero-flash contract. */
+  /** The server-resolved snapshot each capability hydrates from. */
   readonly snapshot: AppSnapshot
   /** The dehydrated query cache the `HydrationBoundary` rehydrates so the list needs no refetch. */
   readonly dehydratedState: DehydratedState

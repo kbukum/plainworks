@@ -30,8 +30,10 @@ test("fakeSchema can validate asynchronously", async () => {
   expect(await outcome).toEqual({ value: { id: 2 } })
 })
 
-test("guardSchema narrows a matching value and rejects a mismatch with a message", async () => {
-  const schema = guardSchema(isWidget, "not a widget")
+test("guardSchema delegates narrowing to std while preserving test controls", async () => {
+  const schema = guardSchema(isWidget, "not a widget", { vendor: "demo", async: true })
+  expect(schema["~standard"].vendor).toBe("demo")
+  expect(schema["~standard"].validate({ id: 7 })).toBeInstanceOf(Promise)
   await expect(validateWithSchema(schema, { id: 7 })).resolves.toEqual({
     ok: true,
     value: { id: 7 },

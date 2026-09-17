@@ -140,7 +140,7 @@ describe("server render", () => {
     expect(seeded.some((task) => html.includes(task.title))).toBe(true)
   })
 
-  it("writes the zero-flash theme class onto <html> from the theme cookie", async () => {
+  it("writes the persisted explicit theme class onto <html> from the theme cookie", async () => {
     const dark = await render("/tasks", `${themeCookie("dark", "violet")}; ${sessionCookie}`)
     // `resolveTheme({ mode: "dark", colorScheme: "violet" })` → `dark theme-violet`.
     expect(dark.html).toContain('<html lang="en" class="dark theme-violet">')

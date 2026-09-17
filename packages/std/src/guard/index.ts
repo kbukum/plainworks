@@ -6,4 +6,11 @@
  * the concern-named modules beside it.
  */
 export { assert, assertNever } from "./assert"
-export { hasProperty, isDefined, isNonEmptyString, isRecord } from "./predicate"
+export {
+  hasProperty,
+  isAbsentOr,
+  isDefined,
+  isNonEmptyString,
+  isOneOf,
+  isRecord,
+} from "./predicate"

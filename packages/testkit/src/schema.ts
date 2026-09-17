@@ -1,4 +1,9 @@
-import type { StandardSchemaIssue, StandardSchemaResult, StandardSchemaV1 } from "@plainworks/std"
+import {
+  type StandardSchemaIssue,
+  type StandardSchemaResult,
+  type StandardSchemaV1,
+  guardSchema as stdGuardSchema,
+} from "@plainworks/std"
 
 /** Options shared by the schema fakes. */
 export interface FakeSchemaOptions {
@@ -36,17 +41,26 @@ export function fakeSchema<Output>(
 }
 
 /**
- * Build a {@link StandardSchemaV1} from a type-guard predicate: a value that satisfies `predicate`
- * is accepted and narrowed to `Output`; anything else is rejected with a single issue carrying
- * `message`. Handy for asserting both the accept and reject paths of a validated boundary.
+ * Build a {@link StandardSchemaV1} from a type-guard predicate. The runtime validation delegates to
+ * `@plainworks/std`'s canonical constructor; testkit only adds a configurable vendor and async
+ * mode.
  */
 export function guardSchema<Output>(
   predicate: (value: unknown) => value is Output,
   message = "Value did not match the expected shape",
-  options?: FakeSchemaOptions,
+  options: FakeSchemaOptions = {},
 ): StandardSchemaV1<unknown, Output> {
-  return fakeSchema<Output>(
-    (value) => (predicate(value) ? { value } : { issues: [{ message }] }),
-    options,
-  )
+  const schema = stdGuardSchema(predicate, message)
+  const validate = schema["~standard"].validate
+  const isAsync = options.async ?? false
+  return {
+    "~standard": {
+      version: 1,
+      vendor: options.vendor ?? "testkit",
+      validate: (value) => {
+        const result = validate(value)
+        return isAsync ? Promise.resolve(result) : result
+      },
+    },
+  }
 }

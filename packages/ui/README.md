@@ -4,11 +4,15 @@ Plainworks-authored composites built on the owned atom set. The neutral entry co
 
 ## Quickstart
 
-Import this package's stylesheet once — it pulls in `@plainworks/elements` and the `@plainworks/theme` substrate and registers the shipped composites as a Tailwind `@source` — then adopt the atoms from `@plainworks/elements` and the composites from here:
+Add both `@plainworks/ui` and `@plainworks/elements` to your app's dependencies. Atoms are imported straight from `@plainworks/elements`, and a strict package manager (pnpm, Yarn PnP) will not resolve it through `ui`'s transitive graph.
+
+Import the stylesheet once — it pulls in `@plainworks/elements` and the `@plainworks/theme` substrate and registers the shipped composites as a Tailwind `@source`:
 
 ```css
 @import "@plainworks/ui/styles.css";
 ```
+
+Then import atoms from `@plainworks/elements` and composites from `@plainworks/ui`:
 
 ```tsx
 import { Button } from "@plainworks/elements/button"
@@ -91,16 +95,6 @@ import { useSelection } from "@plainworks/ui/client"
 import { useClipboard } from "@plainworks/ui/hooks"
 ```
 
-## Atoms
-
-You can pull an owned atom straight from `@plainworks/ui`, so a component and the atoms it composes come from one package:
-
-```tsx
-import { Button } from "@plainworks/ui/button"
-```
-
-Each atom is also available from `@plainworks/elements/*`; the `ui` subpath is a tree-shakeable re-export for convenience.
-
 ## Theme
 
 Use `parseThemeCookie` and `resolveTheme` from the neutral `@plainworks/ui` entry (re-exported from `@plainworks/theme`) during SSR, then apply the returned `htmlClass` and `colorScheme` to `<html>` before hydration. On the client, pass a caller-owned `StateSource<ThemePreference>` to `ThemeProvider`; a cookie scope from `@plainworks/state/client/scope` keeps the value server-readable without creating a singleton or using browser storage directly.
@@ -119,4 +113,4 @@ import { ThemeProvider, ThemeToggle } from "@plainworks/ui/theme"
 
 ## Relationship to `@plainworks/elements`
 
-`ui` (L3) depends downward on `elements` (L2): the authored composites under `src/client` compose owned atoms and carry the accessibility, responsive, and axe-test acceptance bar. Keep any customization of an atom in a `ui` wrapper — never edit an atom in place, so the `elements` upstream `diff`/`update` stay meaningful. Atoms are available from either `@plainworks/elements/*` or the convenience `@plainworks/ui/*` re-export; composites come from `@plainworks/ui/*`.
+`ui` (L3) depends downward on `elements` (L2): the authored composites under `src/client` compose owned atoms and carry the accessibility, responsive, and axe-test acceptance bar. Keep any customization of an atom in a `ui` wrapper — never edit an atom in place, so the `elements` upstream `diff`/`update` stay meaningful. Atoms come from `@plainworks/elements/*`; composites come from `@plainworks/ui/*`.

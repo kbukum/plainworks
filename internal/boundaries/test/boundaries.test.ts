@@ -169,10 +169,10 @@ test("the app kernel importing ui trips the ui-free rule", async () => {
  * fail-closed: it also blocks laundering an upward import through the aggregate `client.ts` barrel.
  * All three are proven from fixtures — `forms` (band 2) reaching UP into `data` (band 3) trips
  * `no-ui-upward-forms` and only it, the general sibling edge `layout → feedback` (both band 1)
- * trips `no-ui-upward-layout`, and a foundation `atoms` (band 0) reaching `data` THROUGH the barrel
- * trips `no-ui-upward-atoms` — proving neither a sideways, an upward, nor a via-barrel edge slips
- * through. The legal counterpart is proven too: `data` (band 3) importing the lower `forms` (band
- * 2) is the sanctioned downward direction and trips nothing.
+ * trips `no-ui-upward-layout`, and a foundation `client-hooks` (band 0) reaching `data` THROUGH the
+ * barrel trips `no-ui-upward-client-hooks` — proving neither a sideways, an upward, nor a
+ * via-barrel edge slips through. The legal counterpart is proven too: `data` (band 3) importing the
+ * lower `forms` (band 2) is the sanctioned downward direction and trips nothing.
  */
 test("ui concern imports respect the internal foundation → general → forms → data order", async () => {
   const violations = await cruiseFixtures()
@@ -187,10 +187,10 @@ test("ui concern imports respect the internal foundation → general → forms �
   )
   expect(layoutIntoFeedback.map((v) => v.rule.name)).toEqual(["no-ui-upward-layout"])
 
-  const atomsViaBarrel = violations.filter((v) =>
-    v.from.endsWith("ui/src/client/atoms/uses-barrel.ts"),
+  const hooksViaBarrel = violations.filter((v) =>
+    v.from.endsWith("ui/src/client/hooks/uses-barrel.ts"),
   )
-  expect(atomsViaBarrel.map((v) => v.rule.name)).toEqual(["no-ui-upward-atoms"])
+  expect(hooksViaBarrel.map((v) => v.rule.name)).toEqual(["no-ui-upward-client-hooks"])
 
   // The legal counterpart: `data` (band 3) importing the strictly-lower `forms` (band 2) is the
   // sanctioned downward direction; no rule may flag it, mirroring the `auth -> std` package check.

@@ -4,29 +4,26 @@ import { join, relative } from "node:path"
 import { describe, expect, it } from "vitest"
 import { formatSource } from "./format.mjs"
 import {
-  atomNames,
   buildExports,
   buildRegistry,
   buildTsdownEntry,
   collectItemFiles,
   packageRoot,
-  renderAtomReexport,
   renderTsdownConfig,
   runCodegen,
   scanDependencies,
 } from "./manifest.mjs"
 
-// Every `index.ts` barrel under `src/client` is a public concern that must be a build entry. The
-// generated atom shims (`src/client/atoms`) are not hand-authored concerns, so that folder is
-// skipped. Reading this from disk — not the `CONCERNS` list codegen uses — is what makes the
-// lock-step check able to catch a concern folder someone forgot to register.
+// Every `index.ts` barrel under `src/client` is a public concern that must be a build entry.
+// Reading this from disk — not the `CONCERNS` list codegen uses — is what makes the lock-step
+// check able to catch a concern folder someone forgot to register.
 function discoverClientBarrels(root) {
   const barrels = []
   const walk = (dir) => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const full = join(dir, entry.name)
       if (entry.isDirectory()) {
-        if (entry.name !== "atoms") walk(full)
+        walk(full)
       } else if (entry.name === "index.ts") {
         barrels.push(relative(root, full).split("\\").join("/"))
       }
@@ -74,8 +71,6 @@ describe("dependency scan", () => {
 })
 
 describe("codegen stays in lock-step with disk (cannot drift)", () => {
-  const atoms = atomNames()
-
   it("re-derives the committed registry.json exactly", () => {
     const committed = JSON.parse(readFileSync(join(packageRoot, "registry.json"), "utf8"))
     expect(buildRegistry(packageRoot)).toEqual(committed)
@@ -83,27 +78,17 @@ describe("codegen stays in lock-step with disk (cannot drift)", () => {
 
   it("re-derives the committed package exports map exactly", () => {
     const pkg = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"))
-    expect(buildExports(atoms)).toEqual(pkg.exports)
+    expect(buildExports()).toEqual(pkg.exports)
   })
 
-  it("gives the manifest, every concern, and every atom a tsdown entry", () => {
-    const entry = buildTsdownEntry(atoms)
+  it("gives the manifest and every concern a tsdown entry", () => {
+    const entry = buildTsdownEntry()
     expect(entry.index).toBe("src/index.ts")
     expect(entry["data-table"]).toBe("src/client/data-table/index.ts")
-    for (const name of atoms) {
-      expect(entry[name]).toBe(`src/client/atoms/${name}.ts`)
-    }
-  })
-
-  it("re-derives every committed atom re-export shim exactly", () => {
-    for (const name of atoms) {
-      const committed = readFileSync(join(packageRoot, `src/client/atoms/${name}.ts`), "utf8")
-      expect(renderAtomReexport(name)).toBe(committed)
-    }
   })
 
   it("re-derives the committed tsdown.config.ts entry map exactly", () => {
-    const rendered = formatSource(renderTsdownConfig(atoms), "tsdown.config.ts")
+    const rendered = formatSource(renderTsdownConfig(), "tsdown.config.ts")
     const committed = readFileSync(join(packageRoot, "tsdown.config.ts"), "utf8")
     expect(rendered).toBe(committed)
   })
@@ -112,7 +97,7 @@ describe("codegen stays in lock-step with disk (cannot drift)", () => {
     const barrels = discoverClientBarrels(packageRoot)
     // Guard the guard: disk discovery must actually find concerns, never pass on an empty set.
     expect(barrels.length).toBeGreaterThan(0)
-    const entrySources = new Set(Object.values(buildTsdownEntry(atoms)))
+    const entrySources = new Set(Object.values(buildTsdownEntry()))
     for (const barrel of barrels) {
       expect(entrySources.has(barrel)).toBe(true)
     }
@@ -120,7 +105,7 @@ describe("codegen stays in lock-step with disk (cannot drift)", () => {
 })
 
 describe("codegen orchestration writes every artifact from disk", () => {
-  it("regenerates atom shims, registry.json, the tsdown entries, and package exports", () => {
+  it("regenerates registry.json, the tsdown entries, and package exports", () => {
     const root = mkdtempSync(join(tmpdir(), "pw-ui-codegen-"))
     try {
       // `runCodegen` scans every registry concern folder, so the fixture stands each one up with a
@@ -149,60 +134,20 @@ describe("codegen orchestration writes every artifact from disk", () => {
         '"use client"\nimport { Button } from "@plainworks/elements/button"\nexport const Stack = () => Button\n',
       )
       writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "x", exports: {} })}\n`)
-      const elementsRegistry = join(root, "elements-registry.json")
-      writeFileSync(
-        elementsRegistry,
-        `${JSON.stringify({ items: [{ name: "button" }, { name: "table" }] })}\n`,
-      )
 
-      expect(runCodegen(root, elementsRegistry)).toEqual(["button", "table"])
+      runCodegen(root)
 
-      const buttonShim = readFileSync(join(root, "src/client/atoms/button.ts"), "utf8")
-      expect(buttonShim).toContain('export * from "@plainworks/elements/button"')
       expect(readFileSync(join(root, "tsdown.config.ts"), "utf8")).toContain(
         "src/client/layout/index.ts",
       )
       const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"))
-      expect(pkg.exports["./button"]).toEqual({
-        types: "./dist/button.d.ts",
-        import: "./dist/button.js",
+      expect(pkg.exports["./layout"]).toEqual({
+        types: "./dist/layout.d.ts",
+        import: "./dist/layout.js",
       })
       const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"))
       const layout = registry.items.find((item) => item.name === "layout")
       expect(layout.dependencies).toEqual(["@plainworks/elements"])
-    } finally {
-      rmSync(root, { recursive: true, force: true })
-    }
-  })
-
-  it("deletes a stale atom shim the elements registry no longer lists", () => {
-    const root = mkdtempSync(join(tmpdir(), "pw-ui-codegen-stale-"))
-    try {
-      const registryDirs = [
-        "src/client/layout",
-        "src/client/feedback",
-        "src/client/overlays",
-        "src/client/display",
-        "src/client/navigation",
-        "src/client/data-table",
-        "src/client/forms",
-        "src/client/list",
-        "src/client/error-fallback",
-      ]
-      for (const dir of registryDirs) {
-        mkdirSync(join(root, dir), { recursive: true })
-        writeFileSync(join(root, `${dir}/part.tsx`), '"use client"\nexport const Part = () => null\n')
-      }
-      mkdirSync(join(root, "src/client/atoms"), { recursive: true })
-      writeFileSync(join(root, "src/client/atoms/removed.ts"), 'export * from "x"\n')
-      writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "x", exports: {} })}\n`)
-      const elementsRegistry = join(root, "elements-registry.json")
-      writeFileSync(elementsRegistry, `${JSON.stringify({ items: [{ name: "button" }] })}\n`)
-
-      runCodegen(root, elementsRegistry)
-
-      expect(() => readFileSync(join(root, "src/client/atoms/removed.ts"), "utf8")).toThrow()
-      expect(readFileSync(join(root, "src/client/atoms/button.ts"), "utf8")).toContain("button")
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

@@ -30,15 +30,12 @@ export default defineConfig({
       include: ["src/**/*.{ts,tsx}", "scripts/**/*.mjs"],
       // Re-export-only barrels carry no logic to unit-test (the `"use client"` directive's survival
       // is proven by the CI dist check, not coverage); excluding every `index.ts` barrel keeps
-      // tests from coupling to a re-export file just to color a line. The generated atom shims
-      // under `client/atoms/` are re-export-only too — lock-step-verified, not unit-measured.
-      // `cli.mjs` is the maintainer-run bin and `format.mjs` shells to Biome, so neither is
-      // unit-measured.
+      // tests from coupling to a re-export file just to color a line. `cli.mjs` is the
+      // maintainer-run bin and `format.mjs` shells to Biome, so neither is unit-measured.
       exclude: [
         "src/**/*.test.{ts,tsx}",
         "src/**/index.ts",
         "src/client.ts",
-        "src/client/atoms/**",
         "scripts/**/*.test.mjs",
         "scripts/codegen/cli.mjs",
         "scripts/codegen/format.mjs",

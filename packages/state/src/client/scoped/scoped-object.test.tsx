@@ -8,7 +8,7 @@ import userEvent from "@testing-library/user-event"
 import type { ReactNode } from "react"
 import { afterEach, describe, expect, test, vi } from "vitest"
 import { StateSourceError } from "../../errors"
-import type { Scope, SourceSpec } from "../../scope/scope"
+import type { Scope, SourceSpec } from "../../scope/seam"
 import { createScopedObject } from "./scoped-object"
 
 interface Prefs {

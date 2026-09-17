@@ -1,5 +1,5 @@
-import type { AuthAdapterDeps } from "../adapter"
 import type { AuthRegistry } from "../registry"
+import type { AuthAdapterDeps } from "../seam"
 import { oidcAdapter } from "./adapter"
 import { OIDC_ADAPTER_KIND, validateOidcAdapterConfig } from "./config"
 

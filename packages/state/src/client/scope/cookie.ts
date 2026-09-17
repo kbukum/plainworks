@@ -10,7 +10,7 @@ import {
   utf8ByteLength,
 } from "@plainworks/std"
 import { StateSourceError } from "../../errors"
-import type { Scope, SourceSpec } from "../../scope/scope"
+import type { Scope, SourceSpec } from "../../scope/seam"
 import { createStringSource, type StringBackend } from "./persisted-source"
 
 /**

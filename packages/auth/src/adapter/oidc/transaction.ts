@@ -7,7 +7,7 @@ import { signPayload } from "../../signer/signed-payload"
  * The per-login state that must survive the round trip to the provider and back,
  * integrity-protected so a callback cannot tamper with the PKCE binding, the CSRF `state`, or the
  * replay-guarding `nonce`. It is the opaque `transaction` a
- * {@link import("../adapter").LoginRedirect} carries.
+ * {@link import("../seam").LoginRedirect} carries.
  */
 export interface LoginTransaction {
   /** The PKCE code verifier whose S256 challenge was sent to the provider. */

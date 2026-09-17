@@ -1,15 +1,3 @@
-export type {
-  AuthAdapter,
-  AuthAdapterConfig,
-  AuthAdapterDeps,
-  AuthenticateRequest,
-  AuthSession,
-  BeginLoginRequest,
-  CompleteLoginRequest,
-  CustomAdapterConfig,
-  InteractiveAuthAdapter,
-  LoginRedirect,
-} from "./adapter"
 export { apiKeyAdapter } from "./apikey/adapter"
 export type { ApiKeyAdapterConfig, ApiKeyVerifier } from "./apikey/config"
 export { APIKEY_ADAPTER_KIND, validateApiKeyAdapterConfig } from "./apikey/config"
@@ -30,3 +18,15 @@ export {
 } from "./oidc/config"
 export type { AuthAdapterFactory, AuthRegistry } from "./registry"
 export { createAdapterRegistry } from "./registry"
+export type {
+  AuthAdapter,
+  AuthAdapterConfig,
+  AuthAdapterDeps,
+  AuthenticateRequest,
+  AuthSession,
+  BeginLoginRequest,
+  CompleteLoginRequest,
+  CustomAdapterConfig,
+  InteractiveAuthAdapter,
+  LoginRedirect,
+} from "./seam"

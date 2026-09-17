@@ -1,6 +1,6 @@
 import type { StateCapabilities } from "@plainworks/std"
 import { StateConfigError } from "../errors"
-import type { Scope } from "./scope"
+import type { Scope } from "./seam"
 
 /**
  * A field's sensitivity class. `"secret"` marks a value that must never reach untrusted client

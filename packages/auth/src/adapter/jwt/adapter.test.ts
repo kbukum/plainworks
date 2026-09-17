@@ -4,7 +4,7 @@ import { exportJWK, generateKeyPair, type JWK, SignJWT } from "jose"
 import { describe, expect, test } from "vitest"
 import { defaultAuthCrypto } from "../../crypto"
 import { AuthError } from "../../errors"
-import type { AuthAdapterDeps } from "../adapter"
+import type { AuthAdapterDeps } from "../seam"
 import { jwtAdapter } from "./adapter"
 import { validateJwtAdapterConfig } from "./config"
 

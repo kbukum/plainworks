@@ -1,5 +1,16 @@
 import { expect, test } from "vitest"
-import { IDEMPOTENCY_KEY_HEADER, withIdempotencyKey } from "./idempotency"
+import { IDEMPOTENCY_KEY_HEADER, isIdempotentMethod, withIdempotencyKey } from "./idempotency"
+
+test("GET, HEAD, PUT, DELETE, OPTIONS are idempotent", () => {
+  for (const method of ["GET", "HEAD", "PUT", "DELETE", "OPTIONS"] as const) {
+    expect(isIdempotentMethod(method)).toBe(true)
+  }
+})
+
+test("POST and PATCH are not idempotent", () => {
+  expect(isIdempotentMethod("POST")).toBe(false)
+  expect(isIdempotentMethod("PATCH")).toBe(false)
+})
 
 test("sets the idempotency-key header on an empty header set", () => {
   const headers = withIdempotencyKey(undefined, "key-1")

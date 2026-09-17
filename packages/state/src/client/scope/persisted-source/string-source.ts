@@ -8,7 +8,7 @@ import type {
 } from "@plainworks/std"
 import { validateWithSchema } from "@plainworks/std"
 import { StateConfigError, StateSourceError } from "../../../errors"
-import type { PersistedVersioning } from "../../../scope/scope"
+import type { PersistedVersioning } from "../../../scope/seam"
 import { decodeEnvelope, encodeEnvelope } from "./envelope"
 
 /**

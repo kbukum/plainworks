@@ -1,5 +1,5 @@
 import type { AuthHeaders, Identity } from "@plainworks/std"
-import type { AuthAdapter, AuthAdapterDeps, AuthenticateRequest } from "../adapter"
+import type { AuthAdapter, AuthAdapterDeps, AuthenticateRequest } from "../seam"
 import { APIKEY_ADAPTER_KIND, type ApiKeyAdapterConfig } from "./config"
 
 const DEFAULT_HEADER = "X-API-Key"

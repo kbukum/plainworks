@@ -2,7 +2,7 @@
 
 import type { StateCapabilities, StateSource } from "@plainworks/std"
 import { StateSourceError } from "../../errors"
-import type { Scope, SourceSpec } from "../../scope/scope"
+import type { Scope, SourceSpec } from "../../scope/seam"
 import { createStringSource, type StringBackend } from "./persisted-source"
 
 /** Which Web Storage a scope binds — `localStorage` (persistent) or `sessionStorage` (session). */

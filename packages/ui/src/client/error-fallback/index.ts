@@ -1,4 +1,4 @@
 "use client"
 
-export type { ErrorFallbackProps } from "./error-fallback"
-export { ErrorFallback } from "./error-fallback"
+export type { ErrorFallbackProps } from "./fallback"
+export { ErrorFallback } from "./fallback"

@@ -64,7 +64,7 @@ export interface StateSerializer<Value> {
  * `persistent`, `cookie`, `url` now, and a `remote` store (over the query cache) later — so the
  * scoped-state surface composes any of them without importing them or naming a scope.
  *
- * It is intentionally **distinct** from the React-binding seam (`StateAdapter` in
+ * It is intentionally **distinct** from the React-binding seam (`ExternalStore` in
  * `@plainworks/state`, which feeds a value into `useSyncExternalStore`): a scoped value is the
  * *composition* of a backend (this) and a binding. Keeping them separate lets a backend be tested
  * and reused with no React.

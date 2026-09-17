@@ -8,8 +8,8 @@ import type {
   WebResponse,
 } from "@plainworks/std"
 import { describe, expect, test } from "vitest"
-import { ChannelError } from "../../error"
-import { createSseTransport } from "./transport"
+import { ChannelError } from "../error"
+import { createSseTransport } from "./sse"
 
 /** A `WebResponse`-shaped SSE response whose body is the concatenated chunks. */
 function sseResponse(chunks: readonly string[], init?: { status?: number; contentType?: string }) {

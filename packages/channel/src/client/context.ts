@@ -11,8 +11,7 @@ import {
   useSyncExternalStore,
 } from "react"
 import { ChannelError } from "../error"
-import { type Channel, type ChannelOptions, createChannel } from "../lifecycle/channel"
-import type { ChannelStatus } from "../lifecycle/status"
+import { type Channel, type ChannelOptions, type ChannelStatus, createChannel } from "../lifecycle"
 
 /** Props for the {@link ChannelContext.ChannelProvider}. */
 export interface ChannelProviderProps {

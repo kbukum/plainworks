@@ -5,7 +5,7 @@ import { fakeStateSource } from "@plainworks/testkit"
 import type { ReactNode } from "react"
 import { renderToString } from "react-dom/server"
 import { describe, expect, test } from "vitest"
-import type { Scope, SourceSpec } from "../../scope/scope"
+import type { Scope, SourceSpec } from "../../scope/seam"
 import { createScopedObject } from "./scoped-object"
 
 interface Prefs {

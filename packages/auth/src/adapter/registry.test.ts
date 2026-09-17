@@ -3,9 +3,9 @@ import { manualClock } from "@plainworks/testkit"
 import { describe, expect, test } from "vitest"
 import { defaultAuthCrypto } from "../crypto"
 import { AuthError } from "../errors"
-import type { AuthAdapter, AuthAdapterDeps } from "./adapter"
 import { CUSTOM_ADAPTER_KIND, customAdapter } from "./custom"
 import { createAdapterRegistry } from "./registry"
+import type { AuthAdapter, AuthAdapterDeps } from "./seam"
 
 const DEPS: AuthAdapterDeps = { crypto: defaultAuthCrypto(), clock: manualClock(0) }
 

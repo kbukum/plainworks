@@ -11,4 +11,4 @@ export type {
   SortDirection,
 } from "./columns"
 export { defaultDataTableLabels } from "./columns"
-export { DataTable } from "./data-table"
+export { DataTable } from "./table"

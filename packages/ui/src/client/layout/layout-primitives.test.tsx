@@ -3,7 +3,7 @@
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { cleanup, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
-import { Grid, Split, Stack } from "./layout"
+import { Grid, Split, Stack } from "./index"
 
 afterEach(cleanup)
 

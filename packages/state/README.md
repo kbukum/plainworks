@@ -46,7 +46,7 @@ const total = createSelector([(s: { items: number[] }) => s.items], (items) =>
 
 ### Bring your own store
 
-The React binding drives React's own `useSyncExternalStore` over the owned `Store` seam, so any store — a hand-rolled one, or one you already run (MobX, valtio, …) — works as long as it implements `Store` (`getState`/`getInitialState`/`setState`/`subscribe`). Pass it to the Provider with `store={...}` (see below). For a raw `useSyncExternalStore` consumer, `toAdapter` bridges a `Store` into the `StateAdapter` (`subscribe`/`getSnapshot`/`getServerSnapshot`) shape for a selected slice.
+The React binding drives React's own `useSyncExternalStore` over the owned `Store` seam, so any store — a hand-rolled one, or one you already run (MobX, valtio, …) — works as long as it implements `Store` (`getState`/`getInitialState`/`setState`/`subscribe`). Pass it to the Provider with `store={...}` (see below). For a raw `useSyncExternalStore` consumer, `toExternalStore` bridges a `Store` into the `ExternalStore` (`subscribe`/`getSnapshot`/`getServerSnapshot`) shape for a selected slice.
 
 ## Client bindings (`./client`, `"use client"`)
 

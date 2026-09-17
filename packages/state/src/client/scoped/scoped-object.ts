@@ -4,7 +4,7 @@ import type { StandardSchemaV1, StateSerializer, StateSource } from "@plainworks
 import { createSourceReconciler } from "@plainworks/std"
 import type { ReactNode } from "react"
 import { type StateFieldFailure, StateSourceError } from "../../errors"
-import type { PersistedVersioning, Scope } from "../../scope/scope"
+import type { PersistedVersioning, Scope } from "../../scope/seam"
 import { assertScopeAllowsSensitivity, type Sensitivity } from "../../scope/sensitivity"
 import { jsonSerializer } from "../../scope/serializer"
 import { createStore } from "../../store"

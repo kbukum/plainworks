@@ -4,12 +4,12 @@ import type { Store } from "./store"
  * The thin client-state seam — the `useSyncExternalStore`-shaped contract a consumer implements to
  * bring their own store instead of the blessed Zustand default. React (or any equivalent host)
  * wires it directly:
- * `useSyncExternalStore(adapter.subscribe, adapter.getSnapshot, adapter.getServerSnapshot)`.
+ * `useSyncExternalStore(external.subscribe, external.getSnapshot, external.getServerSnapshot)`.
  *
  * `getServerSnapshot` returns the value used during SSR/hydration, kept stable so the first client
  * render matches the server output.
  */
-export interface StateAdapter<Snapshot> {
+export interface ExternalStore<Snapshot> {
   /** Register `onStoreChange`; returns an unsubscribe that must be called exactly once to detach. */
   subscribe(onStoreChange: () => void): () => void
   /** The current client-side snapshot. */
@@ -19,7 +19,7 @@ export interface StateAdapter<Snapshot> {
 }
 
 /**
- * Bridge the blessed {@link Store} into the {@link StateAdapter} seam for a selected slice, so a
+ * Bridge the blessed {@link Store} into the {@link ExternalStore} seam for a selected slice, so a
  * store built with `createStore` can drive a raw `useSyncExternalStore` (or any seam consumer)
  * without depending on the React binding. The client snapshot reads live state; the server snapshot
  * reads the store's initial state.
@@ -28,10 +28,10 @@ export interface StateAdapter<Snapshot> {
  * selector (e.g. `state => ({ count: state.count })`) returns the same snapshot across reads until
  * the underlying state actually changes, instead of a fresh reference that reads as an update.
  */
-export function toAdapter<T, Snapshot>(
+export function toExternalStore<T, Snapshot>(
   store: Store<T>,
   selector: (state: T) => Snapshot,
-): StateAdapter<Snapshot> {
+): ExternalStore<Snapshot> {
   let lastState = store.getState()
   let lastSnapshot = selector(lastState)
   // The initial state never changes, so the server snapshot is selected once, up front.

@@ -9,7 +9,19 @@
       "dependencies": ["@plainworks/theme"],
       "files": [
         {
-          "path": "src/client/layout/layout.tsx",
+          "path": "src/client/layout/gap.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/layout/grid.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/layout/split.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/layout/stack.tsx",
           "type": "registry:ui"
         }
       ]
@@ -91,7 +103,7 @@
           "type": "registry:ui"
         },
         {
-          "path": "src/client/data-table/data-table.tsx",
+          "path": "src/client/data-table/table.tsx",
           "type": "registry:ui"
         },
         {
@@ -176,7 +188,7 @@
       "dependencies": ["@plainworks/elements"],
       "files": [
         {
-          "path": "src/client/error-fallback/error-fallback.tsx",
+          "path": "src/client/error-fallback/fallback.tsx",
           "type": "registry:ui"
         }
       ]

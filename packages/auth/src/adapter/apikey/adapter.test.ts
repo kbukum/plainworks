@@ -3,7 +3,7 @@ import { systemClock } from "@plainworks/std"
 import { describe, expect, test, vi } from "vitest"
 import { defaultAuthCrypto } from "../../crypto"
 import { AuthError } from "../../errors"
-import type { AuthAdapterDeps } from "../adapter"
+import type { AuthAdapterDeps } from "../seam"
 import { apiKeyAdapter } from "./adapter"
 import { type ApiKeyVerifier, validateApiKeyAdapterConfig } from "./config"
 

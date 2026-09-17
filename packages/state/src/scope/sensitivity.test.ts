@@ -4,7 +4,7 @@ import type { StateCapabilities } from "@plainworks/std"
 import { describe, expect, test } from "vitest"
 import { StateConfigError } from "../errors"
 import { memoryScope } from "./memory"
-import type { Scope } from "./scope"
+import type { Scope } from "./seam"
 import { assertScopeAllowsSensitivity, isMemoryEquivalent } from "./sensitivity"
 
 function scopeWith(name: string, capabilities: Partial<StateCapabilities>): Scope {

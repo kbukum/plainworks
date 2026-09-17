@@ -1,6 +1,6 @@
 import { AuthError } from "../errors"
-import type { AuthAdapter, CustomAdapterConfig } from "./adapter"
 import type { AuthAdapterFactory } from "./registry"
+import type { AuthAdapter, CustomAdapterConfig } from "./seam"
 
 /** The registry kind under which the bring-your-own pass-through adapter registers. */
 export const CUSTOM_ADAPTER_KIND = "custom"

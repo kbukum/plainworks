@@ -19,7 +19,6 @@ export default defineConfig({
         "src/client.ts",
         // Type-only seams (erase at build; no runtime to cover).
         "src/events/sink.ts",
-        "src/adapter/webtransport/interface.ts",
       ],
       thresholds: {
         lines: 80,

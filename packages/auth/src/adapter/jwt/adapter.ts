@@ -1,6 +1,6 @@
 import type { AuthHeaders, Identity, WebFetch } from "@plainworks/std"
 import { AuthError } from "../../errors"
-import type { AuthAdapter, AuthAdapterDeps, AuthenticateRequest } from "../adapter"
+import type { AuthAdapter, AuthAdapterDeps, AuthenticateRequest } from "../seam"
 import { JWT_ADAPTER_KIND, type JwtAdapterConfig, jwtAlgorithms } from "./config"
 import { createJwtVerifier } from "./verify"
 

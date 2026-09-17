@@ -68,7 +68,7 @@ export interface AuthStoreConfig {
  * React binding.
  */
 export interface AuthStore {
-  /** The underlying snapshot store — fed to `toAdapter` for the React binding (client step). */
+  /** The underlying snapshot store — fed to `toExternalStore` for the React binding (client step). */
   readonly store: Store<SessionSnapshot>
   /** Read the current client-safe snapshot. */
   getSnapshot(): SessionSnapshot

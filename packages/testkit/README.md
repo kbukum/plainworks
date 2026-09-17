@@ -86,7 +86,7 @@ The proto is the source of truth; regenerate the checked-in `*_pb.ts` with `bun 
 
 ## Streaming transport double — `fakeStreamTransport`
 
-A scripted `StreamTransportFactory` for testing anything built on the `@plainworks/std` stream seam — a channel, an app's live view, or an integration flow — without SSE or WebSocket sockets. You drive each connection attempt by hand: open it, push frames, then end it cleanly or with an error. It honors the abort seam like a real adapter, so reconnect, resume-from-cursor, and teardown all exercise the same double.
+A scripted `StreamTransportFactory` for testing anything built on the `@plainworks/std` stream seam — a channel, an app's live view, or an integration flow — without SSE or WebSocket sockets. You drive each connection attempt by hand: open it, push frames, then end it cleanly or with an error. It honors the abort seam like a real transport, so reconnect, resume-from-cursor, and teardown all exercise the same double.
 
 ```ts
 import { fakeStreamTransport } from "@plainworks/testkit"

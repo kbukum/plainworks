@@ -1,8 +1,8 @@
-// The mock backend route handler: it serves the demo domain under `/api/*` by dispatching each
-// request to the shared `@plainworks/demo` graph — the Next equivalent of the showcase's
-// `mockServerPlugin`. Dynamic (never statically prerendered), so the seeded stores are live for
-// both the RSC prefetch and the browser query. A real deployment swaps this route for the actual
-// API origin; nothing above it changes.
+// The mock backend route handler: it serves the app's task domain under `/api/*` by dispatching
+// each request to the seeded `@plainworks/mocks` backend — a local API origin you own. Dynamic
+// (never statically prerendered), so the seeded stores are live for both the RSC prefetch and the
+// browser query. A real deployment swaps this route for the actual API origin; nothing above it
+// changes.
 
 import { demoBackend } from "../../../server/backend"
 import { boundedRequest, PayloadTooLargeError, payloadTooLarge } from "../../../server/request-body"

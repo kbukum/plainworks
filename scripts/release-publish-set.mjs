@@ -1,7 +1,8 @@
 // Derives the release publish set from the workspace graph, so what gets published is exactly what
-// gets versioned. The publish set is every non-private `@plainworks/*` workspace under a workspace
-// glob, emitted in dependency order (a package appears after every `@plainworks/*` package it
-// depends on) so a consumer never sees a package whose dependencies are missing from the registry.
+// gets versioned. The publish set is every non-private publishable workspace under a workspace
+// glob (`@plainworks/*` and `create-plainworks`), emitted in dependency order (a package appears after
+// every workspace package it depends on) so a consumer never sees a package whose dependencies
+// are missing from the registry.
 //
 // Usage:
 //   node scripts/release-publish-set.mjs           # print ordered workspace dirs, one per line
@@ -42,7 +43,7 @@ function workspaceDirs() {
   return dirs;
 }
 
-/** Collects every non-private `@plainworks/*` workspace as `{ dir, name, version, deps }`. */
+/** Collects every non-private publishable workspace as `{ dir, name, version, deps }`. */
 function publishableWorkspaces() {
   const found = [];
   for (const dir of workspaceDirs()) {
@@ -53,7 +54,8 @@ function publishableWorkspaces() {
       continue;
     }
     if (pkg.private) continue;
-    if (typeof pkg.name !== "string" || !pkg.name.startsWith("@plainworks/")) continue;
+    if (typeof pkg.name !== "string") continue;
+    if (!pkg.name.startsWith("@plainworks/") && pkg.name !== "create-plainworks") continue;
     const deps = new Set([
       ...Object.keys(pkg.dependencies ?? {}),
       ...Object.keys(pkg.peerDependencies ?? {}),

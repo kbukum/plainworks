@@ -74,8 +74,7 @@ Confirm each publishable package's `package.json` has `"files": ["dist"]`, corre
 Let Changesets consume the pending changesets, bump the affected packages (and their internal dependents), and write the generated changelog entries:
 
 ```bash
-bun run changeset version
-bun install                   # refresh the lockfile after version bumps
+bun run version:packages      # changeset version + regenerate create-plainworks versions + lockfile
 ```
 
 Review the diff: the version bumps, the deleted `.changeset/*.md`, and the changelog additions. This is the release commit content. While in `0.x`, a breaking change bumps **minor**, otherwise **patch** — Changesets handles this from each changeset's declared bump.

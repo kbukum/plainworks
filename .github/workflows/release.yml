@@ -1,6 +1,6 @@
 name: Release
 
-# Publishes the @plainworks/* packages to npm with build provenance (SLSA attestation).
+# Publishes the @plainworks/* and create-plainworks packages to npm with build provenance (SLSA attestation).
 #
 # Provenance requires npm trusted publishing (OIDC) — an ambient CI identity, never a long-lived
 # token. `bun publish` cannot emit provenance or use OIDC yet (oven-sh/bun#24855), and only Bun

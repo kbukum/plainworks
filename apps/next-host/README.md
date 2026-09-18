@@ -1,6 +1,6 @@
 # @plainworks/next-host
 
-The **second reference host**: a Next.js App Router / RSC application that assembles the same published `@plainworks/*` surfaces as the Vite `@plainworks/showcase`, over the same `@plainworks/demo` mock backend. Two genuinely different hosts on one kit is the proof of host-independence.
+The **second reference host**: a Next.js App Router / RSC application that assembles the same published `@plainworks/*` surfaces as the Vite `@plainworks/showcase`, over a local mock backend built on `@plainworks/mocks`. Two genuinely different hosts on one kit is the proof of host-independence.
 
 ## Run it
 
@@ -8,11 +8,11 @@ The **second reference host**: a Next.js App Router / RSC application that assem
 bun install
 bun run --filter @plainworks/next-host dev        # next dev (App Router) + in-process mock backend
 bun run --filter @plainworks/next-host build      # next build (Turbopack)
-bun run --filter @plainworks/next-host start       # next start (serves the production build)
-bun run --filter @plainworks/next-host test        # vitest (auth flow + dispatch + client/axe)
+bun run --filter @plainworks/next-host start      # next start (serves the production build)
+bun run --filter @plainworks/next-host test       # vitest (auth flow + dispatch + client/axe)
 ```
 
-Open `/` for the public overview, then sign in to reach the gated `/tasks` and `/account`. The in-process mock provider approves without a login page, so a click lands you straight back authenticated.
+The app starts anonymous on the public overview (`/`). Signing in routes through the in-process mock identity provider, which approves immediately without requiring an external IdP or third-party login page, landing you back authenticated on the gated pages (`/tasks`, `/account`).
 
 | Variable | Purpose |
 |---|---|
@@ -32,7 +32,7 @@ The mock backend is a catch-all Route Handler (`/api/[...path]`) that dispatches
 ## Rough edges to know
 
 - **`server-only` throws under plain Node.** The `server-only` package's non-`react-server` export throws at import, so it would break a Vitest run. Rather than omit the marker from the pure modules, every `src/server` module carries it uniformly (the token-custody boundary is enforced, not conventional) and `vitest.config.ts` aliases `server-only` to an empty stub for the test run — the build-time tripwire stays real while the modules remain unit-testable.
-- **The mock backend is a singleton, on purpose.** Unlike the kit's per-request factories, the demo backend is one lazily-built instance — it *is* the external system, so its seeded stores must persist across requests. Every page and route that touches it is `dynamic = "force-dynamic"`; there is no static prerender of live backend data.
+- **The mock backend and mock IdP are single-process dev adapters.** Unlike the kit's per-request factories, the mock backend and mock identity provider are lazily-built instances that stand in for external systems during local dev and testing. In a production multi-worker or serverless deployment, swap the mock backend route handler for calls to your real API origin and point auth to an external OIDC issuer. Every page and route that touches the mock backend is `dynamic = "force-dynamic"`; there is no static prerender of live backend data.
 - **The browser query needs an absolute origin.** `@plainworks/http` resolves against an absolute base, so the server reads the origin from deployment configuration — `APP_ORIGIN` (or `AUTH_REDIRECT_ORIGIN`), defaulting to `http://localhost:3000` — and threads it to the client `HttpClientProvider`. A forwarded request header is never trusted for this, because it would let a caller aim the server-side fetch at an arbitrary host. Set the variable to the origin the app is actually served on; the OIDC redirect URI is built from the same value.
 - **The kit ships Tailwind v4 *source* stylesheets.** `globals.css` composes `@plainworks/theme` and `@plainworks/ui` sources through `@tailwindcss/postcss`; the host owns the Tailwind build, the same way the showcase owns it through the Vite plugin.
 - **Next needs `jsx: preserve`; Vitest does not.** The app's `tsconfig` sets `preserve` for Next's compiler, so `vitest.config.ts` overrides Vite's oxc transform to the automatic JSX runtime to compile the TSX under test. `typecheck` runs `next typegen` first so the generated route types exist in a clean checkout.

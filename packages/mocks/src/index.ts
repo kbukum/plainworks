@@ -73,4 +73,5 @@ export {
   type SortDirection,
   type SortParams,
   sortBy,
+  type ValueComparator,
 } from "./query"

@@ -1,0 +1,50 @@
+{
+  "name": "create-plainworks",
+  "version": "0.0.0",
+  "description": "The plainworks project initializer: `npm create plainworks` / `bunx create-plainworks` scaffolds one wired, runnable app that assembles the published @plainworks/* surfaces over a local mock backend.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Plainworks",
+  "homepage": "https://github.com/kbukum/plainworks/tree/main/packages/create-plainworks#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kbukum/plainworks.git",
+    "directory": "packages/create-plainworks"
+  },
+  "bugs": "https://github.com/kbukum/plainworks/issues",
+  "keywords": [
+    "plainworks",
+    "create",
+    "scaffold",
+    "initializer",
+    "starter",
+    "cli"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "create-plainworks": "./dist/bin.js"
+  },
+  "files": [
+    "dist",
+    "examples"
+  ],
+  "scripts": {
+    "build": "node scripts/sync-versions.mjs && bun scripts/bundle-examples.mjs && tsdown",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage",
+    "lint": "biome check .",
+    "check-packaging": "publint --strict",
+    "smoke": "node scripts/smoke.mjs",
+    "sync-versions": "node scripts/sync-versions.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "publint": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

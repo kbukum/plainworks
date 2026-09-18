@@ -1,27 +1,30 @@
 // @vitest-environment jsdom
-import { createMockServerHandle } from "@plainworks/demo/server"
 import { createQueryClient } from "@plainworks/query"
 import { QueryProvider } from "@plainworks/query/client"
 import { cleanup, render, screen } from "@testing-library/react"
 import axe from "axe-core"
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { createDemoBackend } from "../server/mock-dispatch"
 import { HttpClientProvider } from "./http-client"
 import { TaskList } from "./task-list"
 
 // The query-driven list read through the browser HTTP client against the seeded mock backend — the
-// same `taskListPlan` the RSC page prefetches, so the client mounts under the identical key. MSW
-// stands in for the backend at the network boundary; the rendered table must also be accessible.
+// same `taskListPlan` the RSC page prefetches, so the client mounts under the identical key. The
+// in-process backend stands in for the network by routing the browser `fetch` through `dispatch`;
+// the rendered table must also be accessible.
 
-const handle = createMockServerHandle({ seed: 7 })
 const ORIGIN = "http://next-host.test"
 
-beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
+beforeEach(() => {
+  const backend = createDemoBackend({ seed: 7 })
+  vi.stubGlobal("fetch", (input: string | URL | Request, init?: RequestInit) =>
+    backend.dispatch(new Request(input, init)),
+  )
+})
 afterEach(() => {
   cleanup()
-  handle.server.resetHandlers()
-  handle.api.reset()
+  vi.unstubAllGlobals()
 })
-afterAll(() => handle.server.close())
 
 function renderList() {
   const queryClient = createQueryClient()

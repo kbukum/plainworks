@@ -5,7 +5,7 @@ import type { StateSource } from "@plainworks/std"
 import { Breadcrumbs, type BreadcrumbsProps } from "@plainworks/ui/client"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import type { AnchorHTMLAttributes, ReactElement, ReactNode } from "react"
+import { type AnchorHTMLAttributes, type ReactElement, type ReactNode, useState } from "react"
 import { ACCOUNT_PATH, OVERVIEW_PATH, TASKS_PATH } from "../neutral/constants"
 import { type LiveTasks, useLiveTasks } from "./live-stream"
 import { nextLinkRender } from "./next-link"
@@ -58,14 +58,22 @@ function AccountBar(): ReactElement {
  * The live-activity feed folded from the unified stream. The stream rewrites the feed while the
  * page sits still, so the list lives in a permanently mounted polite live region — assistive
  * technology hears each update without the feed stealing focus from whatever the reader is doing.
+ * An accessible pause/resume control allows screen-reader and other users to freeze updates
+ * (satisfying WCAG 2.2.2).
  */
 function LiveActivity({ source }: { readonly source: StateSource<LiveTasks> }): ReactElement {
-  const { tasks, error } = useLiveTasks(source)
+  const [paused, setPaused] = useState(false)
+  const { tasks, error } = useLiveTasks(source, { paused })
   const entries = Object.entries(tasks)
   return (
     <section aria-labelledby="live-heading">
-      <h2 id="live-heading">Live activity</h2>
-      <div aria-live="polite">
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <h2 id="live-heading">Live activity</h2>
+        <button type="button" onClick={() => setPaused((prev) => !prev)} aria-pressed={paused}>
+          {paused ? "Resume updates" : "Pause updates"}
+        </button>
+      </div>
+      <div aria-live={paused ? "off" : "polite"}>
         {error !== undefined ? (
           <p>Could not load live activity.</p>
         ) : entries.length === 0 ? (

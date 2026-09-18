@@ -1,10 +1,10 @@
 "use client"
 
-import type { Task } from "@plainworks/demo"
 import type { PaginatedResult } from "@plainworks/query"
 import { useQuery } from "@tanstack/react-query"
 import type { ReactElement } from "react"
 import { TASK_LIST_PARAMS } from "../neutral/constants"
+import type { Task } from "../neutral/task"
 import { taskListPlan } from "../neutral/task-read"
 import { useHttpClient } from "./http-client"
 

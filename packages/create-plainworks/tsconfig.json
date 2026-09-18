@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // A Node CLI, not a host-independent library: it runs on Node and uses `node:*` builtins, so it
+    // opts back into the Node ambient types the base config withholds from package source. This
+    // never leaks upward — nothing imports this package; it ships a `bin`, not an importable surface.
+    "types": ["node"]
+  },
+  // `examples/` is generated (gitignored) eject payload — the source apps under `apps/*` are the
+  // single source of truth. It is rebuilt from them by `bun run build` and shipped verbatim via
+  // `files`, so it is excluded from this package's typecheck (and lint/vitest below).
+  "include": ["src"],
+  "exclude": ["examples", "dist", "node_modules"]
+}

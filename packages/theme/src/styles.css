@@ -201,6 +201,20 @@
 }
 
 /*
+ * Base surface: paint the document with the resolved semantic roles so the `theme-*`/`.dark` class
+ * on <html> actually repaints the page. Without it a dark surface leaves the body browser-white
+ * behind light-on-dark text — an unreadable ~1:1 contrast. Uses the Tier 2 `--pw-*` custom
+ * properties because the Tier 3 `--color-*` namespace is `@theme inline` (compiled into utilities,
+ * never emitted as runtime variables). A base-layer rule, so a consumer's own body style wins.
+ */
+@layer base {
+  body {
+    background-color: var(--pw-background);
+    color: var(--pw-foreground);
+  }
+}
+
+/*
  * Brand swaps: each color scheme reassigns only the brand roles, so switching `theme-*` on <html>
  * repaints the accent with no JS and no change to the neutral surface. `color-scheme` lives on the
  * scheme class so `theme-*` alone (no `.dark`) still renders correctly.

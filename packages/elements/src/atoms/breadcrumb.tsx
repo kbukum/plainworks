@@ -46,7 +46,10 @@ function BreadcrumbLink({ className, render, ...props }: BreadcrumbLinkProps): R
     defaultTagName: "a",
     props: mergeProps<"a">(
       {
-        className: cn("transition-colors hover:text-foreground", className),
+        className: cn(
+          "inline-flex min-h-6 min-w-6 items-center justify-center transition-colors hover:text-foreground",
+          className,
+        ),
       },
       props,
     ),

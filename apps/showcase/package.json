@@ -8,7 +8,8 @@
     "dev": "bun run server.ts",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@plainworks/app": "workspace:*",
@@ -27,7 +28,9 @@
     "react-dom": "catalog:"
   },
   "devDependencies": {
+    "@axe-core/playwright": "catalog:",
     "@plainworks/testkit": "workspace:*",
+    "@playwright/test": "catalog:",
     "@tailwindcss/vite": "catalog:",
     "@testing-library/dom": "catalog:",
     "@testing-library/react": "catalog:",

@@ -19,6 +19,12 @@ internal/*/src/**/*.d.ts
 coverage/
 *.lcov
 
+# Playwright browser-test artifacts (the a11y e2e gate); the report/results are regenerated per run.
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
 # Turbo local task cache
 .turbo/
 

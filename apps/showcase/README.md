@@ -7,6 +7,7 @@ bun install
 bun run --filter @plainworks/showcase dev     # Vite dev server + mock /api backend
 bun run --filter @plainworks/showcase build    # tsdown-free Vite client + server bundles
 bun run --filter @plainworks/showcase test     # vitest (SSR + hydration + live-stream + nav/axe)
+bun run --filter @plainworks/showcase e2e      # Playwright + axe browser a11y gate (needs deps built)
 ```
 
 The showcase is a server-rendered **Tasks dashboard**. It prefetches query data, hydrates without a mismatch, applies the theme before paint, routes live events into state and cache updates, and uses the host's router-aware breadcrumb link.
@@ -43,3 +44,5 @@ The app consumes only published package exports. Nothing in `packages/` imports 
 ## CI
 
 The app is wired into CI **by being a workspace member with the standard turbo tasks** — no bespoke job. The `verify` job in `.github/workflows/ci.yml` runs `bun run typecheck`, `build`, `test`, `lint`, `check-comments`, `check-boundaries`, and `check-versions` across the whole graph, so `@plainworks/showcase`'s SSR/hydration smoke test runs on every PR and is re-executed (via turbo's topological cache) whenever a consumed package changes. Being `"private": true`, it is excluded from `check-packaging` and the release publish set.
+
+The one exception is the **`browser-a11y` job**: it boots this host and runs the `e2e/` Playwright specs so axe-core checks color contrast and 24×24 target size in a real Chromium — the WCAG rules jsdom cannot measure — plus a 200% zoom reflow check, under both light and dark/reduced-motion. It complements the deterministic-DOM axe floor every client component carries in its unit test (`@plainworks/testkit`'s `expectNoAxeViolations`), which disables exactly those layout-dependent rules.

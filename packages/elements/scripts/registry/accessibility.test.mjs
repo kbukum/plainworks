@@ -4,8 +4,9 @@ import { applyAccessibilityFixes } from "./accessibility.mjs"
 // The rules run against the formatted atom, so each fixture mirrors the repo's Biome layout for the
 // element the rule targets.
 describe("atom accessibility corrections", () => {
-  it("drops the non-interactive link role from the current breadcrumb page", () => {
+  it("corrects the breadcrumb link role and target size", () => {
     const upstream = [
+      '        className: cn("transition-colors hover:text-foreground", className),',
       "    <span",
       '      data-slot="breadcrumb-page"',
       '      role="link"',
@@ -14,9 +15,15 @@ describe("atom accessibility corrections", () => {
       "    />",
     ].join("\n")
     const fixed = applyAccessibilityFixes(upstream, "breadcrumb")
+    // The static current page drops its non-interactive link role.
     expect(fixed).not.toContain('role="link"')
     expect(fixed).not.toContain('aria-disabled="true"')
     expect(fixed).toContain('aria-current="page"')
+    // The link gains a 24x24 CSS px target box for any content.
+    expect(fixed).toContain("min-h-6")
+    expect(fixed).toContain("min-w-6")
+    expect(fixed).toContain("inline-flex")
+    expect(fixed).toContain("justify-center")
   })
 
   it("renders EmptyDescription as the paragraph its props declare", () => {

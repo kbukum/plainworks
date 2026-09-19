@@ -28,6 +28,18 @@ const ATOM_ACCESSIBILITY_FIXES = {
       find: '      data-slot="breadcrumb-page"\n      role="link"\n      aria-disabled="true"\n      aria-current="page"',
       replace: '      data-slot="breadcrumb-page"\n      aria-current="page"',
     },
+    {
+      // A breadcrumb link accepts arbitrary children, so an icon-only or single-character link can
+      // fall below the WCAG 2.5.8 24x24 CSS px target. A min-size box with centered content
+      // guarantees the target regardless of content width or height.
+      reason: "breadcrumb link must meet the 24x24 CSS px target size for any content",
+      find: '        className: cn("transition-colors hover:text-foreground", className),',
+      replace:
+        "        className: cn(\n" +
+        '          "inline-flex min-h-6 min-w-6 items-center justify-center transition-colors hover:text-foreground",\n' +
+        "          className,\n" +
+        "        ),",
+    },
   ],
   empty: [
     {

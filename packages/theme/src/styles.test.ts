@@ -50,4 +50,13 @@ describe("published stylesheet contract", () => {
       ).toBe(true)
     }
   })
+
+  // The substrate must paint the document surface, or the resolved `.dark`/`theme-*` class on
+  // <html> repaints the text but leaves the body browser-white behind it — an unreadable contrast a
+  // browser axe gate catches. The Tier 2 `--pw-*` vars are the only ones emitted at runtime.
+  it("paints the base body surface from the semantic role tokens", () => {
+    const body = css.match(/@layer base\s*\{[^}]*body\s*\{([^}]*)\}/)?.[1] ?? ""
+    expect(body).toMatch(/background-color:\s*var\(--pw-background\)/)
+    expect(body).toMatch(/color:\s*var\(--pw-foreground\)/)
+  })
 })

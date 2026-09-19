@@ -28,7 +28,8 @@
     "check-versions": "sherif && syncpack lint",
     "gen": "gen run",
     "gen:proto": "bun run --filter @plainworks/testkit gen:proto",
-    "changeset": "changeset"
+    "changeset": "changeset",
+    "version:packages": "changeset version && node packages/create-plainworks/scripts/sync-versions.mjs && bun install"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",

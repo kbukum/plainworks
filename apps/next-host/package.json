@@ -1,7 +1,7 @@
 {
   "name": "@plainworks/next-host",
   "version": "0.0.0",
-  "description": "Second reference host: a Next.js App Router / RSC application that assembles the published @plainworks/* surfaces — composition kernel, theme, query, channel, state, ui, and auth — over the @plainworks/demo mock backend, proving host-independence beside the Vite SPA showcase. Never published; nothing depends on it.",
+  "description": "Second reference host: a Next.js App Router / RSC application that assembles the published @plainworks/* surfaces — composition kernel, theme, query, channel, state, ui, and auth — over a local backend built on @plainworks/mocks, proving host-independence beside the Vite SPA showcase. Never published; nothing depends on it.",
   "private": true,
   "type": "module",
   "scripts": {
@@ -15,8 +15,8 @@
     "@plainworks/app": "workspace:*",
     "@plainworks/auth": "workspace:*",
     "@plainworks/channel": "workspace:*",
-    "@plainworks/demo": "workspace:*",
     "@plainworks/http": "workspace:*",
+    "@plainworks/mocks": "workspace:*",
     "@plainworks/query": "workspace:*",
     "@plainworks/state": "workspace:*",
     "@plainworks/std": "workspace:*",
@@ -39,6 +39,7 @@
     "@types/react-dom": "catalog:",
     "axe-core": "catalog:",
     "jsdom": "catalog:",
+    "msw": "catalog:",
     "tailwindcss": "catalog:",
     "tw-animate-css": "catalog:",
     "typescript": "catalog:",

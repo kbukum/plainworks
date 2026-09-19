@@ -21,8 +21,8 @@
         "@plainworks/app": "workspace:*",
         "@plainworks/auth": "workspace:*",
         "@plainworks/channel": "workspace:*",
-        "@plainworks/demo": "workspace:*",
         "@plainworks/http": "workspace:*",
+        "@plainworks/mocks": "workspace:*",
         "@plainworks/query": "workspace:*",
         "@plainworks/state": "workspace:*",
         "@plainworks/std": "workspace:*",
@@ -45,6 +45,7 @@
         "@types/react-dom": "catalog:",
         "axe-core": "catalog:",
         "jsdom": "catalog:",
+        "msw": "catalog:",
         "tailwindcss": "catalog:",
         "tw-animate-css": "catalog:",
         "typescript": "catalog:",
@@ -317,6 +318,21 @@
         "react",
         "react-dom",
       ],
+    },
+    "packages/create-plainworks": {
+      "name": "create-plainworks",
+      "version": "0.0.0",
+      "bin": {
+        "create-plainworks": "./dist/index.js",
+      },
+      "devDependencies": {
+        "@types/node": "catalog:",
+        "@vitest/coverage-v8": "catalog:",
+        "publint": "catalog:",
+        "tsdown": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+      },
     },
     "packages/elements": {
       "name": "@plainworks/elements",
@@ -1447,6 +1463,8 @@
     "cors": ["cors@2.8.6", "", { "dependencies": { "object-assign": "^4", "vary": "^1" } }, "sha512-tJtZBBHA6vjIAaF6EnIaq6laBBP9aq/Y3ouVJjEfoHbRBcHBAHYcMh/w8LDrk2PvIMMq8gmopa5D4V8RmbrxGw=="],
 
     "cosmiconfig": ["cosmiconfig@9.0.2", "", { "dependencies": { "env-paths": "^2.2.1", "import-fresh": "^3.3.0", "js-yaml": "^4.1.0", "parse-json": "^5.2.0" }, "peerDependencies": { "typescript": ">=4.9.5" }, "optionalPeers": ["typescript"] }, "sha512-gtTZxTDau1wL7Y7zifc2dd8jHSK/k6BTx/2Xp/BpdlAdnlYWFVt7qhJqgwi7637yRwRQ3qL4ZidbB4I8tA5VOg=="],
+
+    "create-plainworks": ["create-plainworks@workspace:packages/create-plainworks"],
 
     "cross-spawn": ["cross-spawn@7.0.6", "", { "dependencies": { "path-key": "^3.1.0", "shebang-command": "^2.0.0", "which": "^2.0.1" } }, "sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA=="],
 

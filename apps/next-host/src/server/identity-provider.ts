@@ -31,6 +31,11 @@ type GlobalWithAuth = typeof globalThis & {
 // it must be one shared instance across those requests — hence a lazily-built singleton created on
 // first use, never at import time (key generation is async). Anchored on globalThis so the separate
 // server chunks Next.js emits (route handlers vs RSC) share the single provider and signing key.
+//
+// Dev-only note: This in-process mock identity provider is a single-process dev adapter. In a
+// multi-instance or serverless deployment, login and callback can hit different instances; replace
+// this with a real external OIDC issuer (e.g. Auth0, Keycloak, or Okta) and configure a shared
+// SESSION_SIGNING_KEY.
 async function build(): Promise<HostAuth> {
   const idp = await createMockIdp({ claims: { name: "Ada Lovelace" } })
   const auth = createNextAuth({

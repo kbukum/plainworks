@@ -104,6 +104,23 @@ describe("live stream", () => {
     await source.set({ "task-2": "Second title" })
   })
 
+  it("useLiveTasks suppresses state adoption when paused", async () => {
+    const source = createLiveTasksSource()
+
+    function PausedConsumer(): ReactElement {
+      const { tasks } = useLiveTasks(source, { paused: true })
+      return <div data-testid="live">{JSON.stringify(tasks)}</div>
+    }
+
+    const { unmount, getByTestId } = render(<PausedConsumer />)
+    expect(getByTestId("live").textContent).toBe("{}")
+
+    await source.set({ "task-1": "Updated title" })
+    expect(getByTestId("live").textContent).toBe("{}")
+
+    unmount()
+  })
+
   it("useLiveTasks surfaces a source read failure in state and reports it", async () => {
     const baseSource = createLiveTasksSource()
     const errorSource = {
@@ -114,8 +131,10 @@ describe("live stream", () => {
     let reportedError: unknown
 
     function FailingConsumer(): ReactElement {
-      const { error } = useLiveTasks(errorSource, (err) => {
-        reportedError = err
+      const { error } = useLiveTasks(errorSource, {
+        onReconcileError: (err) => {
+          reportedError = err
+        },
       })
       return <div>{error !== undefined && <div data-testid="error">failed</div>}</div>
     }

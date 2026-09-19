@@ -14,6 +14,7 @@ import {
   filterBySearch,
   paginate,
   sortBy,
+  type ValueComparator,
 } from "../../query"
 import { decodeInput, type InputSpec } from "./decode"
 
@@ -40,6 +41,8 @@ export interface CrudHandlerConfig<T, TInput> {
   facetFields?: (keyof T & string)[]
   /** Fields allowed in `sortBy` (defaults to every search/filter/facet field) */
   sortFields?: (keyof T & string)[]
+  /** Custom comparators for fields allowed in `sortBy` */
+  sortComparators?: Partial<Record<keyof T & string, ValueComparator>> | undefined
   /** ID field name (defaults to 'id') */
   idField?: keyof T & string
   /**
@@ -247,7 +250,12 @@ export function createCrudHandlers<
 
       // Sorting
       if (sortField) {
-        data = sortBy(data, { field: sortField as keyof T & string, order: sortOrder })
+        const comparator = config.sortComparators?.[sortField as keyof T & string]
+        data = sortBy(data, {
+          field: sortField as keyof T & string,
+          order: sortOrder,
+          comparator,
+        })
       }
 
       // Cursor mode: the request carried `cursor`, so answer with the canonical `CursorResult`

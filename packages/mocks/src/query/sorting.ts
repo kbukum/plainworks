@@ -4,15 +4,19 @@
 
 export type SortDirection = "asc" | "desc"
 
+/** A custom comparator for sorting values. Returns negative if a < b, positive if a > b, or 0. */
+export type ValueComparator = (a: unknown, b: unknown) => number
+
 export interface SortParams<K extends string = string> {
-  field?: K
-  order?: SortDirection
+  field?: K | undefined
+  order?: SortDirection | undefined
+  comparator?: ValueComparator | undefined
 }
 
-/** Return a new array sorted by `field`. Numbers compare numerically; everything else lexically. */
+/** Return a new array sorted by `field`. Numbers compare numerically; everything else lexically, unless a custom comparator is provided. */
 export function sortBy<T extends Record<string, unknown>>(
   items: T[],
-  { field, order = "asc" }: SortParams<keyof T & string> = {},
+  { field, order = "asc", comparator }: SortParams<keyof T & string> = {},
 ): T[] {
   if (!field) return items
 
@@ -24,7 +28,7 @@ export function sortBy<T extends Record<string, unknown>>(
     if (aVal === null || aVal === undefined) return 1
     if (bVal === null || bVal === undefined) return -1
 
-    const comparison = compareValues(aVal, bVal)
+    const comparison = comparator ? comparator(aVal, bVal) : compareValues(aVal, bVal)
     return order === "desc" ? -comparison : comparison
   })
 }

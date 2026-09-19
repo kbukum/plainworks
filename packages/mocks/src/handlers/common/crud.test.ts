@@ -64,7 +64,17 @@ const baseConfig: Omit<CrudHandlerConfig<Widget, Partial<Widget>>, "basePath" | 
 }
 
 const server = setupServer(
-  ...createCrudHandlers<Widget>({ ...baseConfig, basePath: "/api/widgets", store: widgetStore }),
+  ...createCrudHandlers<Widget>({
+    ...baseConfig,
+    basePath: "/api/widgets",
+    store: widgetStore,
+    sortComparators: {
+      category: (a, b) => {
+        const rank: Record<string, number> = { c: 3, b: 2, a: 1 }
+        return (rank[String(a)] ?? 0) - (rank[String(b)] ?? 0)
+      },
+    },
+  }),
   ...createCrudHandlers<Widget>({
     ...baseConfig,
     basePath: "/api/gadgets",
@@ -128,6 +138,14 @@ describe("GET list", () => {
     expect(desc.data.map((w) => w.size)).toEqual([4, 3, 2, 1, 0])
     expect((await get("/api/widgets?sortBy=nope")).status).toBe(400)
     expect((await get("/api/widgets?sortBy=size&order=sideways")).status).toBe(400)
+  })
+
+  it("sorts using a custom comparator when configured", async () => {
+    const desc = (await (await get("/api/widgets?sortBy=category&order=desc")).json()) as {
+      data: Widget[]
+    }
+    // Custom comparator ranks c (3) > b (2) > a (1)
+    expect(desc.data.map((w) => w.category)).toEqual(["c", "b", "b", "a", "a"])
   })
 
   it("rejects invalid pagination and mutually exclusive page+cursor", async () => {

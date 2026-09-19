@@ -12,4 +12,4 @@ export {
   filterBySearch,
 } from "./filtering"
 export { type PaginationParams, type PaginationResult, paginate } from "./pagination"
-export { type SortDirection, type SortParams, sortBy } from "./sorting"
+export { type SortDirection, type SortParams, sortBy, type ValueComparator } from "./sorting"

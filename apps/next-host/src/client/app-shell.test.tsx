@@ -73,6 +73,24 @@ describe("app shell", () => {
     expect(region?.textContent).toContain("Waiting for the first streamed update")
   })
 
+  it("provides an accessible pause/resume control that updates aria-live", async () => {
+    const user = userEvent.setup()
+    const { container } = renderShell()
+    const button = screen.getByRole("button", { name: "Pause updates" })
+    expect(button.getAttribute("aria-pressed")).toBe("false")
+    expect(container.querySelector("[aria-live='polite']")).toBeDefined()
+
+    await user.click(button)
+    expect(screen.getByRole("button", { name: "Resume updates" })).toBeDefined()
+    expect(button.getAttribute("aria-pressed")).toBe("true")
+    expect(container.querySelector("[aria-live='off']")).toBeDefined()
+
+    await user.click(button)
+    expect(screen.getByRole("button", { name: "Pause updates" })).toBeDefined()
+    expect(button.getAttribute("aria-pressed")).toBe("false")
+    expect(container.querySelector("[aria-live='polite']")).toBeDefined()
+  })
+
   it("has no detectable accessibility violations", async () => {
     renderShell()
     const results = await axe.run(document.body)

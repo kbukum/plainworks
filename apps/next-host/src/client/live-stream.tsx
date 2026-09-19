@@ -145,6 +145,14 @@ export interface UseLiveTasksResult {
   readonly error?: unknown
 }
 
+/** Options for {@link useLiveTasks}. */
+export interface UseLiveTasksOptions {
+  /** When true, pauses adopting source updates into component state. */
+  readonly paused?: boolean
+  /** Callback invoked when source reconciliation encounters an error. */
+  readonly onReconcileError?: (error: unknown) => void
+}
+
 /**
  * Read the live-tasks slot reactively. Starts empty on the server and on the first client render
  * (so the markup matches), then reconciles the source on every change the stream drives using the
@@ -153,8 +161,11 @@ export interface UseLiveTasksResult {
  */
 export function useLiveTasks(
   source: StateSource<LiveTasks>,
-  onReconcileError?: (error: unknown) => void,
+  options?: UseLiveTasksOptions | ((error: unknown) => void),
 ): UseLiveTasksResult {
+  const opts: UseLiveTasksOptions =
+    typeof options === "function" ? { onReconcileError: options } : (options ?? {})
+  const { paused = false, onReconcileError } = opts
   const [tasks, setTasks] = useState<LiveTasks>({})
   const [error, setError] = useState<unknown | undefined>(undefined)
 
@@ -163,13 +174,13 @@ export function useLiveTasks(
     const reconciler = createSourceReconciler<LiveTasks>({
       source,
       adopt: (next) => {
-        if (!unmounted) {
+        if (!unmounted && !paused) {
           setTasks(next)
           setError(undefined)
         }
       },
       reset: () => {
-        if (!unmounted) {
+        if (!unmounted && !paused) {
           setTasks({})
           setError(undefined)
         }
@@ -186,7 +197,7 @@ export function useLiveTasks(
       unmounted = true
       stop()
     }
-  }, [source, onReconcileError])
+  }, [source, paused, onReconcileError])
 
   return { tasks, error }
 }

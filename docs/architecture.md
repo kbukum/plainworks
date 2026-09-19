@@ -1,6 +1,6 @@
 # plainworks architecture
 
-Use this reference to decide **where code belongs**, **which hosts can run it**, and **which boundaries a change must preserve**.
+Use this reference to decide **where code belongs**, **which hosts can run it**, and **which boundaries a change must preserve**. The settled design choices behind these rules are recorded in [`adr/`](./adr).
 
 ## Place a change
 

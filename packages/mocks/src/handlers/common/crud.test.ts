@@ -11,8 +11,13 @@ interface Widget {
   category: string
   size: number
   active: boolean
+  description?: string
   createdAt: string
   updatedAt: string
+}
+
+interface WidgetUpdate extends Omit<Partial<Widget>, "description"> {
+  description?: string | null
 }
 
 const clock = { now: () => 1_700_000_000_000 }
@@ -21,6 +26,11 @@ const inputSpec: InputSpec<Partial<Widget>> = {
   category: { kind: "enum", values: ["a", "b", "c"] },
   size: { kind: "number" },
   active: { kind: "boolean" },
+  description: { kind: "string" },
+}
+const updateInputSpec: InputSpec<WidgetUpdate> = {
+  ...inputSpec,
+  description: { kind: "string", nullable: true },
 }
 
 const seed = (): Widget[] =>
@@ -52,19 +62,23 @@ function createWidget(input?: Partial<Widget>): Widget {
   }
 }
 
-const baseConfig: Omit<CrudHandlerConfig<Widget, Partial<Widget>>, "basePath" | "store"> = {
+const baseConfig: Omit<
+  CrudHandlerConfig<Widget, Partial<Widget>, WidgetUpdate>,
+  "basePath" | "store"
+> = {
   entityName: "widget",
   createEntity: createWidget,
   latency: createLatency(0),
   clock,
   inputSpec,
+  updateInputSpec,
   searchFields: ["name"],
   filterFields: ["category", "size"],
   facetFields: ["category"],
 }
 
 const server = setupServer(
-  ...createCrudHandlers<Widget>({
+  ...createCrudHandlers<Widget, Partial<Widget>, WidgetUpdate>({
     ...baseConfig,
     basePath: "/api/widgets",
     store: widgetStore,
@@ -75,13 +89,17 @@ const server = setupServer(
       },
     },
   }),
-  ...createCrudHandlers<Widget>({
+  ...createCrudHandlers<Widget, Partial<Widget>, WidgetUpdate>({
     ...baseConfig,
     basePath: "/api/gadgets",
     entityName: "gadget",
     store: gadgetStore,
     // Recompute a derived field so the applyUpdate override branch is exercised.
-    applyUpdate: (current, updates) => ({ ...current, ...updates, size: 999 }),
+    applyUpdate: (current, updates) => ({
+      ...current,
+      ...updates,
+      size: current.description === undefined ? 999 : -1,
+    }),
   }),
 )
 
@@ -233,12 +251,30 @@ describe("PATCH update", () => {
     expect(body.data.size).toBe(999)
   })
 
+  it("normalizes null clears before a custom applyUpdate", async () => {
+    await patch("/api/gadgets/g_0", { description: "initial note" })
+    const res = await patch("/api/gadgets/g_0", { description: null })
+    const body = (await res.json()) as { data: Widget }
+    expect(body.data.description).toBeUndefined()
+    expect(body.data.size).toBe(999)
+  })
+
   it("404s an unknown id", async () => {
     expect((await patch("/api/widgets/nope", { name: "x" })).status).toBe(404)
   })
 
   it("rejects an invalid update body", async () => {
     expect((await patch("/api/widgets/w_1", { size: "big" })).status).toBe(400)
+  })
+
+  it("clears optional fields when updated with null", async () => {
+    await patch("/api/widgets/w_1", { description: "initial note" })
+    const withDesc = (await (await get("/api/widgets/w_1")).json()) as { data: Widget }
+    expect(withDesc.data.description).toBe("initial note")
+
+    await patch("/api/widgets/w_1", { description: null })
+    const cleared = (await (await get("/api/widgets/w_1")).json()) as { data: Widget }
+    expect(cleared.data.description).toBeUndefined()
   })
 })
 

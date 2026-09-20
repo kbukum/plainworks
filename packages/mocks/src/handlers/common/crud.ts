@@ -18,7 +18,7 @@ import {
 } from "../../query"
 import { decodeInput, type InputSpec } from "./decode"
 
-export interface CrudHandlerConfig<T, TInput> {
+interface CrudHandlerConfigBase<T, TCreateInput> {
   /** Base API path (e.g., '/api/users') */
   basePath: string
   /** Entity name for error messages */
@@ -26,13 +26,13 @@ export interface CrudHandlerConfig<T, TInput> {
   /** Entity store */
   store: EntityStore<T>
   /** Function to create new entity */
-  createEntity: (input?: Partial<TInput>) => T
+  createEntity: (input?: Partial<TCreateInput>) => T
   /** Per-server latency control */
   latency: LatencyController
   /** Clock used for `updatedAt` timestamps */
   clock: Clock
   /** Client-writable fields and their shapes; bodies failing this decode are rejected with 400 */
-  inputSpec: InputSpec<TInput>
+  inputSpec: InputSpec<TCreateInput>
   /** Fields to search in (for text search) */
   searchFields?: (keyof T & string)[]
   /** Fields that can be filtered exactly */
@@ -52,6 +52,18 @@ export interface CrudHandlerConfig<T, TInput> {
    */
   applyUpdate?: (current: T, updates: Partial<T>) => T
 }
+
+type UpdateInputSpec<TCreateInput, TUpdateInput> = [TCreateInput] extends [TUpdateInput]
+  ? [TUpdateInput] extends [TCreateInput]
+    ? { updateInputSpec?: InputSpec<TUpdateInput> }
+    : { updateInputSpec: InputSpec<TUpdateInput> }
+  : { updateInputSpec: InputSpec<TUpdateInput> }
+
+export type CrudHandlerConfig<T, TCreateInput, TUpdateInput = TCreateInput> = CrudHandlerConfigBase<
+  T,
+  TCreateInput
+> &
+  UpdateInputSpec<TCreateInput, TUpdateInput>
 
 /**
  * Parse filter query string to params object
@@ -136,8 +148,9 @@ function parseFacets<F extends string>(
  */
 export function createCrudHandlers<
   T extends { id: string; updatedAt?: string },
-  TInput = Partial<T>,
->(config: CrudHandlerConfig<T, TInput>): HttpHandler[] {
+  TCreateInput = Partial<T>,
+  TUpdateInput = TCreateInput,
+>(config: CrudHandlerConfig<T, TCreateInput, TUpdateInput>): HttpHandler[] {
   const {
     basePath,
     entityName,
@@ -152,6 +165,9 @@ export function createCrudHandlers<
     idField = "id" as keyof T & string,
     applyUpdate,
   } = config
+  const updateInputSpec: InputSpec<TUpdateInput> =
+    config.updateInputSpec ??
+    (inputSpec as InputSpec<TCreateInput & TUpdateInput> as InputSpec<TUpdateInput>)
 
   const sortFields = config.sortFields ?? [...searchFields, ...filterFields, ...facetFields]
 
@@ -318,7 +334,7 @@ export function createCrudHandlers<
     // POST create
     http.post(path, async ({ request }) => {
       await latency.wait(request.signal)
-      const input = decodeInput<TInput>(await readJsonBody(request), inputSpec)
+      const input = decodeInput<TCreateInput>(await readJsonBody(request), inputSpec)
       if (input === null) {
         return badRequest(`invalid ${entityName} create body`)
       }
@@ -331,7 +347,7 @@ export function createCrudHandlers<
     // PATCH update
     http.patch(itemPath, async ({ params, request }) => {
       await latency.wait(request.signal)
-      const decoded = decodeInput<TInput>(await readJsonBody(request), inputSpec)
+      const decoded = decodeInput<TUpdateInput>(await readJsonBody(request), updateInputSpec)
       if (decoded === null) {
         return badRequest(`invalid ${entityName} update body`)
       }
@@ -350,17 +366,32 @@ export function createCrudHandlers<
       const updates: Record<string, unknown> = { ...decoded }
       delete updates[idField]
       delete updates.createdAt
+      const clearedFields: string[] = []
+      for (const [key, value] of Object.entries(updates)) {
+        if (value === null) {
+          clearedFields.push(key)
+          delete updates[key]
+        }
+      }
 
-      const updated = applyUpdate
-        ? applyUpdate(current, updates as Partial<T>)
-        : {
+      const currentWithClears = { ...current } as Record<string, unknown>
+      for (const field of clearedFields) {
+        delete currentWithClears[field]
+      }
+      const merged = applyUpdate
+        ? applyUpdate(currentWithClears as T, updates as Partial<T>)
+        : ({
             ...current,
             ...updates,
             updatedAt: new Date(clock.now()).toISOString(),
-          }
-      store.update(index, updated)
+          } as T)
+      const updated = { ...merged } as Record<string, unknown>
+      for (const field of clearedFields) {
+        delete updated[field]
+      }
+      store.update(index, updated as T)
 
-      return HttpResponse.json({ data: updated })
+      return HttpResponse.json({ data: updated as T })
     }),
 
     // DELETE

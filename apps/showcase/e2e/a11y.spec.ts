@@ -54,6 +54,7 @@ test("flow stays accessible under dark mode and reduced motion", async ({ page }
 
   await signIn(page)
   await expect(page.locator("html")).toHaveClass(/\bdark\b/)
+  await expect(page.locator("[data-mode='dark']")).toBeVisible()
   await expectNoBrowserAxeViolations(page)
 
   await openTasks(page)

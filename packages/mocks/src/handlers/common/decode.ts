@@ -13,7 +13,7 @@ import { isRecord } from "@plainworks/std"
  * disagrees with the field's type fails to compile, so a decoded body can never be laundered into
  * `Partial<T>` as the wrong runtime type.
  */
-export type FieldSpecFor<V> = ([V] extends [boolean]
+type ValueFieldSpec<V> = [V] extends [boolean]
   ? { kind: "boolean" }
   : [V] extends [number]
     ? { kind: "number" }
@@ -23,20 +23,26 @@ export type FieldSpecFor<V> = ([V] extends [boolean]
         ? { kind: "objectArray"; item: InputSpec<E> }
         : [V] extends [string]
           ? { kind: "string" } | { kind: "enum"; values: readonly string[] }
-          : never) & {
+          : never
+
+export type FieldSpecFor<V> = ValueFieldSpec<NonNullable<V>> & {
   /**
    * Require the field (used inside `objectArray` item specs — top-level bodies stay partial
    * because entity factories supply defaults for omitted fields).
    */
   required?: boolean
-}
+} & (null extends V
+    ? {
+        /** Allow `null` as an explicit value, e.g. to clear an optional field on update. */ nullable?: boolean
+      }
+    : { nullable?: false })
 
 /** Map of an entity input's client-writable fields to a spec matched to each field's type. */
-export type InputSpec<T> = { [K in keyof T]?: FieldSpecFor<NonNullable<T[K]>> }
+export type InputSpec<T> = { [K in keyof T]?: FieldSpecFor<T[K]> }
 
 // Erased, structural mirror of the generic specs above. The runtime walker keeps its plain
 // discriminated-union switch here while the public types carry the per-field type guarantees.
-type ErasedFieldSpec = { required?: boolean } & (
+type ErasedFieldSpec = { required?: boolean; nullable?: boolean } & (
   | { kind: "string" }
   | { kind: "number" }
   | { kind: "boolean" }
@@ -49,6 +55,9 @@ type ErasedInputSpec = Record<string, ErasedFieldSpec>
 type Decoded = { ok: true; value: unknown } | { ok: false }
 
 function decodeValue(value: unknown, spec: ErasedFieldSpec): Decoded {
+  if (spec.nullable && value === null) {
+    return { ok: true, value: null }
+  }
   switch (spec.kind) {
     case "string":
       return typeof value === "string" ? { ok: true, value } : { ok: false }

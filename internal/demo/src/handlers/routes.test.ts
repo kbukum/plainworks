@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { createMockApi } from "../api"
 import { createMockServer } from "../server"
+import { taskPriorityRank } from "../types"
 
 // Fresh, isolated mock graph per suite; latency stays disabled (0 ms) so no real timers run.
 const api = createMockApi()
@@ -333,6 +334,24 @@ describe("crud list handler", () => {
     )
     expect(postgrest.data.every((u) => u.verified === false)).toBe(true)
   })
+
+  it("filters tasks by status and priority", async () => {
+    const todoTasks = await json<ListResponse>(await fetch(`${base}/api/tasks?status=todo`))
+    expect(todoTasks.data.length).toBeGreaterThan(0)
+    expect(todoTasks.data.every((t) => t.status === "todo")).toBe(true)
+
+    const highTasks = await json<ListResponse>(await fetch(`${base}/api/tasks?priority=high`))
+    expect(highTasks.data.length).toBeGreaterThan(0)
+    expect(highTasks.data.every((t) => t.priority === "high")).toBe(true)
+  })
+
+  it("sorts task priority by domain rank", async () => {
+    const tasks = await json<ListResponse>(
+      await fetch(`${base}/api/tasks?sortBy=priority&order=desc&pageSize=50`),
+    )
+    const priorities = tasks.data.map((task) => taskPriorityRank(task.priority))
+    expect(priorities).toEqual([...priorities].sort((a, b) => b - a))
+  })
 })
 
 describe("crud item handlers", () => {
@@ -402,6 +421,33 @@ describe("crud item handlers", () => {
       }),
     )
     expect(patched.data?.id).toBe(id)
+  })
+
+  it("clears optional task description when patched with null", async () => {
+    const created = await json<ItemResponse>(
+      await fetch(`${base}/api/tasks`, {
+        method: "POST",
+        body: JSON.stringify({ title: "Task with note", description: "Initial note" }),
+      }),
+    )
+    const id = String(created.data?.id)
+    expect(created.data?.description).toBe("Initial note")
+
+    const patched = await json<ItemResponse>(
+      await fetch(`${base}/api/tasks/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ description: null }),
+      }),
+    )
+    expect(patched.data?.description).toBeUndefined()
+  })
+
+  it("rejects update-only null sentinels on task creation", async () => {
+    const response = await fetch(`${base}/api/tasks`, {
+      method: "POST",
+      body: JSON.stringify({ title: "Invalid task", description: null }),
+    })
+    expect(response.status).toBe(400)
   })
 })
 

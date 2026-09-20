@@ -97,6 +97,7 @@ describe("hydration", () => {
           snapshot={snapshot}
           dehydratedState={dehydratedState}
           initialPath="/tasks"
+          httpClient={createHttpClient({ baseUrl: "http://showcase.test" })}
         />,
       ),
     )
@@ -107,8 +108,19 @@ describe("hydration", () => {
     const mismatches = errors.filter((args) =>
       args.some((arg) => typeof arg === "string" && /hydrat|did not match|mismatch/i.test(arg)),
     )
+    // This test runs the server and browser renderers in one JavaScript realm. A real request and
+    // browser hydration use separate realms, so React's shared-context renderer warning is
+    // test-only.
+    const unexpectedErrors = errors.filter(
+      (args) =>
+        !args.some(
+          (arg) =>
+            arg ===
+            "Detected multiple renderers concurrently rendering the same context provider. This is currently unsupported.",
+        ),
+    )
     expect(mismatches).toEqual([])
-    expect(errors).toEqual([])
+    expect(unexpectedErrors).toEqual([])
 
     act(() => rootHandle.unmount())
   })

@@ -58,6 +58,7 @@
       "dependencies": {
         "@plainworks/app": "workspace:*",
         "@plainworks/auth": "workspace:*",
+        "@plainworks/channel": "workspace:*",
         "@plainworks/demo": "workspace:*",
         "@plainworks/elements": "workspace:*",
         "@plainworks/http": "workspace:*",

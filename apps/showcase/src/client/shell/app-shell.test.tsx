@@ -54,6 +54,7 @@ async function renderShell(options: { snapshot?: AppSnapshot; initialPath?: stri
       snapshot={snapshot}
       dehydratedState={dehydrateClient(queryClient, { shouldDehydrateQuery: () => true })}
       initialPath={initialPath}
+      httpClient={httpClient}
     />,
   )
 }

@@ -27,8 +27,11 @@ const spec: InputSpec<DecodeInput> = {
 const scalarMismatch: InputSpec<{ age: number }> = { age: { kind: "string" } }
 // @ts-expect-error an object-array field rejects a scalar spec
 const arrayMismatch: InputSpec<{ items: { sku: string }[] }> = { items: { kind: "string" } }
+// @ts-expect-error a non-nullable field rejects a nullable spec
+const nullableMismatch: InputSpec<{ notes: string }> = { notes: { kind: "string", nullable: true } }
 void scalarMismatch
 void arrayMismatch
+void nullableMismatch
 
 describe("decodeInput", () => {
   it("keeps only declared, well-typed fields and omits absent optionals", () => {
@@ -60,5 +63,17 @@ describe("decodeInput", () => {
 
   it("rejects an object-array entry missing a required field", () => {
     expect(decodeInput({ items: [{ qty: 1 }] }, spec)).toBeNull()
+  })
+
+  it("decodes null for nullable fields and rejects null for non-nullable fields", () => {
+    const nullableSpec: InputSpec<{ bio: string | null; notes: string }> = {
+      bio: { kind: "string", nullable: true },
+      notes: { kind: "string" },
+    }
+    expect(decodeInput({ bio: null, notes: "hello" }, nullableSpec)).toEqual({
+      bio: null,
+      notes: "hello",
+    })
+    expect(decodeInput({ bio: "story", notes: null }, nullableSpec)).toBeNull()
   })
 })

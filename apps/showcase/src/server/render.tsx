@@ -1,27 +1,25 @@
 // The SSR render — the neutral composition seam the dev server and the smoke tests both drive. It
 // resolves the per-request snapshot through the composition kernel, prefetches the task list into a
-// request-scoped query client, renders the one shared `<Showcase>` tree to a string, and wraps it
-// in the document shell with the snapshot, the dehydrated cache, and the persisted theme class
-// inlined. It builds every store/client/source per call — no module-level singleton — so two
+// request-scoped query client, renders the one shared `<Showcase>` tree to a complete stream, and
+// wraps it in the document shell with the snapshot, the dehydrated cache, and the persisted theme
+// class inlined. It builds every store/client/source per call — no module-level singleton — so two
 // concurrent requests never share state. The network is an injected seam: the caller sets up the
 // mock (MSW in a test, the mock server in dev) and hands in the request-scoped `httpClient`.
 
+import { Writable } from "node:stream"
 import { createApp, serializeSnapshot, snapshotFor } from "@plainworks/app"
 import { authSnapshotOf, unauthenticatedRedirect } from "@plainworks/auth"
 import type { HttpClient } from "@plainworks/http"
-import { createQueryClient, dehydrateClient, prefetchQuery } from "@plainworks/query"
+import { createQueryClient, dehydrateClient } from "@plainworks/query"
 import type { WebAbortSignal } from "@plainworks/std"
-import { renderToString } from "react-dom/server"
+import type { ReactNode } from "react"
+import { renderToPipeableStream } from "react-dom/server.node"
 import type { ReadShowcaseSession } from "../app/auth"
 import { authServerCapability } from "../app/auth"
-import {
-  AUTH_CAPABILITY_ID,
-  LOGIN_PATH,
-  TASK_LIST_PARAMS,
-  THEME_CAPABILITY_ID,
-} from "../app/constants"
+import { AUTH_CAPABILITY_ID, LOGIN_PATH, THEME_CAPABILITY_ID } from "../app/constants"
 import { themeServerCapability } from "../app/create-showcase-app"
-import { taskListPlan } from "../app/task-read"
+import { sectionForPath } from "../app/navigation"
+import { prefetchSection } from "../app/section-prefetch"
 import { resolveHtmlClass } from "../app/theme"
 import { buildClientCapabilities } from "../client/capabilities"
 import { Showcase } from "../client/showcase"
@@ -58,6 +56,27 @@ export interface RenderResult {
   readonly location?: string
 }
 
+function renderAppHtml(node: ReactNode): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let html = ""
+    const decoder = new TextDecoder()
+    const output = new Writable({
+      write(chunk: Uint8Array, _encoding, callback) {
+        html += decoder.decode(chunk, { stream: true })
+        callback()
+      },
+    })
+    output.once("finish", () => resolve(html + decoder.decode()))
+    output.once("error", reject)
+
+    const stream = renderToPipeableStream(node, {
+      onAllReady: () => stream.pipe(output),
+      onShellError: reject,
+      onError: reject,
+    })
+  })
+}
+
 /** Render one request to an HTML document with a hydratable snapshot and cache. */
 export async function renderApp(input: RenderInput): Promise<RenderResult> {
   const app = createApp({
@@ -78,19 +97,20 @@ export async function renderApp(input: RenderInput): Promise<RenderResult> {
   }
 
   const queryClient = createQueryClient()
-  await prefetchQuery(queryClient, taskListPlan(input.httpClient, TASK_LIST_PARAMS))
+  const pathname = new URL(input.path, "http://localhost").pathname
+  await prefetchSection(sectionForPath(pathname).id, queryClient, input.httpClient)
   const dehydratedState = dehydrateClient(queryClient, { shouldDehydrateQuery: () => true })
 
   const themeSource = createThemeSource()
   const capabilities = buildClientCapabilities({ queryClient, themeSource })
 
-  const pathname = new URL(input.path, "http://localhost").pathname
-  const appHtml = renderToString(
+  const appHtml = await renderAppHtml(
     <Showcase
       capabilities={capabilities}
       snapshot={snapshot}
       dehydratedState={dehydratedState}
       initialPath={pathname}
+      httpClient={input.httpClient}
     />,
   )
 

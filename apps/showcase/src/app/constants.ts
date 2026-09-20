@@ -8,7 +8,7 @@ import type { ListQueryParams } from "@plainworks/query"
 /** Resource name the tasks list query key is scoped to. */
 export const TASKS_RESOURCE = "tasks"
 
-/** The one list request the dashboard reads — server-prefetched and client-hydrated under one key. */
+/** The initial Tasks list request — server-prefetched and client-hydrated under one key. */
 export const TASK_LIST_PARAMS: ListQueryParams = {
   page: 1,
   pageSize: 8,
@@ -16,8 +16,31 @@ export const TASK_LIST_PARAMS: ListQueryParams = {
   order: "desc",
 }
 
+/** The recent-activity request the Overview reads — the newest tasks, most recent first. */
+export const RECENT_ACTIVITY_PARAMS: ListQueryParams = {
+  page: 1,
+  pageSize: 5,
+  sortBy: "createdAt",
+  order: "desc",
+}
+
+/** Query key the Overview summary statistics are cached under. */
+export const OVERVIEW_STATS_KEY = ["overview", "stats"] as const
+
+/** Query key the Overview revenue trend is cached under. */
+export const REVENUE_TREND_KEY = ["overview", "revenue"] as const
+
+/** Days of revenue history the Overview trend visual plots. */
+export const REVENUE_TREND_DAYS = 14
+
 /** Cookie the theme preference is persisted under so the server can render an explicit mode. */
 export const THEME_COOKIE = "theme"
+
+/** Locale the display value components format numbers and dates with, fixed for SSR/client parity. */
+export const DISPLAY_LOCALE = "en-US"
+
+/** Time zone the display value components format dates in, fixed so SSR and hydration agree. */
+export const DISPLAY_TIME_ZONE = "UTC"
 
 /** Capability id joining the neutral theme resolver to its client provider. */
 export const THEME_CAPABILITY_ID = "theme"

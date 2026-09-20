@@ -20,11 +20,20 @@ async function signIn(page: Page): Promise<void> {
 /** Open the query-driven task list through the app's own client-side navigation. */
 async function openTasks(page: Page): Promise<void> {
   await page
-    .getByRole("navigation", { name: "Sections" })
-    .getByRole("button", { name: "Tasks" })
+    .getByRole("navigation", { name: "Primary" })
+    .getByRole("link", { name: "Tasks" })
     .click()
-  await expect(page.getByRole("table", { name: "Tasks, highest priority first" })).toBeVisible()
+  await expect(page.getByRole("heading", { level: 1, name: "Tasks" })).toBeVisible()
 }
+
+test("skip link bypasses persistent navigation to main landmark", async ({ page }) => {
+  await signIn(page)
+  await page.keyboard.press("Tab")
+  const skipLink = page.getByRole("link", { name: "Skip to main content" })
+  await expect(skipLink).toBeFocused()
+  await page.keyboard.press("Enter")
+  await expect(page.locator("#main-content")).toBeFocused()
+})
 
 test("authenticated flow has no contrast or target-size violations", async ({ page }) => {
   await signIn(page)

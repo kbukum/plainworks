@@ -40,8 +40,5 @@ export const SNAPSHOT_SCRIPT_ID = "__PLAINWORKS_SNAPSHOT__"
 /** DOM id of the `<script>` carrying the dehydrated query cache. */
 export const QUERY_STATE_SCRIPT_ID = "__PLAINWORKS_QUERY__"
 
-/** Memory-scope slot the live stream folds task upserts into. */
-export const LIVE_TASKS_SLOT_KEY = "live-tasks"
-
 /** Root element id the app mounts into. */
 export const ROOT_ELEMENT_ID = "root"

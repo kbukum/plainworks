@@ -15,11 +15,21 @@ import { Showcase } from "../showcase"
 import { createThemeSource } from "../sources"
 
 // The shell is the frame every later section renders inside: the section navigation, the active
-// state and breadcrumbs it derives from the router, the account menu, and the responsive collapse
-// to a drawer. These prove that behavior from the user's vantage — role/label queries driven with
-// `user-event`, over the real providers — and hold the accessibility floor with an axe assertion.
-// jsdom applies no CSS, so both the wide rail and the narrow drawer are present; queries are scoped
-// to a specific landmark with `within` rather than relying on responsive visibility.
+// state and breadcrumbs it derives from the router, the account menu, the command palette, and the
+// responsive collapse to a drawer. These prove that behavior from the user's vantage — role/label
+// queries driven with `user-event`, over the real providers — and hold the accessibility floor with
+// an axe assertion. jsdom applies no CSS, so both the wide rail and the narrow drawer are present;
+// queries are scoped to a specific landmark with `within` rather than relying on responsive
+// visibility.
+
+// cmdk (behind the command palette) measures and scrolls its list; jsdom implements neither.
+class TestResizeObserver implements ResizeObserver {
+  observe(): void {}
+  unobserve(): void {}
+  disconnect(): void {}
+}
+globalThis.ResizeObserver = TestResizeObserver
+Element.prototype.scrollIntoView = vi.fn()
 
 const handle = createMockServerHandle({ seed: 7 })
 
@@ -157,6 +167,17 @@ describe("app shell", () => {
     await user.click(screen.getByRole("button", { name: /Signed in as/ }))
     expect(await screen.findByRole("menuitem", { name: "Log out" })).toBeDefined()
     expect(screen.queryByRole("menuitem", { name: "Account settings" })).toBeNull()
+  })
+
+  it("opens the command palette on ⌘K and navigates from it", async () => {
+    const user = userEvent.setup()
+    await renderShell({ initialPath: "/tasks" })
+
+    await user.keyboard("{Meta>}k{/Meta}")
+    await screen.findByRole("combobox", { name: "Command menu" })
+    await user.click(screen.getByRole("option", { name: /Orders/ }))
+
+    expect(window.location.pathname).toBe("/orders")
   })
 
   it("has no detectable accessibility violations", async () => {

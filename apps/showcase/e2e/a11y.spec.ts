@@ -8,12 +8,16 @@ import { expectNoBrowserAxeViolations, expectReflowAtNarrowViewport } from "./ax
 // reduced motion so those preferences are honored, not just the default paint.
 
 /**
- * Follow the session gate to the authenticated overview. An unauthenticated request to `/` is
- * bounced through the in-process mock IdP login chain and back, so a plain navigation lands signed
- * in with no test-only shortcut.
+ * Follow the session gate to the authenticated overview. An unauthenticated request to `/` lands on
+ * the signed-out login page; clicking "Sign in" runs the in-process mock IdP login chain and
+ * returns to the dashboard, so the flow signs in through the real UI with no test-only shortcut.
  */
 async function signIn(page: Page): Promise<void> {
   await page.goto("/")
+  await page.getByRole("button", { name: "Sign in" }).click()
+  // Sign-in is a full-page form POST, so wait for the resulting document to finish loading before
+  // asserting — the dev host injects styles during load, and axe needs the settled paint.
+  await page.waitForLoadState("load")
   await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible()
 }
 
@@ -47,6 +51,37 @@ test("task view reflows at a 320px viewport without horizontal scrolling", async
   await signIn(page)
   await openTasks(page)
   await expectReflowAtNarrowViewport(page)
+})
+
+test("logging out returns to the signed-out login page", async ({ page }) => {
+  await signIn(page)
+
+  await page.getByRole("button", { name: /Signed in as/ }).click()
+  await page.getByRole("menuitem", { name: "Log out" }).click()
+
+  // The mock IdP approves in-process, so the session gate must not restart login on its own:
+  // logging out lands on the signed-out page and stays there until an explicit sign-in.
+  await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible()
+  await expectNoBrowserAxeViolations(page)
+})
+
+test("authentication routes reject unsupported methods", async ({ request }) => {
+  const cases = [
+    { path: "/login", allow: "GET, HEAD, POST" },
+    { path: "/auth/callback", allow: "GET" },
+    { path: "/logout", allow: "POST" },
+  ] as const
+
+  for (const route of cases) {
+    const response = await request.put(route.path)
+    expect(response.status()).toBe(405)
+    expect(response.headers().allow).toBe(route.allow)
+    expect(await response.text()).toBe("Method Not Allowed")
+  }
+
+  const head = await request.head("/login")
+  expect(head.status()).toBe(200)
+  expect(await head.text()).toBe("")
 })
 
 test("flow stays accessible under dark mode and reduced motion", async ({ page }) => {

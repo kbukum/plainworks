@@ -14,6 +14,7 @@ import {
   type IncomingMessage,
   type ServerResponse,
 } from "node:http"
+import { sanitizeReturnTo } from "@plainworks/auth"
 import type { ServerSessionJar } from "@plainworks/auth/server"
 import { createMockServer } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
@@ -24,6 +25,7 @@ import { createShowcaseAuth } from "./src/app/auth"
 import { AUTH_CALLBACK_PATH, LOGIN_PATH, LOGOUT_PATH } from "./src/app/constants"
 import type { RenderApp } from "./src/entry-server"
 import { respondWithInternalError } from "./src/server/internal-error"
+import { renderLoginPage } from "./src/server/login-page"
 import { PayloadTooLargeError, readRequestBody, resolveSigningKey } from "./src/server/request-body"
 
 const PORT = Number(process.env.PORT ?? 5173)
@@ -59,6 +61,18 @@ function redirect(res: ServerResponse, location: string, cookies: string[]): voi
   res.end()
 }
 
+function sendHtml(res: ServerResponse, html: string, headOnly = false): void {
+  res.statusCode = 200
+  res.setHeader("content-type", "text/html; charset=utf-8")
+  res.end(headOnly ? undefined : html)
+}
+
+function methodNotAllowed(res: ServerResponse, allowed: string): void {
+  res.statusCode = 405
+  res.setHeader("allow", allowed)
+  res.end("Method Not Allowed")
+}
+
 async function main(): Promise<void> {
   const mock = createMockServer()
   mock.listen({ onUnhandledRequest: "error" })
@@ -83,9 +97,32 @@ async function main(): Promise<void> {
   ): Promise<void> {
     const { jar, cookies } = nodeJar(req)
     if (url.pathname === LOGIN_PATH) {
-      const begin = await auth.session.beginLogin(jar, {
-        returnTo: url.searchParams.get("returnTo") ?? "/",
-      })
+      // A signed-out landing page, not an automatic redirect: the mock IdP approves in-process, so
+      // auto-starting the flow here would let the session gate re-authenticate the instant a user
+      // logs out. `GET` shows the page; only an explicit `POST` (the "Sign in" button) begins
+      // login.
+      if (req.method === "GET" || req.method === "HEAD") {
+        const returnTo = sanitizeReturnTo(url.searchParams.get("returnTo") ?? "/")
+        sendHtml(res, renderLoginPage(returnTo), req.method === "HEAD")
+        return
+      }
+      if (req.method !== "POST") {
+        methodNotAllowed(res, "GET, HEAD, POST")
+        return
+      }
+      let body: string
+      try {
+        body = await readRequestBody(req)
+      } catch (err) {
+        if (err instanceof PayloadTooLargeError) {
+          res.statusCode = 413
+          res.end("Payload Too Large")
+          return
+        }
+        throw err
+      }
+      const returnTo = new URLSearchParams(body).get("returnTo") ?? "/"
+      const begin = await auth.session.beginLogin(jar, { returnTo })
       // The mock IdP approves in-process, so we bounce straight to the callback rather than to a
       // real provider login page.
       const { callbackUrl } = idp.authorize(begin.authorizationUrl)
@@ -93,6 +130,10 @@ async function main(): Promise<void> {
       return
     }
     if (url.pathname === AUTH_CALLBACK_PATH) {
+      if (req.method !== "GET") {
+        methodNotAllowed(res, "GET")
+        return
+      }
       const params = Object.fromEntries(url.searchParams)
       const result = await auth.session.completeLogin(jar, { params })
       redirect(res, result.returnTo, cookies)
@@ -100,9 +141,7 @@ async function main(): Promise<void> {
     }
     if (url.pathname === LOGOUT_PATH) {
       if (req.method !== "POST") {
-        res.statusCode = 405
-        res.setHeader("allow", "POST")
-        res.end("Method Not Allowed")
+        methodNotAllowed(res, "POST")
         return
       }
       let body: string

@@ -15,18 +15,20 @@ import { ThemeToggle } from "@plainworks/ui/theme"
 import { Menu } from "lucide-react"
 import { type ReactElement, useEffect, useRef, useState } from "react"
 import { breadcrumbTrail, sectionForPath } from "../../app/navigation"
+import { CommandMenu } from "../command"
 import { routerLinkRender, useRouter } from "../router"
 import { AccountMenu } from "./account-menu"
 import { SectionNav } from "./section-nav"
 import { SectionOutlet } from "./section-outlet"
 
 /**
- * The persistent application shell every section renders inside: a header (product mark, theme
- * toggle, account menu), a section navigation that is a rail on wide viewports and a disclosure
- * drawer on narrow ones, and the main region with breadcrumbs, the section title, and the active
- * section's outlet. It owns no section state — the active section is derived from the router path,
- * so navigation, breadcrumbs, and title stay in sync from one source. The rail/drawer switch is a
- * container query, so the shell adapts to the space it is given rather than the viewport.
+ * The persistent application shell every section renders inside: a header (product mark, command
+ * palette, theme toggle, account menu), a section navigation that is a rail on wide viewports and a
+ * disclosure drawer on narrow ones, and the main region with breadcrumbs, the section title, and
+ * the active section's outlet. It owns no section state — the active section is derived from the
+ * router path, so navigation, breadcrumbs, and title stay in sync from one source. The rail/drawer
+ * switch is a container query, so the shell adapts to the space it is given rather than the
+ * viewport.
  */
 export function AppShell(): ReactElement {
   const { path, navigate } = useRouter()
@@ -66,7 +68,7 @@ export function AppShell(): ReactElement {
       >
         Skip to main content
       </a>
-      <header className="flex items-center gap-2 border-b px-2 py-3 sm:gap-3 sm:px-4">
+      <header className="flex flex-wrap items-center gap-2 border-b px-2 py-3 sm:gap-3 sm:px-4">
         <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
           <SheetTrigger
             aria-label="Open sections menu"
@@ -83,6 +85,7 @@ export function AppShell(): ReactElement {
         </Sheet>
         <span className="font-semibold tracking-tight">plainworks</span>
         <div className="ml-auto flex items-center gap-2">
+          <CommandMenu />
           <ThemeToggle className="h-8 px-2 text-xs sm:h-9 sm:px-4 sm:text-sm" />
           <AccountMenu />
         </div>

@@ -6,6 +6,7 @@ import type { HttpClient } from "@plainworks/http"
 import type { DehydratedState } from "@plainworks/query"
 import { HydrationBoundary } from "@plainworks/query/client"
 import type { ReactElement } from "react"
+import { ToastProvider } from "./feedback"
 import { HttpClientProvider } from "./http-client"
 import { RouterProvider } from "./router"
 import { AppShell } from "./shell"
@@ -28,7 +29,8 @@ export interface ShowcaseProps {
  * The one render root both the server (`renderToString`) and the client (`hydrateRoot`) render, so
  * the two trees cannot drift. Providers are composed through the kernel: `AppProvider` mounts the
  * capability registry (query outermost), inside which the query cache is rehydrated, the HTTP
- * client is provided to the sections, and the router owns client-side navigation.
+ * client is provided to the sections, the router owns client-side navigation, and the app-wide
+ * toast host is mounted so any surface can raise feedback.
  */
 export function Showcase(props: ShowcaseProps): ReactElement {
   return (
@@ -36,7 +38,9 @@ export function Showcase(props: ShowcaseProps): ReactElement {
       <HydrationBoundary state={props.dehydratedState}>
         <HttpClientProvider client={props.httpClient}>
           <RouterProvider initialPath={props.initialPath}>
-            <AppShell />
+            <ToastProvider>
+              <AppShell />
+            </ToastProvider>
           </RouterProvider>
         </HttpClientProvider>
       </HydrationBoundary>

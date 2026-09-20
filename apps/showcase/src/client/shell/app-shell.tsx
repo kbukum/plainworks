@@ -57,7 +57,7 @@ export function AppShell(): ReactElement {
   return (
     <div
       data-mode={resolvedMode}
-      className="@container/shell min-h-dvh bg-background text-foreground"
+      className="@container/shell grid min-h-dvh grid-rows-[auto_1fr] bg-background text-foreground"
     >
       <a
         href="#main-content"
@@ -68,7 +68,7 @@ export function AppShell(): ReactElement {
       >
         Skip to main content
       </a>
-      <header className="flex flex-wrap items-center gap-2 border-b px-2 py-3 sm:gap-3 sm:px-4">
+      <header className="sticky top-0 z-40 flex flex-wrap items-center gap-2 border-b border-border/70 bg-background/95 px-2 py-3 shadow-xs backdrop-blur sm:gap-3 sm:px-4">
         <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
           <SheetTrigger
             aria-label="Open sections menu"
@@ -91,32 +91,34 @@ export function AppShell(): ReactElement {
         </div>
       </header>
 
-      <div className="flex">
-        <aside className="hidden w-64 shrink-0 border-r p-3 @3xl/shell:block">
+      <div className="grid min-h-0 grid-cols-1 @3xl/shell:grid-cols-[16rem_minmax(0,1fr)]">
+        <aside className="hidden border-r border-border/70 bg-muted/20 p-3 @3xl/shell:block">
           <SectionNav label="Primary" />
         </aside>
         <main
           id="main-content"
           tabIndex={-1}
           aria-labelledby="section-title"
-          className="min-w-0 grow p-4 sm:p-6 outline-none"
+          className="min-w-0 bg-background p-4 outline-none sm:p-6"
         >
-          <Breadcrumbs items={crumbs} />
-          <h1
-            ref={headingRef}
-            tabIndex={-1}
-            id="section-title"
-            className="mt-3 text-2xl font-semibold tracking-tight outline-none"
-          >
-            {active.label}
-          </h1>
-          {error === undefined ? null : (
-            <p role="alert" className="mt-4 text-sm text-destructive">
-              {THEME_ERROR_MESSAGE}
-            </p>
-          )}
-          <div className="mt-4">
-            <SectionOutlet section={active} />
+          <div className="mx-auto w-full max-w-[90rem]">
+            <Breadcrumbs items={crumbs} />
+            <h1
+              ref={headingRef}
+              tabIndex={-1}
+              id="section-title"
+              className="mt-3 text-2xl font-semibold tracking-tight outline-none"
+            >
+              {active.label}
+            </h1>
+            {error === undefined ? null : (
+              <p role="alert" className="mt-4 text-sm text-destructive">
+                {THEME_ERROR_MESSAGE}
+              </p>
+            )}
+            <div className="mt-4">
+              <SectionOutlet section={active} />
+            </div>
           </div>
         </main>
       </div>

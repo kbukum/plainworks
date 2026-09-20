@@ -1,10 +1,11 @@
 // The SSR render — the neutral composition seam the dev server and the smoke tests both drive. It
-// resolves the per-request snapshot through the composition kernel, prefetches the task list into a
-// request-scoped query client, renders the one shared `<Showcase>` tree to a complete stream, and
-// wraps it in the document shell with the snapshot, the dehydrated cache, and the persisted theme
-// class inlined. It builds every store/client/source per call — no module-level singleton — so two
-// concurrent requests never share state. The network is an injected seam: the caller sets up the
-// mock (MSW in a test, the mock server in dev) and hands in the request-scoped `httpClient`.
+// resolves the per-request snapshot through the composition kernel, prefetches the active section's
+// queries into a request-scoped query client, renders the one shared `<Showcase>` tree to a
+// complete stream, and wraps it in the document shell with the snapshot, the dehydrated cache, and
+// the persisted theme class inlined. It builds every store/client/source per call — no module-level
+// singleton — so two concurrent requests never share state. The network is an injected seam: the
+// caller sets up the mock (MSW in a test, the mock server in dev) and hands in the request-scoped
+// `httpClient`.
 
 import { Writable } from "node:stream"
 import { createApp, serializeSnapshot, snapshotFor } from "@plainworks/app"
@@ -32,8 +33,14 @@ export interface RenderInput {
   readonly path: string
   /** The incoming `Cookie` header — the theme resolver reads the preference from it. */
   readonly cookieHeader: string
-  /** The request-scoped typed fetch client the task prefetch reads through (mock-backed in dev/test). */
+  /**
+   * The request-scoped typed fetch client the active section's prefetch reads through — the
+   * overview summaries, or the tasks/orders/products/users list for its route (mock-backed in
+   * dev/test).
+   */
   readonly httpClient: HttpClient
+  /** Stylesheet URLs the host resolved for the initial document. */
+  readonly stylesheets: readonly string[]
   /** The client entry module URL the browser boots hydration from. */
   readonly clientEntry: string
   /**
@@ -119,6 +126,7 @@ export async function renderApp(input: RenderInput): Promise<RenderResult> {
     appHtml,
     snapshotJson: serializeSnapshot(snapshot),
     queryJson: JSON.stringify(dehydratedState),
+    stylesheets: input.stylesheets,
     clientEntry: input.clientEntry,
   })
 

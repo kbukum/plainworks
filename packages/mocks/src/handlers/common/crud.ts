@@ -18,6 +18,15 @@ import {
 } from "../../query"
 import { decodeInput, type InputSpec } from "./decode"
 
+/**
+ * Authorize a mutating request (POST/PATCH/DELETE) at the server boundary. Return or resolve
+ * `false` to deny the write with `403`, so a client-side gate stays a UX affordance and the store
+ * can only be changed by an authorized caller. A *rejected* promise is not a denial: it is an
+ * exceptional authorization failure that surfaces as a server error, never a silent `403`. Read
+ * requests are never gated by this seam.
+ */
+export type MutationAuthorizer = (request: Request) => boolean | Promise<boolean>
+
 interface CrudHandlerConfigBase<T, TCreateInput> {
   /** Base API path (e.g., '/api/users') */
   basePath: string
@@ -51,6 +60,13 @@ interface CrudHandlerConfigBase<T, TCreateInput> {
    * `updatedAt`.
    */
   applyUpdate?: (current: T, updates: Partial<T>) => T
+  /**
+   * Authorize each mutating request (POST/PATCH/DELETE) at the server boundary; a request denied
+   * with `false` is answered with `403` before the store is touched, while a rejected authorizer is
+   * left to surface as a server error rather than a `403`. Omit to leave writes open (the default,
+   * for fixtures that need no session).
+   */
+  authorize?: MutationAuthorizer
 }
 
 type UpdateInputSpec<TCreateInput, TUpdateInput> = [TCreateInput] extends [TUpdateInput]
@@ -89,6 +105,9 @@ async function readJsonBody(request: Request): Promise<unknown | null> {
 
 const badRequest = (error: string): Response =>
   HttpResponse.json({ data: null, error }, { status: 400 })
+
+const forbidden = (): Response =>
+  HttpResponse.json({ data: null, error: "Not authorized" }, { status: 403 })
 
 /**
  * Parse a positive-integer query parameter. Returns the default when absent, `null` when the
@@ -164,6 +183,7 @@ export function createCrudHandlers<
     facetFields = [],
     idField = "id" as keyof T & string,
     applyUpdate,
+    authorize,
   } = config
   const updateInputSpec: InputSpec<TUpdateInput> =
     config.updateInputSpec ??
@@ -334,6 +354,9 @@ export function createCrudHandlers<
     // POST create
     http.post(path, async ({ request }) => {
       await latency.wait(request.signal)
+      if (authorize && !(await authorize(request))) {
+        return forbidden()
+      }
       const input = decodeInput<TCreateInput>(await readJsonBody(request), inputSpec)
       if (input === null) {
         return badRequest(`invalid ${entityName} create body`)
@@ -347,6 +370,9 @@ export function createCrudHandlers<
     // PATCH update
     http.patch(itemPath, async ({ params, request }) => {
       await latency.wait(request.signal)
+      if (authorize && !(await authorize(request))) {
+        return forbidden()
+      }
       const decoded = decodeInput<TUpdateInput>(await readJsonBody(request), updateInputSpec)
       if (decoded === null) {
         return badRequest(`invalid ${entityName} update body`)
@@ -397,6 +423,9 @@ export function createCrudHandlers<
     // DELETE
     http.delete(itemPath, async ({ params, request }) => {
       await latency.wait(request.signal)
+      if (authorize && !(await authorize(request))) {
+        return forbidden()
+      }
       const index = store.findIndex((i) => i[idField] === params.id)
 
       if (index === -1) {

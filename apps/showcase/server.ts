@@ -16,13 +16,16 @@ import {
 } from "node:http"
 import { sanitizeReturnTo } from "@plainworks/auth"
 import type { ServerSessionJar } from "@plainworks/auth/server"
+import { createMockApi } from "@plainworks/demo"
 import { createMockServer } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { mockServerPlugin } from "@plainworks/mocks/vite-plugin"
 import { parseCookieHeader } from "@plainworks/std"
 import { createMockIdp } from "@plainworks/testkit"
 import { createServer as createViteServer, type ViteDevServer } from "vite"
 import { createShowcaseAuth } from "./src/app/auth"
 import { AUTH_CALLBACK_PATH, LOGIN_PATH, LOGOUT_PATH } from "./src/app/constants"
+import { createOrderMutationAuthorizer } from "./src/app/order-authz"
 import type { RenderApp } from "./src/entry-server"
 import { respondWithInternalError } from "./src/server/internal-error"
 import { renderLoginPage } from "./src/server/login-page"
@@ -31,6 +34,7 @@ import { PayloadTooLargeError, readRequestBody, resolveSigningKey } from "./src/
 const PORT = Number(process.env.PORT ?? 5173)
 const HOST = "127.0.0.1"
 const CLIENT_ENTRY = "/src/client/entry-client.tsx"
+const STYLESHEET_ENTRY = "/src/client/styles.css"
 const ORIGIN = `http://${HOST}:${PORT}`
 // Any absolute origin works for the SSR data fetch: the MSW server intercepts it by path, so the
 // host never has to be reachable.
@@ -42,7 +46,10 @@ interface EntryServerModule {
   readonly renderApp: RenderApp
 }
 
-/** A cookie jar over a Node request/response — reads inbound cookies, buffers outbound `Set-Cookie`. */
+/**
+ * A cookie jar over a Node request/response — reads inbound cookies, buffers outbound
+ * `Set-Cookie`.
+ */
 function nodeJar(req: IncomingMessage): { jar: ServerSessionJar; cookies: string[] } {
   const inbound = parseCookieHeader(req.headers.cookie ?? "")
   const cookies: string[] = []
@@ -200,6 +207,7 @@ async function main(): Promise<void> {
           path: requestPath,
           cookieHeader: req.headers.cookie ?? "",
           httpClient,
+          stylesheets: [STYLESHEET_ENTRY],
           clientEntry: CLIENT_ENTRY,
           readSession: auth.read,
         })
@@ -222,9 +230,18 @@ async function main(): Promise<void> {
   // Run Vite's HMR socket over this same HTTP server instead of its own standalone port. In
   // middleware mode Vite otherwise opens a separate WebSocket server that this harness never
   // closes, so a `^C` orphans it and the next start fails with `EADDRINUSE` on the HMR port.
+  // The mock backend that serves the browser's `/api/*` calls is wired here (not in `vite.config`)
+  // so its order-write authorizer verifies cookies under the *same* `SIGNING_KEY` the session flow
+  // signs with — a config-time authorizer would resolve its own key and reject every real session.
   vite = await createViteServer({
     server: { middlewareMode: true, hmr: { server } },
     appType: "custom",
+    plugins: [
+      mockServerPlugin(
+        createMockApi({ authorizeOrderMutation: createOrderMutationAuthorizer(auth.read) })
+          .handlers,
+      ),
+    ],
   })
 
   // Close Vite (and its HMR socket) with the process so nothing is left bound after shutdown.

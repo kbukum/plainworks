@@ -14,6 +14,7 @@ import { renderApp } from "./render"
 
 const handle = createMockServerHandle({ seed: 7 })
 const CLIENT_ENTRY = "/src/client/entry-client.tsx"
+const STYLESHEET_ENTRY = "/src/client/styles.css"
 const REDIRECT_URI = "https://showcase.test/auth/callback"
 
 let auth: ShowcaseAuth
@@ -31,6 +32,7 @@ function render(path: string, cookieHeader: string) {
     cookieHeader,
     httpClient,
     clientEntry: CLIENT_ENTRY,
+    stylesheets: [STYLESHEET_ENTRY],
     readSession: auth.read,
   })
 }
@@ -150,6 +152,15 @@ describe("server render", () => {
     expect(light.html).toContain('<html lang="en" class="theme-emerald">')
   })
 
+  it("loads the compiled stylesheet before the first body paint", async () => {
+    const { html } = await render("/tasks", sessionCookie)
+    const stylesheet = `<link rel="stylesheet" href="${STYLESHEET_ENTRY}" />`
+
+    expect(html).toContain(stylesheet)
+    expect(html.indexOf(stylesheet)).toBeLessThan(html.indexOf("<body>"))
+    expect(html.indexOf(stylesheet)).toBeLessThan(html.indexOf(`src="${CLIENT_ENTRY}"`))
+  })
+
   it("falls back to the default theme when no theme cookie is present", async () => {
     const { html } = await render("/tasks", sessionCookie)
     // Default is `{ mode: "system", colorScheme: "indigo" }`; system resolves light server-side.
@@ -164,5 +175,42 @@ describe("server render", () => {
     expect(status).toBe(200)
     expect(html).toContain(">Tasks</h1>")
     expect(html).not.toContain(">Overview</h1>")
+  })
+})
+
+describe("section prefetch", () => {
+  const cookie = (): string => `${themeCookie("light", "indigo")}; ${sessionCookie}`
+
+  it("prefetches the orders list into the hydration cache for /orders", async () => {
+    const seeded = handle.api.stores.orders.getAll()
+    const { status, html } = await render("/orders", cookie())
+
+    expect(status).toBe(200)
+    expect(html).toContain(">Orders</h1>")
+    expect(html).toContain(`id="${QUERY_STATE_SCRIPT_ID}"`)
+    expect(seeded.length).toBeGreaterThan(0)
+    expect(seeded.some((order) => html.includes(order.customerName))).toBe(true)
+  })
+
+  it("prefetches the products list into the hydration cache for /products", async () => {
+    const seeded = handle.api.stores.products.getAll()
+    const { status, html } = await render("/products", cookie())
+
+    expect(status).toBe(200)
+    expect(html).toContain(">Products</h1>")
+    expect(html).toContain(`id="${QUERY_STATE_SCRIPT_ID}"`)
+    expect(seeded.length).toBeGreaterThan(0)
+    expect(seeded.some((product) => html.includes(product.name))).toBe(true)
+  })
+
+  it("prefetches the users list into the hydration cache for /users", async () => {
+    const seeded = handle.api.stores.users.getAll()
+    const { status, html } = await render("/users", cookie())
+
+    expect(status).toBe(200)
+    expect(html).toContain(">Users</h1>")
+    expect(html).toContain(`id="${QUERY_STATE_SCRIPT_ID}"`)
+    expect(seeded.length).toBeGreaterThan(0)
+    expect(seeded.some((user) => html.includes(user.email))).toBe(true)
   })
 })

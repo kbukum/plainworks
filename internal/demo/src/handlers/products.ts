@@ -36,6 +36,8 @@ export function createProductHandlers(
     clock,
     inputSpec: PRODUCT_INPUT_SPEC,
     searchFields: ["name", "description", "category"],
+    filterFields: ["category", "status", "price"],
+    facetFields: ["category", "status"],
     sortFields: ["name", "category", "price", "stock", "createdAt"],
   })
 }

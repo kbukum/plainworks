@@ -61,6 +61,7 @@ describe("hydration", () => {
       path: "/tasks",
       cookieHeader: themeCookie("light", "indigo"),
       httpClient: createHttpClient({ baseUrl: "http://showcase.test" }),
+      stylesheets: ["/src/client/styles.css"],
       clientEntry: CLIENT_ENTRY,
       readSession: async () => ({ authenticated: true, subject: "user-123", name: "Ada" }),
     })

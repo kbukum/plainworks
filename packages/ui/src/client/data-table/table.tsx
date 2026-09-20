@@ -217,7 +217,7 @@ function DataTableHeaderRow(): ReactElement {
 function DataTableHeaderCell({ column }: { readonly column: DataTableHeaderModel }): ReactElement {
   const { requestSort, icons, labels } = useDataTableContext()
   const alignClass = ALIGN_CLASS[column.align]
-  const priorityClass = column.priority === "low" ? "@max-sm:hidden" : undefined
+  const priorityClass = column.priority === "low" ? "@max-2xl:hidden" : undefined
 
   if (!column.sortable) {
     return (
@@ -276,7 +276,7 @@ function DataTableBody(): ReactElement {
             {columns.map((column) => (
               <TableCell
                 key={column.id}
-                className={cn("whitespace-normal", column.priority === "low" && "@max-sm:hidden")}
+                className={cn("whitespace-normal", column.priority === "low" && "@max-2xl:hidden")}
               >
                 <Skeleton className="h-4 w-full motion-reduce:animate-none" />
               </TableCell>
@@ -333,7 +333,7 @@ function DataTableRow({ row }: { readonly row: DataTableRowModel }): ReactElemen
           className={cn(
             ALIGN_CLASS[cell.align],
             "whitespace-normal break-words",
-            cell.priority === "low" && "@max-sm:hidden",
+            cell.priority === "low" && "@max-2xl:hidden",
           )}
         >
           {cell.content}

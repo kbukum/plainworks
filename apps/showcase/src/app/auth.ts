@@ -7,7 +7,13 @@
 // smoke test), so the render graph never imports the dev/test provider.
 
 import { type Capability, defineCapability } from "@plainworks/app"
-import { ANONYMOUS_AUTH, type AuthSnapshot, defaultAuthCrypto } from "@plainworks/auth"
+import {
+  ANONYMOUS_AUTH,
+  type AuthSnapshot,
+  decodeSession,
+  defaultAuthCrypto,
+  type SessionCodec,
+} from "@plainworks/auth"
 import {
   createServerSession,
   hmacSessionSigner,
@@ -24,7 +30,7 @@ import {
   systemClock,
   type WebFetch,
 } from "@plainworks/std"
-import { AUTH_CAPABILITY_ID, LOGIN_PATH } from "./constants"
+import { AUTH_CAPABILITY_ID, LOGIN_PATH, SESSION_COOKIE, SESSION_COOKIE_NAME } from "./constants"
 
 /** The value persisted in the signed session cookie — identity only, never a token. */
 export interface ShowcaseSessionValue {
@@ -42,6 +48,48 @@ const sessionSchema: StandardSchemaV1<unknown, ShowcaseSessionValue> = guardSche
     isAbsentOr(value.name, (name) => typeof name === "string"),
   "session cookie payload is not a valid showcase session",
 )
+
+// Absolute session lifetime stamped onto a freshly minted cookie. Decode reads expiry from the
+// envelope itself, so this bound only matters when signing; the read seam ignores it.
+const SESSION_TTL_SECONDS = 60 * 60 * 8
+
+/**
+ * The session codec — the HMAC signer plus the session schema — behind both the verified read seam
+ * and any BFF-side minting. Building it from just the signing key lets a server boundary verify (or
+ * mint) the exact cookies the login flow signs without assembling the OIDC adapter.
+ */
+export function showcaseSessionCodec(
+  signingKey: Uint8Array,
+): SessionCodec<StandardSchemaV1<unknown, ShowcaseSessionValue>> {
+  return {
+    signer: hmacSessionSigner({ keys: [signingKey] }),
+    schema: sessionSchema,
+    clock: systemClock,
+    ttlSeconds: SESSION_TTL_SECONDS,
+  }
+}
+
+/**
+ * A verified session reader built from just the signing key — the HMAC signer and session codec,
+ * no OIDC adapter — so a server boundary that only needs to authenticate a request (the order-write
+ * authorizer) can verify-at-read the exact cookies the BFF signed. A tampered, forged, expired, or
+ * absent cookie resolves to the anonymous snapshot rather than throwing.
+ */
+export function showcaseSessionReader(signingKey: Uint8Array): ReadShowcaseSession {
+  const codec = showcaseSessionCodec(signingKey)
+  return async (cookieHeader) => {
+    const raw = parseCookieHeader(cookieHeader).get(SESSION_COOKIE)
+    if (raw === undefined) {
+      return ANONYMOUS_AUTH
+    }
+    try {
+      const value = await decodeSession(codec, raw)
+      return { authenticated: true, subject: value.subject, name: value.name ?? null }
+    } catch {
+      return ANONYMOUS_AUTH
+    }
+  }
+}
 
 /** How to build the showcase's server session — the IdP `fetch` and endpoints are injected. */
 export interface ShowcaseAuthConfig {
@@ -87,6 +135,7 @@ export function createShowcaseAuth(config: ShowcaseAuthConfig): ShowcaseAuth {
     adapter,
     signer,
     sessionSchema,
+    cookieName: SESSION_COOKIE_NAME,
     toSessionValue: (result) => {
       const name = result.identity.claims.name
       return { subject: result.identity.subject, ...(typeof name === "string" ? { name } : {}) }

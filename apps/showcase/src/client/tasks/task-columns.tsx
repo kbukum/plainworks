@@ -41,6 +41,7 @@ export function taskColumns({ onEdit }: TaskColumnsOptions = {}): DataTableColum
       id: "priority",
       header: "Priority",
       sortable: true,
+      priority: "low",
       cell: (task) => (
         <Badge variant={PRIORITY_TONE[task.priority]}>{PRIORITY_LABEL[task.priority]}</Badge>
       ),
@@ -48,6 +49,7 @@ export function taskColumns({ onEdit }: TaskColumnsOptions = {}): DataTableColum
     {
       id: "assignee",
       header: "Assignee",
+      priority: "low",
       cell: (task) => task.assigneeName ?? "Unassigned",
     },
     {

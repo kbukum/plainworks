@@ -8,6 +8,15 @@ import type { ListQueryParams } from "@plainworks/query"
 /** Resource name the tasks list query key is scoped to. */
 export const TASKS_RESOURCE = "tasks"
 
+/** Resource name the orders list query key is scoped to. */
+export const ORDERS_RESOURCE = "orders"
+
+/** Resource name the products list query key is scoped to. */
+export const PRODUCTS_RESOURCE = "products"
+
+/** Resource name the users directory query key is scoped to. */
+export const USERS_RESOURCE = "users"
+
 /** The initial Tasks list request — server-prefetched and client-hydrated under one key. */
 export const TASK_LIST_PARAMS: ListQueryParams = {
   page: 1,
@@ -24,6 +33,33 @@ export const RECENT_ACTIVITY_PARAMS: ListQueryParams = {
   order: "desc",
 }
 
+/** The initial Orders list request — newest first, with status facet counts. */
+export const ORDER_LIST_PARAMS: ListQueryParams = {
+  page: 1,
+  pageSize: 8,
+  sortBy: "createdAt",
+  order: "desc",
+  facets: ["status"],
+}
+
+/** The initial Products list request — newest first, with category and status facet counts. */
+export const PRODUCT_LIST_PARAMS: ListQueryParams = {
+  page: 1,
+  pageSize: 12,
+  sortBy: "createdAt",
+  order: "desc",
+  facets: ["category", "status"],
+}
+
+/** The initial Users directory request — alphabetical, with role/status/department facet counts. */
+export const USER_LIST_PARAMS: ListQueryParams = {
+  page: 1,
+  pageSize: 10,
+  sortBy: "name",
+  order: "asc",
+  facets: ["role", "status", "department"],
+}
+
 /** Query key the Overview summary statistics are cached under. */
 export const OVERVIEW_STATS_KEY = ["overview", "stats"] as const
 
@@ -36,7 +72,19 @@ export const REVENUE_TREND_DAYS = 14
 /** Cookie the theme preference is persisted under so the server can render an explicit mode. */
 export const THEME_COOKIE = "theme"
 
-/** Locale the display value components format numbers and dates with, fixed for SSR/client parity. */
+/**
+ * Base name of the signed session cookie. `createServerSession` stores it with the `__Host-`
+ * prefix, so the browser cookie is {@link SESSION_COOKIE}. Pinned here so the auth composition and
+ * the server-side mutation authorizer agree on one name.
+ */
+export const SESSION_COOKIE_NAME = "session"
+
+/** The signed session cookie as written to the browser — `__Host-`-prefixed, secure-by-default. */
+export const SESSION_COOKIE = `__Host-${SESSION_COOKIE_NAME}`
+
+/**
+ * Locale the display value components format numbers and dates with, fixed for SSR/client parity.
+ */
 export const DISPLAY_LOCALE = "en-US"
 
 /** Time zone the display value components format dates in, fixed so SSR and hydration agree. */

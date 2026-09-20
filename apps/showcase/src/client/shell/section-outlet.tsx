@@ -11,6 +11,18 @@ const TasksSection = lazy(async () => {
   const module = await import("../tasks")
   return { default: module.TasksSection }
 })
+const OrdersSection = lazy(async () => {
+  const module = await import("../orders")
+  return { default: module.OrdersSection }
+})
+const ProductsSection = lazy(async () => {
+  const module = await import("../products")
+  return { default: module.ProductsSection }
+})
+const UsersSection = lazy(async () => {
+  const module = await import("../users")
+  return { default: module.UsersSection }
+})
 const SettingsSection = lazy(async () => {
   const module = await import("../theme-studio")
   return { default: module.ThemeStudio }
@@ -35,11 +47,24 @@ export function SectionOutlet({ section }: SectionOutletProps): ReactElement {
     case "tasks":
       content = <TasksSection />
       break
+    case "orders":
+      content = <OrdersSection />
+      break
+    case "products":
+      content = <ProductsSection />
+      break
+    case "users":
+      content = <UsersSection />
+      break
     case "settings":
       content = <SettingsSection announceError={false} />
       break
     default:
-      return <p className="text-muted-foreground">{section.summary}</p>
+      return (
+        <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-8 text-center shadow-xs">
+          <p className="text-muted-foreground">{section.summary}</p>
+        </div>
+      )
   }
   return (
     <Suspense

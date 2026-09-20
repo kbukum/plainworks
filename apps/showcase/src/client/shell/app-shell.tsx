@@ -11,19 +11,19 @@ import {
 import { cn } from "@plainworks/theme"
 import { useTheme } from "@plainworks/theme/client"
 import { Breadcrumbs, type BreadcrumbsProps } from "@plainworks/ui/navigation"
-import { ThemeToggle } from "@plainworks/ui/theme"
 import { Menu } from "lucide-react"
 import { type ReactElement, useEffect, useRef, useState } from "react"
 import { breadcrumbTrail, sectionForPath } from "../../app/navigation"
 import { CommandMenu } from "../command"
 import { routerLinkRender, useRouter } from "../router"
+import { ModeControl, THEME_ERROR_MESSAGE } from "../theme-studio"
 import { AccountMenu } from "./account-menu"
 import { SectionNav } from "./section-nav"
 import { SectionOutlet } from "./section-outlet"
 
 /**
  * The persistent application shell every section renders inside: a header (product mark, command
- * palette, theme toggle, account menu), a section navigation that is a rail on wide viewports and a
+ * palette, mode control, account menu), a section navigation that is a rail on wide viewports and a
  * disclosure drawer on narrow ones, and the main region with breadcrumbs, the section title, and
  * the active section's outlet. It owns no section state — the active section is derived from the
  * router path, so navigation, breadcrumbs, and title stay in sync from one source. The rail/drawer
@@ -32,7 +32,7 @@ import { SectionOutlet } from "./section-outlet"
  */
 export function AppShell(): ReactElement {
   const { path, navigate } = useRouter()
-  const { resolvedMode } = useTheme()
+  const { error, resolvedMode } = useTheme()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const isInitialRender = useRef(true)
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -86,7 +86,7 @@ export function AppShell(): ReactElement {
         <span className="font-semibold tracking-tight">plainworks</span>
         <div className="ml-auto flex items-center gap-2">
           <CommandMenu />
-          <ThemeToggle className="h-8 px-2 text-xs sm:h-9 sm:px-4 sm:text-sm" />
+          <ModeControl announceError={false} compact className="h-8 sm:h-9" />
           <AccountMenu />
         </div>
       </header>
@@ -110,6 +110,11 @@ export function AppShell(): ReactElement {
           >
             {active.label}
           </h1>
+          {error === undefined ? null : (
+            <p role="alert" className="mt-4 text-sm text-destructive">
+              {THEME_ERROR_MESSAGE}
+            </p>
+          )}
           <div className="mt-4">
             <SectionOutlet section={active} />
           </div>

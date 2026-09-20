@@ -4,7 +4,10 @@ import type { AppSnapshot } from "@plainworks/app"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import { createQueryClient, dehydrateClient, prefetchQuery } from "@plainworks/query"
+import type { StateSource } from "@plainworks/std"
+import { fakeStateSource } from "@plainworks/testkit"
 import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/client"
+import type { ThemePreference } from "@plainworks/theme"
 import { cleanup, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
@@ -52,12 +55,18 @@ const AUTHED: AppSnapshot = {
   },
 }
 
-async function renderShell(options: { snapshot?: AppSnapshot; initialPath?: string } = {}) {
-  const { snapshot = AUTHED, initialPath = "/tasks" } = options
+async function renderShell(
+  options: {
+    snapshot?: AppSnapshot
+    initialPath?: string
+    themeSource?: StateSource<ThemePreference>
+  } = {},
+) {
+  const { snapshot = AUTHED, initialPath = "/tasks", themeSource = createThemeSource() } = options
   const httpClient = createHttpClient({ baseUrl: "http://showcase.test" })
   const queryClient = createQueryClient()
   await prefetchQuery(queryClient, taskListPlan(httpClient, TASK_LIST_PARAMS))
-  const capabilities = buildClientCapabilities({ queryClient, themeSource: createThemeSource() })
+  const capabilities = buildClientCapabilities({ queryClient, themeSource })
   return render(
     <Showcase
       capabilities={capabilities}
@@ -132,6 +141,33 @@ describe("app shell", () => {
 
     expect(window.location.pathname).toBe("/")
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Overview")
+  })
+
+  it("renders the theme studio in Settings", async () => {
+    await renderShell({ initialPath: "/settings" })
+
+    expect(await screen.findByRole("heading", { level: 2, name: "Appearance" })).toBeDefined()
+    expect(screen.getByRole("region", { name: "Theme preview" })).toBeDefined()
+  })
+
+  it("announces one theme-source failure from the composed Settings page", async () => {
+    const user = userEvent.setup()
+    const initial = { mode: "light", colorScheme: "indigo" } as const
+    const themeSource = fakeStateSource<ThemePreference>({
+      initial,
+      setError: new Error("write failed"),
+    })
+    await renderShell({ initialPath: "/settings", themeSource })
+    const main = screen.getByRole("main")
+    await within(main).findByRole("heading", { level: 2, name: "Appearance" })
+
+    await user.click(within(main).getByRole("button", { name: "Dark" }))
+
+    const alerts = await screen.findAllByRole("alert")
+    expect(alerts).toHaveLength(1)
+    expect(alerts[0]?.textContent).toBe(
+      "Theme preferences could not be loaded or saved. Try again.",
+    )
   })
 
   it("opens the mobile drawer and navigates from it, then closes", async () => {

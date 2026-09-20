@@ -11,6 +11,10 @@ const TasksSection = lazy(async () => {
   const module = await import("../tasks")
   return { default: module.TasksSection }
 })
+const SettingsSection = lazy(async () => {
+  const module = await import("../theme-studio")
+  return { default: module.ThemeStudio }
+})
 
 /** Props for {@link SectionOutlet}. */
 export interface SectionOutletProps {
@@ -19,9 +23,8 @@ export interface SectionOutletProps {
 }
 
 /**
- * The active section's body renders here, inside the shell frame. The two built sections — Overview
- * and Tasks — render their real surfaces; every other section shows its one-line summary until it
- * is built.
+ * The active section's body renders here, inside the shell frame. Built sections render their real
+ * surfaces; every other section shows its one-line summary until it is built.
  */
 export function SectionOutlet({ section }: SectionOutletProps): ReactElement {
   let content: ReactElement
@@ -31,6 +34,9 @@ export function SectionOutlet({ section }: SectionOutletProps): ReactElement {
       break
     case "tasks":
       content = <TasksSection />
+      break
+    case "settings":
+      content = <SettingsSection announceError={false} />
       break
     default:
       return <p className="text-muted-foreground">{section.summary}</p>

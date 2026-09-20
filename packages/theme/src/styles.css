@@ -145,7 +145,12 @@
   --pw-neutral-900: oklch(0.21 0.006 286);
   --pw-neutral-950: oklch(0.141 0.005 286);
 
-  --pw-danger: oklch(0.58 0.22 27);
+  /*
+   * Kept dark enough that the toned destructive badge (`text-destructive` on a `destructive/10`
+   * tint) still clears WCAG 2.2 AA 4.5:1 on a light card; a lighter red drops the tinted text
+   * below the threshold.
+   */
+  --pw-danger: oklch(0.52 0.22 27);
   --pw-danger-dark: oklch(0.7 0.19 22);
 }
 
@@ -154,6 +159,7 @@
  * roles (`--pw-primary*`, `--pw-ring`) default to neutral and are overridden per `.theme-*` below.
  */
 :root {
+  color-scheme: light;
   --pw-background: var(--pw-white);
   --pw-foreground: var(--pw-neutral-900);
   --pw-card: var(--pw-white);
@@ -178,6 +184,7 @@
 
 /* Tier 2 - semantic roles (dark): remap the scheme-independent neutrals for the dark surface. */
 .dark {
+  color-scheme: dark;
   --pw-background: var(--pw-neutral-950);
   --pw-foreground: var(--pw-neutral-50);
   --pw-card: var(--pw-neutral-900);
@@ -319,8 +326,10 @@
   *::before,
   *::after {
     scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
     animation-iteration-count: 1 !important;
   }
 }

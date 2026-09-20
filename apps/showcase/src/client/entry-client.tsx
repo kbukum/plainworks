@@ -3,6 +3,7 @@
 import "./styles.css"
 
 import { deserializeSnapshot } from "@plainworks/app"
+import { createHttpClient } from "@plainworks/http"
 import { createQueryClient, type DehydratedState } from "@plainworks/query"
 import { hydrateRoot } from "react-dom/client"
 import { QUERY_STATE_SCRIPT_ID, ROOT_ELEMENT_ID, SNAPSHOT_SCRIPT_ID } from "../app/constants"
@@ -33,9 +34,11 @@ function hydrate(): void {
   const dehydratedState = JSON.parse(readEmbedded(QUERY_STATE_SCRIPT_ID)) as DehydratedState
 
   // One query client and one theme source — built once at startup for the browser (never a
-  // module-level singleton), mirroring the per-request build on the server.
+  // module-level singleton), mirroring the per-request build on the server. The HTTP client reads
+  // the app's own origin, so every `/api/*` read lands on the backend the SSR prefetch used.
   const queryClient = createQueryClient()
   const themeSource = createThemeSource()
+  const httpClient = createHttpClient({ baseUrl: window.location.origin })
   const capabilities = buildClientCapabilities({ queryClient, themeSource })
 
   hydrateRoot(
@@ -45,6 +48,7 @@ function hydrate(): void {
       snapshot={snapshot}
       dehydratedState={dehydratedState}
       initialPath={window.location.pathname}
+      httpClient={httpClient}
     />,
   )
 }

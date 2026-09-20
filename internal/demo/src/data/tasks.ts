@@ -14,7 +14,7 @@ import {
   randomElements,
   randomInt,
 } from "@plainworks/mocks"
-import type { CreateTaskInput, Task } from "../types"
+import { type CreateTaskInput, TASK_PRIORITIES, type Task } from "../types"
 
 const TASK_TITLES = [
   "Review pull request",
@@ -32,7 +32,6 @@ const TASK_TITLES = [
 ]
 const TASK_TAGS = ["frontend", "backend", "bug", "feature", "docs", "urgent", "blocked"]
 const STATUSES: Task["status"][] = ["todo", "in-progress", "done", "blocked"]
-const PRIORITIES: Task["priority"][] = ["low", "medium", "high"]
 
 function createTaskEntity(sources: FixtureSources, input?: Partial<CreateTaskInput>): Task {
   const { rng, clock, nextId } = sources
@@ -43,7 +42,7 @@ function createTaskEntity(sources: FixtureSources, input?: Partial<CreateTaskInp
     title,
     description: input?.description || `Details for: ${title}`,
     status: input?.status || randomElement(rng, STATUSES),
-    priority: input?.priority || randomElement(rng, PRIORITIES),
+    priority: input?.priority || randomElement(rng, TASK_PRIORITIES),
     assigneeId: input?.assigneeId || (randomBoolean(rng, 0.7) ? nextId("user") : undefined),
     assigneeName: randomBoolean(rng, 0.7) ? `User ${randomInt(rng, 1, 10)}` : undefined,
     dueDate:

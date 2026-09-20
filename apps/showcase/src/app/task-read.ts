@@ -12,46 +12,17 @@ import {
   listQueryOptions,
   type PaginatedResult,
 } from "@plainworks/query"
-import {
-  guardSchema,
-  isAbsentOr,
-  isNonEmptyString,
-  isOneOf,
-  isPaginatedResult,
-  isRecord,
-  type WebAbortSignal,
-} from "@plainworks/std"
+import { guardSchema, isPaginatedResult, type WebAbortSignal } from "@plainworks/std"
 import { TASKS_RESOURCE } from "./constants"
+import { isTask } from "./task-shape"
 
 type HttpClient = ReturnType<typeof createHttpClient>
-
-const TASK_STATUSES: readonly Task["status"][] = ["todo", "in-progress", "done", "blocked"]
-const TASK_PRIORITIES: readonly Task["priority"][] = ["low", "medium", "high"]
-
-// A sound `Task` guard: required fields, enum membership for status/priority, and every optional
-// field type-checked when present — a malformed row never crosses as a typed `Task`.
-function isTaskRow(value: unknown): value is Task {
-  return (
-    isRecord(value) &&
-    isNonEmptyString(value.id) &&
-    isNonEmptyString(value.title) &&
-    isOneOf(value.status, TASK_STATUSES) &&
-    isOneOf(value.priority, TASK_PRIORITIES) &&
-    typeof value.createdAt === "string" &&
-    typeof value.updatedAt === "string" &&
-    isAbsentOr(value.description, (v) => typeof v === "string") &&
-    isAbsentOr(value.assigneeId, (v) => typeof v === "string") &&
-    isAbsentOr(value.assigneeName, (v) => typeof v === "string") &&
-    isAbsentOr(value.dueDate, (v) => typeof v === "string") &&
-    isAbsentOr(value.tags, (v) => Array.isArray(v) && v.every((tag) => typeof tag === "string"))
-  )
-}
 
 // The response validation boundary: the mock's decoded `unknown` body must satisfy the list
 // contract's own envelope guard — every row sound, the pagination block complete, a present
 // `facets` block well-formed — or the read fails instead of trusting a fabricated shape.
 const taskPageSchema = guardSchema<PaginatedResult<Task>>(
-  (value): value is PaginatedResult<Task> => isPaginatedResult(value, isTaskRow),
+  (value): value is PaginatedResult<Task> => isPaginatedResult(value, isTask),
   "response is not a PaginatedResult<Task>",
 )
 

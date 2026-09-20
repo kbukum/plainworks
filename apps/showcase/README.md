@@ -10,7 +10,7 @@ bun run --filter @plainworks/showcase test     # vitest (SSR + hydration + live-
 bun run --filter @plainworks/showcase e2e      # Playwright + axe browser a11y gate (needs deps built)
 ```
 
-The showcase is a server-rendered **Tasks dashboard**. It prefetches query data, hydrates without a mismatch, applies the theme before paint, routes live events into state and cache updates, and uses the host's router-aware breadcrumb link.
+The showcase is a server-rendered dashboard with **Overview** and **Tasks** sections. It prefetches query data, hydrates without a mismatch, applies the theme before paint, reconciles live task events through the active query cache, and uses the host's router-aware breadcrumb link.
 
 The dev backend is the mocks package: `mockServerPlugin(createMockApi().handlers)` serves `/api/*` in Vite, and the same `createMockApi` handlers drive the SSR server and the tests (MSW, `onUnhandledRequest: "error"`) — no real network in any path.
 
@@ -19,7 +19,8 @@ The dev backend is the mocks package: `mockServerPlugin(createMockApi().handlers
 - **Composition through the kernel, host-first.** `createApp` on the neutral half resolves an `AppSnapshot`; `serializeSnapshot` embeds it; `deserializeSnapshot` + `AppProvider` on the client rebuild the exact provider tree. The *same* `<Showcase>` tree renders on the server (`renderToString`) and hydrates on the client (`hydrateRoot`) with zero React warnings.
 - **Server-resolved state reaches the client intact.** The serialized snapshot rides in the HTML and drives the client.
 - **Query prefetch survives SSR.** `prefetchQuery` + `dehydrateClient` on the server put the task rows straight into the server markup with no client refetch.
-- **One stream, two sinks, one contract.** A single `@plainworks/channel` stream, decoded once, folds through a unified `EventSink` into both a scoped state slot and the TanStack query cache.
+- **Controlled live task updates.** An `@plainworks/channel` stream validates each task event and reconciles it into the active TanStack query page. Updates that may change filtering, sorting, or pagination invalidate the query for a server-authoritative refresh, and the user can pause the stream.
+- **Real dashboard sections.** Overview combines independently prefetched summary, revenue, and recent-activity reads. Tasks demonstrates filtering, domain-aware sorting, pagination, authorized create/edit flows, and optimistic cache updates.
 - **Zero-flash theme.** `resolveTheme` runs on the server from the theme cookie and writes the class onto `<html>` before any script runs; `ThemeProvider` reapplies it without a mismatch, and falls back to the default theme when no cookie is present.
 - **Router-aware navigation via the ui injection point.** The breadcrumb's `render` prop takes the app's own link, which intercepts a plain left click and routes client-side while staying a real, keyboard-operable `<a href>` with no axe violations.
 
@@ -34,7 +35,7 @@ The dev backend is the mocks package: `mockServerPlugin(createMockApi().handlers
 
 | Path | Responsibility |
 |---|---|
-| `src/app` | Host-neutral snapshot creation, task reads, validation, and theme resolution. |
+| `src/app` | Host-neutral snapshot creation, overview/task reads, validation, cache reconciliation, and theme resolution. |
 | `src/server` | Server rendering and the HTML shell. |
 | `src/client` | The shared render tree, client capabilities, live stream, router, and styles. |
 | `src/entry-server.tsx` | SSR entry used by the development server and tests. |

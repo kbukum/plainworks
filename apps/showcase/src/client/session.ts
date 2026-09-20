@@ -14,8 +14,15 @@ export const { SessionProvider, useSession, useIdentity, useIsAuthenticated } = 
 // `Can` for a single decision. UX affordances only; the server session gate is the real boundary.
 export const { RequireAuth, Can } = createAuthGates(session)
 
-// A default-deny policy: only a caller whose identity carries a name may manage their account. The
-// showcase's demo user has one; a guest does not, so the affordance is hidden by default.
-export const canManageAccount = createAllowListPolicy({
-  rules: [requireClaim("name", (value) => typeof value === "string" && value.length > 0)],
-})
+// A named identity is the single rule that gates managing your account and your tasks: the demo
+// user carries a `name` claim, a guest does not, so these affordances stay hidden by default.
+export function hasName(value: unknown): boolean {
+  return typeof value === "string" && value.length > 0
+}
+
+const requiresName = requireClaim("name", hasName)
+
+// Default-deny policies over that one rule. Both read the same predicate, so a change to who may
+// manage tasks is made in exactly one place.
+export const canManageAccount = createAllowListPolicy({ rules: [requiresName] })
+export const canManageTasks = createAllowListPolicy({ rules: [requiresName] })

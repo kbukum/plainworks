@@ -21,7 +21,7 @@ export function randomFloat(rng: RandomSource, min: number, max: number, decimal
 }
 
 /** Pick one element from a non-empty array. */
-export function randomElement<T>(rng: RandomSource, array: T[]): T {
+export function randomElement<T>(rng: RandomSource, array: readonly T[]): T {
   if (array.length === 0) {
     throw new RangeError("randomElement requires a non-empty array")
   }
@@ -34,7 +34,7 @@ export function randomElement<T>(rng: RandomSource, array: T[]): T {
 }
 
 /** Pick `count` distinct elements (unbiased partial Fisher–Yates shuffle). */
-export function randomElements<T>(rng: RandomSource, array: T[], count: number): T[] {
+export function randomElements<T>(rng: RandomSource, array: readonly T[], count: number): T[] {
   if (!Number.isInteger(count) || count < 0) {
     throw new RangeError("randomElements requires a non-negative integer count")
   }

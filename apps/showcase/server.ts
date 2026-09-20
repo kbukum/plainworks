@@ -19,7 +19,7 @@ import { createMockServer } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import { parseCookieHeader } from "@plainworks/std"
 import { createMockIdp } from "@plainworks/testkit"
-import { createServer as createViteServer } from "vite"
+import { createServer as createViteServer, type ViteDevServer } from "vite"
 import { createShowcaseAuth } from "./src/app/auth"
 import { AUTH_CALLBACK_PATH, LOGIN_PATH, LOGOUT_PATH } from "./src/app/constants"
 import type { RenderApp } from "./src/entry-server"
@@ -74,10 +74,7 @@ async function main(): Promise<void> {
     signingKey: SIGNING_KEY,
   })
 
-  const vite = await createViteServer({
-    server: { middlewareMode: true },
-    appType: "custom",
-  })
+  let vite: ViteDevServer
 
   async function handleAuthRoute(
     req: IncomingMessage,
@@ -182,6 +179,23 @@ async function main(): Promise<void> {
       }
     })
   })
+
+  // Run Vite's HMR socket over this same HTTP server instead of its own standalone port. In
+  // middleware mode Vite otherwise opens a separate WebSocket server that this harness never
+  // closes, so a `^C` orphans it and the next start fails with `EADDRINUSE` on the HMR port.
+  vite = await createViteServer({
+    server: { middlewareMode: true, hmr: { server } },
+    appType: "custom",
+  })
+
+  // Close Vite (and its HMR socket) with the process so nothing is left bound after shutdown.
+  for (const signal of ["SIGINT", "SIGTERM"] as const) {
+    process.once(signal, () => {
+      void vite.close().finally(() => {
+        server.close(() => process.exit(0))
+      })
+    })
+  }
 
   server.listen(PORT, HOST, () => {
     process.stdout.write(`showcase dev server on http://${HOST}:${PORT}\n`)

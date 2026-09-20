@@ -24,9 +24,8 @@ import { themeServerCapability } from "../app/create-showcase-app"
 import { taskListPlan } from "../app/task-read"
 import { resolveHtmlClass } from "../app/theme"
 import { buildClientCapabilities } from "../client/capabilities"
-import { createDemoTransport } from "../client/live-stream"
 import { Showcase } from "../client/showcase"
-import { createLiveTasksSource, createThemeSource } from "../client/sources"
+import { createThemeSource } from "../client/sources"
 import { renderHtmlShell } from "./html-shell"
 
 /** Everything one SSR request needs. */
@@ -83,7 +82,6 @@ export async function renderApp(input: RenderInput): Promise<RenderResult> {
   const dehydratedState = dehydrateClient(queryClient, { shouldDehydrateQuery: () => true })
 
   const themeSource = createThemeSource()
-  const liveSource = createLiveTasksSource()
   const capabilities = buildClientCapabilities({ queryClient, themeSource })
 
   const pathname = new URL(input.path, "http://localhost").pathname
@@ -92,10 +90,7 @@ export async function renderApp(input: RenderInput): Promise<RenderResult> {
       capabilities={capabilities}
       snapshot={snapshot}
       dehydratedState={dehydratedState}
-      httpClient={input.httpClient}
-      liveSource={liveSource}
       initialPath={pathname}
-      transport={createDemoTransport()}
     />,
   )
 

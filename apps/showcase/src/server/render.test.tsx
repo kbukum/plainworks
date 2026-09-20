@@ -3,7 +3,7 @@ import { createHttpClient } from "@plainworks/http"
 import { createMockIdp } from "@plainworks/testkit"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { createShowcaseAuth, type ShowcaseAuth } from "../app/auth"
-import { SNAPSHOT_SCRIPT_ID, THEME_COOKIE } from "../app/constants"
+import { QUERY_STATE_SCRIPT_ID, SNAPSHOT_SCRIPT_ID, THEME_COOKIE } from "../app/constants"
 import { renderApp } from "./render"
 
 // The SSR render proven the way a consumer assembles the kit: the composition kernel resolves the
@@ -130,12 +130,13 @@ describe("server render", () => {
     expect(html).toContain('"mode":"dark"')
   })
 
-  it("renders the query-prefetched task rows into the server markup (no client refetch needed)", async () => {
+  it("embeds the query-prefetched task list in the hydration cache (no client refetch needed)", async () => {
     const seeded = handle.api.stores.tasks.getAll()
     const { html } = await render("/tasks", `${themeCookie("light", "indigo")}; ${sessionCookie}`)
 
-    // At least one seeded task title appears in the server HTML, proving the prefetched cache
-    // rendered on the server — the list is warm before the browser boots.
+    // At least one seeded task title rides the embedded dehydrated cache, proving the prefetch ran
+    // on the server — the list is warm in the serialized cache before the browser boots.
+    expect(html).toContain(`id="${QUERY_STATE_SCRIPT_ID}"`)
     expect(seeded.length).toBeGreaterThan(0)
     expect(seeded.some((task) => html.includes(task.title))).toBe(true)
   })
@@ -161,7 +162,7 @@ describe("server render", () => {
       `${themeCookie("light", "indigo")}; ${sessionCookie}`,
     )
     expect(status).toBe(200)
-    expect(html).toContain("<h1>Tasks</h1>")
-    expect(html).not.toContain("<h1>Overview</h1>")
+    expect(html).toContain(">Tasks</h1>")
+    expect(html).not.toContain(">Overview</h1>")
   })
 })

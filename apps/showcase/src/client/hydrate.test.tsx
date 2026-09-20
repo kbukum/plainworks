@@ -4,6 +4,7 @@ import { deserializeSnapshot } from "@plainworks/app"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import { createQueryClient, type DehydratedState } from "@plainworks/query"
+import { installMatchMedia } from "@plainworks/testkit/client"
 import { act } from "react"
 import { hydrateRoot } from "react-dom/client"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
@@ -15,9 +16,8 @@ import {
 } from "../app/constants"
 import { renderApp } from "../server/render"
 import { buildClientCapabilities } from "./capabilities"
-import { createDemoTransport } from "./live-stream"
 import { Showcase } from "./showcase"
-import { createLiveTasksSource, createThemeSource } from "./sources"
+import { createThemeSource } from "./sources"
 
 // Proves the zero-mismatch contract end to end: the server markup and the client's first render of
 // the SAME `<Showcase>` tree — hydrated from the SAME embedded snapshot and dehydrated cache —
@@ -45,18 +45,8 @@ function readEmbedded(id: string): string {
 
 beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
 beforeEach(() => {
-  // jsdom has no `matchMedia`; the theme provider reads it in an effect. A stable light default
-  // matches the server's light-first resolution, so the effect cannot introduce a mismatch.
-  vi.stubGlobal("matchMedia", (query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    addListener: () => {},
-    removeListener: () => {},
-    dispatchEvent: () => false,
-  }))
+  // jsdom has no `matchMedia`; install the shared deterministic fake.
+  installMatchMedia()
 })
 afterEach(() => {
   handle.server.resetHandlers()
@@ -98,7 +88,6 @@ describe("hydration", () => {
       queryClient: createQueryClient(),
       themeSource: createThemeSource(),
     })
-    const liveSource = createLiveTasksSource()
 
     const rootHandle = await act(async () =>
       hydrateRoot(
@@ -107,10 +96,7 @@ describe("hydration", () => {
           capabilities={capabilities}
           snapshot={snapshot}
           dehydratedState={dehydratedState}
-          httpClient={createHttpClient({ baseUrl: "http://showcase.test" })}
-          liveSource={liveSource}
           initialPath="/tasks"
-          transport={createDemoTransport()}
         />,
       ),
     )

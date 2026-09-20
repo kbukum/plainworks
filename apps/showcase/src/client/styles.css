@@ -6,3 +6,9 @@
  */
 @import "@plainworks/theme/styles.css";
 @import "@plainworks/ui/styles.css";
+
+@layer base {
+  html {
+    scroll-padding-block-start: 4rem;
+  }
+}

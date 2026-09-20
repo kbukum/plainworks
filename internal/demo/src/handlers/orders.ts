@@ -2,7 +2,12 @@
  * Order API handlers
  */
 
-import type { EntityFactory, EntityStore, LatencyController } from "@plainworks/mocks"
+import type {
+  EntityFactory,
+  EntityStore,
+  LatencyController,
+  MutationAuthorizer,
+} from "@plainworks/mocks"
 import { createCrudHandlers, type InputSpec } from "@plainworks/mocks"
 import type { Clock } from "@plainworks/std"
 import type { HttpHandler } from "msw"
@@ -30,6 +35,7 @@ export function createOrderHandlers(
   store: EntityStore<Order>,
   latency: LatencyController,
   clock: Clock,
+  authorize?: MutationAuthorizer,
 ): HttpHandler[] {
   return createCrudHandlers<Order, CreateOrderInput>({
     basePath: "/api/orders",
@@ -40,7 +46,10 @@ export function createOrderHandlers(
     clock,
     inputSpec: ORDER_INPUT_SPEC,
     searchFields: ["customerName", "customerEmail"],
+    filterFields: ["status"],
+    facetFields: ["status"],
     sortFields: ["customerName", "customerEmail", "total", "status", "createdAt"],
+    ...(authorize ? { authorize } : {}),
     applyUpdate: (current, updates) => {
       const merged = { ...current, ...updates }
       // Derived invariant: patching items must recompute the total.

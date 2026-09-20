@@ -284,3 +284,55 @@ describe("DELETE", () => {
     expect((await fetch(url("/api/widgets/nope"), { method: "DELETE" })).status).toBe(404)
   })
 })
+
+describe("mutation authorization", () => {
+  const authedStore = createStore(() => [{ ...seed()[0], id: "auth_0" } as Widget])
+  // Authorize on an explicit header so the seam is exercised without coupling the test to cookies.
+  const authorize = (request: Request): boolean => request.headers.get("x-authorized") === "yes"
+  const authedHandlers = createCrudHandlers<Widget, Partial<Widget>, WidgetUpdate>({
+    ...baseConfig,
+    basePath: "/api/authed",
+    entityName: "authed",
+    store: authedStore,
+    authorize,
+  })
+
+  beforeEach(() => {
+    authedStore.setAll([{ ...seed()[0], id: "auth_0" } as Widget])
+    server.use(...authedHandlers)
+  })
+
+  it("leaves reads open and rejects every mutation from an unauthorized caller (403)", async () => {
+    expect((await get("/api/authed")).status).toBe(200)
+
+    const post = await fetch(url("/api/authed"), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "x", category: "a", size: 1, active: true }),
+    })
+    expect(post.status).toBe(403)
+    const patchRes = await fetch(url("/api/authed/auth_0"), {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name: "y" }),
+    })
+    expect(patchRes.status).toBe(403)
+    const del = await fetch(url("/api/authed/auth_0"), { method: "DELETE" })
+    expect(del.status).toBe(403)
+
+    // The store is never touched, so the seam is authorization, not a decorative check.
+    expect(authedStore.getAll()).toHaveLength(1)
+    expect(authedStore.getAll()[0]?.name).toBe("widget-0")
+  })
+
+  it("serves a mutation for an authorized caller", async () => {
+    const patchRes = await fetch(url("/api/authed/auth_0"), {
+      method: "PATCH",
+      headers: { "content-type": "application/json", "x-authorized": "yes" },
+      body: JSON.stringify({ name: "renamed" }),
+    })
+    expect(patchRes.status).toBe(200)
+    const body = (await patchRes.json()) as { data: Widget }
+    expect(body.data.name).toBe("renamed")
+  })
+})

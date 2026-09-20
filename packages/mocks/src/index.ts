@@ -45,7 +45,12 @@ export {
 } from "./fixture"
 
 // Handler builders for custom entities and the control plane.
-export { type CrudHandlerConfig, createCrudHandlers, type InputSpec } from "./handlers/common"
+export {
+  type CrudHandlerConfig,
+  createCrudHandlers,
+  type InputSpec,
+  type MutationAuthorizer,
+} from "./handlers/common"
 export type {
   InternalState,
   MockControl,

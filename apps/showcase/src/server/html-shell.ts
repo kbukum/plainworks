@@ -17,6 +17,8 @@ export interface HtmlShellInput {
   readonly snapshotJson: string
   /** The JSON-encoded dehydrated query cache. */
   readonly queryJson: string
+  /** Stylesheet URLs loaded in the document head before the browser paints the server markup. */
+  readonly stylesheets: readonly string[]
   /** The client entry module URL the browser boots hydration from. */
   readonly clientEntry: string
 }
@@ -29,12 +31,17 @@ function embedJson(json: string): string {
 
 /** Assemble the full HTML document for one SSR response. */
 export function renderHtmlShell(input: HtmlShellInput): string {
+  const stylesheetLinks = input.stylesheets
+    .map((href) => `    <link rel="stylesheet" href="${href}" />`)
+    .join("\n")
+
   return `<!doctype html>
 <html lang="en" class="${input.htmlClass}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>plainworks reference dashboard</title>
+${stylesheetLinks}
   </head>
   <body>
     <div id="${ROOT_ELEMENT_ID}">${input.appHtml}</div>

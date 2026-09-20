@@ -245,15 +245,18 @@ describe("DataTable", () => {
   })
 
   it("hides low-priority columns in narrow container presentations", () => {
+    // Note: jsdom lacks a layout engine and cannot compute container query styles;
+    // computed responsive visibility across container thresholds is verified in Playwright
+    // browser tests (`apps/showcase/e2e/layout.spec.ts`).
     const responsiveColumns: DataTableColumn<Person>[] = [
       { id: "name", header: "Name", cell: (p) => p.name, priority: "high" },
       { id: "role", header: "Role", cell: (p) => p.role, priority: "low" },
     ]
     render(<DataTable columns={responsiveColumns} rows={people} getRowId={getRowId} />)
     const roleHeader = screen.getByRole("columnheader", { name: "Role" })
-    expect(roleHeader.className).toContain("@max-sm:hidden")
+    expect(roleHeader.className).toContain("@max-2xl:hidden")
     const cells = screen.getAllByRole("cell", { name: /Engineer|Researcher/ })
-    expect(cells[0]?.className).toContain("@max-sm:hidden")
+    expect(cells[0]?.className).toContain("@max-2xl:hidden")
   })
 
   it("aligns sortable header buttons according to column alignment", () => {

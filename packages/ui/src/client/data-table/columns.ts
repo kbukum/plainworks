@@ -29,7 +29,8 @@ export interface DataTableColumn<Row> {
   readonly align?: ColumnAlign
   /**
    * Display priority for container-query responsive presentation. When set to `low`, the column
-   * is hidden in narrow containers (`@max-sm:hidden`) to eliminate horizontal scrolling.
+   * is hidden below the wide-table threshold (`@max-2xl:hidden`) to eliminate horizontal
+   * scrolling before content becomes cramped.
    */
   readonly priority?: "high" | "low" | undefined
 }

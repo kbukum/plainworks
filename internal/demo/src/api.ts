@@ -20,6 +20,7 @@ import {
   type EntityStore,
   type LatencyController,
   type MockControl,
+  type MutationAuthorizer,
   type ReloadableFixtureSources,
 } from "@plainworks/mocks"
 import { type Clock, systemClock } from "@plainworks/std"
@@ -53,6 +54,12 @@ export interface MockApiOptions {
   /** Time source for fixture timestamps (defaults to the wall clock; inject a fixed clock for
    * fully reproducible fixtures). */
   clock?: Clock
+  /**
+   * Authorize order mutations (POST/PATCH/DELETE) at the server boundary — a denied request is
+   * answered with `403` before the store is touched, so a client gate stays a UX affordance. Omit
+   * to leave order writes open (the default; tests and other hosts need no session).
+   */
+  authorizeOrderMutation?: MutationAuthorizer
 }
 
 /** One isolated mock API: the MSW handlers plus programmatic access to its state. */
@@ -153,7 +160,13 @@ export function createMockApi(options: MockApiOptions = {}): MockApi {
       loggingHandler,
       ...createUserHandlers(userFactory, stores.users, latency, clock),
       ...createProductHandlers(productFactory, stores.products, latency, clock),
-      ...createOrderHandlers(orderFactory, stores.orders, latency, clock),
+      ...createOrderHandlers(
+        orderFactory,
+        stores.orders,
+        latency,
+        clock,
+        options.authorizeOrderMutation,
+      ),
       ...createTaskHandlers(taskFactory, stores.tasks, latency, clock),
       ...createNotificationHandlers(notificationFactory, stores.notifications, latency, clock),
       ...createDashboardHandlers(dashboardSources, latency),

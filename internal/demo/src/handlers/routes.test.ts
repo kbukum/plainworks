@@ -345,6 +345,41 @@ describe("crud list handler", () => {
     expect(highTasks.data.every((t) => t.priority === "high")).toBe(true)
   })
 
+  it("filters and facets orders by status", async () => {
+    const facetRes = await json<ListResponse>(await fetch(`${base}/api/orders?facets=status`))
+    expect(facetRes.facets?.status).toBeDefined()
+    const status = Object.keys(facetRes.facets?.status ?? {}).find((k) => k !== "_total")
+    expect(status).toBeDefined()
+
+    const filtered = await json<ListResponse>(
+      await fetch(`${base}/api/orders?filter=${encodeURIComponent(`status=eq.${status}`)}`),
+    )
+    expect(filtered.data.length).toBeGreaterThan(0)
+    expect(filtered.data.every((o) => o.status === status)).toBe(true)
+  })
+
+  it("filters products by category, status, and a price range", async () => {
+    const facetRes = await json<ListResponse>(
+      await fetch(`${base}/api/products?facets=category,status`),
+    )
+    expect(facetRes.facets?.category).toBeDefined()
+    expect(facetRes.facets?.status).toBeDefined()
+    const category = Object.keys(facetRes.facets?.category ?? {}).find((k) => k !== "_total")
+    expect(category).toBeDefined()
+
+    const byCategory = await json<ListResponse>(
+      await fetch(`${base}/api/products?filter=${encodeURIComponent(`category=eq.${category}`)}`),
+    )
+    expect(byCategory.data.length).toBeGreaterThan(0)
+    expect(byCategory.data.every((p) => p.category === category)).toBe(true)
+
+    const priced = await json<ListResponse>(
+      await fetch(`${base}/api/products?pageSize=50&price=gte.50&price=lte.100`),
+    )
+    expect(priced.data.length).toBeGreaterThan(0)
+    expect(priced.data.every((p) => Number(p.price) >= 50 && Number(p.price) <= 100)).toBe(true)
+  })
+
   it("sorts task priority by domain rank", async () => {
     const tasks = await json<ListResponse>(
       await fetch(`${base}/api/tasks?sortBy=priority&order=desc&pageSize=50`),

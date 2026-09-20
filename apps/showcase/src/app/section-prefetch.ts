@@ -7,10 +7,19 @@
 import type { HttpClient } from "@plainworks/http"
 import { prefetchQuery } from "@plainworks/query"
 import type { QueryClient } from "@tanstack/react-query"
-import { RECENT_ACTIVITY_PARAMS, TASK_LIST_PARAMS } from "./constants"
+import {
+  ORDER_LIST_PARAMS,
+  PRODUCT_LIST_PARAMS,
+  RECENT_ACTIVITY_PARAMS,
+  TASK_LIST_PARAMS,
+  USER_LIST_PARAMS,
+} from "./constants"
 import type { SectionId } from "./navigation"
+import { orderListPlan } from "./order-read"
 import { overviewStatsPlan, revenueTrendPlan } from "./overview-read"
+import { productListPlan } from "./product-read"
 import { taskListPlan } from "./task-read"
+import { userListPlan } from "./user-read"
 
 /** Prefetch the active section's queries into `queryClient` so its first paint needs no refetch. */
 export async function prefetchSection(
@@ -28,6 +37,15 @@ export async function prefetchSection(
       return
     case "tasks":
       await prefetchQuery(queryClient, taskListPlan(httpClient, TASK_LIST_PARAMS))
+      return
+    case "orders":
+      await prefetchQuery(queryClient, orderListPlan(httpClient, ORDER_LIST_PARAMS))
+      return
+    case "products":
+      await prefetchQuery(queryClient, productListPlan(httpClient, PRODUCT_LIST_PARAMS))
+      return
+    case "users":
+      await prefetchQuery(queryClient, userListPlan(httpClient, USER_LIST_PARAMS))
       return
     default:
       return

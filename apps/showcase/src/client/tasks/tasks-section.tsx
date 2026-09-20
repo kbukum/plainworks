@@ -129,11 +129,11 @@ export function TasksSection({ streamFactory }: TasksSectionProps): ReactElement
           }}
         />
 
-        <Card>
-          <CardHeader>
+        <Card className="min-w-0 border-border/70">
+          <CardHeader className="px-4 sm:px-6">
             <CardTitle>Tasks</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4">
+          <CardContent className="grid min-w-0 gap-4 px-4 sm:px-6">
             {query.isError ? (
               <Callout tone="danger" title="Tasks are unavailable">
                 The task list could not be loaded. Try again shortly.
@@ -152,7 +152,13 @@ export function TasksSection({ streamFactory }: TasksSectionProps): ReactElement
                   loading={query.isPending}
                   caption="Tasks, filterable and sortable, updated live."
                 />
-                <Pagination page={page} pageSize={PAGE_SIZE} total={total} onPageChange={setPage} />
+                <Pagination
+                  page={page}
+                  pageSize={PAGE_SIZE}
+                  total={total}
+                  siblingCount={0}
+                  onPageChange={setPage}
+                />
               </>
             )}
           </CardContent>

@@ -17,6 +17,15 @@ export const PRODUCTS_RESOURCE = "products"
 /** Resource name the users directory query key is scoped to. */
 export const USERS_RESOURCE = "users"
 
+/** Resource name the notifications feed query key is scoped to. */
+export const NOTIFICATIONS_RESOURCE = "notifications"
+
+/** Non-simple request header required on notification mutations to prevent cross-origin form POSTs. */
+export const NOTIFICATION_MUTATION_HEADER = "x-plainworks-showcase-mutation"
+
+/** Expected proof value for {@link NOTIFICATION_MUTATION_HEADER}. */
+export const NOTIFICATION_MUTATION_HEADER_VALUE = "notification"
+
 /** The initial Tasks list request — server-prefetched and client-hydrated under one key. */
 export const TASK_LIST_PARAMS: ListQueryParams = {
   page: 1,
@@ -58,6 +67,18 @@ export const USER_LIST_PARAMS: ListQueryParams = {
   sortBy: "name",
   order: "asc",
   facets: ["role", "status", "department"],
+}
+
+/**
+ * The notifications feed request — newest first, one page sized to hold the whole inbox. The feed
+ * reads a single page so the all/unread split and the shell's unread badge derive from one cached
+ * list rather than a second source of truth.
+ */
+export const NOTIFICATION_LIST_PARAMS: ListQueryParams = {
+  page: 1,
+  pageSize: 50,
+  sortBy: "createdAt",
+  order: "desc",
 }
 
 /** Query key the Overview summary statistics are cached under. */

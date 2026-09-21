@@ -213,4 +213,15 @@ describe("section prefetch", () => {
     expect(seeded.length).toBeGreaterThan(0)
     expect(seeded.some((user) => html.includes(user.email))).toBe(true)
   })
+
+  it("prefetches the notifications list into the hydration cache for /notifications", async () => {
+    const seeded = handle.api.stores.notifications.getAll()
+    const { status, html } = await render("/notifications", cookie())
+
+    expect(status).toBe(200)
+    expect(html).toContain(">Notifications</h1>")
+    expect(html).toContain(`id="${QUERY_STATE_SCRIPT_ID}"`)
+    expect(seeded.length).toBeGreaterThan(0)
+    expect(seeded.some((notification) => html.includes(notification.title))).toBe(true)
+  })
 })

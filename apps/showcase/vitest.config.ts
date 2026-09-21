@@ -8,5 +8,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    // The root gate runs every workspace test task concurrently. Keep this jsdom-heavy suite to
+    // one worker so CI does not starve async rendering and axe checks under that shared load.
+    maxWorkers: 1,
   },
 })

@@ -12,6 +12,8 @@ export interface RedactOptions {
   readonly mask?: string
   /** Maximum object/array depth to walk before truncating. Defaults to `6`. */
   readonly maxDepth?: number
+  /** Maximum entries to inspect per object or array. Unbounded when omitted. */
+  readonly maxItems?: number
 }
 
 /** Key names whose values are always redacted, regardless of surrounding shape. */
@@ -141,8 +143,12 @@ export function isSensitiveKey(key: string, extraKeys: readonly string[] = []): 
 export function redact(value: unknown, options: RedactOptions = {}): unknown {
   const mask = options.mask ?? "[REDACTED]"
   const maxDepth = options.maxDepth ?? 6
+  const maxItems = options.maxItems ?? Number.MAX_SAFE_INTEGER
   if (!Number.isInteger(maxDepth) || maxDepth < 0) {
     throw new RangeError("redact requires maxDepth to be a non-negative integer")
+  }
+  if (!Number.isSafeInteger(maxItems) || maxItems < 0) {
+    throw new RangeError("redact requires maxItems to be a non-negative safe integer")
   }
   const seen = new WeakSet<object>()
 
@@ -183,7 +189,8 @@ export function redact(value: unknown, options: RedactOptions = {}): unknown {
     let result: unknown
     if (Array.isArray(input)) {
       const items: unknown[] = []
-      for (let index = 0; index < input.length; index++) {
+      const kept = Math.min(input.length, maxItems)
+      for (let index = 0; index < kept; index++) {
         const descriptor = Object.getOwnPropertyDescriptor(input, index)
         if (descriptor?.get !== undefined) {
           // An indexed accessor is surfaced, never executed — the same non-invoking policy as
@@ -193,10 +200,20 @@ export function redact(value: unknown, options: RedactOptions = {}): unknown {
         }
         items.push(walk(descriptor?.value, depth + 1))
       }
+      if (input.length > maxItems) {
+        items.push(`[+${input.length - maxItems} more]`)
+      }
       result = items
     } else {
       const entries: Array<[string, unknown]> = []
-      for (const key of Object.keys(input)) {
+      let count = 0
+      for (const key in input) {
+        if (!Object.hasOwn(input, key)) continue
+        if (count >= maxItems) {
+          entries.push(["[truncated]", "[Truncated]"])
+          break
+        }
+        count += 1
         if (isSensitive(key)) {
           // Mask from the key alone — reading the value could invoke an untrusted getter that leaks
           // or throws.

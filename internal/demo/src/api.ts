@@ -60,6 +60,12 @@ export interface MockApiOptions {
    * to leave order writes open (the default; tests and other hosts need no session).
    */
   authorizeOrderMutation?: MutationAuthorizer
+  /**
+   * Authorize notification mutations (POST/PATCH/DELETE and the bulk mark-all-read) at the server
+   * boundary — a denied request is answered with `403` before the store is touched, so a client
+   * gate stays a UX affordance. Omit to leave notification writes open (the default).
+   */
+  authorizeNotificationMutation?: MutationAuthorizer
 }
 
 /** One isolated mock API: the MSW handlers plus programmatic access to its state. */
@@ -168,7 +174,13 @@ export function createMockApi(options: MockApiOptions = {}): MockApi {
         options.authorizeOrderMutation,
       ),
       ...createTaskHandlers(taskFactory, stores.tasks, latency, clock),
-      ...createNotificationHandlers(notificationFactory, stores.notifications, latency, clock),
+      ...createNotificationHandlers(
+        notificationFactory,
+        stores.notifications,
+        latency,
+        clock,
+        options.authorizeNotificationMutation,
+      ),
       ...createDashboardHandlers(dashboardSources, latency),
       ...createSettingsHandlers(settings, latency),
       ...createContentHandlers(contentFactory, stores.content, latency, clock),

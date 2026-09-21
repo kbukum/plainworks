@@ -7,6 +7,7 @@
 import type { CreateTaskInput, Task, UpdateTaskInput } from "@plainworks/demo"
 import type { createHttpClient } from "@plainworks/http"
 import { guardSchema, isRecord, type WebAbortSignal } from "@plainworks/std"
+import { encodeIdSegment } from "./id-segment"
 import { isTask } from "./task-shape"
 
 type HttpClient = ReturnType<typeof createHttpClient>
@@ -34,20 +35,6 @@ export async function createTask(
   return created.data
 }
 
-function encodeTaskId(id: string): string {
-  const trimmed = id.trim()
-  if (
-    trimmed === "" ||
-    trimmed === "." ||
-    trimmed === ".." ||
-    trimmed.includes("/") ||
-    trimmed.includes("\\")
-  ) {
-    throw new Error(`Invalid task id: "${id}"`)
-  }
-  return encodeURIComponent(trimmed)
-}
-
 /** Update a task, returning the persisted row validated at the boundary; a bodyless response fails. */
 export async function updateTask(
   client: HttpClient,
@@ -55,7 +42,7 @@ export async function updateTask(
   input: UpdateTaskInput,
   signal?: WebAbortSignal,
 ): Promise<Task> {
-  const segment = encodeTaskId(id)
+  const segment = encodeIdSegment("task", id)
   const updated = await client.patch(`/api/tasks/${segment}`, {
     body: input,
     ...(signal ? { signal } : {}),

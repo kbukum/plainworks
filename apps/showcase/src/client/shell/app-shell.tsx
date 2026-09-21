@@ -15,6 +15,7 @@ import { Menu } from "lucide-react"
 import { type ReactElement, useEffect, useRef, useState } from "react"
 import { breadcrumbTrail, sectionForPath } from "../../app/navigation"
 import { CommandMenu } from "../command"
+import { NotificationsBell } from "../notifications/notifications-bell"
 import { routerLinkRender, useRouter } from "../router"
 import { ModeControl, THEME_ERROR_MESSAGE } from "../theme-studio"
 import { AccountMenu } from "./account-menu"
@@ -86,6 +87,7 @@ export function AppShell(): ReactElement {
         <span className="font-semibold tracking-tight">plainworks</span>
         <div className="ml-auto flex items-center gap-2">
           <CommandMenu />
+          <NotificationsBell />
           <ModeControl announceError={false} compact className="h-8 sm:h-9" />
           <AccountMenu />
         </div>

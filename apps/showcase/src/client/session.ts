@@ -28,3 +28,7 @@ export const canManageTasks = createAllowListPolicy({ rules: [requiresName] })
 // The same named-identity rule gates advancing an order's status — a signed-in operator may, a
 // guest may only browse.
 export const canManageOrders = createAllowListPolicy({ rules: [requiresName] })
+
+// And the same rule gates acting on the notifications feed — a signed-in user may mark read,
+// dismiss, and mark all read; a guest may only read the feed.
+export const canManageNotifications = createAllowListPolicy({ rules: [requiresName] })

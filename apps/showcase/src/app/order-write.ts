@@ -6,6 +6,7 @@
 import type { Order } from "@plainworks/demo"
 import type { createHttpClient } from "@plainworks/http"
 import { guardSchema, isRecord, type WebAbortSignal } from "@plainworks/std"
+import { encodeIdSegment } from "./id-segment"
 import { isOrder } from "./order-shape"
 
 type HttpClient = ReturnType<typeof createHttpClient>
@@ -14,20 +15,6 @@ const orderEnvelopeSchema = guardSchema<{ readonly data: Order }>(
   (value): value is { readonly data: Order } => isRecord(value) && isOrder(value.data),
   "response is not a { data: Order } envelope",
 )
-
-function encodeOrderId(id: string): string {
-  const trimmed = id.trim()
-  if (
-    trimmed === "" ||
-    trimmed === "." ||
-    trimmed === ".." ||
-    trimmed.includes("/") ||
-    trimmed.includes("\\")
-  ) {
-    throw new Error(`Invalid order id: "${id}"`)
-  }
-  return encodeURIComponent(trimmed)
-}
 
 /**
  * Advance an order's status, returning the persisted row validated at the boundary; a bodyless
@@ -40,7 +27,7 @@ export async function updateOrderStatus(
   status: Order["status"],
   signal?: WebAbortSignal,
 ): Promise<Order> {
-  const segment = encodeOrderId(id)
+  const segment = encodeIdSegment("order", id)
   const updated = await client.patch(`/api/orders/${segment}`, {
     body: { status },
     ...(signal ? { signal } : {}),

@@ -25,6 +25,7 @@ import { createMockIdp } from "@plainworks/testkit"
 import { createServer as createViteServer, type ViteDevServer } from "vite"
 import { createShowcaseAuth } from "./src/app/auth"
 import { AUTH_CALLBACK_PATH, LOGIN_PATH, LOGOUT_PATH } from "./src/app/constants"
+import { createNotificationMutationAuthorizer } from "./src/app/notification-authz"
 import { createOrderMutationAuthorizer } from "./src/app/order-authz"
 import type { RenderApp } from "./src/entry-server"
 import { respondWithInternalError } from "./src/server/internal-error"
@@ -238,8 +239,10 @@ async function main(): Promise<void> {
     appType: "custom",
     plugins: [
       mockServerPlugin(
-        createMockApi({ authorizeOrderMutation: createOrderMutationAuthorizer(auth.read) })
-          .handlers,
+        createMockApi({
+          authorizeOrderMutation: createOrderMutationAuthorizer(auth.read),
+          authorizeNotificationMutation: createNotificationMutationAuthorizer(auth.read),
+        }).handlers,
       ),
     ],
   })

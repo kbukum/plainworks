@@ -5,11 +5,12 @@ import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import { createQueryClient, dehydrateClient, prefetchQuery } from "@plainworks/query"
 import type { StateSource } from "@plainworks/std"
-import { fakeStateSource } from "@plainworks/testkit"
+import { deferred, fakeStateSource } from "@plainworks/testkit"
 import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/client"
 import type { ThemePreference } from "@plainworks/theme"
-import { cleanup, render, screen, within } from "@testing-library/react"
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { AUTH_CAPABILITY_ID, TASK_LIST_PARAMS } from "../../app/constants"
 import { taskListPlan } from "../../app/task-read"
@@ -148,6 +149,30 @@ describe("app shell", () => {
 
     expect(await screen.findByRole("heading", { level: 2, name: "Appearance" })).toBeDefined()
     expect(screen.getByRole("region", { name: "Theme preview" })).toBeDefined()
+  })
+
+  it("shares optimistic notification updates and rollback with the shell badge", async () => {
+    const user = userEvent.setup()
+    const unread = handle.api.stores.notifications.getAll().filter((row) => !row.read).length
+    const release = deferred<void>()
+    handle.server.use(
+      http.patch("*/api/notifications/:id", async () => {
+        await release.promise
+        return new HttpResponse(null, { status: 500 })
+      }),
+    )
+    await renderShell({ initialPath: "/notifications" })
+    const bellName = (count: number): string => `Notifications, ${count} unread`
+    await screen.findByRole("link", { name: bellName(unread) })
+
+    const [markRead] = await screen.findAllByRole("button", { name: /^Mark read/ })
+    if (markRead === undefined) throw new Error("expected an unread notification")
+    await user.click(markRead)
+
+    await screen.findByRole("link", { name: bellName(unread - 1) })
+    release.resolve()
+    await screen.findByText("That notification could not be updated")
+    await waitFor(() => expect(screen.getByRole("link", { name: bellName(unread) })).toBeDefined())
   })
 
   it("announces one theme-source failure from the composed Settings page", async () => {

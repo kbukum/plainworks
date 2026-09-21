@@ -89,6 +89,9 @@ const settings: Section = {
   icon: Settings,
 }
 
+/** The Notifications section route — the shell's unread indicator navigates here. */
+export const NOTIFICATIONS_PATH = notifications.path
+
 /** Every section, in navigation order. Overview owns the root route. */
 export const SECTIONS: readonly Section[] = [
   overview,

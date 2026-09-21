@@ -18,7 +18,7 @@ import {
 import type { SectionId } from "./navigation"
 import { notificationListPlan } from "./notification-read"
 import { orderListPlan } from "./order-read"
-import { overviewStatsPlan, revenueTrendPlan } from "./overview-read"
+import { overviewStatsPlan, productSalesPlan, revenueTrendPlan } from "./overview-read"
 import { productListPlan } from "./product-read"
 import { taskListPlan } from "./task-read"
 import { userListPlan } from "./user-read"
@@ -34,6 +34,7 @@ export async function prefetchSection(
       await Promise.all([
         prefetchQuery(queryClient, overviewStatsPlan(httpClient)),
         prefetchQuery(queryClient, revenueTrendPlan(httpClient)),
+        prefetchQuery(queryClient, productSalesPlan(httpClient)),
         prefetchQuery(queryClient, taskListPlan(httpClient, RECENT_ACTIVITY_PARAMS)),
       ])
       return

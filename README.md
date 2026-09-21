@@ -33,6 +33,7 @@ A second reference host, [`@plainworks/next-host`](./apps/next-host), assembles 
 | Application composition | [`@plainworks/app`](./packages/app) |
 | Shared test fakes and harnesses | [`@plainworks/testkit`](./packages/testkit) |
 | Reusable MSW mock-building primitives | [`@plainworks/mocks`](./packages/mocks) |
+| Development-only runtime inspector | [`@plainworks/devtools`](./packages/devtools) |
 
 Each package exposes a neutral `.` entry. Packages with React or browser bindings expose them separately through `./client`.
 
@@ -42,7 +43,7 @@ Each package owns one concern and imports only from a **strictly lower layer**.
 
 ```mermaid
 flowchart TD
-  L4["L4 · app · testkit · mocks"] --> L3["L3 · auth · ui"]
+  L4["L4 · app · testkit · mocks · devtools"] --> L3["L3 · auth · ui"]
   L3 --> L2["L2 · channel · connect · query · elements"]
   L2 --> L1["L1 · state · http · theme · observability"]
   L1 --> L0["L0 · std"]

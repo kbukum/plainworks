@@ -338,6 +338,24 @@
         "vitest": "catalog:",
       },
     },
+    "packages/devtools": {
+      "name": "@plainworks/devtools",
+      "version": "0.1.0-alpha.1",
+      "dependencies": {
+        "@plainworks/std": "workspace:*",
+      },
+      "devDependencies": {
+        "@arethetypeswrong/cli": "catalog:",
+        "@plainworks/testkit": "workspace:*",
+        "@plainworks/tsdown-config": "workspace:*",
+        "@types/node": "catalog:",
+        "@vitest/coverage-v8": "catalog:",
+        "publint": "catalog:",
+        "tsdown": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "packages/elements": {
       "name": "@plainworks/elements",
       "version": "0.1.0-alpha.1",
@@ -1099,6 +1117,8 @@
     "@plainworks/connect": ["@plainworks/connect@workspace:packages/connect"],
 
     "@plainworks/demo": ["@plainworks/demo@workspace:internal/demo"],
+
+    "@plainworks/devtools": ["@plainworks/devtools@workspace:packages/devtools"],
 
     "@plainworks/elements": ["@plainworks/elements@workspace:packages/elements"],
 

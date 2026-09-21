@@ -12,7 +12,7 @@ Use this reference to decide **where code belongs**, **which hosts can run it**,
 
 ```mermaid
 flowchart TD
-  L4["L4 · app · testkit · mocks"] --> L3["L3 · auth · ui"]
+  L4["L4 · app · testkit · mocks · devtools"] --> L3["L3 · auth · ui"]
   L3 --> L2["L2 · channel · connect · query · elements"]
   L2 --> L1["L1 · state · http · theme · observability"]
   L1 --> L0["L0 · std"]
@@ -28,7 +28,7 @@ flowchart TD
 | **L1** | `state`, `http`, `theme`, `observability` | Reactive state, typed HTTP, the design-token substrate, and logging/error-reporting/Web Vitals seams. |
 | **L2** | `channel`, `connect`, `query`, `elements` | Streaming, RPC, TanStack Query integration, and owned UI atoms. |
 | **L3** | `auth`, `ui` | Authentication, OIDC with PKCE, forms, data, navigation, and UI composites. |
-| **L4** | `app`, `testkit`, `mocks` | Application composition, shared test tooling, and reusable MSW mock-building primitives. |
+| **L4** | `app`, `testkit`, `mocks`, `devtools` | Application composition, shared test tooling, reusable MSW mock-building primitives, and the development-only runtime inspector. |
 
 [`internal/boundaries/.dependency-cruiser.cjs`](../internal/boundaries/.dependency-cruiser.cjs) owns the authoritative `LAYERS` table. dependency-cruiser rejects upward imports, same-layer imports, cycles, and imports from packages missing from the table.
 

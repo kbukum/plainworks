@@ -51,6 +51,7 @@ const LAYERS = {
   app: 4,
   testkit: 4,
   mocks: 4,
+  devtools: 4,
 }
 
 // Internal concern order INSIDE @plainworks/ui — the package LAYERS model, one level down. `ui`

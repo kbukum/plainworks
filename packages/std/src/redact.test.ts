@@ -92,6 +92,40 @@ test("truncates beyond the max depth", () => {
   expect(redact({ a: { b: { c: 1 } } }, { maxDepth: 1 })).toEqual({ a: "[Truncated]" })
 })
 
+test("bounds collection traversal without invoking entries beyond the limit", () => {
+  let invoked = false
+  const array = [1, 2, 3]
+  Object.defineProperty(array, 2, {
+    enumerable: true,
+    get() {
+      invoked = true
+      return "******"
+    },
+  })
+  const object = { first: 1, second: 2 }
+  Object.defineProperty(object, "third", {
+    enumerable: true,
+    get() {
+      invoked = true
+      return "******"
+    },
+  })
+
+  expect(redact(array, { maxItems: 2 })).toEqual([1, 2, "[+1 more]"])
+  expect(redact(object, { maxItems: 2 })).toEqual({
+    first: 1,
+    second: 2,
+    "[truncated]": "[Truncated]",
+  })
+  expect(invoked).toBe(false)
+})
+
+test("rejects an invalid collection bound", () => {
+  expect(() => redact([], { maxItems: Number.POSITIVE_INFINITY })).toThrow(RangeError)
+  expect(() => redact([], { maxItems: -1 })).toThrow(RangeError)
+  expect(() => redact([], { maxItems: 1.5 })).toThrow(RangeError)
+})
+
 test("matches sensitive keys across separator styles", () => {
   expect(redact({ "x-api-key": "k", "private-key": "p", "Set-Cookie": "c" })).toEqual({
     "x-api-key": "[REDACTED]",

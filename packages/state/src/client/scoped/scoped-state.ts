@@ -83,6 +83,8 @@ export interface ScopedStateProviderProps<Value> {
    * flash.
    */
   readonly initialValue?: Value
+  /** Per-provider error routing; overrides the factory fallback for this mounted instance. */
+  readonly onError?: (error: unknown) => void
   readonly children: ReactNode
 }
 

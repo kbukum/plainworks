@@ -1,4 +1,5 @@
-import { expect, type Page, test } from "@playwright/test"
+import { expect, test } from "@playwright/test"
+import { signIn } from "./session"
 
 const sections = [
   ["overview", "/"],
@@ -15,16 +16,6 @@ const viewports = [
   ["tablet", 900, 900],
   ["mobile", 390, 844],
 ] as const
-
-async function signIn(page: Page): Promise<void> {
-  await page.goto("/")
-  const signInButton = page.getByRole("button", { name: "Sign in" })
-  if (await signInButton.isVisible()) {
-    await signInButton.click()
-    await page.waitForLoadState("load")
-  }
-  await expect(page.getByRole("heading", { level: 1, name: "Overview" })).toBeVisible()
-}
 
 test("server markup is styled before client hydration", async ({ page }) => {
   await signIn(page)
@@ -60,9 +51,11 @@ test("low-priority table columns adapt visibility to container presentation", as
 
   await page.setViewportSize({ width: 390, height: 844 })
   await expect(page.getByRole("columnheader", { name: "Priority" })).toBeHidden()
+  await expect(page.getByRole("columnheader", { name: "Due" })).toBeHidden()
 
   await page.setViewportSize({ width: 1440, height: 1000 })
   await expect(page.getByRole("columnheader", { name: "Priority" })).toBeVisible()
+  await expect(page.getByRole("columnheader", { name: "Due" })).toBeVisible()
 })
 
 test("every showcase section reflows without clipping", async ({ page }) => {

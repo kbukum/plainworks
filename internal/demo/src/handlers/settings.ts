@@ -6,76 +6,96 @@ import type { LatencyController } from "@plainworks/mocks"
 import { isRecord } from "@plainworks/std"
 import { type HttpHandler, HttpResponse, http } from "msw"
 import type { SettingsStore } from "../data/settings"
-import type { UpdateSettingsInput, UserSettings } from "../types"
+import type {
+  SettingsNotifications,
+  SettingsPrivacy,
+  SettingsRequestAuthorizer,
+  UpdateSettingsInput,
+} from "../types"
+import { decodeSettingsPreferencesUpdate, decodeSettingsProfileUpdate } from "../types"
 
-const THEMES: readonly UserSettings["theme"][] = ["light", "dark", "system"]
+// Decode one group's boolean fields, rejecting the whole update on the first non-boolean value.
+function decodeBooleanFields<K extends string>(
+  group: Record<string, unknown>,
+  keys: readonly K[],
+): Partial<Record<K, boolean>> | null {
+  const out: Partial<Record<K, boolean>> = {}
+  for (const key of keys) {
+    const value = group[key]
+    if (value === undefined) continue
+    if (typeof value !== "boolean") return null
+    out[key] = value
+  }
+  return out
+}
 
 /** Decode an untrusted PATCH body into {@link UpdateSettingsInput}; `null` rejects with 400. */
 function decodeSettingsUpdate(body: unknown): UpdateSettingsInput | null {
   if (!isRecord(body)) return null
   const out: UpdateSettingsInput = {}
 
-  if (body.theme !== undefined) {
-    if (typeof body.theme !== "string" || !THEMES.includes(body.theme as UserSettings["theme"])) {
-      return null
-    }
-    out.theme = body.theme as UserSettings["theme"]
+  if (body.profile !== undefined) {
+    const profile = decodeSettingsProfileUpdate(body.profile)
+    if ("issues" in profile) return null
+    out.profile = profile.value
   }
-  if (body.language !== undefined) {
-    if (typeof body.language !== "string") return null
-    out.language = body.language
+
+  if (body.preferences !== undefined) {
+    const preferences = decodeSettingsPreferencesUpdate(body.preferences)
+    if ("issues" in preferences) return null
+    out.preferences = preferences.value
   }
-  if (body.timezone !== undefined) {
-    if (typeof body.timezone !== "string") return null
-    out.timezone = body.timezone
-  }
+
   if (body.notifications !== undefined) {
     if (!isRecord(body.notifications)) return null
-    const notifications: UpdateSettingsInput["notifications"] = {}
-    for (const key of ["email", "push", "sms"] as const) {
-      const value = body.notifications[key]
-      if (value !== undefined) {
-        if (typeof value !== "boolean") return null
-        notifications[key] = value
-      }
-    }
+    const notifications = decodeBooleanFields<keyof SettingsNotifications & string>(
+      body.notifications,
+      ["email", "push", "sms"],
+    )
+    if (notifications === null) return null
     out.notifications = notifications
   }
+
   if (body.privacy !== undefined) {
     if (!isRecord(body.privacy)) return null
-    const privacy: UpdateSettingsInput["privacy"] = {}
-    for (const key of ["profileVisible", "showEmail"] as const) {
-      const value = body.privacy[key]
-      if (value !== undefined) {
-        if (typeof value !== "boolean") return null
-        privacy[key] = value
-      }
-    }
+    const privacy = decodeBooleanFields<keyof SettingsPrivacy & string>(body.privacy, [
+      "profileVisible",
+      "showEmail",
+    ])
+    if (privacy === null) return null
     out.privacy = privacy
   }
 
   return out
 }
 
+function userIdOf(request: Request): string {
+  return new URL(request.url).searchParams.get("userId") || "default-user"
+}
+
 export function createSettingsHandlers(
   settings: SettingsStore,
   latency: LatencyController,
+  authorizeMutation?: SettingsRequestAuthorizer,
+  authorizeRead?: SettingsRequestAuthorizer,
 ): HttpHandler[] {
+  // A denied request is answered with `403` before the store is touched, so a client gate stays a
+  // UX affordance and the server boundary is the real one.
+  const deny = (): Response =>
+    HttpResponse.json({ data: null, error: "Not authorized" }, { status: 403 })
+
   return [
     // GET /api/settings
     http.get("*/api/settings", async ({ request }) => {
       await latency.wait(request.signal)
-      const url = new URL(request.url)
-      const userId = url.searchParams.get("userId") || "default-user"
-
-      return HttpResponse.json({ data: settings.get(userId) })
+      if (authorizeRead && !(await authorizeRead(request))) return deny()
+      return HttpResponse.json({ data: settings.get(userIdOf(request)) })
     }),
 
     // PATCH /api/settings
     http.patch("*/api/settings", async ({ request }) => {
       await latency.wait(request.signal)
-      const url = new URL(request.url)
-      const userId = url.searchParams.get("userId") || "default-user"
+      if (authorizeMutation && !(await authorizeMutation(request))) return deny()
 
       let body: unknown
       try {
@@ -88,15 +108,15 @@ export function createSettingsHandlers(
         return HttpResponse.json({ data: null, error: "invalid settings update" }, { status: 400 })
       }
 
-      return HttpResponse.json({ data: settings.save(userId, updates) })
+      return HttpResponse.json({ data: settings.save(userIdOf(request), updates) })
     }),
 
     // POST /api/settings/reset — resets only the addressed user's settings
     http.post("*/api/settings/reset", async ({ request }) => {
       await latency.wait(request.signal)
-      const url = new URL(request.url)
-      const userId = url.searchParams.get("userId") || "default-user"
+      if (authorizeMutation && !(await authorizeMutation(request))) return deny()
 
+      const userId = userIdOf(request)
       settings.resetUser(userId)
       return HttpResponse.json({ data: settings.get(userId) })
     }),

@@ -12,6 +12,7 @@
  * runs (sources rewind and replay exactly).
  */
 
+import type { MutationAuthorizer } from "@plainworks/mocks"
 import {
   createLatency,
   createMockControl,
@@ -20,7 +21,6 @@ import {
   type EntityStore,
   type LatencyController,
   type MockControl,
-  type MutationAuthorizer,
   type ReloadableFixtureSources,
 } from "@plainworks/mocks"
 import { type Clock, systemClock } from "@plainworks/std"
@@ -40,7 +40,15 @@ import { createProductHandlers } from "./handlers/products"
 import { createSettingsHandlers } from "./handlers/settings"
 import { createTaskHandlers } from "./handlers/tasks"
 import { createUserHandlers } from "./handlers/users"
-import type { ContentPage, Notification, Order, Product, Task, User } from "./types"
+import type {
+  ContentPage,
+  Notification,
+  Order,
+  Product,
+  SettingsRequestAuthorizer,
+  Task,
+  User,
+} from "./types"
 
 /** Options for {@link createMockApi}. */
 export interface MockApiOptions {
@@ -66,6 +74,14 @@ export interface MockApiOptions {
    * gate stays a UX affordance. Omit to leave notification writes open (the default).
    */
   authorizeNotificationMutation?: MutationAuthorizer
+  /** Authorize settings reads at the server boundary. Omit only for isolated mock consumers. */
+  authorizeSettingsRead?: SettingsRequestAuthorizer
+  /**
+   * Authorize settings mutations (PATCH and reset) at the server boundary — a denied request is
+   * answered with `403` before the store is touched, so a client gate stays a UX affordance. Omit
+   * to leave settings writes open (the default).
+   */
+  authorizeSettingsMutation?: MutationAuthorizer
 }
 
 /** One isolated mock API: the MSW handlers plus programmatic access to its state. */
@@ -182,7 +198,12 @@ export function createMockApi(options: MockApiOptions = {}): MockApi {
         options.authorizeNotificationMutation,
       ),
       ...createDashboardHandlers(dashboardSources, latency),
-      ...createSettingsHandlers(settings, latency),
+      ...createSettingsHandlers(
+        settings,
+        latency,
+        options.authorizeSettingsMutation,
+        options.authorizeSettingsRead,
+      ),
       ...createContentHandlers(contentFactory, stores.content, latency, clock),
       ...internalHandlers,
     ],

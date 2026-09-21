@@ -1,9 +1,7 @@
 import { defineConfig, devices } from "@playwright/test"
 
-// The browser accessibility gate. It boots the same dev SSR host the smoke tests drive and runs
-// axe-core in a real Chromium against the authenticated flow, covering the two WCAG rules jsdom
-// cannot measure without layout — color contrast and target size — plus a narrow-viewport reflow
-// check.
+// The browser E2E gate. It boots the same dev SSR host the smoke tests drive and covers functional
+// flows, stable visual snapshots, and the WCAG rules jsdom cannot measure without layout.
 // It complements the deterministic-DOM axe floor every client component already carries in unit
 // tests (`@plainworks/testkit`'s `expectNoAxeViolations`), which disables exactly these rules.
 const PORT = Number(process.env.PORT ?? 5199)
@@ -19,6 +17,14 @@ export default defineConfig({
   retries: 0,
   forbidOnly: Boolean(process.env.CI),
   reporter: process.env.CI ? [["github"], ["list"]] : "list",
+  expect: {
+    toHaveScreenshot: {
+      animations: "disabled",
+      caret: "hide",
+      maxDiffPixelRatio: 0.02,
+      threshold: 0.2,
+    },
+  },
   use: {
     baseURL: BASE_URL,
     // A fixed desktop viewport so the narrow-viewport reflow check starts from a known width.
@@ -26,6 +32,7 @@ export default defineConfig({
     // Retries are off for determinism, so capture a trace on the single failing attempt.
     trace: "retain-on-failure",
   },
+  snapshotPathTemplate: "{testDir}/{testFilePath}-snapshots/{platform}/{arg}{ext}",
   projects: [{ name: "chromium", use: devices["Desktop Chrome"] }],
   webServer: {
     command: "bun run server.ts",

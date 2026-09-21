@@ -78,6 +78,8 @@ export interface ScopedObjectConfig<
 export interface ScopedObjectProviderProps<Values> {
   /** Server-provided per-field seeds (any subset); rendered first, then reconciled — no hydration flash. */
   readonly initialValues?: Partial<Values>
+  /** Per-provider error routing; overrides the factory fallback for this mounted instance. */
+  readonly onError?: (error: unknown) => void
   readonly children: ReactNode
 }
 
@@ -281,10 +283,16 @@ export function createScopedObject<
     build,
     ...(config.onError !== undefined ? { onError: config.onError } : {}),
   })
-  function Provider({ initialValues, children }: ScopedObjectProviderProps<Values>): ReactNode {
-    return surface.Provider(
-      initialValues === undefined ? { children } : { initialValue: initialValues, children },
-    )
+  function Provider({
+    initialValues,
+    onError,
+    children,
+  }: ScopedObjectProviderProps<Values>): ReactNode {
+    return surface.Provider({
+      ...(initialValues === undefined ? {} : { initialValue: initialValues }),
+      ...(onError === undefined ? {} : { onError }),
+      children,
+    })
   }
   return Object.assign(surface.useValue, {
     Provider,

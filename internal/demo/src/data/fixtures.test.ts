@@ -123,27 +123,30 @@ describe("settings store", () => {
     const base = createUserSettings("u1")
     expect(base.userId).toBe("u1")
 
-    const merged = updateUserSettings(base, { theme: "dark", notifications: { email: false } })
-    expect(merged.theme).toBe("dark")
+    const merged = updateUserSettings(base, {
+      preferences: { language: "fr" },
+      notifications: { email: false },
+    })
+    expect(merged.preferences.language).toBe("fr")
     expect(merged.notifications.email).toBe(false)
     expect(merged.notifications.push).toBe(true)
 
     expect(store.get("u2").userId).toBe("u2")
     expect(store.get("u2")).toBe(store.get("u2"))
 
-    const saved = store.save("u2", { language: "fr" })
-    expect(saved.language).toBe("fr")
-    expect(store.get("u2").language).toBe("fr")
+    const saved = store.save("u2", { profile: { displayName: "Grace" } })
+    expect(saved.profile.displayName).toBe("Grace")
+    expect(store.get("u2").profile.displayName).toBe("Grace")
   })
 
   it("resets one user without touching the others", () => {
     const store = createSettingsStore()
-    store.save("u1", { theme: "dark" })
-    store.save("u2", { theme: "light" })
+    store.save("u1", { preferences: { language: "fr" } })
+    store.save("u2", { preferences: { language: "es" } })
 
     store.resetUser("u1")
 
-    expect(store.get("u1").theme).toBe("system")
-    expect(store.get("u2").theme).toBe("light")
+    expect(store.get("u1").preferences.language).toBe("en")
+    expect(store.get("u2").preferences.language).toBe("es")
   })
 })

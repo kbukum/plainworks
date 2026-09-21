@@ -144,11 +144,24 @@ describe("app shell", () => {
     expect(screen.getByRole("heading", { level: 1 }).textContent).toBe("Overview")
   })
 
-  it("renders the theme studio in Settings", async () => {
-    await renderShell({ initialPath: "/settings" })
+  it("renders the theme studio in the Settings appearance panel", async () => {
+    await renderShell({ initialPath: "/settings/appearance" })
 
-    expect(await screen.findByRole("heading", { level: 2, name: "Appearance" })).toBeDefined()
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "Appearance" }, { timeout: 5_000 }),
+    ).toBeDefined()
     expect(screen.getByRole("region", { name: "Theme preview" })).toBeDefined()
+  })
+
+  it("keeps reduced motion applied after leaving Settings", async () => {
+    const user = userEvent.setup()
+    await renderShell({ initialPath: "/settings/appearance" })
+
+    await user.click(await screen.findByRole("radio", { name: /Reduced motion/ }))
+    await waitFor(() => expect(document.documentElement.dataset.motion).toBe("reduce"))
+    await user.click(within(railNav()).getByRole("link", { name: "Overview" }))
+
+    expect(document.documentElement.dataset.motion).toBe("reduce")
   })
 
   it("shares optimistic notification updates and rollback with the shell badge", async () => {
@@ -182,7 +195,7 @@ describe("app shell", () => {
       initial,
       setError: new Error("write failed"),
     })
-    await renderShell({ initialPath: "/settings", themeSource })
+    await renderShell({ initialPath: "/settings/appearance", themeSource })
     const main = screen.getByRole("main")
     await within(main).findByRole("heading", { level: 2, name: "Appearance" })
 

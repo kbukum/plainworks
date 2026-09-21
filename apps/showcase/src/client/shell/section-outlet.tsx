@@ -28,8 +28,8 @@ const NotificationsSection = lazy(async () => {
   return { default: module.NotificationsSection }
 })
 const SettingsSection = lazy(async () => {
-  const module = await import("../theme-studio")
-  return { default: module.ThemeStudio }
+  const module = await import("../settings")
+  return { default: module.SettingsSection }
 })
 
 /** Props for {@link SectionOutlet}. */
@@ -64,7 +64,7 @@ export function SectionOutlet({ section }: SectionOutletProps): ReactElement {
       content = <NotificationsSection />
       break
     case "settings":
-      content = <SettingsSection announceError={false} />
+      content = <SettingsSection />
       break
     default:
       return (

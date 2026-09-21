@@ -146,6 +146,36 @@ describe("createScopedObject — one object, a scope per field", () => {
 })
 
 describe("createScopedObject — patch fan-out and the typed aggregate error", () => {
+  test("a provider can route failures independently from the factory fallback", async () => {
+    const badSource: StateSource<unknown> = {
+      ...fakeStateSource<unknown>(),
+      set: async () => {
+        throw new Error("backend down")
+      },
+    }
+    const fallback = vi.fn()
+    const providerReport = vi.fn()
+    const usePrefs = createScopedObject<{ theme: string }>({
+      fields: { theme: { scope: fixedScope(badSource, "memory"), initial: "system" } },
+      onError: fallback,
+    })
+    let api: ReturnType<typeof usePrefs.useApi> | undefined
+    function Grab(): ReactNode {
+      api = usePrefs.useApi()
+      return null
+    }
+    render(
+      <usePrefs.Provider onError={providerReport}>
+        <Grab />
+      </usePrefs.Provider>,
+    )
+
+    act(() => api?.set({ theme: "dark" }))
+
+    await waitFor(() => expect(providerReport).toHaveBeenCalledOnce())
+    expect(fallback).not.toHaveBeenCalled()
+  })
+
   test("a partial failure raises a typed aggregate naming the failed field, others still persist", async () => {
     const themeSource = fakeStateSource<unknown>()
     const badSidebar: StateSource<unknown> = {

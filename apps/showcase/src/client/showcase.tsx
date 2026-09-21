@@ -9,6 +9,7 @@ import type { ReactElement } from "react"
 import { ToastProvider } from "./feedback"
 import { HttpClientProvider } from "./http-client"
 import { RouterProvider } from "./router"
+import { LocalPreferencesProvider } from "./settings/local-preferences-provider"
 import { AppShell } from "./shell"
 
 /** Everything the shared render root needs, built per request on the server and once in the browser. */
@@ -39,7 +40,9 @@ export function Showcase(props: ShowcaseProps): ReactElement {
         <HttpClientProvider client={props.httpClient}>
           <RouterProvider initialPath={props.initialPath}>
             <ToastProvider>
-              <AppShell />
+              <LocalPreferencesProvider>
+                <AppShell />
+              </LocalPreferencesProvider>
             </ToastProvider>
           </RouterProvider>
         </HttpClientProvider>

@@ -1,7 +1,7 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { createMockApi } from "../api"
 import { createMockServer } from "../server"
-import { taskPriorityRank } from "../types"
+import { taskPriorityRank, type UserSettings } from "../types"
 
 // Fresh, isolated mock graph per suite; latency stays disabled (0 ms) so no real timers run.
 const api = createMockApi()
@@ -539,17 +539,26 @@ describe("dashboard handlers", () => {
 })
 
 describe("settings handlers", () => {
-  it("reads, patches, and resets settings", async () => {
-    const read = await json<ItemResponse>(await fetch(`${base}/api/settings?userId=u1`))
-    expect(read.data?.userId).toBe("u1")
+  const settingsOf = async (res: Response): Promise<UserSettings> => {
+    const body = await json<{ data: UserSettings }>(res)
+    return body.data
+  }
 
-    const patched = await json<ItemResponse>(
+  it("reads, patches, and resets settings", async () => {
+    const read = await settingsOf(await fetch(`${base}/api/settings?userId=u1`))
+    expect(read.userId).toBe("u1")
+
+    const patched = await settingsOf(
       await fetch(`${base}/api/settings?userId=u1`, {
         method: "PATCH",
-        body: JSON.stringify({ theme: "dark" }),
+        body: JSON.stringify({
+          profile: { displayName: "Grace" },
+          preferences: { itemsPerPage: 50 },
+        }),
       }),
     )
-    expect(patched.data?.theme).toBe("dark")
+    expect(patched.profile.displayName).toBe("Grace")
+    expect(patched.preferences.itemsPerPage).toBe(50)
 
     const reset = await fetch(`${base}/api/settings/reset?userId=u1`, { method: "POST" })
     expect(reset.status).toBe(200)
@@ -560,7 +569,7 @@ describe("settings handlers", () => {
       (
         await fetch(`${base}/api/settings?userId=u1`, {
           method: "PATCH",
-          body: JSON.stringify({ theme: "neon" }),
+          body: JSON.stringify({ preferences: { itemsPerPage: 0 } }),
         })
       ).status,
     ).toBe(400)
@@ -572,24 +581,74 @@ describe("settings handlers", () => {
         })
       ).status,
     ).toBe(400)
+    expect(
+      (
+        await fetch(`${base}/api/settings?userId=u1`, {
+          method: "PATCH",
+          body: JSON.stringify({ profile: { displayName: 42 } }),
+        })
+      ).status,
+    ).toBe(400)
+    expect(
+      (
+        await fetch(`${base}/api/settings?userId=u1`, {
+          method: "PATCH",
+          body: JSON.stringify({ profile: { displayName: "   " } }),
+        })
+      ).status,
+    ).toBe(400)
+    expect(
+      (
+        await fetch(`${base}/api/settings?userId=u1`, {
+          method: "PATCH",
+          body: JSON.stringify({ profile: { startDate: "2023-02-31" } }),
+        })
+      ).status,
+    ).toBe(400)
+  })
+
+  it.each([
+    { preferences: { language: "" } },
+    { preferences: { language: "unknown" } },
+    { preferences: { timezone: "" } },
+    { preferences: { timezone: "Mars/Olympus" } },
+  ])("rejects unsupported regional settings without changing the store", async (body) => {
+    const initial = api.settings.get("u1")
+    const response = await fetch(`${base}/api/settings?userId=u1`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    })
+
+    expect(response.status).toBe(400)
+    expect(api.settings.get("u1")).toEqual(initial)
+  })
+
+  it("normalizes profile strings before persistence", async () => {
+    const response = await fetch(`${base}/api/settings?userId=u1`, {
+      method: "PATCH",
+      body: JSON.stringify({ profile: { displayName: " Ada " } }),
+    })
+
+    expect(response.status).toBe(200)
+    expect(api.settings.get("u1").profile.displayName).toBe("Ada")
   })
 
   it("resets only the addressed user's settings", async () => {
     await fetch(`${base}/api/settings?userId=u1`, {
       method: "PATCH",
-      body: JSON.stringify({ theme: "dark" }),
+      body: JSON.stringify({ preferences: { language: "fr" } }),
     })
     await fetch(`${base}/api/settings?userId=u2`, {
       method: "PATCH",
-      body: JSON.stringify({ theme: "light" }),
+      body: JSON.stringify({ preferences: { language: "es" } }),
     })
 
     await fetch(`${base}/api/settings/reset?userId=u1`, { method: "POST" })
 
-    const u1 = await json<ItemResponse>(await fetch(`${base}/api/settings?userId=u1`))
-    const u2 = await json<ItemResponse>(await fetch(`${base}/api/settings?userId=u2`))
-    expect(u1.data?.theme).toBe("system")
-    expect(u2.data?.theme).toBe("light")
+    const u1 = await settingsOf(await fetch(`${base}/api/settings?userId=u1`))
+    const u2 = await settingsOf(await fetch(`${base}/api/settings?userId=u2`))
+    expect(u1.preferences.language).toBe("en")
+    expect(u2.preferences.language).toBe("es")
   })
 })
 

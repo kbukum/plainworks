@@ -27,6 +27,10 @@ import { createShowcaseAuth } from "./src/app/auth"
 import { AUTH_CALLBACK_PATH, LOGIN_PATH, LOGOUT_PATH } from "./src/app/constants"
 import { createNotificationMutationAuthorizer } from "./src/app/notification-authz"
 import { createOrderMutationAuthorizer } from "./src/app/order-authz"
+import {
+  createSettingsMutationAuthorizer,
+  createSettingsReadAuthorizer,
+} from "./src/app/settings-authz"
 import type { RenderApp } from "./src/entry-server"
 import { respondWithInternalError } from "./src/server/internal-error"
 import { renderLoginPage } from "./src/server/login-page"
@@ -87,7 +91,7 @@ async function main(): Promise<void> {
 
   // The in-process identity provider. Its `fetch` seam backs the adapter's discovery/JWKS/token
   // calls; its `authorize` helper stands in for the interactive provider login page.
-  const idp = await createMockIdp()
+  const idp = await createMockIdp({ claims: { name: "Ada" } })
   const auth = createShowcaseAuth({
     fetch: idp.fetch,
     issuer: idp.issuer,
@@ -242,6 +246,8 @@ async function main(): Promise<void> {
         createMockApi({
           authorizeOrderMutation: createOrderMutationAuthorizer(auth.read),
           authorizeNotificationMutation: createNotificationMutationAuthorizer(auth.read),
+          authorizeSettingsRead: createSettingsReadAuthorizer(auth.read),
+          authorizeSettingsMutation: createSettingsMutationAuthorizer(auth.read),
         }).handlers,
       ),
     ],

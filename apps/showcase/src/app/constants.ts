@@ -26,6 +26,15 @@ export const NOTIFICATION_MUTATION_HEADER = "x-plainworks-showcase-mutation"
 /** Expected proof value for {@link NOTIFICATION_MUTATION_HEADER}. */
 export const NOTIFICATION_MUTATION_HEADER_VALUE = "notification"
 
+/** Resource name the settings query key is scoped to. */
+export const SETTINGS_RESOURCE = "settings"
+
+/** Non-simple request header required on settings mutations to prevent cross-origin form POSTs. */
+export const SETTINGS_MUTATION_HEADER = "x-plainworks-showcase-mutation"
+
+/** Expected proof value for {@link SETTINGS_MUTATION_HEADER}. */
+export const SETTINGS_MUTATION_HEADER_VALUE = "settings"
+
 /** The initial Tasks list request — server-prefetched and client-hydrated under one key. */
 export const TASK_LIST_PARAMS: ListQueryParams = {
   page: 1,

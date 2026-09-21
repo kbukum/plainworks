@@ -230,13 +230,11 @@ jobs:
       - name: Scaffold, install, typecheck, and build a generated app
         run: bun run --filter create-plainworks smoke
 
-  # The browser accessibility gate: boots the Vite showcase host and runs axe-core in a real
-  # Chromium over the authenticated flow, covering the WCAG rules jsdom cannot measure without
-  # layout (color contrast, 24x24 target size) plus a 200% zoom reflow check. Its own job so a
-  # browser-only flake never blocks the unit matrix; single node — this proves rendered a11y, and
-  # the verify matrix already covers N/N-1.
-  browser-a11y:
-    name: browser a11y (playwright + axe)
+  # The browser E2E gate: boots the Vite showcase host and runs functional, visual-regression, axe,
+  # and reflow checks in real Chromium. Its own job keeps browser setup out of the unit matrix;
+  # single node is enough because the verify matrix already covers N/N-1.
+  browser-e2e:
+    name: browser e2e (playwright)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -264,7 +262,7 @@ jobs:
       - name: Install Playwright Chromium
         run: bunx playwright install --with-deps chromium
 
-      - name: Run the browser accessibility gate
+      - name: Run browser E2E
         run: bun run --filter @plainworks/showcase e2e
 
       - name: Upload Playwright report and traces
@@ -287,12 +285,12 @@ jobs:
     name: CI Status
     if: always()
     timeout-minutes: 5
-    needs: [verify, generator, hosts-smoke, create-smoke, browser-a11y]
+    needs: [verify, generator, hosts-smoke, create-smoke, browser-e2e]
     runs-on: ubuntu-latest
     steps:
       - name: Evaluate results
         run: |
-          results=("${{ needs.verify.result }}" "${{ needs.generator.result }}" "${{ needs.hosts-smoke.result }}" "${{ needs.create-smoke.result }}" "${{ needs.browser-a11y.result }}")
+          results=("${{ needs.verify.result }}" "${{ needs.generator.result }}" "${{ needs.hosts-smoke.result }}" "${{ needs.create-smoke.result }}" "${{ needs.browser-e2e.result }}")
           for r in "${results[@]}"; do
             if [[ "$r" != "success" ]]; then
               echo "::error::CI failed — one or more jobs did not succeed."

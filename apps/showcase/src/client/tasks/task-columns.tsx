@@ -55,6 +55,7 @@ export function taskColumns({ onEdit }: TaskColumnsOptions = {}): DataTableColum
     {
       id: "dueDate",
       header: "Due",
+      priority: "low",
       cell: (task) =>
         task.dueDate === undefined ? (
           "—"

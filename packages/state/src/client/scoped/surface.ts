@@ -49,6 +49,8 @@ export interface ScopedProviderProps<Seed> {
    * (so markup matches), then reconciled against the backend once mounted — no hydration flash.
    */
   readonly initialValue?: Seed
+  /** Per-provider error routing; overrides the factory fallback for this mounted instance. */
+  readonly onError?: Report
   readonly children: ReactNode
 }
 
@@ -79,11 +81,14 @@ export function createScopedSurface<Value, Handle, Seed>(params: {
   readonly build: (seed: Seed | undefined, report: Report) => ScopedInstance<Value, Handle>
   readonly onError?: Report
 }): AssembledSurface<Value, Handle, Seed> {
-  const report: Report = params.onError ?? defaultReport
+  const configuredReport: Report = params.onError ?? defaultReport
   const binding = createBinding<Value>()
   const ApiContext = createContext<Handle | null>(null)
 
-  function Provider({ initialValue, children }: ScopedProviderProps<Seed>): ReactNode {
+  function Provider({ initialValue, onError, children }: ScopedProviderProps<Seed>): ReactNode {
+    const reportTarget = useRef<Report>(onError ?? configuredReport)
+    reportTarget.current = onError ?? configuredReport
+    const report = useRef<Report>((error) => reportTarget.current(error)).current
     const ref = useRef<ScopedInstance<Value, Handle> | null>(null)
     if (ref.current === null) {
       ref.current = params.build(initialValue, report)
@@ -93,7 +98,7 @@ export function createScopedSurface<Value, Handle, Seed>(params: {
     // tears down on unmount — reconcile plus external subscriptions, all owned here. A plain
     // `useEffect` keeps this shared surface DOM-free (React-without-DOM), so it runs on the browser
     // and React Native alike and never touches a host global to pick an effect variant.
-    useEffect(() => instance.connect(report), [instance])
+    useEffect(() => instance.connect(report), [instance, report])
 
     return createElement(
       binding.Context.Provider,

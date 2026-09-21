@@ -7,9 +7,17 @@ import type { UpdateSettingsInput, UserSettings } from "../types"
 export function createUserSettings(userId: string): UserSettings {
   return {
     userId,
-    theme: "system",
-    language: "en",
-    timezone: "America/New_York",
+    profile: {
+      displayName: "Ada Lovelace",
+      jobTitle: "Product Engineer",
+      bio: "",
+      startDate: "2023-06-01",
+    },
+    preferences: {
+      language: "en",
+      timezone: "America/New_York",
+      itemsPerPage: 20,
+    },
     notifications: {
       email: true,
       push: true,
@@ -28,15 +36,10 @@ export function updateUserSettings(
 ): UserSettings {
   return {
     ...settings,
-    ...updates,
-    notifications: {
-      ...settings.notifications,
-      ...updates.notifications,
-    },
-    privacy: {
-      ...settings.privacy,
-      ...updates.privacy,
-    },
+    profile: { ...settings.profile, ...updates.profile },
+    preferences: { ...settings.preferences, ...updates.preferences },
+    notifications: { ...settings.notifications, ...updates.notifications },
+    privacy: { ...settings.privacy, ...updates.privacy },
   }
 }
 

@@ -143,6 +143,36 @@ describe("orders section", () => {
     expect(select.value).toBe(target)
   })
 
+  it("keeps filtered order details open when a status change removes the row", async () => {
+    // Seed exactly one Delivered order so reconciling it away empties the filtered page. The list
+    // pages at eight rows over dozens of same-status orders, so a full page would backfill and hide
+    // the removal; a single row makes it unambiguous.
+    const seeded = handle.api.stores.orders.getAll()
+    const only = { ...(seeded[0] as Order), status: "delivered" as const }
+    const rest = seeded.slice(1, 4).map((order) => ({ ...order, status: "shipped" as const }))
+    handle.api.stores.orders.setAll([only, ...rest])
+
+    const user = userEvent.setup()
+    await renderOrders()
+    await screen.findByRole("table", { name: /Orders/ })
+    await user.click(screen.getByRole("checkbox", { name: /Delivered/ }))
+    const viewButtons = () => screen.queryAllByRole("button", { name: /^View/ })
+    await waitFor(() => expect(viewButtons()).toHaveLength(1))
+
+    await user.click(viewButtons()[0] as HTMLElement)
+    const dialog = await screen.findByRole("dialog")
+    const select = within(dialog).getByRole("combobox", { name: "Update status" })
+    await user.selectOptions(select, "processing")
+
+    // The mutation persists and refetches, so the reconciled order leaves the Delivered filter and
+    // the page empties. Keeping the dialog open once the row is gone proves the fix.
+    await waitFor(() => expect(viewButtons()).toHaveLength(0))
+    expect(within(screen.getByRole("dialog")).getByRole("combobox")).toHaveProperty(
+      "value",
+      "processing",
+    )
+  })
+
   it("hides the status control from a guest", async () => {
     const user = userEvent.setup()
     await renderOrders({ authed: false })

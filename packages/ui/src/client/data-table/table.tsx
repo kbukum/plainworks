@@ -332,7 +332,7 @@ function DataTableRow({ row }: { readonly row: DataTableRowModel }): ReactElemen
           key={cell.columnId}
           className={cn(
             ALIGN_CLASS[cell.align],
-            "whitespace-normal break-words",
+            "whitespace-normal wrap-break-word",
             cell.priority === "low" && "@max-2xl:hidden",
           )}
         >

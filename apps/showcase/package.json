@@ -1,7 +1,7 @@
 {
   "name": "@plainworks/showcase",
   "version": "0.0.0",
-  "description": "Reference application: a server-rendered React dashboard that assembles the published @plainworks/* surfaces the way a consumer does — composition kernel, theme, query, state, and ui — over the mock backend. Never published; nothing depends on it.",
+  "description": "Production-shaped showcase: a server-rendered dashboard assembling published @plainworks/* surfaces over the demo backend. Never published; nothing depends on it.",
   "private": true,
   "type": "module",
   "scripts": {

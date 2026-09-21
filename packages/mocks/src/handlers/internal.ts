@@ -13,7 +13,7 @@
 
 import { type Clock, isRecord } from "@plainworks/std"
 import { type HttpHandler, HttpResponse, http } from "msw"
-import type { LatencyController } from "../latency"
+import { type LatencyController, MAX_LATENCY_MS } from "../latency"
 
 /** A single logged request captured by the logging handler. */
 export interface RequestLogEntry {
@@ -107,8 +107,7 @@ export function createMockControl(
 
   const handlers: HttpHandler[] = [
     // Get request log
-    http.get("*/mock/requests", async ({ request }) => {
-      await latency.wait(request.signal)
+    http.get("*/mock/requests", async () => {
       return HttpResponse.json({
         data: control.requestLog(),
         count: requestLog.length,
@@ -157,10 +156,11 @@ export function createMockControl(
         !isRecord(body) ||
         typeof body.latency !== "number" ||
         !Number.isFinite(body.latency) ||
-        body.latency < 0
+        body.latency < 0 ||
+        body.latency > MAX_LATENCY_MS
       ) {
         return HttpResponse.json(
-          { error: "body must be { latency: number >= 0 }" },
+          { error: `body must be { latency: number between 0 and ${MAX_LATENCY_MS} }` },
           { status: 400 },
         )
       }

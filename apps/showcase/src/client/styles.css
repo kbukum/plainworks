@@ -6,6 +6,7 @@
  */
 @import "@plainworks/theme/styles.css";
 @import "@plainworks/ui/styles.css";
+@source not "./dev-tools";
 
 @layer base {
   html {

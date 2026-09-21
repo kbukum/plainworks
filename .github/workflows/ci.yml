@@ -165,11 +165,16 @@ jobs:
             sleep 2
           done
           test "${ready:-}" = 1 || { echo "::error::showcase did not boot"; exit 1; }
-          # The dashboard is session-gated. Follow the in-process mock-IdP login chain with a cookie
-          # jar (/ -> /login -> /auth/callback -> /), then assert the authenticated SSR renders.
+          # The dashboard is session-gated. A POST to the login BFF begins the in-process mock-IdP
+          # flow (login -> mock IdP -> /auth/callback -> /), so a broken PKCE/cookie handoff fails
+          # here rather than passing on a redirect alone; the skip link is authenticated shell
+          # chrome the signed-out login page never emits.
           jar="$(mktemp)"
-          curl -sfL --max-time 30 -c "$jar" -b "$jar" "http://127.0.0.1:5173/" |
-            grep -qF "reference dashboard"
+          authenticated_html="$(
+            curl -sfL --max-time 60 -c "$jar" -b "$jar" -d "returnTo=/" \
+              "http://127.0.0.1:5173/login"
+          )"
+          grep -qF "Skip to main content" <<<"$authenticated_html"
 
       - name: Boot the Next.js host and probe its routes
         env:
@@ -186,9 +191,13 @@ jobs:
           done
           test "${ready:-}" = 1 || { echo "::error::next host did not boot"; exit 1; }
           # The public overview renders without a session.
-          curl -sf --max-time 30 "http://127.0.0.1:3000/" | grep -qF "Overview"
+          overview_html="$(curl -sf --max-time 30 "http://127.0.0.1:3000/")"
+          grep -qF "Overview" <<<"$overview_html"
           # The mock backend serves the seeded task fixtures over real HTTP.
-          curl -sf --max-time 30 "http://127.0.0.1:3000/api/tasks?limit=1" | grep -qF '"data"'
+          tasks_json="$(
+            curl -sf --max-time 30 "http://127.0.0.1:3000/api/tasks?limit=1"
+          )"
+          grep -qF '"data"' <<<"$tasks_json"
           # The gated route redirects an unauthenticated request to the login BFF.
           code="$(curl -s --max-time 30 -o /dev/null -w '%{http_code}' "http://127.0.0.1:3000/tasks")"
           case "$code" in 302|307) ;; *) echo "::error::expected /tasks redirect, got $code"; exit 1 ;; esac
@@ -196,9 +205,11 @@ jobs:
           # /tasks), so a broken PKCE/cookie handoff fails here rather than passing on the redirect
           # alone. The unit tests drive the composition; this proves the route handlers.
           jar="$(mktemp)"
-          curl -sfL --max-time 60 -c "$jar" -b "$jar" \
-            "http://127.0.0.1:3000/login?returnTo=/tasks" |
-            grep -qF "Tasks, highest priority first"
+          authenticated_html="$(
+            curl -sfL --max-time 60 -c "$jar" -b "$jar" \
+              "http://127.0.0.1:3000/login?returnTo=/tasks"
+          )"
+          grep -qF "Tasks, highest priority first" <<<"$authenticated_html"
 
   # Proves the published `create-plainworks` initializer scaffolds an app that actually installs,
   # typechecks, and builds against the real (packed) `@plainworks/*` surfaces — the scaffolder's

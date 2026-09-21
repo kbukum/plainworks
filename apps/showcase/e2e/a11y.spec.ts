@@ -2,7 +2,7 @@ import { expect, type Page, test } from "@playwright/test"
 import { expectNoBrowserAxeViolations, expectReflowAtNarrowViewport } from "./axe"
 import { signIn } from "./session"
 
-// A browser accessibility gate over the reference showcase's real authenticated flow: the session
+// A browser accessibility gate over the showcase's real authenticated flow: the session
 // gate lands the user on the overview, then client-side navigation reaches the query-driven task
 // view. Each rendered state is scanned with axe-core for the layout-dependent rules jsdom cannot
 // measure (color contrast, 24x24 target size), and the flow is re-checked under dark mode and

@@ -1,4 +1,4 @@
-// The showcase's authentication — the reference application authenticates through
+// The showcase authenticates through
 // `@plainworks/auth`'s own `createServerSession` composition, never a hand-assembled cookie/signer/
 // CSRF flow. This neutral (server) module assembles the OIDC Authorization Code + PKCE adapter and
 // the HMAC session signer behind an injected `fetch` seam, resolves the session from the request

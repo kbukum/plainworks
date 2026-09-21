@@ -41,7 +41,7 @@ export function AccountMenu(): ReactElement {
         )}
       >
         <Avatar aria-hidden className="size-6 text-xs">
-          <AvatarFallback>{initial}</AvatarFallback>
+          <AvatarFallback className="text-foreground">{initial}</AvatarFallback>
         </Avatar>
         <span className="sr-only @lg/shell:not-sr-only">
           Signed in as <strong>{name}</strong>

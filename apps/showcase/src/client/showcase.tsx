@@ -27,11 +27,11 @@ export interface ShowcaseProps {
 }
 
 /**
- * The one render root both the server (`renderToString`) and the client (`hydrateRoot`) render, so
- * the two trees cannot drift. Providers are composed through the kernel: `AppProvider` mounts the
- * capability registry (query outermost), inside which the query cache is rehydrated, the HTTP
- * client is provided to the sections, the router owns client-side navigation, and the app-wide
- * toast host is mounted so any surface can raise feedback.
+ * The one render root both the streaming server renderer and `hydrateRoot` render, so the two trees
+ * cannot drift. Providers are composed through the kernel: `AppProvider` mounts the capability
+ * registry (query outermost), inside which the query cache is rehydrated, the HTTP client is
+ * provided to the sections, the router owns client-side navigation, and the app-wide toast host is
+ * mounted so any surface can raise feedback.
  */
 export function Showcase(props: ShowcaseProps): ReactElement {
   return (

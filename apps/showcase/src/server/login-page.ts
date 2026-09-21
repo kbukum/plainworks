@@ -28,7 +28,7 @@ export function renderLoginPage(returnTo: string): string {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Sign in · plainworks reference dashboard</title>
+    <title>Sign in · plainworks showcase</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -112,7 +112,7 @@ export function renderLoginPage(returnTo: string): string {
   </head>
   <body>
     <main>
-      <h1>plainworks reference dashboard</h1>
+      <h1>plainworks showcase</h1>
       <p>You are signed out. Sign in to open the dashboard.</p>
       <form method="POST" action="${LOGIN_PATH}">
         <input type="hidden" name="returnTo" value="${safeReturnTo}" />

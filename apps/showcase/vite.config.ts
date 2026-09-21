@@ -1,7 +1,7 @@
 import tailwindcss from "@tailwindcss/vite"
 import { defineConfig } from "vite"
 
-// The reference host's build config. The Tailwind v4 plugin compiles the kit's design-system
+// The showcase host's build config. The Tailwind v4 plugin compiles the kit's design-system
 // stylesheets (`@plainworks/theme` and `@plainworks/ui`) the app imports. Vite's default (oxc)
 // automatic JSX runtime needs no `@vitejs/plugin-react` — Fast Refresh is not needed to prove
 // assembly — and `react`/`react-dom` are deduped so a single React instance backs both the server

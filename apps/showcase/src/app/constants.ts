@@ -99,6 +99,12 @@ export const REVENUE_TREND_KEY = ["overview", "revenue"] as const
 /** Days of revenue history the Overview trend visual plots. */
 export const REVENUE_TREND_DAYS = 14
 
+/** Query key the Overview product-sales breakdown is cached under. */
+export const PRODUCT_SALES_KEY = ["overview", "product-sales"] as const
+
+/** Number of products shown in the Overview sales breakdown. */
+export const PRODUCT_SALES_LIMIT = 5
+
 /** Cookie the theme preference is persisted under so the server can render an explicit mode. */
 export const THEME_COOKIE = "theme"
 

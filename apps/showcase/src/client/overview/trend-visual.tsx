@@ -41,6 +41,8 @@ export interface TrendVisualProps {
  */
 export function TrendVisual({ revenue }: TrendVisualProps): ReactElement {
   const polyline = toPolyline(revenue.data.map((point) => point.value))
+  const firstPoint = revenue.data[0]
+  const lastPoint = revenue.data.at(-1)
 
   return (
     <figure className="grid gap-3">
@@ -54,6 +56,14 @@ export function TrendVisual({ revenue }: TrendVisualProps): ReactElement {
         </span>
         <GrowthBadge value={revenue.growth} periodLabel="over the period" />
       </figcaption>
+
+      {firstPoint === undefined || lastPoint === undefined ? null : (
+        <p className="text-muted-foreground text-sm">
+          <DateValue value={firstPoint.date} locale={DISPLAY_LOCALE} timeZone={DISPLAY_TIME_ZONE} />{" "}
+          –{" "}
+          <DateValue value={lastPoint.date} locale={DISPLAY_LOCALE} timeZone={DISPLAY_TIME_ZONE} />
+        </p>
+      )}
 
       <svg
         aria-hidden
@@ -70,6 +80,18 @@ export function TrendVisual({ revenue }: TrendVisualProps): ReactElement {
           strokeLinecap="round"
           vectorEffect="non-scaling-stroke"
         />
+        {revenue.data.map((point, index) => {
+          const coordinate = polyline.split(" ")[index]?.split(",")
+          return coordinate === undefined ? null : (
+            <circle
+              key={point.date}
+              cx={coordinate[0]}
+              cy={coordinate[1]}
+              r="0.8"
+              fill="currentColor"
+            />
+          )
+        })}
       </svg>
 
       <table className="sr-only">

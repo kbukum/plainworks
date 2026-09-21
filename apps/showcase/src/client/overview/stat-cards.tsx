@@ -9,9 +9,12 @@ import {
   CardTitle,
 } from "@plainworks/elements/card"
 import { NumberValue } from "@plainworks/ui/display"
+import { SkeletonText } from "@plainworks/ui/feedback"
 import type { ReactElement, ReactNode } from "react"
 import { DISPLAY_LOCALE } from "../../app/constants"
 import { GrowthBadge } from "./growth-badge"
+
+const STAT_LABELS = ["Total users", "Total orders", "Revenue", "Products"] as const
 
 /** One headline metric: a label, its formatted value, and an optional growth badge. */
 function StatCard({
@@ -78,5 +81,44 @@ export function StatCards({ stats }: StatCardsProps): ReactElement {
         value={<NumberValue value={stats.totalProducts} locale={DISPLAY_LOCALE} />}
       />
     </div>
+  )
+}
+
+/** Four card-shaped loading placeholders that preserve the dashboard layout. */
+export function StatCardsSkeleton(): ReactElement {
+  return (
+    <div className="grid grid-cols-1 gap-4 @sm/main:grid-cols-2 @4xl/main:grid-cols-4">
+      {STAT_LABELS.map((label) => (
+        <Card key={label}>
+          <CardHeader>
+            <CardDescription>{label}</CardDescription>
+          </CardHeader>
+          <CardContent role="status" aria-label={`Loading ${label}`}>
+            <SkeletonText lines={2} />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}
+
+/** A card-preserving failure state for a summary read that failed as one atomic payload. */
+export function StatCardsError(): ReactElement {
+  return (
+    <section role="alert" aria-labelledby="summary-error-title" className="grid gap-3">
+      <h2 id="summary-error-title" className="font-semibold text-destructive">
+        Summary statistics are unavailable
+      </h2>
+      <div className="grid grid-cols-1 gap-4 @sm/main:grid-cols-2 @4xl/main:grid-cols-4">
+        {STAT_LABELS.map((label) => (
+          <Card key={label}>
+            <CardHeader>
+              <CardDescription>{label}</CardDescription>
+              <CardTitle className="text-muted-foreground text-base">Unavailable</CardTitle>
+            </CardHeader>
+          </Card>
+        ))}
+      </div>
+    </section>
   )
 }

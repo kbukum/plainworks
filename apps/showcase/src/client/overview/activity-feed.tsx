@@ -8,6 +8,7 @@ import type { ReactElement } from "react"
 import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE, RECENT_ACTIVITY_PARAMS } from "../../app/constants"
 import { taskListPlan } from "../../app/task-read"
 import { useHttpClient } from "../http-client"
+import { routerLinkRender, useRouter } from "../router"
 import { STATUS_LABEL, STATUS_TONE } from "../tasks/task-fields"
 
 /**
@@ -17,6 +18,8 @@ import { STATUS_LABEL, STATUS_TONE } from "../tasks/task-fields"
  */
 export function ActivityFeed(): ReactElement {
   const httpClient = useHttpClient()
+  const { navigate } = useRouter()
+  const renderLink = routerLinkRender(navigate)
   const query = useQuery(taskListPlan(httpClient, RECENT_ACTIVITY_PARAMS))
 
   if (query.isPending) {
@@ -41,10 +44,15 @@ export function ActivityFeed(): ReactElement {
   }
 
   return (
-    <ul className="grid gap-3">
+    <ul aria-label="Recent activity" className="grid gap-3">
       {tasks.map((task) => (
         <li key={task.id} className="flex items-center justify-between gap-3">
-          <span className="min-w-0 truncate font-medium">{task.title}</span>
+          {renderLink({
+            href: "/tasks",
+            className:
+              "min-w-0 truncate rounded-sm font-medium underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            children: task.title,
+          })}
           <span className="flex shrink-0 items-center gap-2">
             <Badge variant={STATUS_TONE[task.status]}>{STATUS_LABEL[task.status]}</Badge>
             <span className="text-muted-foreground text-sm">

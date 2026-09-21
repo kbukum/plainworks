@@ -1,8 +1,9 @@
 // The dev SSR host — a small Node/bun HTTP server that renders each request through the same
 // `renderApp` seam the smoke tests drive, then hands hydration to Vite. Vite runs in middleware
 // mode so the browser gets HMR and on-the-fly module transforms; `@plainworks/demo`' MSW server
-// intercepts the *server-side* task fetch (the browser's own `/api/*` calls are served by the Vite
-// mock plugin), so both render paths read one set of fixtures.
+// intercepts server-side data reads, while an independently constructed graph serves browser
+// `/api/*` calls through the Vite mock plugin. Both use the same seeded demo factory and wire
+// contract without sharing mutable state across hosts.
 //
 // Authentication runs through `@plainworks/auth`'s own `createServerSession` composition: the BFF
 // routes `/login`, `/auth/callback`, and `/logout` drive begin/complete/logout, and the SSR render
@@ -17,7 +18,7 @@ import {
 import { sanitizeReturnTo } from "@plainworks/auth"
 import type { ServerSessionJar } from "@plainworks/auth/server"
 import { createMockApi } from "@plainworks/demo"
-import { createMockServer } from "@plainworks/demo/server"
+import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import { mockServerPlugin } from "@plainworks/mocks/vite-plugin"
 import { parseCookieHeader } from "@plainworks/std"
@@ -86,8 +87,8 @@ function methodNotAllowed(res: ServerResponse, allowed: string): void {
 }
 
 async function main(): Promise<void> {
-  const mock = createMockServer()
-  mock.listen({ onUnhandledRequest: "error" })
+  const ssrMock = createMockServerHandle()
+  ssrMock.server.listen({ onUnhandledRequest: "error" })
 
   // The in-process identity provider. Its `fetch` seam backs the adapter's discovery/JWKS/token
   // calls; its `authorize` helper stands in for the interactive provider login page.
@@ -98,6 +99,12 @@ async function main(): Promise<void> {
     clientId: idp.clientId,
     redirectUri: `${ORIGIN}${AUTH_CALLBACK_PATH}`,
     signingKey: SIGNING_KEY,
+  })
+  const browserMock = createMockApi({
+    authorizeOrderMutation: createOrderMutationAuthorizer(auth.read),
+    authorizeNotificationMutation: createNotificationMutationAuthorizer(auth.read),
+    authorizeSettingsRead: createSettingsReadAuthorizer(auth.read),
+    authorizeSettingsMutation: createSettingsMutationAuthorizer(auth.read),
   })
 
   let vite: ViteDevServer
@@ -188,6 +195,13 @@ async function main(): Promise<void> {
 
   const server = createHttpServer((req, res) => {
     const url = new URL(req.url ?? "/", ORIGIN)
+    if (url.pathname === "/mock/reset" && req.method === "POST") {
+      ssrMock.api.reset()
+      browserMock.reset()
+      res.setHeader("content-type", "application/json")
+      res.end(JSON.stringify({ success: true }))
+      return
+    }
     const isAuthRoute =
       url.pathname === LOGIN_PATH ||
       url.pathname === AUTH_CALLBACK_PATH ||
@@ -242,14 +256,8 @@ async function main(): Promise<void> {
     server: { middlewareMode: true, hmr: { server } },
     appType: "custom",
     plugins: [
-      mockServerPlugin(
-        createMockApi({
-          authorizeOrderMutation: createOrderMutationAuthorizer(auth.read),
-          authorizeNotificationMutation: createNotificationMutationAuthorizer(auth.read),
-          authorizeSettingsRead: createSettingsReadAuthorizer(auth.read),
-          authorizeSettingsMutation: createSettingsMutationAuthorizer(auth.read),
-        }).handlers,
-      ),
+      mockServerPlugin(browserMock.handlers, { basePath: "/api" }),
+      mockServerPlugin(browserMock.handlers, { basePath: "/mock" }),
     ],
   })
 

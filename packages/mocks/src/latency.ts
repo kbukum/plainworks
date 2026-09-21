@@ -8,7 +8,7 @@
 export interface LatencyController {
   /** Current latency in ms (0 = disabled). */
   get(): number
-  /** Set the latency in ms; values clamp to `>= 0`. Pass 0 to disable. */
+  /** Set the latency in ms; values clamp to the platform timer range. Pass 0 to disable. */
   set(ms: number): void
   /**
    * Wait for the configured latency; resolves immediately when disabled or when `signal` aborts
@@ -17,11 +17,14 @@ export interface LatencyController {
   wait(signal?: AbortSignal): Promise<void>
 }
 
+/** Largest delay supported consistently by JavaScript timer implementations. */
+export const MAX_LATENCY_MS = 2_147_483_647
+
 const sanitize = (ms: number): number => {
   if (!Number.isFinite(ms)) {
     throw new RangeError("latency must be a finite number")
   }
-  return Math.max(0, ms)
+  return Math.min(MAX_LATENCY_MS, Math.max(0, ms))
 }
 
 /** Build a {@link LatencyController}; `initialMs` must be finite (0 = disabled). */

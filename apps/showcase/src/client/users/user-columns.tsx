@@ -35,7 +35,7 @@ export function userColumns({ onView }: UserColumnsOptions): DataTableColumn<Use
       cell: (user) => (
         <div className="flex items-center gap-3">
           <Avatar size="sm">
-            <AvatarFallback>{userInitials(user)}</AvatarFallback>
+            <AvatarFallback className="text-foreground">{userInitials(user)}</AvatarFallback>
           </Avatar>
           <div className="grid">
             <span className="font-medium">{userDisplayName(user)}</span>

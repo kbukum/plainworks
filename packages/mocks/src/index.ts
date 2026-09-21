@@ -60,7 +60,7 @@ export type {
 export { createMockControl } from "./handlers/internal"
 
 // The latency seam applied before a response.
-export { createLatency, type LatencyController } from "./latency"
+export { createLatency, type LatencyController, MAX_LATENCY_MS } from "./latency"
 
 // List-response query primitives (filter/sort/paginate/field selection).
 export {

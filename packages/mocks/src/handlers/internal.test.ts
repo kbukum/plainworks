@@ -1,7 +1,7 @@
 import { HttpResponse, http } from "msw"
 import { setupServer } from "msw/node"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import { createLatency } from "../latency"
+import { createLatency, MAX_LATENCY_MS } from "../latency"
 import { createMockControl } from "./internal"
 
 const clock = { now: () => 1_700_000_000_000 }
@@ -11,13 +11,19 @@ const graph = createMockControl(latency, onReset, clock)
 
 // A dummy API endpoint so the logging/error-gate handler (scoped to `*/api/*`) has something to
 // fall through to when error simulation is off.
-const ping = http.get("*/api/ping", () => HttpResponse.json({ data: "pong" }))
+const ping = http.get("*/api/ping", async ({ request }) => {
+  await latency.wait(request.signal)
+  return HttpResponse.json({ data: "pong" })
+})
 const server = setupServer(graph.loggingHandler, ping, ...graph.handlers)
 
 const url = (path: string): string => `http://mock.test${path}`
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }))
-afterEach(() => server.resetHandlers())
+afterEach(() => {
+  server.resetHandlers()
+  vi.useRealTimers()
+})
 beforeEach(() => {
   onReset.mockClear()
   graph.control.clearRequestLog()
@@ -58,6 +64,23 @@ describe("/mock control endpoints", () => {
     expect(cleared.count).toBe(0)
   })
 
+  it("reads the request log without waiting for simulated API latency", async () => {
+    vi.useFakeTimers()
+    latency.set(1_000)
+    let apiResolved = false
+    const apiRequest = fetch(url("/api/ping")).then((response) => {
+      apiResolved = true
+      return response
+    })
+
+    const listed = await fetch(url("/mock/requests"))
+    expect(listed.status).toBe(200)
+    expect(apiResolved).toBe(false)
+
+    await vi.advanceTimersByTimeAsync(1_000)
+    expect((await apiRequest).status).toBe(200)
+  })
+
   it("reports state", async () => {
     const state = (await (await fetch(url("/mock/state"))).json()) as {
       data: { globalError: boolean }
@@ -94,6 +117,14 @@ describe("/mock control endpoints", () => {
         await fetch(url("/mock/latency"), {
           method: "POST",
           body: JSON.stringify({ latency: -1 }),
+        })
+      ).status,
+    ).toBe(400)
+    expect(
+      (
+        await fetch(url("/mock/latency"), {
+          method: "POST",
+          body: JSON.stringify({ latency: MAX_LATENCY_MS + 1 }),
         })
       ).status,
     ).toBe(400)

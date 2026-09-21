@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { createLatency } from "./latency"
+import { createLatency, MAX_LATENCY_MS } from "./latency"
 
 describe("latency", () => {
   afterEach(() => {
@@ -30,6 +30,14 @@ describe("latency", () => {
 
   it("honors an initial latency", () => {
     expect(createLatency(25).get()).toBe(25)
+  })
+
+  it("clamps latency to the platform timer range", () => {
+    const latency = createLatency(MAX_LATENCY_MS + 1)
+    expect(latency.get()).toBe(MAX_LATENCY_MS)
+
+    latency.set(MAX_LATENCY_MS + 1)
+    expect(latency.get()).toBe(MAX_LATENCY_MS)
   })
 
   it("rejects non-finite latency values", () => {

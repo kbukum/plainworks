@@ -35,11 +35,10 @@ export function OrdersSection(): ReactElement {
   const plan = orderListPlan(httpClient, list.params)
   const query = useQuery({ ...plan, placeholderData: keepPreviousData })
   const mutations = useOrderMutations(plan.queryKey, list.params)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const rows = query.data?.data ?? []
   const total = query.data?.pagination.total ?? 0
-  const selected = rows.find((order) => order.id === selectedId)
+  const [selectedOrder, setSelectedOrder] = useState<(typeof rows)[number] | null>(null)
 
   return (
     <section aria-label="Orders" className="grid gap-4">
@@ -87,7 +86,7 @@ export function OrdersSection(): ReactElement {
                 columns={orderColumns({
                   onView: (order) => {
                     mutations.clearError()
-                    setSelectedId(order.id)
+                    setSelectedOrder(order)
                   },
                 })}
                 rows={rows}
@@ -108,15 +107,21 @@ export function OrdersSection(): ReactElement {
         </Card>
       </CatalogLayout>
       <OrderDetail
-        order={selected}
+        order={selectedOrder ?? undefined}
         onOpenChange={(open) => {
           if (!open) {
-            setSelectedId(null)
+            setSelectedOrder(null)
           }
         }}
         onChangeStatus={(status) => {
-          if (selected !== undefined) {
-            void mutations.changeStatus(selected, status)
+          if (selectedOrder !== null) {
+            const previous = selectedOrder
+            setSelectedOrder({ ...previous, status })
+            void mutations.changeStatus(previous, status).then((saved) => {
+              if (!saved) {
+                setSelectedOrder((current) => (current?.id === previous.id ? previous : current))
+              }
+            })
           }
         }}
         pending={mutations.isPending}

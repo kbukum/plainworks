@@ -23,6 +23,7 @@ export default defineConfig({
       caret: "hide",
       maxDiffPixelRatio: 0.02,
       threshold: 0.2,
+      stylePath: "./e2e/screenshot.css",
     },
   },
   use: {

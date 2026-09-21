@@ -51,6 +51,10 @@ function hydrate(): void {
       httpClient={httpClient}
     />,
   )
+
+  if (import.meta.env.DEV) {
+    void import("./dev-tools").then(({ mountDevTools }) => mountDevTools(httpClient))
+  }
 }
 
 hydrate()

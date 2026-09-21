@@ -103,7 +103,7 @@ export function AppShell(): ReactElement {
           aria-labelledby="section-title"
           className="min-w-0 bg-background p-4 outline-none sm:p-6"
         >
-          <div className="mx-auto w-full max-w-[90rem]">
+          <div className="mx-auto w-full max-w-360">
             <Breadcrumbs items={crumbs} />
             <h1
               ref={headingRef}

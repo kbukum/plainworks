@@ -1,4 +1,11 @@
-// Ambient module declarations for non-TS assets the app imports. A CSS side-effect import carries
-// no type surface — it exists only for the bundler — so declaring it keeps `tsc` happy without a
-// build-tool dependency in the type graph.
+// Ambient host declarations for the Vite app. CSS side-effect imports carry no type surface, and
+// the development flag is the only build-time environment value the client consumes.
 declare module "*.css"
+
+interface ImportMetaEnv {
+  readonly DEV: boolean
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv
+}

@@ -40,7 +40,7 @@ export function renderHtmlShell(input: HtmlShellInput): string {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>plainworks reference dashboard</title>
+    <title>plainworks showcase</title>
 ${stylesheetLinks}
   </head>
   <body>

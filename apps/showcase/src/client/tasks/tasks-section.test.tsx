@@ -102,7 +102,7 @@ describe("tasks section", () => {
     await renderTasks()
     await screen.findByRole("table")
 
-    await user.click(screen.getByRole("button", { name: "New task" }))
+    await user.click(await screen.findByRole("button", { name: "New task" }))
     const dialog = await screen.findByRole("dialog")
     await user.type(within(dialog).getByRole("textbox", { name: "Title" }), "Ship the showcase")
     await user.selectOptions(within(dialog).getByRole("combobox", { name: "Priority" }), "high")
@@ -117,7 +117,7 @@ describe("tasks section", () => {
     await renderTasks()
     await screen.findByRole("table")
 
-    await user.click(screen.getByRole("button", { name: "New task" }))
+    await user.click(await screen.findByRole("button", { name: "New task" }))
     const dialog = await screen.findByRole("dialog")
     await user.type(within(dialog).getByRole("textbox", { name: "Title" }), "Doomed task")
 
@@ -157,7 +157,7 @@ describe("tasks section", () => {
       }),
     )
 
-    await user.click(screen.getByRole("button", { name: "New task" }))
+    await user.click(await screen.findByRole("button", { name: "New task" }))
     const dialog = await screen.findByRole("dialog")
     await user.type(within(dialog).getByRole("textbox", { name: "Title" }), "Concurrent create")
     await user.selectOptions(within(dialog).getByRole("combobox", { name: "Priority" }), "high")
@@ -199,7 +199,7 @@ describe("tasks section", () => {
       }),
     )
 
-    await user.click(screen.getByRole("button", { name: "New task" }))
+    await user.click(await screen.findByRole("button", { name: "New task" }))
     const dialog = await screen.findByRole("dialog")
     await user.type(within(dialog).getByRole("textbox", { name: "Title" }), "Failing concurrent")
     await user.click(within(dialog).getByRole("button", { name: "Create task" }))
@@ -331,7 +331,7 @@ describe("tasks section", () => {
     const user = userEvent.setup()
     const { container } = await renderTasks()
     await screen.findByRole("table")
-    await user.click(screen.getByRole("button", { name: "New task" }))
+    await user.click(await screen.findByRole("button", { name: "New task" }))
     await screen.findByRole("dialog")
     await expectNoAxeViolations(container)
   })

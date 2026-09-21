@@ -1,5 +1,6 @@
 "use client"
 
+import { assertNever } from "@plainworks/std"
 import { lazy, type ReactElement, Suspense } from "react"
 import type { Section } from "../../app/navigation"
 
@@ -39,8 +40,8 @@ export interface SectionOutletProps {
 }
 
 /**
- * The active section's body renders here, inside the shell frame. Built sections render their real
- * surfaces; every other section shows its one-line summary until it is built.
+ * The active section's body renders here, inside the shell frame. Every section is loaded at its
+ * route boundary so the initial client bundle contains only the persistent shell.
  */
 export function SectionOutlet({ section }: SectionOutletProps): ReactElement {
   let content: ReactElement
@@ -67,11 +68,7 @@ export function SectionOutlet({ section }: SectionOutletProps): ReactElement {
       content = <SettingsSection />
       break
     default:
-      return (
-        <div className="rounded-xl border border-dashed border-border/70 bg-muted/20 p-8 text-center shadow-xs">
-          <p className="text-muted-foreground">{section.summary}</p>
-        </div>
-      )
+      assertNever(section.id)
   }
   return (
     <Suspense

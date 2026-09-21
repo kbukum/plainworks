@@ -50,7 +50,7 @@ export function UserProfile({ user, onOpenChange }: UserProfileProps): ReactElem
       <div className="@container grid gap-5">
         <div className="flex items-center gap-4">
           <Avatar size="lg">
-            <AvatarFallback>{userInitials(user)}</AvatarFallback>
+            <AvatarFallback className="text-foreground">{userInitials(user)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant={USER_ROLE_TONE[user.role]}>{USER_ROLE_LABEL[user.role]}</Badge>

@@ -3,7 +3,9 @@
   "version": "0.1.0-alpha.1",
   "description": "Development-only, host-independent runtime inspector with a neutral serializable session protocol.",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "**/*.css"
+  ],
   "license": "MIT",
   "author": "Plainworks",
   "homepage": "https://github.com/kbukum/plainworks/tree/main/packages/devtools#readme",
@@ -29,27 +31,72 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js"
+    },
+    "./query": {
+      "types": "./dist/query.d.ts",
+      "import": "./dist/query.js"
+    },
+    "./state": {
+      "types": "./dist/state.d.ts",
+      "import": "./dist/state.js"
+    },
+    "./styles.css": "./dist/styles.css"
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json",
     "test": "vitest run --coverage",
     "lint": "biome check .",
-    "check-packaging": "publint --strict && attw --pack --profile esm-only"
+    "check-packaging": "publint --strict && attw --pack --profile esm-only --exclude-entrypoints @plainworks/devtools/styles.css"
   },
   "dependencies": {
-    "@plainworks/std": "workspace:*"
+    "@plainworks/elements": "workspace:*",
+    "@plainworks/std": "workspace:*",
+    "@plainworks/theme": "workspace:*",
+    "@plainworks/ui": "workspace:*",
+    "lucide-react": "catalog:"
+  },
+  "peerDependencies": {
+    "@plainworks/state": "workspace:*",
+    "@tanstack/query-core": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@plainworks/state": {
+      "optional": true
+    },
+    "@tanstack/query-core": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
+    "@plainworks/state": "workspace:*",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
+    "@tailwindcss/vite": "catalog:",
+    "@tanstack/query-core": "catalog:",
+    "@testing-library/react": "catalog:",
+    "@testing-library/user-event": "catalog:",
     "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "axe-core": "catalog:",
+    "jsdom": "catalog:",
     "publint": "catalog:",
+    "tailwindcss": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
+    "vite": "catalog:",
     "vitest": "catalog:"
   }
 }

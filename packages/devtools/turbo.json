@@ -1,0 +1,21 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test": {
+      "dependsOn": ["^build", "build"],
+      // The production-exclusion fixture drives real Vite consumer builds against this package's
+      // own `dist` (so the stylesheet's `@source` scans the shipped JS); its sources must bust the
+      // test cache like `src/**` does.
+      "inputs": [
+        "src/**",
+        "fixtures/**",
+        "vitest.config.ts",
+        "tsconfig.json",
+        "tsconfig.src.json",
+        "tsconfig.client.json"
+      ],
+      "outputs": ["coverage/**"]
+    }
+  }
+}

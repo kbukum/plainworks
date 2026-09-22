@@ -3,6 +3,8 @@ export {
   type DetailResult,
   type DevtoolsClientPort,
   type DevtoolsSnapshot,
+  type DroppedSourceEntry,
+  type FailureEntry,
   type IndicatorEntry,
   RequestError,
   type RequestErrorKind,

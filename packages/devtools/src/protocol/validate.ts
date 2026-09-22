@@ -69,6 +69,8 @@ function checkMessage(
       return requireSourceDescriptor(message)
     case "source-removed":
       return requireSourceId(message, "message")
+    case "source-recovered":
+      return requireSourceId(message, "message")
     case "source-failed":
       return requireAll(message, [
         () => requireSourceId(message, "message"),

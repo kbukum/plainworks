@@ -24,6 +24,7 @@ export type DevtoolsMessage =
   | { readonly type: "source-added"; readonly source: SourceDescriptor }
   | { readonly type: "source-removed"; readonly id: SourceId }
   | { readonly type: "source-failed"; readonly id: SourceId; readonly error: ErrorSnapshot }
+  | { readonly type: "source-recovered"; readonly id: SourceId }
   | {
       readonly type: "event"
       readonly id: SourceId

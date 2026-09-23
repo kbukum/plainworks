@@ -49,9 +49,19 @@ export {
   type DevtoolsSession,
   type DevtoolsSessionOptions,
   type DevtoolsSnapshot,
+  type DroppedSourceEntry,
   DuplicateSourceError,
+  type FailureEntry,
   type IndicatorEntry,
   RequestError,
   type RequestErrorKind,
 } from "./session"
 export type { Source, SourceHandle, SourceObserver } from "./source"
+export {
+  createDevtoolsStore,
+  type DevtoolsStore,
+  type DevtoolsStoreOptions,
+  type DevtoolsStoreState,
+  type EventFilter,
+  filterEvents,
+} from "./store"

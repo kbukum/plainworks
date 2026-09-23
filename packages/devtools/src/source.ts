@@ -13,6 +13,11 @@ export interface SourceObserver {
   indicate(indicator: StatusIndicator): void
   /** Report a source-local failure. It is isolated: other sources keep running. */
   fail(error: unknown): void
+  /**
+   * Clear a previously reported failure after a healthy operation. A no-op when the source is not
+   * currently failed, so adapters can call it freely on every successful cycle.
+   */
+  recover(): void
 }
 
 /**

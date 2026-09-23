@@ -88,6 +88,7 @@ export function createDevtoolsSession(options: DevtoolsSessionOptions = {}): Dev
 
   const sources = new Map<string, SourceEntry>()
   const indicators = new Map<string, Map<string, IndicatorEntry>>()
+  const failures = new Map<string, ErrorSnapshot>()
   const requests = new Map<string, PendingRequest>()
   let reportedAggregateDropped = 0
   let portSeq = 0
@@ -130,8 +131,10 @@ export function createDevtoolsSession(options: DevtoolsSessionOptions = {}): Dev
   }
 
   function sanitizeEvent(event: SourceEvent): SourceEvent {
-    if (event.summary === undefined) return event
-    return { ...event, summary: sanitize(event.summary, sanitizeOptions) }
+    const safeLabel = sanitize(event.label, sanitizeOptions)
+    const label = typeof safeLabel === "string" && safeLabel.length > 0 ? safeLabel : event.label
+    if (event.summary === undefined) return { ...event, label }
+    return { ...event, label, summary: sanitize(event.summary, sanitizeOptions) }
   }
 
   function sanitizeIndicator(indicator: StatusIndicator): StatusIndicator {
@@ -162,8 +165,17 @@ export function createDevtoolsSession(options: DevtoolsSessionOptions = {}): Dev
         post({ type: "indicator", id, indicator: safe })
       },
       fail(error: unknown) {
-        if (disposed || !sources.has(sourceKey(id))) return
-        post({ type: "source-failed", id, error: sanitizeError(error) })
+        const key = sourceKey(id)
+        if (disposed || !sources.has(key)) return
+        const snapshot = sanitizeError(error)
+        failures.set(key, snapshot)
+        post({ type: "source-failed", id, error: snapshot })
+      },
+      recover() {
+        const key = sourceKey(id)
+        if (disposed || !sources.has(key) || !failures.has(key)) return
+        failures.delete(key)
+        post({ type: "source-recovered", id })
       },
     }
   }
@@ -180,7 +192,6 @@ export function createDevtoolsSession(options: DevtoolsSessionOptions = {}): Dev
   function deregister(key: string): void {
     const entry = sources.get(key)
     if (!entry) return
-    sources.delete(key)
     entry.controller.abort()
     cancelRequestsForSource(key)
     try {
@@ -188,8 +199,10 @@ export function createDevtoolsSession(options: DevtoolsSessionOptions = {}): Dev
     } catch (error) {
       post({ type: "source-failed", id: entry.descriptor.id, error: sanitizeError(error) })
     }
+    sources.delete(key)
     retention.forget(entry.descriptor.id)
     indicators.delete(key)
+    failures.delete(key)
     post({ type: "source-removed", id: entry.descriptor.id })
   }
 
@@ -292,7 +305,17 @@ export function createDevtoolsSession(options: DevtoolsSessionOptions = {}): Dev
       indicators: [...indicators.values()].flatMap((sourceIndicators) => [
         ...sourceIndicators.values(),
       ]),
+      failures: [...failures.entries()].flatMap(([key, error]) => {
+        const entry = sources.get(key)
+        return entry ? [{ id: entry.descriptor.id, error }] : []
+      }),
       droppedAggregate: retention.droppedAggregate(),
+      droppedBySource: [...sources.values()]
+        .map((entry) => ({
+          id: entry.descriptor.id,
+          count: retention.droppedForSource(entry.descriptor.id),
+        }))
+        .filter((entry) => entry.count > 0),
     }
   }
 
@@ -314,7 +337,9 @@ export function createDevtoolsSession(options: DevtoolsSessionOptions = {}): Dev
       try {
         entry.handle = source.connect(observerFor(entry), entry.controller.signal)
       } catch (error) {
-        post({ type: "source-failed", id: source.id, error: sanitizeError(error) })
+        const snapshot = sanitizeError(error)
+        failures.set(key, snapshot)
+        post({ type: "source-failed", id: source.id, error: snapshot })
       }
       return { unsubscribe: () => deregister(key) }
     },
@@ -339,6 +364,7 @@ export function createDevtoolsSession(options: DevtoolsSessionOptions = {}): Dev
       requests.clear()
       retention.clear()
       indicators.clear()
+      failures.clear()
       post({ type: "disposed" })
       hostSubscription.unsubscribe()
       if (ownsBridge) bridge.dispose()

@@ -1,0 +1,26 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Client-only project: the `./client` graph (`src/client.ts` + `src/client/`) is the sole
+  // surface allowed to touch the DOM, so it — and only it — layers the DOM libs on top of the
+  // base config. The server project (`tsconfig.src.json`) stays DOM-free and excludes this graph,
+  // so the `.` entry can never silently depend on a browser global.
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "paths": {
+      "@plainworks/testkit": ["../testkit/src"],
+      "@plainworks/testkit/client": ["../testkit/src/client/index.ts"],
+      "@plainworks/theme": ["../theme/src"],
+      "@plainworks/ui": ["../ui/src"],
+      "@plainworks/ui/hooks": ["../ui/src/client/hooks/index.ts"],
+      "@plainworks/ui/feedback": ["../ui/src/client/feedback/index.ts"],
+      // The owned atoms are consumed through their published subpaths; resolve them to
+      // `@plainworks/elements` source so devtools typechecks before either package is built.
+      "@plainworks/elements/*": ["../elements/src/atoms/*"],
+      // Those atoms compose siblings through the shadcn `@/atoms/*` alias; resolve it to the same
+      // elements source so their internal imports typecheck through to the real atom types.
+      "@/atoms/*": ["../elements/src/atoms/*"],
+      "@plainworks/*": ["../*/src"]
+    }
+  },
+  "include": ["src/client.ts", "src/client"]
+}

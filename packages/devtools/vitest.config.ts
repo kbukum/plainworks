@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     // The neutral entry must prove it needs no DOM.
     environment: "node",
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "fixtures/**/*.test.ts"],
     coverage: {
       provider: "v8",
       include: ["src/**/*.{ts,tsx}"],

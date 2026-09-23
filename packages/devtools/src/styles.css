@@ -1,0 +1,10 @@
+@import "@plainworks/ui/styles.css";
+
+/*
+ * Register this package's shipped client modules with the consumer's Tailwind build. The path is
+ * relative to this file inside the installed package, so it resolves to `dist/` under any
+ * package-manager layout — Tailwind never auto-detects sources inside node_modules. The host
+ * imports this stylesheet only inside its build-time development gate, so production builds
+ * compile no devtools CSS.
+ */
+@source "./**/*.js";

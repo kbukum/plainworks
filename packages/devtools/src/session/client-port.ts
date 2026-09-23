@@ -1,4 +1,5 @@
 import {
+  type ErrorSnapshot,
   err,
   ok,
   PlainError,
@@ -33,7 +34,23 @@ export interface DevtoolsSnapshot {
   readonly sources: readonly SourceDescriptor[]
   readonly events: readonly RetentionEntry[]
   readonly indicators: readonly IndicatorEntry[]
+  /** Latest failure per source, so a late-connecting client sees broken adapters too. */
+  readonly failures: readonly FailureEntry[]
   readonly droppedAggregate: number
+  /** Dropped event counts per source, so late-connecting clients see accurate per-source drops. */
+  readonly droppedBySource: readonly DroppedSourceEntry[]
+}
+
+/** The drop count of one source, paired with its identity. */
+export interface DroppedSourceEntry {
+  readonly id: SourceId
+  readonly count: number
+}
+
+/** The latest failure of one source, paired with its identity. */
+export interface FailureEntry {
+  readonly id: SourceId
+  readonly error: ErrorSnapshot
 }
 
 /** The latest value of one indicator, paired with its source identity. */

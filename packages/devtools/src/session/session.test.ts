@@ -256,6 +256,39 @@ describe("createDevtoolsSession", () => {
     expect(port.snapshot().events).toHaveLength(0)
   })
 
+  it("delivers an event flushed during handle dispose on deregistration", () => {
+    const session = createDevtoolsSession()
+    const { messages } = collect(session)
+    let observerRef: SourceObserver | undefined
+    const http = harness(httpId, {
+      dispose: () => {
+        observerRef?.emit({ kind: "r", label: "final-flush", severity: "ok", at: 2 })
+      },
+    })
+    const registration = session.registerSource(http.source)
+    observerRef = http.observer()
+    observerRef.emit({ kind: "r", label: "first", severity: "ok", at: 1 })
+
+    registration.unsubscribe()
+    const labels = messages
+      .filter((m): m is Extract<DevtoolsMessage, { type: "event" }> => m.type === "event")
+      .map((m) => m.event.label)
+    expect(labels).toEqual(["first", "final-flush"])
+  })
+
+  it("snapshots per-source dropped counts when retention capacity is exceeded", () => {
+    const session = createDevtoolsSession({ retention: { perSource: 2, aggregate: 5 } })
+    const http = harness(httpId)
+    session.registerSource(http.source)
+    http.observer().emit({ kind: "r", label: "1", severity: "ok", at: 1 })
+    http.observer().emit({ kind: "r", label: "2", severity: "ok", at: 2 })
+    http.observer().emit({ kind: "r", label: "3", severity: "ok", at: 3 })
+
+    const port = session.connect()
+    const snapshot = port.snapshot()
+    expect(snapshot.droppedBySource).toEqual([{ id: httpId, count: 1 }])
+  })
+
   it("starts a clean timeline when a stable source identity reconnects", () => {
     const session = createDevtoolsSession()
     const first = harness(httpId)

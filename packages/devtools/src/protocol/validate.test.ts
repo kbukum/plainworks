@@ -29,6 +29,13 @@ describe("validateMessageEnvelope", () => {
     expect(isOk(result)).toBe(true)
   })
 
+  it("accepts a source-recovered message and rejects one with a malformed id", () => {
+    expect(isOk(validateMessageEnvelope(envelope({ type: "source-recovered", id })))).toBe(true)
+    expect(
+      isErr(validateMessageEnvelope(envelope({ type: "source-recovered", id: { kind: "" } }))),
+    ).toBe(true)
+  })
+
   it("rejects an incompatible protocol version", () => {
     const result = validateMessageEnvelope({ protocol: 999, message: { type: "disposed" } })
     expect(isErr(result)).toBe(true)

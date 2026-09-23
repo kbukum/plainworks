@@ -114,6 +114,27 @@ describe("createQuerySource", () => {
     expect(failure?.event.label).toContain("broken")
   })
 
+  it("masks non-Error thrown values in events and on-demand detail", async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const { port } = setup({ client, instance: "main", now: () => 1_000 })
+    await client
+      .fetchQuery({
+        queryKey: ["broken"],
+        queryFn: async () => {
+          throw "secret-payload"
+        },
+      })
+      .catch(() => {})
+
+    const failure = port.snapshot().events.find((entry) => entry.event.kind === "query.error")
+    expect(failure?.event.summary).toEqual({ error: "Unknown error" })
+    const detail = await port.requestDetail(
+      { kind: "query", instance: "main" },
+      failure?.event.detail ?? "",
+    )
+    expect(JSON.stringify(detail)).not.toContain("secret-payload")
+  })
+
   it("emits mutation start on execution, not on cache insertion, then success", async () => {
     const client = new QueryClient()
     const { port } = setup({ client, instance: "main", now: () => 1_000 })

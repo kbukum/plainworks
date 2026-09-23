@@ -7,6 +7,7 @@ import type {
 } from "@tanstack/query-core"
 import type { SourceEvent } from "../../protocol"
 import type { Source, SourceHandle } from "../../source"
+import { describeErrorSafely } from "../error-summary"
 
 /** Options for {@link createQuerySource}. */
 export interface QuerySourceOptions {
@@ -158,7 +159,7 @@ function summarizeQueryEvent(
           label: `Failed ${keyLabel}`,
           severity: "error",
           at,
-          summary: { error: errorMessage(action.error) },
+          summary: { error: describeErrorSafely(action.error) },
           detail: detailIdFor(event.query),
         }
       }
@@ -193,7 +194,7 @@ function summarizeMutationEvent(
         label: `Mutation ${label} failed`,
         severity: "error",
         at,
-        summary: { error: errorMessage(event.action.error) },
+        summary: { error: describeErrorSafely(event.action.error) },
       }
     }
   }
@@ -237,7 +238,7 @@ function detailOfQuery(query: Query): Record<string, unknown> {
     errorUpdatedAt: query.state.errorUpdatedAt,
     observers: query.getObserversCount(),
     data: query.state.data,
-    error: query.state.error === null ? null : errorMessage(query.state.error),
+    error: query.state.error === null ? null : describeErrorSafely(query.state.error),
   }
 }
 
@@ -261,8 +262,4 @@ function defaultKeyLabel(queryKey: unknown): string {
 function mutationLabel(mutation: Mutation, formatKey: (key: unknown) => string): string {
   const key = mutation.options.mutationKey
   return key === undefined ? "mutation" : truncateLabel(formatKey(key))
-}
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Unknown error"
 }

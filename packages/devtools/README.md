@@ -61,7 +61,7 @@ if (import.meta.env.DEV) {
 
 `mountDevtools` mounts into an isolated React root and returns teardown; `DevtoolsShell` is the component form when you already render React. Pass kind-keyed custom panels via `renderers` — unknown kinds render through a generic panel with indicators, risk-separated commands, and on-demand detail. The shell automatically reserves bottom space when the diagnostics rail is active so it never covers focused controls.
 
-## Optional adapters (`./query`, `./state`)
+## Optional adapters (`./query`, `./state`, `./http`, `./connect`, `./channel`, `./observability`)
 
 First-party adapters are imported only for the capabilities you use — an app that never imports them ships no adapter code:
 
@@ -93,6 +93,32 @@ mountDevtools({
 ```
 
 The **state adapter** shows bounded change summaries (which top-level keys changed, derived from the projected state, never raw or unwhitelisted values) and loads the full projected snapshot on demand. It is **private by default**: `snapshot` is required, so only the fields you whitelist at the boundary are ever summarized, retained, or forwarded — return the whole state (`(s) => s`) only when every field is safe to inspect. The **query adapter** projects keys safely via `keyLabel` and references queries with opaque internal identifiers so query keys and credentials never leak into event labels or detail tokens. Both adapters require an explicit `instance` label so multiple clients and stores never collide, and both honor the session's sanitize bounds — tokens, functions, and cycles never reach the panel. A source that recovers from a transient read/projection failure clears its failed state on the next healthy cycle rather than staying marked as failed.
+
+### Runtime-flow adapters (`./http`, `./connect`, `./channel`, `./observability`)
+
+These watch data in motion. Each returns the seam to hand your runtime — an interceptor, an options wrapper, or a sink — *plus* the source to register, so instrumentation is added beside your real client and observed without changing its behavior.
+
+```ts
+import { createHttpSource } from "@plainworks/devtools/http"
+import { createConnectSource } from "@plainworks/devtools/connect"
+import { createHttpClient } from "@plainworks/http"
+
+const http = createHttpSource({ instance: "api" })
+const client = createHttpClient({ interceptors: [http.interceptor] })
+session.registerSource(http.source)
+
+const connect = createConnectSource({ instance: "rpc" })
+// hand connect.interceptor to your transport, then register connect.source
+```
+
+| Adapter | Wire this seam | Safe data captured |
+| --- | --- | --- |
+| **HTTP** | Add `interceptor` to `createHttpClient`. | Method, sanitized URL, duration, status, and outcome. Headers require an explicit `captureHeaders` allowlist. |
+| **Connect** | Add `interceptor` to the transport. | Service, method, duration, outcome, typed failure code, and streaming message counts. |
+| **Channel** | Apply `instrument(options)` and call `observe(channel)`. | Status, reconnect count, frame count, last-event ID, and `{ type, bytes, id? }` frame metadata. Frame data never crosses the boundary. |
+| **Observability** | Register the log sink, reporter backend, and vital reporter beside the operational pipeline. | Already-redacted log metadata, reports, and Web Vitals. Log fields require an explicit allowlist. |
+
+HTTP and Connect use the same `ok` / `error` / `timeout` / `canceled` outcomes. Every adapter requires an explicit `instance`, isolates devtools failures from the application path, and coalesces high-frequency events with a bounded interval.
 
 ## What the session guarantees
 

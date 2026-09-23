@@ -1,4 +1,5 @@
 import { type SourceEvent, type SourceId, sourceKey } from "../protocol"
+import { assertPositiveCapacity } from "./capacity"
 
 /** A retained event with the identity and sequence needed to order and deduplicate it. */
 export interface RetentionEntry {
@@ -91,7 +92,5 @@ export function createRetentionBuffer(capacity: RetentionCapacity): RetentionBuf
 }
 
 function assertCapacity(name: keyof RetentionCapacity, value: number): void {
-  if (!Number.isSafeInteger(value) || value <= 0) {
-    throw new RangeError(`Retention ${name} capacity must be a positive safe integer.`)
-  }
+  assertPositiveCapacity(`Retention ${name} capacity`, value)
 }

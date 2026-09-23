@@ -174,7 +174,7 @@ async function* idleGuarded<T>(
         timer.abort()
       }
       if (idled) {
-        idleController.abort(new AbortError())
+        idleController.abort(new TimeoutError(idleMs))
         // The in-flight read will reject once the stream is cancelled; drain it so that rejection
         // is never unhandled.
         void nextResult.catch(() => {})

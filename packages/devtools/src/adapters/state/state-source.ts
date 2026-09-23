@@ -52,6 +52,7 @@ export function createStateSource<State>(options: StateSourceOptions<State>): So
         intervalMs,
         mode: "coalesce",
         onEmit: (event) => observer.emit(event),
+        onError: (error) => observer.fail(error),
         now,
       })
       let changes = 0

@@ -15,6 +15,19 @@ describe("createEventSampler", () => {
     vi.useRealTimers()
   })
 
+  it.each([-1, Number.NaN, Number.POSITIVE_INFINITY, 2_147_483_648])(
+    "rejects an invalid interval of %s",
+    (intervalMs) => {
+      expect(() =>
+        createEventSampler({
+          intervalMs,
+          mode: "coalesce",
+          onEmit: () => {},
+        }),
+      ).toThrowError(RangeError)
+    },
+  )
+
   it("emits every event immediately when intervalMs is 0", () => {
     const emitted: string[] = []
     const sampler = createEventSampler({
@@ -122,5 +135,27 @@ describe("createEventSampler", () => {
     sampler.dispose()
     vi.advanceTimersByTime(300)
     expect(emitted).toEqual(["a"])
+  })
+
+  it("routes a trailing timer clock failure without throwing asynchronously", () => {
+    let clockCalls = 0
+    const failures: unknown[] = []
+    const sampler = createEventSampler({
+      intervalMs: 250,
+      mode: "coalesce",
+      onEmit: () => {},
+      onError: (error) => failures.push(error),
+      now: () => {
+        clockCalls += 1
+        if (clockCalls > 2) throw new Error("clock failed")
+        return 1_000
+      },
+    })
+
+    sampler.offer(event("a"))
+    sampler.offer(event("b"))
+    expect(() => vi.advanceTimersByTime(250)).not.toThrow()
+    expect(failures).toHaveLength(1)
+    sampler.dispose()
   })
 })

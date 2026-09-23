@@ -44,6 +44,22 @@
       "types": "./dist/state.d.ts",
       "import": "./dist/state.js"
     },
+    "./http": {
+      "types": "./dist/http.d.ts",
+      "import": "./dist/http.js"
+    },
+    "./connect": {
+      "types": "./dist/connect.d.ts",
+      "import": "./dist/connect.js"
+    },
+    "./channel": {
+      "types": "./dist/channel.d.ts",
+      "import": "./dist/channel.js"
+    },
+    "./observability": {
+      "types": "./dist/observability.d.ts",
+      "import": "./dist/observability.js"
+    },
     "./styles.css": "./dist/styles.css"
   },
   "scripts": {
@@ -61,13 +77,33 @@
     "lucide-react": "catalog:"
   },
   "peerDependencies": {
+    "@connectrpc/connect": "catalog:",
+    "@plainworks/channel": "workspace:*",
+    "@plainworks/connect": "workspace:*",
+    "@plainworks/http": "workspace:*",
+    "@plainworks/observability": "workspace:*",
     "@plainworks/state": "workspace:*",
     "@tanstack/query-core": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
   "peerDependenciesMeta": {
+    "@plainworks/channel": {
+      "optional": true
+    },
+    "@plainworks/connect": {
+      "optional": true
+    },
+    "@plainworks/http": {
+      "optional": true
+    },
+    "@plainworks/observability": {
+      "optional": true
+    },
     "@plainworks/state": {
+      "optional": true
+    },
+    "@connectrpc/connect": {
       "optional": true
     },
     "@tanstack/query-core": {
@@ -79,6 +115,11 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
+    "@connectrpc/connect": "catalog:",
+    "@plainworks/channel": "workspace:*",
+    "@plainworks/connect": "workspace:*",
+    "@plainworks/http": "workspace:*",
+    "@plainworks/observability": "workspace:*",
     "@plainworks/state": "workspace:*",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",

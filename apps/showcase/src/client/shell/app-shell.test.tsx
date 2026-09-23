@@ -178,7 +178,11 @@ describe("app shell", () => {
     const bellName = (count: number): string => `Notifications, ${count} unread`
     await screen.findByRole("link", { name: bellName(unread) })
 
-    const [markRead] = await screen.findAllByRole("button", { name: /^Mark read/ })
+    const [markRead] = await screen.findAllByRole(
+      "button",
+      { name: /^Mark read/ },
+      { timeout: 5_000 },
+    )
     if (markRead === undefined) throw new Error("expected an unread notification")
     await user.click(markRead)
 

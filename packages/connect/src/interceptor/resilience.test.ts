@@ -1,5 +1,5 @@
 import { Code, ConnectError, type Interceptor } from "@connectrpc/connect"
-import type { Delay, WebAbortSignal } from "@plainworks/std"
+import { type Delay, TimeoutError, type WebAbortSignal } from "@plainworks/std"
 import { flushMicrotasks, manualDelay, seededRandom } from "@plainworks/testkit"
 import {
   countResponse,
@@ -113,7 +113,7 @@ describe("resilienceInterceptor", () => {
 
   test("fails a stalled stream as deadline_exceeded and cancels the underlying stream", async () => {
     const manual = manualDelay()
-    let observed: { aborted: boolean } | undefined
+    let observed: { aborted: boolean; reason: unknown } | undefined
     async function* source(signal: WebAbortSignal) {
       yield countResponse(1)
       // A real transport stream rejects its pending read when the call is aborted; mirror that so
@@ -140,6 +140,7 @@ describe("resilienceInterceptor", () => {
     expect(error).toBeInstanceOf(ConnectError)
     expect((error as ConnectError).code).toBe(Code.DeadlineExceeded)
     expect(observed?.aborted).toBe(true)
+    expect(observed?.reason).toBeInstanceOf(TimeoutError)
   })
 
   test("tears down the source stream on an early consumer break", async () => {

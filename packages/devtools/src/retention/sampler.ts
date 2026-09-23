@@ -1,3 +1,4 @@
+import { assertTimerMs } from "@plainworks/std"
 import type { SourceEvent } from "../protocol"
 
 /** How a sampler thins a burst: keep the first event of each window, or keep only the latest. */
@@ -11,6 +12,8 @@ export interface EventSamplerOptions {
   readonly mode: SamplingMode
   /** Callback invoked when an event is emitted. */
   readonly onEmit: (event: SourceEvent) => void
+  /** Receives a clock or emission failure from the owned trailing timer. */
+  readonly onError?: (error: unknown) => void
   /** Injected clock for the current time. Defaults to `Date.now`. */
   readonly now?: () => number
 }
@@ -43,10 +46,11 @@ export interface EventSampler {
  * the leading edge or released by the owned timer at the interval boundary.
  */
 export function createEventSampler(options: EventSamplerOptions): EventSampler {
-  const { intervalMs, mode, onEmit } = options
+  const { intervalMs, mode, onEmit, onError } = options
   const now = options.now ?? Date.now
+  assertTimerMs(intervalMs)
 
-  if (intervalMs <= 0) {
+  if (intervalMs === 0) {
     return {
       offer(event) {
         onEmit(event)
@@ -67,8 +71,17 @@ export function createEventSampler(options: EventSamplerOptions): EventSampler {
     if (pending !== undefined) {
       const event = pending
       pending = undefined
-      windowEnd = now() + intervalMs
-      onEmit(event)
+      try {
+        windowEnd = now() + intervalMs
+        onEmit(event)
+      } catch (error) {
+        if (onError === undefined) throw error
+        try {
+          onError(error)
+        } catch {
+          // A timer callback has no caller to receive a secondary reporting failure.
+        }
+      }
     }
   }
 

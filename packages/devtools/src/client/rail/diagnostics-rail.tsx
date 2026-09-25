@@ -80,7 +80,7 @@ export function DiagnosticsRail({
     <section
       aria-label="Diagnostics"
       className={cn(
-        "@container fixed inset-x-0 bottom-0 z-40 flex items-center gap-1 overflow-x-auto",
+        "@container fixed inset-x-0 bottom-0 z-overlay flex w-full max-w-full items-center gap-1 overflow-x-auto",
         "border-t bg-popover/95 px-2 py-1 text-xs backdrop-blur motion-reduce:transition-none",
       )}
     >

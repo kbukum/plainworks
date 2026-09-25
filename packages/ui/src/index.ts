@@ -9,17 +9,19 @@ export type {
   RadiusStep,
   ResolvedTheme,
   SemanticColorRole,
+  StatusTone,
   ThemeMode,
   ThemePreference,
+  ThemeToken,
 } from "@plainworks/theme"
 export {
   BRAND_COLOR_ROLES,
   COLOR_SCHEMES,
-  colorRoleVar,
   DEFAULT_THEME,
   parseThemeCookie,
   RADIUS_STEPS,
   resolveTheme,
   SEMANTIC_COLOR_ROLES,
-  semanticRoleVar,
+  STATUS_TONES,
+  themeVar,
 } from "@plainworks/theme"

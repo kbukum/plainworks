@@ -9,9 +9,8 @@
       "@plainworks/*": ["../*/src"]
     }
   },
-  // The token-contract test inspects `styles.css` from disk via Node `fs` — a dev-only assertion of
-  // a build artifact. It sits outside this DOM- and Node-free graph (its `node:` imports would
-  // otherwise, correctly, fail to resolve here) and is exercised by Vitest, not `tsc`.
-  "exclude": ["src/client.ts", "src/client", "src/tokens/roles.test.ts", "src/styles.test.ts"],
+  // Tests and the `src/testing/` stylesheet readers use Node and DOM APIs, so they are typechecked
+  // by `tsconfig.test.json` instead of this DOM- and Node-free graph.
+  "exclude": ["src/client.ts", "src/client", "src/testing", "src/**/*.test.ts"],
   "include": ["src", "../../types/universal-web.d.ts"]
 }

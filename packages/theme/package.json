@@ -1,7 +1,7 @@
 {
   "name": "@plainworks/theme",
   "version": "0.1.0-alpha.1",
-  "description": "The host-independent design substrate for the plainworks UI family: three-tier tokens, color schemes + dark mode, the resolve\u2192hydrate theme runtime, one CSP-safe stylesheet, and the `cn` class merger.",
+  "description": "The host-independent design substrate for the plainworks UI family: semantic tokens as plain CSS and Tailwind utilities, color schemes + dark mode, the resolve\u2192hydrate theme runtime, and the `cn` class merger.",
   "type": "module",
   "sideEffects": [
     "**/*.css"
@@ -39,14 +39,15 @@
       "types": "./dist/client.d.ts",
       "import": "./dist/client.js"
     },
-    "./styles.css": "./dist/styles.css"
+    "./styles.css": "./dist/styles.css",
+    "./tokens.css": "./dist/tokens.css"
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json",
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run --coverage",
     "lint": "biome check .",
-    "check-packaging": "publint --strict && attw --pack --profile esm-only --exclude-entrypoints @plainworks/theme/styles.css"
+    "check-packaging": "publint --strict && attw --pack --profile esm-only --exclude-entrypoints @plainworks/theme/styles.css @plainworks/theme/tokens.css"
   },
   "dependencies": {
     "@plainworks/std": "workspace:*",

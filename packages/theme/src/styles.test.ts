@@ -12,10 +12,14 @@ const css = readFileSync(new URL("src/styles.css", packageRoot), "utf8")
 // A `@source` glob in the shipped stylesheet resolves relative to its built location, not source.
 const shippedCssUrl = new URL("dist/styles.css", packageRoot)
 
-const bareImports = [...css.matchAll(/@import\s+"([^"]+)"/g)]
-  .map(([, specifier]) => specifier)
-  .filter((specifier) => !specifier.startsWith("."))
-const sources = [...css.matchAll(/@source\s+"([^"]+)"/g)].map(([, specifier]) => specifier)
+function specifiers(pattern: RegExp): string[] {
+  return [...css.matchAll(pattern)].flatMap(([, specifier]) => specifier ?? [])
+}
+
+const bareImports = specifiers(/@import\s+"([^"]+)"/g).filter(
+  (specifier) => !specifier.startsWith("."),
+)
+const sources = specifiers(/@source\s+"([^"]+)"/g)
 
 function declaredPackages() {
   return new Set([
@@ -25,17 +29,19 @@ function declaredPackages() {
 }
 
 describe("published stylesheet contract", () => {
-  it("exports the stylesheet from the build output the packaging gate covers", () => {
+  it("exports both stylesheets from the build output the packaging gate covers", () => {
     expect(pkg.files).toContain("dist")
     expect(pkg.exports["./styles.css"]).toBe("./dist/styles.css")
+    expect(pkg.exports["./tokens.css"]).toBe("./dist/tokens.css")
   })
 
   it("declares every package its stylesheet imports", () => {
     const declared = declaredPackages()
     for (const specifier of bareImports) {
-      const name = specifier.startsWith("@")
-        ? specifier.split("/").slice(0, 2).join("/")
-        : specifier.split("/")[0]
+      const name = specifier
+        .split("/")
+        .slice(0, specifier.startsWith("@") ? 2 : 1)
+        .join("/")
       expect(declared.has(name), `@import "${specifier}" is not a declared dependency`).toBe(true)
     }
   })
@@ -49,14 +55,5 @@ describe("published stylesheet contract", () => {
         `@source "${specifier}" escapes the package`,
       ).toBe(true)
     }
-  })
-
-  // The substrate must paint the document surface, or the resolved `.dark`/`theme-*` class on
-  // <html> repaints the text but leaves the body browser-white behind it — an unreadable contrast a
-  // browser axe gate catches. The Tier 2 `--pw-*` vars are the only ones emitted at runtime.
-  it("paints the base body surface from the semantic role tokens", () => {
-    const body = css.match(/@layer base\s*\{[^}]*body\s*\{([^}]*)\}/)?.[1] ?? ""
-    expect(body).toMatch(/background-color:\s*var\(--pw-background\)/)
-    expect(body).toMatch(/color:\s*var\(--pw-foreground\)/)
   })
 })

@@ -1,14 +1,18 @@
 // Re-export-only barrel for the design-token contract (no logic here). Neutral/DOM-free, so it is
 // safe on the server `.` entry.
-export type {
-  BrandColorRole,
-  RadiusStep,
-  SemanticColorRole,
-} from "./roles"
-export {
-  BRAND_COLOR_ROLES,
-  colorRoleVar,
-  RADIUS_STEPS,
-  SEMANTIC_COLOR_ROLES,
-  semanticRoleVar,
-} from "./roles"
+export type { BrandColorRole, SemanticColorRole, StatusTone } from "./color"
+export { BRAND_COLOR_ROLES, SEMANTIC_COLOR_ROLES, STATUS_TONES } from "./color"
+export type { Density, DensitySpace } from "./density"
+export { DENSITIES, DENSITY_SPACES } from "./density"
+export type { ElevationLevel } from "./elevation"
+export { ELEVATION_LEVELS } from "./elevation"
+export type { MotionDuration, MotionEasing } from "./motion"
+export { MOTION_DURATIONS, MOTION_EASINGS } from "./motion"
+export type { RadiusStep } from "./radius"
+export { RADIUS_STEPS } from "./radius"
+export type { StackingLayer } from "./stacking"
+export { STACKING_LAYERS } from "./stacking"
+export type { FocusRingToken, ThemeToken } from "./theme-token"
+export { THEME_TOKENS, themeVar } from "./theme-token"
+export type { FontRole, TypeStep } from "./typography"
+export { FONT_ROLES, TYPE_STEPS } from "./typography"

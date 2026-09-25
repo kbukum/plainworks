@@ -34,6 +34,16 @@ test("authenticated flow has no contrast or target-size violations", async ({ pa
   await expectNoBrowserAxeViolations(page)
 })
 
+test("keyboard focus remains visible in forced-colors mode", async ({ page }) => {
+  await page.emulateMedia({ forcedColors: "active" })
+  await signIn(page)
+
+  const search = page.getByRole("button", { name: "Search sections and actions" })
+  await search.focus()
+  await expect(search).toHaveCSS("outline-style", "solid")
+  await expect(search).toHaveCSS("outline-width", "2px")
+})
+
 test("task view reflows at a 320px viewport without horizontal scrolling", async ({ page }) => {
   await signIn(page)
   await openTasks(page)

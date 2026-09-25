@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest"
 import { formatSource } from "./format.mjs"
 import {
   buildExports,
+  buildPublishedFiles,
   buildRegistry,
   buildTsdownEntry,
   collectItemFiles,
@@ -81,6 +82,21 @@ describe("codegen stays in lock-step with disk (cannot drift)", () => {
     expect(buildExports()).toEqual(pkg.exports)
   })
 
+  it("re-derives the committed published files whitelist exactly", () => {
+    const pkg = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"))
+    expect(buildPublishedFiles(buildRegistry(packageRoot))).toEqual(pkg.files)
+  })
+
+  it("publishes every source file a registry item lists, so an install from npm resolves", () => {
+    const files = buildPublishedFiles(buildRegistry(packageRoot))
+    const published = files.filter((entry) => !entry.startsWith("!"))
+    const paths = buildRegistry(packageRoot).items.flatMap((item) => item.files.map((f) => f.path))
+    expect(paths).toContain("src/region/async-status.ts")
+    for (const path of paths) {
+      expect(published.some((entry) => path === entry || path.startsWith(`${entry}/`))).toBe(true)
+    }
+  })
+
   it("gives the manifest and every concern a tsdown entry", () => {
     const entry = buildTsdownEntry()
     expect(entry.index).toBe("src/index.ts")
@@ -119,7 +135,7 @@ describe("codegen orchestration writes every artifact from disk", () => {
         "src/client/data-table",
         "src/client/forms",
         "src/client/list",
-        "src/client/error-fallback",
+        "src/client/page",
       ]
       for (const dir of registryDirs) {
         mkdirSync(join(root, dir), { recursive: true })
@@ -148,6 +164,7 @@ describe("codegen orchestration writes every artifact from disk", () => {
       const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"))
       const layout = registry.items.find((item) => item.name === "layout")
       expect(layout.dependencies).toEqual(["@plainworks/elements"])
+      expect(pkg.files).toEqual(["dist", "registry.json", "src/client", "!src/client/**/*.test.*"])
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

@@ -47,6 +47,7 @@ export function Stack({
 }: StackProps): ReactElement {
   return (
     <div
+      {...props}
       data-slot="stack"
       className={cn(
         "flex",
@@ -57,7 +58,6 @@ export function Stack({
         wrap && "flex-wrap",
         className,
       )}
-      {...props}
     />
   )
 }

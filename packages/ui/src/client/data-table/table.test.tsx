@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
-import { cleanup, render, screen, within } from "@testing-library/react"
+import { act, cleanup, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { useState } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
@@ -66,7 +66,6 @@ describe("DataTable", () => {
     expect(screen.getByRole("status").textContent).toContain("Loading")
     const skeletons = container.querySelectorAll('[data-slot="skeleton"]')
     expect(skeletons.length).toBe(8)
-    expect(skeletons[0]?.className).toContain("motion-reduce:animate-none")
     expect(screen.queryByText("Ada Lovelace")).toBeNull()
     await expectNoAxeViolations(container)
   })
@@ -167,7 +166,7 @@ describe("DataTable", () => {
         columns={columns}
         rows={people}
         getRowId={getRowId}
-        getRowAriaLabel={(person) => `Select ${person.name}`}
+        getRowLabel={(person) => person.name}
         selectable
       />,
     )
@@ -196,7 +195,7 @@ describe("DataTable", () => {
     await expectNoAxeViolations(container)
   })
 
-  it("formats default row-specific aria-label from row ID when getRowAriaLabel is omitted", () => {
+  it("names a row by its id when getRowLabel is omitted", () => {
     render(<DataTable columns={columns} rows={people} getRowId={getRowId} selectable />)
     expect(screen.getByRole("checkbox", { name: "Select row 1" })).toBeDefined()
     expect(screen.getByRole("checkbox", { name: "Select row 2" })).toBeDefined()
@@ -244,19 +243,174 @@ describe("DataTable", () => {
     expect(screen.getByText("selected: 1,2")).toBeDefined()
   })
 
-  it("hides low-priority columns in narrow container presentations", () => {
-    // Note: jsdom lacks a layout engine and cannot compute container query styles;
-    // computed responsive visibility across container thresholds is verified in Playwright
-    // browser tests (`apps/showcase/e2e/layout.spec.ts`).
+  it("moves low-priority columns into a row-detail disclosure in a narrow container", async () => {
+    // jsdom has no layout engine, so container-query visibility is proven in the showcase browser
+    // gates; here the classes pin which presentation each part belongs to.
     const responsiveColumns: DataTableColumn<Person>[] = [
       { id: "name", header: "Name", cell: (p) => p.name, priority: "high" },
       { id: "role", header: "Role", cell: (p) => p.role, priority: "low" },
     ]
-    render(<DataTable columns={responsiveColumns} rows={people} getRowId={getRowId} />)
-    const roleHeader = screen.getByRole("columnheader", { name: "Role" })
-    expect(roleHeader.className).toContain("@max-2xl:hidden")
-    const cells = screen.getAllByRole("cell", { name: /Engineer|Researcher/ })
-    expect(cells[0]?.className).toContain("@max-2xl:hidden")
+    const { container } = render(
+      <DataTable
+        columns={responsiveColumns}
+        rows={people}
+        getRowId={getRowId}
+        getRowLabel={(p) => p.name}
+      />,
+    )
+    const user = userEvent.setup()
+
+    expect(screen.getByRole("columnheader", { name: "Role" }).className).toContain(
+      "@max-2xl:hidden",
+    )
+    expect(screen.getByRole("cell", { name: "Engineer" }).className).toContain("@max-2xl:hidden")
+    expect(screen.getByRole("columnheader", { name: "Details" }).className).toContain("@2xl:hidden")
+
+    const toggle = screen.getByRole("button", { name: "Details for Ada Lovelace" })
+    expect(toggle.getAttribute("aria-expanded")).toBe("false")
+    expect(toggle.getAttribute("aria-controls")).toBeNull()
+
+    await user.click(toggle)
+    expect(toggle.getAttribute("aria-expanded")).toBe("true")
+    const detail = document.getElementById(toggle.getAttribute("aria-controls") ?? "")
+    expect(detail?.className).toContain("@2xl:hidden")
+    const terms = within(detail as HTMLElement).getAllByRole("term")
+    const values = within(detail as HTMLElement).getAllByRole("definition")
+    expect(terms.map((term) => term.textContent)).toEqual(["Role"])
+    expect(values.map((value) => value.textContent)).toEqual(["Engineer"])
+    await expectNoAxeViolations(container)
+
+    await user.click(toggle)
+    expect(toggle.getAttribute("aria-expanded")).toBe("false")
+    expect(detail?.isConnected).toBe(false)
+  })
+
+  it("mounts each low-priority value once, even while its row detail is open", async () => {
+    function RoleBadge({ role }: { readonly role: string }) {
+      return <span id={`role-${role}`}>{role}</span>
+    }
+    const responsiveColumns: DataTableColumn<Person>[] = [
+      { id: "name", header: "Name", cell: (p) => p.name },
+      { id: "role", header: "Role", cell: (p) => <RoleBadge role={p.role} />, priority: "low" },
+    ]
+    render(
+      <DataTable
+        columns={responsiveColumns}
+        rows={people}
+        getRowId={getRowId}
+        getRowLabel={(p) => p.name}
+      />,
+    )
+
+    await userEvent.setup().click(screen.getByRole("button", { name: "Details for Ada Lovelace" }))
+
+    expect(document.querySelectorAll("#role-Engineer")).toHaveLength(1)
+    expect(screen.getByRole("definition").textContent).toBe("Engineer")
+  })
+
+  it("closes open row details once the container is wide enough for every column", async () => {
+    let notifyResize = (): void => undefined
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: () => void) {
+          notifyResize = callback
+        }
+        observe(): void {}
+        disconnect(): void {}
+      },
+    )
+    try {
+      const responsiveColumns: DataTableColumn<Person>[] = [
+        { id: "name", header: "Name", cell: (p) => p.name },
+        { id: "role", header: "Role", cell: (p) => p.role, priority: "low" },
+      ]
+      render(
+        <DataTable
+          columns={responsiveColumns}
+          rows={people}
+          getRowId={getRowId}
+          getRowLabel={(p) => p.name}
+        />,
+      )
+      const toggle = screen.getByRole("button", { name: "Details for Ada Lovelace" })
+      await userEvent.setup().click(toggle)
+      expect(toggle.getAttribute("aria-expanded")).toBe("true")
+
+      // jsdom lays nothing out, so the details column reads as hidden, as it does once wide.
+      act(() => notifyResize())
+
+      expect(toggle.getAttribute("aria-expanded")).toBe("false")
+      expect(screen.getByRole("cell", { name: "Engineer" })).toBeDefined()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
+  it("forgets open row details for rows that leave the table", async () => {
+    const responsiveColumns: DataTableColumn<Person>[] = [
+      { id: "name", header: "Name", cell: (p) => p.name },
+      { id: "role", header: "Role", cell: (p) => p.role, priority: "low" },
+    ]
+    const nextPage: readonly Person[] = [{ id: "3", name: "Grace Hopper", role: "Admiral" }]
+    const table = (rows: readonly Person[]) => (
+      <DataTable
+        columns={responsiveColumns}
+        rows={rows}
+        getRowId={getRowId}
+        getRowLabel={(p) => p.name}
+      />
+    )
+    const { rerender } = render(table(people))
+    await userEvent.setup().click(screen.getByRole("button", { name: "Details for Ada Lovelace" }))
+
+    rerender(table(nextPage))
+    rerender(table(people))
+
+    const toggle = screen.getByRole("button", { name: "Details for Ada Lovelace" })
+    expect(toggle.getAttribute("aria-expanded")).toBe("false")
+  })
+
+  it("adds no disclosure when every column is essential", () => {
+    render(<DataTable columns={columns} rows={people} getRowId={getRowId} />)
+    expect(screen.queryByRole("columnheader", { name: "Details" })).toBeNull()
+    expect(screen.queryByRole("button", { name: /Details for/ })).toBeNull()
+  })
+
+  it("keeps the caption as the table's name without repeating it on screen", () => {
+    const { rerender } = render(
+      <DataTable columns={columns} rows={people} getRowId={getRowId} caption="Team" />,
+    )
+    const caption = screen.getByRole("table", { name: "Team" }).querySelector("caption")
+    expect(caption?.className).toContain("sr-only")
+    rerender(
+      <DataTable columns={columns} rows={people} getRowId={getRowId} caption="Team" showCaption />,
+    )
+    const shown = screen.getByRole("table", { name: "Team" }).querySelector("caption")
+    expect(shown?.className).not.toContain("sr-only")
+  })
+
+  it("renders a caller-owned empty view with its next action", () => {
+    render(
+      <DataTable
+        columns={columns}
+        rows={[]}
+        getRowId={getRowId}
+        empty={<button type="button">Invite a teammate</button>}
+      />,
+    )
+    expect(screen.getByRole("button", { name: "Invite a teammate" })).toBeDefined()
+    expect(screen.queryByText("No results")).toBeNull()
+  })
+
+  it("keeps a short id column on one line", () => {
+    const idColumns: DataTableColumn<Person>[] = [
+      { id: "id", header: "ID", cell: (p) => p.id, nowrap: true },
+      ...columns,
+    ]
+    render(<DataTable columns={idColumns} rows={people} getRowId={getRowId} />)
+    expect(screen.getByRole("cell", { name: "1" }).className).toContain("whitespace-nowrap")
+    expect(screen.getByRole("cell", { name: "Ada Lovelace" }).className).toContain("wrap-anywhere")
   })
 
   it("aligns sortable header buttons according to column alignment", () => {

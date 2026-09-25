@@ -32,15 +32,35 @@
       "dependencies": ["@plainworks/elements", "@plainworks/theme"],
       "files": [
         {
+          "path": "src/client/feedback/async-state.tsx",
+          "type": "registry:ui"
+        },
+        {
           "path": "src/client/feedback/callout.tsx",
           "type": "registry:ui"
         },
         {
-          "path": "src/client/feedback/skeleton.tsx",
+          "path": "src/client/feedback/empty-state.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/feedback/error-state.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/feedback/loading-state.tsx",
           "type": "registry:ui"
         },
         {
           "path": "src/client/feedback/spinner.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/region/async-status.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/region/index.ts",
           "type": "registry:ui"
         }
       ]
@@ -48,7 +68,7 @@
     {
       "name": "overlays",
       "type": "registry:ui",
-      "dependencies": ["@plainworks/elements", "@plainworks/theme"],
+      "dependencies": ["@plainworks/elements"],
       "files": [
         {
           "path": "src/client/overlays/drawer.tsx",
@@ -56,10 +76,6 @@
         },
         {
           "path": "src/client/overlays/modal.tsx",
-          "type": "registry:ui"
-        },
-        {
-          "path": "src/client/overlays/popover.tsx",
           "type": "registry:ui"
         }
       ]
@@ -104,6 +120,10 @@
         },
         {
           "path": "src/client/data-table/table.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/feedback/empty-state.tsx",
           "type": "registry:ui"
         },
         {
@@ -183,12 +203,24 @@
       ]
     },
     {
-      "name": "error-fallback",
+      "name": "page",
       "type": "registry:ui",
-      "dependencies": ["@plainworks/elements"],
+      "dependencies": ["@plainworks/theme"],
       "files": [
         {
-          "path": "src/client/error-fallback/fallback.tsx",
+          "path": "src/client/page/page-header.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/page/page.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/page/section.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/page/toolbar.tsx",
           "type": "registry:ui"
         }
       ]

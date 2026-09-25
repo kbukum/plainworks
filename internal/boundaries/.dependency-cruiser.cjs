@@ -72,6 +72,7 @@ const LAYERS = {
 // closed (it may import no other ui concern) so an unlisted folder never goes vacuously green.
 const UI_CONCERNS = {
   hooks: { band: 0, dir: "hooks" },
+  region: { band: 0, dir: "region" },
   "client-hooks": { band: 0, dir: "client/hooks" },
   layout: { band: 1, dir: "client/layout" },
   feedback: { band: 1, dir: "client/feedback" },

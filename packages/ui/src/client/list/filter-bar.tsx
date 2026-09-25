@@ -6,12 +6,13 @@ import { NativeSelect, NativeSelectOption } from "@plainworks/elements/native-se
 import { Textarea } from "@plainworks/elements/textarea"
 import {
   type FilterOperator,
+  type FilterValue,
   isListOperator,
   isPresenceOperator,
   type ListFilter,
 } from "@plainworks/std"
 import { cn } from "@plainworks/theme"
-import { type ReactElement, useRef, useState } from "react"
+import { type ReactElement, useEffect, useRef, useState } from "react"
 import {
   buildFilter,
   encodeListValues,
@@ -37,6 +38,10 @@ export interface FilterBarLabels {
   readonly addFilter: string
   /** Accessible name for a row's remove button, taking its 1-based position. */
   readonly removeFilter: (position: number) => string
+  /** Politely announced summary of how many filters apply, taking the count. */
+  readonly applied: (count: number) => string
+  /** Label for the button that removes every filter. */
+  readonly clearAll: string
   /** Display label per operator, shown in the operator picker. */
   readonly operators: Readonly<Record<FilterOperator, string>>
 }
@@ -58,6 +63,9 @@ export const defaultFilterBarLabels: FilterBarLabels = {
   value: "Value",
   addFilter: "Add filter",
   removeFilter: (position: number) => `Remove filter ${position}`,
+  applied: (count: number) =>
+    count === 0 ? "No filters applied" : `${count} ${count === 1 ? "filter" : "filters"} applied`,
+  clearAll: "Clear all filters",
   operators: {
     eq: "Equals",
     neq: "Not equals",
@@ -87,6 +95,13 @@ export interface FilterBarProps {
   readonly className?: string
 }
 
+/** A requested controlled transition and where focus goes once the parent accepts it. */
+interface PendingFocus {
+  readonly previous: readonly ListFilter[]
+  readonly expected: readonly ListFilter[]
+  readonly target: number | "add" | "bar"
+}
+
 /**
  * A controlled filter builder that emits the neutral `std/list` `ListFilter[]`. Each row picks a
  * field, an operator (constrained to what the field allows), and — unless the operator is a
@@ -97,6 +112,11 @@ export interface FilterBarProps {
  * which resyncs whenever `value` changes from outside. A filter whose field is absent from `fields`
  * (a stale saved view) is preserved and shown as its own picker option rather than silently
  * rewritten to another field.
+ *
+ * Rows adapt to the bar's own width (a `filter-bar` container), stacking controls full-width when
+ * narrow. A polite status announces how many filters apply. Focus never falls to the page: adding
+ * a row focuses its field picker, removing one focuses the next row (else the previous, else the
+ * add button), and clearing all returns to the add button.
  */
 export function FilterBar({
   fields,
@@ -123,10 +143,31 @@ export function FilterBar({
     setRowIds(value.map(() => nextRowId.current++))
   }
 
+  // A focus request waits for the exact transition it requested. A parent can commit later, reject
+  // it, or replace it with another controlled value; only the accepted transition moves focus.
+  const fieldPickers = useRef(new Map<number, HTMLSelectElement>())
+  const addButton = useRef<HTMLButtonElement>(null)
+  const bar = useRef<HTMLFieldSetElement>(null)
+  const [pendingFocus, setPendingFocus] = useState<PendingFocus | null>(null)
+  useEffect(() => {
+    if (pendingFocus === null) return
+    if (!filterSetsEqual(value, pendingFocus.expected)) {
+      if (!filterSetsEqual(value, pendingFocus.previous)) setPendingFocus(null)
+      return
+    }
+    const { target: requestedTarget } = pendingFocus
+    let target: HTMLElement | null | undefined =
+      requestedTarget === "bar" ? bar.current : addButton.current
+    if (typeof requestedTarget === "number") {
+      const rowId = rowIds[requestedTarget]
+      target = rowId === undefined ? undefined : fieldPickers.current.get(rowId)
+    }
+    if (target === null || target === undefined) return
+    target.focus()
+    setPendingFocus(null)
+  }, [pendingFocus, value, rowIds])
+
   const firstField = fields[0]
-  if (firstField === undefined) {
-    return <fieldset aria-label={labels.title} className={cn("flex flex-col gap-3", className)} />
-  }
 
   // Preserve an unrecognized field instead of aliasing it to `firstField`: a synthetic def keeps
   // the row's own `field` (as a plain text editor) so an edit never rewrites it to another column.
@@ -159,30 +200,73 @@ export function FilterBar({
   }
 
   const addFilter = (): void => {
+    if (firstField === undefined) return
     const op = operatorsForField(firstField)[0]
-    onChange([...value, buildFilter(firstField, op, "")])
-    setRowIds([...rowIds, nextRowId.current++])
+    const id = nextRowId.current++
+    const expected = [...value, buildFilter(firstField, op, "")]
+    onChange(expected)
+    setRowIds([...rowIds, id])
+    setPendingFocus({ previous: value, expected, target: value.length })
   }
 
   const removeFilter = (index: number): void => {
-    onChange(value.filter((_, position) => position !== index))
+    const expected = value.filter((_, position) => position !== index)
+    onChange(expected)
     setRowIds(rowIds.filter((_, position) => position !== index))
+    // The next row slides into `index`; the last row falls back to the previous one.
+    const remaining = expected.length
+    setPendingFocus({
+      previous: value,
+      expected,
+      target:
+        remaining === 0
+          ? firstField === undefined
+            ? "bar"
+            : "add"
+          : Math.min(index, remaining - 1),
+    })
+  }
+
+  const clearAll = (): void => {
+    const expected: readonly ListFilter[] = []
+    onChange(expected)
+    setRowIds([])
+    setPendingFocus({
+      previous: value,
+      expected,
+      target: firstField === undefined ? "bar" : "add",
+    })
   }
 
   return (
-    <fieldset aria-label={labels.title} className={cn("flex flex-col gap-3", className)}>
+    <fieldset
+      ref={bar}
+      aria-label={labels.title}
+      tabIndex={firstField === undefined ? -1 : undefined}
+      className={cn(
+        "@container/filter-bar flex min-w-0 flex-col gap-3 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+        className,
+      )}
+    >
       {value.map((filter, index) => {
         const def = findDef(filter.field)
         const operators = withOperator(operatorsForField(def), filter.op)
         const fieldChoices = withField(fields, filter.field)
         const position = index + 1
+        const rowId = rowIds[index]
         return (
           <fieldset
-            key={rowIds[index]}
+            key={rowId}
             aria-label={labels.filterRow(position)}
-            className="flex flex-wrap items-start gap-2"
+            className="flex min-w-0 flex-wrap items-start gap-2"
           >
             <NativeSelect
+              ref={(element: HTMLSelectElement | null) => {
+                if (rowId === undefined) return
+                if (element === null) fieldPickers.current.delete(rowId)
+                else fieldPickers.current.set(rowId, element)
+              }}
+              className={CONTROL_CLASS}
               aria-label={labels.field}
               value={filter.field}
               onChange={(event) => changeField(index, event.target.value)}
@@ -194,6 +278,7 @@ export function FilterBar({
               ))}
             </NativeSelect>
             <NativeSelect
+              className={CONTROL_CLASS}
               aria-label={labels.operator}
               value={filter.op}
               onChange={(event) => changeOperator(index, event.target.value as FilterOperator)}
@@ -215,7 +300,7 @@ export function FilterBar({
             <Button
               type="button"
               variant="ghost"
-              size="sm"
+              size="icon"
               aria-label={labels.removeFilter(position)}
               onClick={() => removeFilter(index)}
             >
@@ -224,14 +309,29 @@ export function FilterBar({
           </fieldset>
         )
       })}
-      <div>
-        <Button type="button" variant="outline" size="sm" onClick={addFilter}>
-          {labels.addFilter}
-        </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        {firstField === undefined ? null : (
+          <Button ref={addButton} type="button" variant="outline" size="sm" onClick={addFilter}>
+            {labels.addFilter}
+          </Button>
+        )}
+        {value.length > 0 ? (
+          <Button type="button" variant="ghost" size="sm" onClick={clearAll}>
+            {labels.clearAll}
+          </Button>
+        ) : null}
+        <p role="status" className="text-caption text-muted-foreground">
+          {labels.applied(value.length)}
+        </p>
       </div>
     </fieldset>
   )
 }
+
+// Full-width when the bar is narrow so controls stack instead of overflowing; natural width once
+// the bar itself has room.
+const CONTROL_CLASS = "w-full @md/filter-bar:w-auto"
+const VALUE_EDITOR_CLASS = "w-full @md/filter-bar:w-40"
 
 // Carry a row's editor value across an operator-category change instead of feeding a list editor's
 // multi-line serialization to a scalar builder (which would emit `eq: "a\nb"` from `["a","b"]`).
@@ -261,6 +361,42 @@ function withOperator(
   return operators.includes(op) ? operators : [op, ...operators]
 }
 
+function filterSetsEqual(left: readonly ListFilter[], right: readonly ListFilter[]): boolean {
+  return (
+    left.length === right.length &&
+    left.every((filter, index) => {
+      const candidate = right[index]
+      if (
+        candidate === undefined ||
+        filter.field !== candidate.field ||
+        filter.op !== candidate.op
+      ) {
+        return false
+      }
+      if (!("value" in filter) || !("value" in candidate)) {
+        return !("value" in filter) && !("value" in candidate)
+      }
+      const filterValue = filter.value
+      const candidateValue = candidate.value
+      if (isFilterValueList(filterValue) || isFilterValueList(candidateValue)) {
+        return (
+          isFilterValueList(filterValue) &&
+          isFilterValueList(candidateValue) &&
+          filterValue.length === candidateValue.length &&
+          filterValue.every((item, valueIndex) => item === candidateValue[valueIndex])
+        )
+      }
+      return filterValue === candidateValue
+    })
+  )
+}
+
+function isFilterValueList(
+  value: FilterValue | readonly FilterValue[],
+): value is readonly FilterValue[] {
+  return Array.isArray(value)
+}
+
 // The value editor for a non-presence operator: a native select for a `select` field on a scalar
 // operator, a multi-line editor (one value per line) for a list operator, otherwise a text/number
 // input.
@@ -282,6 +418,7 @@ function renderValueEditor({
   if (def.type === "select") {
     return (
       <NativeSelect
+        className={CONTROL_CLASS}
         aria-label={label}
         value={current}
         onChange={(event) => onValueChange(event.target.value)}
@@ -303,7 +440,7 @@ function renderValueEditor({
       aria-label={label}
       type="text"
       inputMode={def.type === "number" ? "decimal" : undefined}
-      className="h-8 w-40"
+      className={cn("h-8", VALUE_EDITOR_CLASS)}
       value={current}
       onChange={(event) => onValueChange(event.target.value)}
     />
@@ -334,7 +471,7 @@ function ListValueEditor({
     <Textarea
       aria-label={label}
       rows={2}
-      className="h-auto min-h-16 w-40 py-1.5"
+      className={cn("h-auto min-h-16 py-1.5", VALUE_EDITOR_CLASS)}
       value={text}
       onChange={(event) => {
         const raw = event.target.value

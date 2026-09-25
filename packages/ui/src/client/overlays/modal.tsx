@@ -59,7 +59,7 @@ export function Modal({
       ) : (
         <DialogTrigger>{trigger}</DialogTrigger>
       )}
-      <DialogContent showCloseButton={showCloseButton} className="motion-reduce:animate-none">
+      <DialogContent showCloseButton={showCloseButton}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description === undefined ? null : <DialogDescription>{description}</DialogDescription>}

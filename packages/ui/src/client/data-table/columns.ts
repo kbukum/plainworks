@@ -28,11 +28,13 @@ export interface DataTableColumn<Row> {
   /** Text alignment for this column's header and cells. Defaults to `start`. */
   readonly align?: ColumnAlign
   /**
-   * Display priority for container-query responsive presentation. When set to `low`, the column
-   * is hidden below the wide-table threshold (`@max-2xl:hidden`) to eliminate horizontal
-   * scrolling before content becomes cramped.
+   * How essential the column is when the table's container is narrow. A `low` column leaves the row
+   * below the wide-table threshold and moves into that row's detail disclosure, so its value stays
+   * one tap away instead of disappearing. Defaults to `high` (always a column).
    */
   readonly priority?: "high" | "low" | undefined
+  /** Keep short values (IDs, codes, dates) on one line instead of wrapping mid-value. */
+  readonly nowrap?: boolean | undefined
 }
 
 /**
@@ -43,11 +45,14 @@ export interface DataTableColumn<Row> {
 export interface DataTableLabels {
   /** Accessible name for the header select-all checkbox. */
   readonly selectAllRows: string
-  /**
-   * Accessible name for a per-row selection checkbox, or a formatter taking the row identifier.
-   * Defaults to formatting `Select row ${rowId}`.
-   */
-  readonly selectRow: string | ((rowId: string) => string)
+  /** Names a row when no `getRowLabel` is given, from its id. */
+  readonly row: (rowId: string) => string
+  /** Accessible name for a per-row selection checkbox, from the row's label. */
+  readonly selectRow: (rowLabel: string) => string
+  /** Screen-reader-only header of the row-detail disclosure column. */
+  readonly details: string
+  /** Accessible name for a row's detail disclosure button, from the row's label. */
+  readonly rowDetails: (rowLabel: string) => string
   /** Announced (screen-reader only) when a column is sorted ascending. */
   readonly sortAscending: string
   /** Announced (screen-reader only) when a column is sorted descending. */
@@ -87,10 +92,10 @@ export interface DataTableProps<Row> {
   /** Derives a stable string key for a row, used for React keys and selection. */
   readonly getRowId: (row: Row) => string
   /**
-   * Accessible name formatter for a per-row selection checkbox. Receives the row and returns its
-   * label. When omitted, falls back to `labels.selectRow` formatted with `getRowId(row)`.
+   * A short human name for a row (a title, a person's name), used to label its selection checkbox
+   * and detail disclosure. Defaults to `labels.row(getRowId(row))`.
    */
-  readonly getRowAriaLabel?: (row: Row) => string
+  readonly getRowLabel?: (row: Row) => string
   /** When true, render a select-all header checkbox and per-row checkboxes. */
   readonly selectable?: boolean
   /** Controlled sort state; when defined the table never owns it. */
@@ -113,8 +118,18 @@ export interface DataTableProps<Row> {
   readonly labels?: Partial<DataTableLabels>
   /** Injected icon slots for sortable headers. */
   readonly icons?: DataTableIcons
-  /** Optional table caption content. */
+  /**
+   * The table's accessible name. It is visually hidden by default because the surrounding section
+   * heading already titles the data; set `showCaption` to render it on screen.
+   */
   readonly caption?: ReactNode
+  /** Render the caption visibly below the table. Defaults to false. */
+  readonly showCaption?: boolean
+  /**
+   * The view for zero rows, e.g. an `EmptyState` with a next action. Defaults to an `EmptyState`
+   * built from the empty labels.
+   */
+  readonly empty?: ReactNode
   /** Extra classes merged onto the underlying `<table>`. */
   readonly className?: string
   /** Ref to the underlying `<table>` element. */
@@ -124,7 +139,10 @@ export interface DataTableProps<Row> {
 /** English defaults for every {@link DataTableLabels} field. */
 export const defaultDataTableLabels: DataTableLabels = {
   selectAllRows: "Select all visible rows",
-  selectRow: (rowId: string) => `Select row ${rowId}`,
+  row: (rowId: string) => `row ${rowId}`,
+  selectRow: (rowLabel: string) => `Select ${rowLabel}`,
+  details: "Details",
+  rowDetails: (rowLabel: string) => `Details for ${rowLabel}`,
   sortAscending: "Sorted ascending",
   sortDescending: "Sorted descending",
   emptyTitle: "No results",

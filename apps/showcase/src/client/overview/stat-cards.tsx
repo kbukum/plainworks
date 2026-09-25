@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from "@plainworks/elements/card"
 import { NumberValue } from "@plainworks/ui/display"
-import { SkeletonText } from "@plainworks/ui/feedback"
+import { LoadingState } from "@plainworks/ui/feedback"
 import type { ReactElement, ReactNode } from "react"
 import { DISPLAY_LOCALE } from "../../app/constants"
 import { GrowthBadge } from "./growth-badge"
@@ -93,8 +93,8 @@ export function StatCardsSkeleton(): ReactElement {
           <CardHeader>
             <CardDescription>{label}</CardDescription>
           </CardHeader>
-          <CardContent role="status" aria-label={`Loading ${label}`}>
-            <SkeletonText lines={2} />
+          <CardContent>
+            <LoadingState label={`Loading ${label}`} lines={2} />
           </CardContent>
         </Card>
       ))}

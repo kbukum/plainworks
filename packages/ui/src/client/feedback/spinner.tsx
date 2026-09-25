@@ -15,9 +15,9 @@ export interface SpinnerProps {
 const SIZE_CLASS = { sm: "size-4", md: "size-6", lg: "size-8" } as const
 
 /**
- * A busy indicator with an accessible `status` role and an `sr-only` label. The animation is
- * disabled under `prefers-reduced-motion`, and the SVG is `aria-hidden` so only the label is
- * announced.
+ * A busy indicator with an accessible `status` role and an `sr-only` label. The SVG is
+ * `aria-hidden` so only the label is announced; the theme stops its animation under
+ * `prefers-reduced-motion`.
  */
 export function Spinner({ label = "Loading", size = "md", className }: SpinnerProps): ReactElement {
   return (
@@ -26,10 +26,7 @@ export function Spinner({ label = "Loading", size = "md", className }: SpinnerPr
         data-slot="spinner"
         aria-hidden="true"
         viewBox="0 0 24 24"
-        className={cn(
-          "animate-spin motion-reduce:animate-none text-muted-foreground",
-          SIZE_CLASS[size],
-        )}
+        className={cn("animate-spin text-muted-foreground", SIZE_CLASS[size])}
       >
         <circle
           cx="12"

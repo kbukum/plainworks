@@ -56,6 +56,6 @@ export {
   listQueryKey,
   listQueryOptions,
 } from "./list"
-export { createQueryClient } from "./query-client"
+export { createQueryClient, type QueryClient, type QueryClientConfig } from "./query-client"
 export type { RemoteScopeOptions } from "./remote"
 export { createRemoteScope, createRemoteSource, REMOTE_CAPABILITIES } from "./remote"

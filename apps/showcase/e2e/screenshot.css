@@ -1,8 +1,8 @@
 /*
- * Applied only while `toHaveScreenshot` captures. The development mock inspector mounts a fixed
- * trigger on every page in dev, so hide its isolated root to keep the visual baselines a record of
+ * Applied only while `toHaveScreenshot` captures. The development inspector mounts a fixed
+ * launcher on every page in dev, so hide its isolated root to keep the visual baselines a record of
  * the product surface rather than the dev-only overlay.
  */
-[data-showcase-dev-tools] {
+[data-plainworks-devtools] {
   display: none !important;
 }

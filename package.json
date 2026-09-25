@@ -25,6 +25,7 @@
     "check-comments": "bun run --filter @plainworks/comment-format check",
     "format-comments": "bun run --filter @plainworks/comment-format write",
     "check-packaging": "turbo run check-packaging",
+    "check-production": "turbo run check-production",
     "check-versions": "sherif && syncpack lint",
     "gen": "gen run",
     "gen:proto": "bun run --filter @plainworks/testkit gen:proto",

@@ -1,0 +1,7 @@
+{
+  "rule": "devtools",
+  "directories": [".bundle-analysis"],
+  "expectedSources": ["/apps/showcase/src/"],
+  "forbiddenSources": ["/apps/showcase/src/client/dev-tools/", "/packages/mocks/src/control/"],
+  "allowUnmapped": ["/assets/rolldown-runtime-"]
+}

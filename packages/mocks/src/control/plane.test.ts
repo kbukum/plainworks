@@ -2,7 +2,7 @@ import { HttpResponse, http } from "msw"
 import { setupServer } from "msw/node"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { createLatency, MAX_LATENCY_MS } from "../latency"
-import { createMockControl } from "./internal"
+import { createMockControl } from "./plane"
 
 const clock = { now: () => 1_700_000_000_000 }
 const onReset = vi.fn()

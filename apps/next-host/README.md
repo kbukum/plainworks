@@ -28,6 +28,7 @@ The mock backend is a catch-all Route Handler (`/api/[...path]`) that dispatches
 - **Token custody stays server-side.** Auth runs through `@plainworks/auth`'s `createServerSession` — Authorization Code + PKCE, an HMAC-signed **identity-only** session in a `__Host-` cookie. The BFF routes `/login`, `/auth/callback`, and `/logout` drive the flow; no token ever crosses to the client, and the token-custody modules carry the `server-only` marker so they cannot enter a client bundle.
 - **Query prefetch survives RSC.** The gated Tasks page prefetches the list into a request-scoped query client and hands the dehydrated cache to a client `HydrationBoundary`, so the browser mounts the list under the identical key with no refetch flash.
 - **A different router behind the same seam.** The section nav uses `next/link`; the `ui` breadcrumb `render` seam is backed by `router.push` from `next/navigation` — the same seam the showcase drives with a history router.
+- **Development-only inspection under RSC.** The Plainworks inspector observes the browser's HTTP client, query cache, and live channel. Pure interceptor seams are constructed behind `process.env.NODE_ENV` gates; the DOM shell and CSS load dynamically after mount and dispose on unmount. Run `bun run check-production --filter=@plainworks/next-host` to build and inspect client/server artifacts. There is no operational logging pipeline or standalone store to inspect; server/RSC requests and auth custody are deliberately not exposed.
 
 ## Rough edges to know
 

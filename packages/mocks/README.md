@@ -88,6 +88,6 @@ mockServerPlugin(handlers)
 A few behaviors worth knowing:
 
 - **Input is validated at the boundary** — a malformed body or query param returns `400`.
-- **Latency is off by default** for deterministic tests. Set a fixed delay with `createLatency(ms)`, or add the control plane (`createMockControl`) to drive it per server over `/mock/latency`.
+- **Latency is off by default** for deterministic tests. Set a fixed delay with `createLatency(ms)`, or add the control plane (`createMockControl`) to drive it per server over `/mock/latency`. `createMockControlClient` is the typed, validating client for those `/mock/*` routes.
 - **Handlers match any origin**, so the same set intercepts both same-origin requests and the absolute URLs `msw/node` uses.
 - **Everything is a factory** — importing this module creates no stores, workers, or other state.

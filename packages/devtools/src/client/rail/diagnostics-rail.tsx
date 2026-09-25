@@ -33,7 +33,7 @@ export interface DiagnosticsRailProps {
 
 const SEVERITY_STYLES: Readonly<Record<Severity, string>> = {
   error: "text-destructive",
-  warn: "text-amber-600 dark:text-amber-400",
+  warn: "text-amber-700 dark:text-amber-400",
   info: "text-foreground",
   ok: "text-muted-foreground",
 }

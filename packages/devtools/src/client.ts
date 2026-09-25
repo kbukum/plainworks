@@ -25,7 +25,7 @@ export {
   TimelineView,
   type TimelineViewProps,
 } from "./client/inspector"
-export { type MountDevtoolsOptions, mountDevtools } from "./client/mount"
+export { type DevtoolsMount, type MountDevtoolsOptions, mountDevtools } from "./client/mount"
 export {
   buildRailEntries,
   DiagnosticsRail,

@@ -18,7 +18,7 @@ Try these flows:
 - Filter the Orders, Products, and Users catalogs and open their detail views.
 - Triage Notifications and watch the unread count update optimistically.
 - Open Settings to edit validated forms and choose a mode, accent, and motion preference.
-- Open **Mock inspector** to observe requests, inject latency or failures, reset fixtures, and probe an endpoint. This tool is development-only: its dynamic chunk carries a dedicated stylesheet, while production drops the chunk and excludes its sources from the app stylesheet.
+- Open **Plainworks inspector** (or press **⌘/Ctrl+Shift+D**) to inspect the HTTP timeline and query cache. Its app-owned **mock** tab controls failures, latency, fixture reset, and allowlisted probes. The diagnostics rail opens the same session at the relevant tab; production excludes the inspector, instrumentation, and styles through the Vite development gate.
 
 ## How the host is assembled
 
@@ -45,6 +45,7 @@ flowchart LR
 | UI | Published elements and composites provide navigation, overlays, forms, tables, pagination, feedback, and display formatting. Route sections load lazily behind a shared shell. |
 | Channel | Task events are validated and reconciled into the active query page, with explicit pause and teardown behavior. |
 | Mocks | `@plainworks/demo` creates deterministic API graphs for SSR, browser development, unit tests, and browser tests. The browser graph also exposes the development-only control plane. |
+| Devtools | HTTP, query, and an app-owned mock source share one session. The host has no operational logging pipeline or standalone store to inspect; it does not manufacture clients just for diagnostics. Next proves channel adoption. |
 
 ## Rendering flow
 
@@ -65,6 +66,7 @@ bun run --filter @plainworks/showcase test
 bunx playwright install chromium
 bun run --filter @plainworks/showcase e2e
 bun run --filter @plainworks/showcase build
+bun run check-production --filter=@plainworks/showcase
 ```
 
 Vitest covers server rendering, hydration, query behavior, mutations, keyboard interactions, and the deterministic DOM accessibility floor. Playwright drives the authenticated application in Chromium, checks real-layout accessibility and responsive reflow, and retains a trace on failure. The workspace-wide CI gates also run type checking, linting, comment formatting, boundary checks, and version checks.

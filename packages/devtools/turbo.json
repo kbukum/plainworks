@@ -2,6 +2,19 @@
   "$schema": "https://turbo.build/schema.json",
   "extends": ["//"],
   "tasks": {
+    // The consumer fixture is type-checked too, so its sources and project must bust the cache.
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**",
+        "fixtures/**",
+        "tsconfig.json",
+        "tsconfig.src.json",
+        "tsconfig.client.json",
+        "tsconfig.fixtures.json"
+      ],
+      "outputs": []
+    },
     "test": {
       "dependsOn": ["^build", "build"],
       // The production-exclusion fixture drives real Vite consumer builds against this package's

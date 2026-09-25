@@ -5,6 +5,13 @@ import {
 } from "@tanstack/query-core"
 
 /**
+ * The TanStack cache the kit builds, re-exported so consumers type a client they hold without
+ * reaching past the kit into `@tanstack/query-core` — and without the `ReturnType<typeof
+ * createQueryClient>` alias every host would otherwise reinvent.
+ */
+export type { QueryClient, QueryClientConfig }
+
+/**
  * Build a fresh {@link QueryClient} — the kit's one factory for a TanStack cache. It is a thin,
  * typed wrapper over the `@tanstack/query-core` constructor with **no import-time side effects and
  * no shared instance**: every call returns a new client. That is the SSR/RSC-safe contract — the

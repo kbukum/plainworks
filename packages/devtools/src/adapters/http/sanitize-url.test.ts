@@ -30,4 +30,20 @@ describe("sanitizeHttpUrl", () => {
       expect(sanitizeHttpUrl(url)).toBe("[unsupported-url]")
     },
   )
+
+  describe('scope "path"', () => {
+    it("drops the origin and keeps the path", () => {
+      expect(sanitizeHttpUrl("https://api.test/tasks/42", "path")).toBe("/tasks/42")
+    })
+
+    it("still strips credentials, query, and fragment", () => {
+      const userinfo = "user:secret@"
+      expect(sanitizeHttpUrl(`https://${userinfo}api.test/t?access_token=abc#x`, "path")).toBe("/t")
+    })
+
+    it("uses the same placeholders for unusable values", () => {
+      expect(sanitizeHttpUrl("not a url", "path")).toBe("[unparsable-url]")
+      expect(sanitizeHttpUrl("file:///secret", "path")).toBe("[unsupported-url]")
+    })
+  })
 })

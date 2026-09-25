@@ -215,13 +215,16 @@ test("developer mock inspector mounts and drives a control", async ({ page }) =>
   await signIn(page)
   // The inspector loads only through the DEV-gated dynamic import + isolated mount in the client
   // entry, so opening it here exercises that path the component tests cannot reach.
-  const trigger = page.getByRole("button", { name: "Mock inspector" })
+  const trigger = page.getByRole("button", { name: "Open Plainworks inspector" })
   await expect(trigger).toBeVisible()
   await trigger.click()
 
-  const panel = page.getByRole("dialog", { name: "Mock inspector" })
+  const panel = page.getByRole("dialog", { name: "Plainworks inspector" })
   await expect(panel).toBeVisible()
   await expectNoBrowserAxeViolations(page)
+
+  // The mock behavior controls live in the app-owned custom renderer under the source's own tab.
+  await panel.getByRole("tab", { name: "mock" }).click()
   const errorToggle = panel.getByRole("switch", { name: "Simulate API errors" })
   await errorToggle.click()
   await expect(panel.getByText("Error simulation enabled")).toBeVisible()

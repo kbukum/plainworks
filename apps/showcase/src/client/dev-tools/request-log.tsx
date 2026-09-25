@@ -1,41 +1,49 @@
 "use client"
 
+import type { RetentionEntry } from "@plainworks/devtools"
 import { Badge } from "@plainworks/elements/badge"
-import { Button } from "@plainworks/elements/button"
 import { ScrollArea } from "@plainworks/elements/scroll-area"
+import { isRecord } from "@plainworks/std"
 import type { ReactElement } from "react"
-import type { MockRequestEntry } from "./mock-control"
 
-/** Props for the mock request log. */
+/** Props for {@link RequestLog}. */
 export interface RequestLogProps {
-  readonly requests: readonly MockRequestEntry[]
-  readonly pending: boolean
-  readonly onClear: () => void
+  /** The source's retained timeline; this component shows only its `mock.request` events. */
+  readonly events: readonly RetentionEntry[]
 }
 
-function requestPath(url: string): string {
-  try {
-    const parsed = new URL(url)
-    return `${parsed.pathname}${parsed.search}`
-  } catch {
-    return url
-  }
+interface LoggedRequest {
+  readonly key: string
+  readonly method: string
+  readonly path: string
 }
 
-/** The bounded request history reported by the demo mock control plane. */
-export function RequestLog({ requests, pending, onClear }: RequestLogProps): ReactElement {
+function loggedRequestOf(entry: RetentionEntry): LoggedRequest | undefined {
+  if (entry.event.kind !== "mock.request") return undefined
+  const summary = entry.event.summary
+  const method = isRecord(summary) && typeof summary.method === "string" ? summary.method : "GET"
+  const path =
+    isRecord(summary) && typeof summary.path === "string" ? summary.path : entry.event.label
+  return { key: `${entry.id.kind}:${entry.id.instance}:${entry.seq}`, method, path }
+}
+
+/** The demo backend's bounded request log, read from the source's own timeline events. */
+export function RequestLog({ events }: RequestLogProps): ReactElement {
+  const cleared = events.findLast((entry) => entry.event.kind === "mock.log-cleared")?.seq ?? 0
+  const requests = events
+    .filter((entry) => entry.seq > cleared)
+    .flatMap((entry) => {
+      const logged = loggedRequestOf(entry)
+      return logged ? [logged] : []
+    })
+
   return (
     <section aria-labelledby="mock-request-log-title" className="grid min-h-0 gap-3">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h3 id="mock-request-log-title" className="font-medium">
-            Request log
-          </h3>
-          <p className="text-sm text-muted-foreground">Newest mock API requests appear first.</p>
-        </div>
-        <Button type="button" variant="outline" size="sm" disabled={pending} onClick={onClear}>
-          Clear log
-        </Button>
+      <div>
+        <h3 id="mock-request-log-title" className="font-medium">
+          Request log
+        </h3>
+        <p className="text-sm text-muted-foreground">Newest mock API requests appear first.</p>
       </div>
       <ScrollArea className="h-48 rounded-lg border">
         {requests.length === 0 ? (
@@ -43,14 +51,9 @@ export function RequestLog({ requests, pending, onClear }: RequestLogProps): Rea
         ) : (
           <ol className="divide-y" aria-label="Mock requests">
             {[...requests].reverse().map((request) => (
-              <li key={request.id} className="grid gap-1 p-3 text-sm">
-                <div className="flex min-w-0 items-center gap-2">
-                  <Badge variant="outline">{request.method}</Badge>
-                  <code className="min-w-0 truncate">{requestPath(request.url)}</code>
-                </div>
-                <time className="text-xs text-muted-foreground" dateTime={request.timestamp}>
-                  {request.timestamp}
-                </time>
+              <li key={request.key} className="flex min-w-0 items-center gap-2 p-3 text-sm">
+                <Badge variant="outline">{request.method}</Badge>
+                <code className="min-w-0 truncate">{request.path}</code>
               </li>
             ))}
           </ol>

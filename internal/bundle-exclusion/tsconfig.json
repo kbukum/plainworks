@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Host-bound build tooling: it walks build output with Node's `fs`, so it opts back into Node's
+  // typings the host-independent base config hides.
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["cli.ts", "rules.ts", "scan.ts", "test"]
+}

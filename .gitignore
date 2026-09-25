@@ -4,6 +4,8 @@ node_modules/
 # Build output — every package ships a freshly built dist/, never a committed one
 dist/
 *.tsbuildinfo
+# Source-mapped analysis builds the production-exclusion gate scans; never deployed or committed.
+.bundle-analysis/
 
 # Generated eject payload — create-plainworks rebuilds examples/ from the apps/* source apps on
 # every build and ships it via `files`; the apps are the single source of truth, never this copy.

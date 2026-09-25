@@ -1,5 +1,5 @@
 // Ambient host declarations for the Vite app. CSS side-effect imports carry no type surface, and
-// the development flag is the only build-time environment value the client consumes.
+// the host owns its development flag and HMR teardown.
 declare module "*.css"
 
 interface ImportMetaEnv {
@@ -8,4 +8,5 @@ interface ImportMetaEnv {
 
 interface ImportMeta {
   readonly env: ImportMetaEnv
+  readonly hot?: import("vite/types/hot").ViteHotContext
 }

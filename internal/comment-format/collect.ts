@@ -2,12 +2,14 @@ import { readdirSync } from "node:fs"
 import { join } from "node:path"
 
 // The one source-file collector both entrypoints share — the `--check`/`--write` CLI and the safety
-// `verify`. Sharing it means the generated-output exclusions (`dist`, `.next`, `.turbo`, coverage,
-// generated fixtures) are defined once, so neither tool can drift into reflowing generated code.
+// `verify`. Sharing it means the generated-output exclusions (`dist`, `.next`, `.bundle-analysis`,
+// `.turbo`, coverage, generated fixtures) are defined once, so neither tool can drift into
+// reflowing generated code.
 const EXCLUDED_DIRS = new Set([
   "node_modules",
   "dist",
   ".next",
+  ".bundle-analysis",
   ".turbo",
   "coverage",
   "gen",

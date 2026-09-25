@@ -3,7 +3,7 @@ import { isBuiltin } from "node:module"
 import { join, relative, resolve } from "node:path"
 import * as ts from "typescript"
 import type { PackageManifest } from "../scaffold/manifest"
-import { NEUTRALIZED_TSCONFIG_EXTENDS } from "./config"
+import { isSkippedEntry, NEUTRALIZED_TSCONFIG_EXTENDS } from "./config"
 
 // The ejectability enforcement gate. Eject neutralizes a finite, explicit set of monorepo couplings
 // — `workspace:`/`catalog:` dependency ranges, the base `tsconfig` an app extends, the workspace
@@ -70,21 +70,20 @@ function publishedPlainworksPackages(repoRoot: string): Set<string> {
   return names
 }
 
-// Directories that never carry source to validate (build output / dependencies).
-const NON_SOURCE_DIRS = new Set(["node_modules", "dist", "coverage", ".turbo", ".next"])
 // Every JS/TS module extension eject may copy — source, JSX, and root config (`next.config.ts`,
 // `postcss.config.mjs`), all of which are validated for escaping couplings.
 const MODULE_EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"]
 
 /** Every JS/TS module under an app directory, recursively (skipping build output). */
-function moduleFiles(dir: string): string[] {
+function moduleFiles(appDir: string, dir = appDir): string[] {
   const files: string[] = []
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name)
+    if (isSkippedEntry(relative(appDir, path))) continue
     if (entry.isDirectory()) {
-      if (NON_SOURCE_DIRS.has(entry.name)) continue
-      files.push(...moduleFiles(join(dir, entry.name)))
+      files.push(...moduleFiles(appDir, path))
     } else if (MODULE_EXTENSIONS.some((ext) => entry.name.endsWith(ext))) {
-      files.push(join(dir, entry.name))
+      files.push(path)
     }
   }
   return files
@@ -121,14 +120,15 @@ function assertPublishedDependencies(manifest: PackageManifest, published: Set<s
 }
 
 /** Every stylesheet under an app directory, recursively (skipping build output). */
-function cssFiles(dir: string): string[] {
+function cssFiles(appDir: string, dir = appDir): string[] {
   const files: string[] = []
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name)
+    if (isSkippedEntry(relative(appDir, path))) continue
     if (entry.isDirectory()) {
-      if (NON_SOURCE_DIRS.has(entry.name)) continue
-      files.push(...cssFiles(join(dir, entry.name)))
+      files.push(...cssFiles(appDir, path))
     } else if (entry.name.endsWith(".css")) {
-      files.push(join(dir, entry.name))
+      files.push(path)
     }
   }
   return files

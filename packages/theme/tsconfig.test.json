@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Test project: the stylesheet suites and their `src/testing/` readers load the shipped CSS from
+  // disk and run the Tailwind compiler, so they — and only they — see Node types. The DOM suite
+  // that loads `tokens.css` into a plain document adds the DOM libs. The shipped `.` and `./client`
+  // graphs stay in their own projects, so no Node or DOM global leaks into published code.
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node"]
+  },
+  "include": ["src/testing", "src/**/*.test.ts"],
+  "exclude": ["src/client"]
+}

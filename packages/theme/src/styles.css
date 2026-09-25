@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./tokens.css";
 
 @source "./**/*.js";
 
@@ -92,9 +93,10 @@
 }
 
 /*
- * Tier 3 - component surface: map Tailwind's `--color-*`/`--radius-*` utility namespace onto the
- * Tier 2 semantic roles. Primitives style against these utilities (`bg-primary`, `border-border`)
- * and never touch Tier 1 palette values, so a theme swaps by reassigning Tier 2 with no JS.
+ * Map the plain tokens from `tokens.css` onto Tailwind's utility namespaces, so `bg-primary`,
+ * `shadow-overlay`, or `h-control` resolve to the runtime `--pw-*` custom properties. `inline`
+ * keeps the `var()` reference in each utility, so a mode, scheme, or density change on any element
+ * restyles its subtree with no JS.
  */
 @theme inline {
   --color-background: var(--pw-background);
@@ -111,225 +113,75 @@
   --color-muted-foreground: var(--pw-muted-foreground);
   --color-accent: var(--pw-accent);
   --color-accent-foreground: var(--pw-accent-foreground);
+  --color-info: var(--pw-info);
+  --color-info-foreground: var(--pw-info-foreground);
+  --color-success: var(--pw-success);
+  --color-success-foreground: var(--pw-success-foreground);
+  --color-warning: var(--pw-warning);
+  --color-warning-foreground: var(--pw-warning-foreground);
   --color-destructive: var(--pw-destructive);
   --color-destructive-foreground: var(--pw-destructive-foreground);
   --color-border: var(--pw-border);
   --color-input: var(--pw-input);
   --color-ring: var(--pw-ring);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: calc(var(--pw-radius) - 4px);
+  --radius-md: calc(var(--pw-radius) - 2px);
+  --radius-lg: var(--pw-radius);
+  --radius-xl: calc(var(--pw-radius) + 4px);
+
+  --font-sans: var(--pw-font-sans);
+  --font-mono: var(--pw-font-mono);
+
+  --text-caption: var(--pw-text-caption);
+  --text-caption--line-height: var(--pw-text-caption-leading);
+  --text-body: var(--pw-text-body);
+  --text-body--line-height: var(--pw-text-body-leading);
+  --text-title: var(--pw-text-title);
+  --text-title--line-height: var(--pw-text-title-leading);
+  --text-heading: var(--pw-text-heading);
+  --text-heading--line-height: var(--pw-text-heading-leading);
+  --text-display: var(--pw-text-display);
+  --text-display--line-height: var(--pw-text-display-leading);
+
+  --spacing-control: var(--pw-space-control);
+  --spacing-stack: var(--pw-space-stack);
+  --spacing-inset: var(--pw-space-inset);
+  --spacing-section: var(--pw-space-section);
+
+  --shadow-raised: var(--pw-shadow-raised);
+  --shadow-overlay: var(--pw-shadow-overlay);
+
+  --ease-standard: var(--pw-ease-standard);
+  --ease-enter: var(--pw-ease-enter);
+  --ease-exit: var(--pw-ease-exit);
+  --default-transition-duration: var(--pw-duration-base);
+  --default-transition-timing-function: var(--pw-ease-standard);
 }
 
-/*
- * Tier 1 - primitive palette: raw, role-free color scales and scalar tokens. Nothing outside Tier 2
- * references these directly. The neutral ramp is shared by every scheme; only the brand hue swaps.
- */
-:root {
-  --radius: 0.625rem;
-
-  --pw-white: oklch(1 0 0);
-  --pw-black: oklch(0 0 0);
-
-  --pw-neutral-50: oklch(0.985 0 0);
-  --pw-neutral-100: oklch(0.967 0.001 286);
-  --pw-neutral-200: oklch(0.92 0.004 286);
-  --pw-neutral-300: oklch(0.871 0.006 286);
-  --pw-neutral-400: oklch(0.705 0.015 286);
-  --pw-neutral-500: oklch(0.552 0.016 286);
-  --pw-neutral-600: oklch(0.442 0.017 286);
-  --pw-neutral-700: oklch(0.37 0.013 286);
-  --pw-neutral-800: oklch(0.274 0.006 286);
-  --pw-neutral-900: oklch(0.21 0.006 286);
-  --pw-neutral-950: oklch(0.141 0.005 286);
-
-  /*
-   * Kept dark enough that the toned destructive badge (`text-destructive` on a `destructive/10`
-   * tint) still clears WCAG 2.2 AA 4.5:1 on a light card; a lighter red drops the tinted text
-   * below the threshold.
-   */
-  --pw-danger: oklch(0.52 0.22 27);
-  --pw-danger-dark: oklch(0.7 0.19 22);
+/* Stacking layers and motion durations have no Tailwind theme namespace, so they ship as utilities. */
+@utility z-sticky {
+  z-index: var(--pw-z-sticky);
+}
+@utility z-overlay {
+  z-index: var(--pw-z-overlay);
+}
+@utility z-popover {
+  z-index: var(--pw-z-popover);
+}
+@utility z-toast {
+  z-index: var(--pw-z-toast);
 }
 
-/*
- * Tier 2 - semantic roles (light). Neutral roles are scheme-independent and live here; the brand
- * roles (`--pw-primary*`, `--pw-ring`) default to neutral and are overridden per `.theme-*` below.
- */
-:root {
-  color-scheme: light;
-  --pw-background: var(--pw-white);
-  --pw-foreground: var(--pw-neutral-900);
-  --pw-card: var(--pw-white);
-  --pw-card-foreground: var(--pw-neutral-900);
-  --pw-popover: var(--pw-white);
-  --pw-popover-foreground: var(--pw-neutral-900);
-  --pw-secondary: var(--pw-neutral-100);
-  --pw-secondary-foreground: var(--pw-neutral-900);
-  --pw-muted: var(--pw-neutral-100);
-  --pw-muted-foreground: var(--pw-neutral-500);
-  --pw-accent: var(--pw-neutral-100);
-  --pw-accent-foreground: var(--pw-neutral-900);
-  --pw-destructive: var(--pw-danger);
-  --pw-destructive-foreground: var(--pw-neutral-50);
-  --pw-border: var(--pw-neutral-200);
-  --pw-input: var(--pw-neutral-200);
-
-  --pw-primary: var(--pw-neutral-900);
-  --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: var(--pw-neutral-400);
+@utility duration-fast {
+  --tw-duration: var(--pw-duration-fast);
+  transition-duration: var(--pw-duration-fast);
 }
-
-/* Tier 2 - semantic roles (dark): remap the scheme-independent neutrals for the dark surface. */
-.dark {
-  color-scheme: dark;
-  --pw-background: var(--pw-neutral-950);
-  --pw-foreground: var(--pw-neutral-50);
-  --pw-card: var(--pw-neutral-900);
-  --pw-card-foreground: var(--pw-neutral-50);
-  --pw-popover: var(--pw-neutral-900);
-  --pw-popover-foreground: var(--pw-neutral-50);
-  --pw-secondary: var(--pw-neutral-800);
-  --pw-secondary-foreground: var(--pw-neutral-50);
-  --pw-muted: var(--pw-neutral-800);
-  --pw-muted-foreground: var(--pw-neutral-400);
-  --pw-accent: var(--pw-neutral-800);
-  --pw-accent-foreground: var(--pw-neutral-50);
-  --pw-destructive: var(--pw-danger-dark);
-  --pw-destructive-foreground: var(--pw-neutral-50);
-  --pw-border: var(--pw-neutral-800);
-  --pw-input: var(--pw-neutral-700);
-
-  --pw-primary: var(--pw-neutral-50);
-  --pw-primary-foreground: var(--pw-neutral-900);
-  --pw-ring: var(--pw-neutral-500);
+@utility duration-base {
+  --tw-duration: var(--pw-duration-base);
+  transition-duration: var(--pw-duration-base);
 }
-
-/*
- * Base surface: paint the document with the resolved semantic roles so the `theme-*`/`.dark` class
- * on <html> actually repaints the page. Without it a dark surface leaves the body browser-white
- * behind light-on-dark text — an unreadable ~1:1 contrast. Uses the Tier 2 `--pw-*` custom
- * properties because the Tier 3 `--color-*` namespace is `@theme inline` (compiled into utilities,
- * never emitted as runtime variables). A base-layer rule, so a consumer's own body style wins.
- */
-@layer base {
-  body {
-    background-color: var(--pw-background);
-    color: var(--pw-foreground);
-  }
-}
-
-/*
- * Brand swaps: each color scheme reassigns only the brand roles, so switching `theme-*` on <html>
- * repaints the accent with no JS and no change to the neutral surface. `color-scheme` lives on the
- * scheme class so `theme-*` alone (no `.dark`) still renders correctly.
- */
-.theme-neutral {
-  color-scheme: light;
-}
-.dark.theme-neutral {
-  color-scheme: dark;
-}
-
-.theme-indigo {
-  --pw-primary: oklch(0.51 0.23 277);
-  --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: oklch(0.51 0.23 277);
-}
-.dark.theme-indigo {
-  --pw-primary: oklch(0.68 0.16 277);
-  --pw-primary-foreground: var(--pw-neutral-950);
-  --pw-ring: oklch(0.68 0.16 277);
-}
-
-.theme-violet {
-  --pw-primary: oklch(0.54 0.25 293);
-  --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: oklch(0.54 0.25 293);
-}
-.dark.theme-violet {
-  --pw-primary: oklch(0.7 0.17 293);
-  --pw-primary-foreground: var(--pw-neutral-950);
-  --pw-ring: oklch(0.7 0.17 293);
-}
-
-.theme-blue {
-  --pw-primary: oklch(0.55 0.22 260);
-  --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: oklch(0.55 0.22 260);
-}
-.dark.theme-blue {
-  --pw-primary: oklch(0.7 0.15 260);
-  --pw-primary-foreground: var(--pw-neutral-950);
-  --pw-ring: oklch(0.7 0.15 260);
-}
-
-.theme-emerald {
-  --pw-primary: oklch(0.6 0.14 163);
-  --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: oklch(0.6 0.14 163);
-}
-.dark.theme-emerald {
-  --pw-primary: oklch(0.7 0.15 163);
-  --pw-primary-foreground: var(--pw-neutral-950);
-  --pw-ring: oklch(0.7 0.15 163);
-}
-
-.theme-orange {
-  --pw-primary: oklch(0.65 0.19 42);
-  --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: oklch(0.65 0.19 42);
-}
-.dark.theme-orange {
-  --pw-primary: oklch(0.72 0.17 42);
-  --pw-primary-foreground: var(--pw-neutral-950);
-  --pw-ring: oklch(0.72 0.17 42);
-}
-
-.theme-slate {
-  --pw-primary: oklch(0.45 0.03 257);
-  --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: oklch(0.45 0.03 257);
-}
-.dark.theme-slate {
-  --pw-primary: oklch(0.7 0.03 257);
-  --pw-primary-foreground: var(--pw-neutral-950);
-  --pw-ring: oklch(0.7 0.03 257);
-}
-
-.theme-rose {
-  --pw-primary: oklch(0.58 0.22 12);
-  --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: oklch(0.58 0.22 12);
-}
-.dark.theme-rose {
-  --pw-primary: oklch(0.71 0.18 12);
-  --pw-primary-foreground: var(--pw-neutral-950);
-  --pw-ring: oklch(0.71 0.18 12);
-}
-
-.theme-cyan {
-  --pw-primary: oklch(0.6 0.12 220);
-  --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: oklch(0.6 0.12 220);
-}
-.dark.theme-cyan {
-  --pw-primary: oklch(0.72 0.13 220);
-  --pw-primary-foreground: var(--pw-neutral-950);
-  --pw-ring: oklch(0.72 0.13 220);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    transition-duration: 0s !important;
-    transition-delay: 0s !important;
-    animation-duration: 0s !important;
-    animation-delay: 0s !important;
-    animation-iteration-count: 1 !important;
-  }
+@utility duration-slow {
+  --tw-duration: var(--pw-duration-slow);
+  transition-duration: var(--pw-duration-slow);
 }

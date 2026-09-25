@@ -58,7 +58,7 @@ export function AppShell(): ReactElement {
   return (
     <div
       data-mode={resolvedMode}
-      className="@container/shell grid min-h-dvh grid-rows-[auto_1fr] bg-background text-foreground"
+      className="@container/shell grid min-h-dvh grid-rows-[auto_1fr] overflow-x-clip bg-background text-foreground"
     >
       <a
         href="#main-content"
@@ -85,7 +85,7 @@ export function AppShell(): ReactElement {
           </SheetContent>
         </Sheet>
         <span className="font-semibold tracking-tight">plainworks</span>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex min-w-0 max-w-full flex-wrap items-center justify-end gap-2">
           <CommandMenu />
           <NotificationsBell />
           <ModeControl announceError={false} compact className="h-8 sm:h-9" />

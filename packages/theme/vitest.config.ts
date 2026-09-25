@@ -12,7 +12,7 @@ export default defineConfig({
       // Re-export-only barrels carry no logic to unit-test (the `"use client"` directive's survival
       // is proven by the CI dist check, not coverage); excluding every `index.ts` barrel — root or
       // nested concern folder — keeps tests from coupling to a re-export file just to color a line.
-      exclude: ["src/**/*.test.{ts,tsx}", "src/**/index.ts", "src/client.ts"],
+      exclude: ["src/**/*.test.{ts,tsx}", "src/**/index.ts", "src/client.ts", "src/testing/**"],
       thresholds: {
         lines: 80,
         functions: 80,

@@ -38,6 +38,7 @@ Run every repository gate before handoff:
 ```sh
 bun run check-versions
 bun run lint
+bun run --filter @plainworks/elements registry:validate
 bun run check-comments
 bun run typecheck
 bun run check-boundaries
@@ -67,6 +68,16 @@ Then add the package to the `LAYERS` table in [`internal/boundaries/.dependency-
 Use **one plain word** for one concern. Do not use names such as `core`, `engine`, `foundation`, or `utils`.
 
 Use the [`new-package` skill](.github/skills/new-package/SKILL.md) for the complete workflow. Use [`new-backend`](.github/skills/new-backend/SKILL.md) when adding a state store, channel transport, authentication mechanism, or query adapter behind an existing seam.
+
+## Change a UI atom
+
+The shadcn atoms in `packages/elements/src/shadcn/` are **vendored** and **locked** by `shadcn.lock.json`. Never edit them by hand; `registry:validate` fails CI if you do.
+
+```sh
+bun run --filter @plainworks/elements registry:update <atom>
+```
+
+Need the atom to look or behave differently? Follow the **deviation ladder** and stop at the first rung that works: `@plainworks/theme` tokens and rules → the call site (props, `className`, `role`) → a `@plainworks/ui` wrapper. Primitives we write ourselves go in `packages/elements/src/atoms/`. Use the [`update-atoms` skill](.github/skills/update-atoms/SKILL.md) to bump the shadcn CLI or refresh every atom.
 
 ## Follow package boundaries
 

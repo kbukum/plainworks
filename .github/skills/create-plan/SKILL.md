@@ -46,6 +46,7 @@ What this step changes and, explicitly, what it does not.
 ## Acceptance criteria
 - [ ] Behavior written test-first; vitest green, race/shuffle safe on the affected package(s).
 - [ ] The eight DoD gates green for the package: check-versions · lint · check-comments · typecheck · check-boundaries · build · test · check-packaging.
+- [ ] `registry:validate` and the `elements` tests green if the step touches `elements` or `theme`.
 - [ ] A Changeset added.
 - [ ] <step-specific, verifiable outcomes>
 ```
@@ -64,6 +65,7 @@ A plan may **not** invent a lighter standard than plainworks'. Its cross-cutting
 - **Composition.** No import-time side effects, no module-level singletons — per-request factories; adapters register explicitly.
 - **Typed & minimal APIs.** No `any` in public surfaces; typed errors that preserve cause; timeout + cancellation on remote calls.
 - **Root-cause, no shims.** Pre-stable: redesign cleanly and remove the old path; no compat shims or half-migrations.
+- **Vendored atoms stay locked.** A step never lists a hand edit to `packages/elements/src/shadcn/**` or `shadcn.lock.json`. An atom changes only through `registry:update` (see [`update-atoms`](../update-atoms/SKILL.md)); a deviation is planned on the **deviation ladder** — theme tokens/rules → call site → `@plainworks/ui` wrapper.
 - **Release hygiene.** A Changeset per change; ESM-only, `exports`/`types`/`files` correct; catalog-only versions.
 
 Order steps so each starts only when its dependencies are green, and so each maps to a **standalone, reviewable change** (`std` before everything; transport/data before `auth`; `ui`/`showcase` after the spine).

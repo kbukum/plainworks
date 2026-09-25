@@ -1,6 +1,6 @@
 # `@plainworks/ui`
 
-Plainworks-authored composites built on the owned atom set. The neutral entry contains pure theme resolution for SSR; interactive composites live behind explicit subpaths. The raw shadcn/Base-UI atoms themselves live in [`@plainworks/elements`](../elements/README.md) — `ui` composes them.
+Plainworks-authored composites built on the vendored atom set. The neutral entry contains pure theme resolution for SSR; interactive composites live behind explicit subpaths. The raw shadcn/Base-UI atoms themselves live in [`@plainworks/elements`](../elements/README.md) — `ui` composes them.
 
 ## Quickstart
 
@@ -113,4 +113,4 @@ import { ThemeProvider, ThemeToggle } from "@plainworks/ui/theme"
 
 ## Relationship to `@plainworks/elements`
 
-`ui` (L3) depends downward on `elements` (L2): the authored composites under `src/client` compose owned atoms and carry the accessibility, responsive, and axe-test acceptance bar. Keep any customization of an atom in a `ui` wrapper — never edit an atom in place, so the `elements` upstream `diff`/`update` stay meaningful. Atoms come from `@plainworks/elements/*`; composites come from `@plainworks/ui/*`.
+`ui` (L3) depends downward on `elements` (L2): the authored composites under `src/client` compose atoms and carry the accessibility, responsive, and axe-test acceptance bar. `elements` atoms are **vendored** and **locked** by `shadcn.lock.json`, so never edit one. A reusable tone or behavior goes in a `ui` wrapper here; color, contrast, and focus go in `@plainworks/theme`; a one-off goes at the call site (the **deviation ladder**). Atoms come from `@plainworks/elements/*`; composites come from `@plainworks/ui/*`.

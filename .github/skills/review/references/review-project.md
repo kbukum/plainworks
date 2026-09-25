@@ -36,7 +36,8 @@ Run the focused files in order, each in its **Project mode** (pass `08` only for
 Unlike a change review, a project audit may run the unscoped gates:
 
 ```bash
-bun run check-versions && bun run lint && bun run typecheck \
+bun run check-versions && bun run lint \
+  && bun run --filter @plainworks/elements registry:validate && bun run typecheck \
   && bun run check-boundaries && bun run build && bun run test \
   && bun run check-packaging
 ```

@@ -4,12 +4,11 @@ import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
-  type BreadcrumbLinkProps,
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@plainworks/elements/breadcrumb"
-import { Fragment, type ReactElement, type ReactNode } from "react"
+import { type ComponentProps, Fragment, type ReactElement, type ReactNode } from "react"
 
 /** A single breadcrumb entry. */
 export interface BreadcrumbEntry {
@@ -23,7 +22,7 @@ export interface BreadcrumbEntry {
    * The destination and the atom's own props merge onto it. Ignored on an entry with no `href` (it
    * is plain text) or the current page. Omit to keep a plain anchor.
    */
-  readonly render?: BreadcrumbLinkProps["render"]
+  readonly render?: ComponentProps<typeof BreadcrumbLink>["render"]
 }
 
 /** Props for {@link Breadcrumbs}. */
@@ -41,9 +40,10 @@ export interface BreadcrumbsProps {
 
 /**
  * A ready-made breadcrumb trail built from an items array on the `breadcrumb` atom — a wrapper, not
- * an edited atom. Exactly the final entry renders as the `aria-current` page; an earlier entry is a
- * link when it has an `href`, otherwise plain text — so the trail never carries two current pages.
- * Separators are `aria-hidden` so the trail reads cleanly.
+ * an edited atom. Exactly the final entry renders as the `aria-current` page (a disabled link, as
+ * the atom marks it); an earlier entry is a link when it has an `href`, otherwise plain text — so
+ * the trail never carries two current pages. Separators are `aria-hidden` so the trail reads
+ * cleanly.
  */
 export function Breadcrumbs({
   items,

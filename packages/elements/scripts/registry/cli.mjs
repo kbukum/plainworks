@@ -6,11 +6,10 @@ import { packageRoot, runCodegen } from "./manifest.mjs"
 // `manifest.mjs`, where the tests measure it; this thin glue is coverage-excluded like a `bin`.
 
 const RECONCILE = [
-  "Owned atoms written. Now:",
-  "  1. add any `isolatedDeclarations` return-type annotations the atoms need,",
-  "  2. run `bun run --filter @plainworks/elements typecheck` and the package gates,",
-  "  3. review the git diff — the `use client` directive and the `@plainworks/theme` cn import are",
-  "     the expected compat delta, everything else is a real upstream change to reconcile.",
+  "shadcn atoms written to src/shadcn/ and locked in shadcn.lock.json. Now:",
+  "  1. review the git diff: every change there is upstream's,",
+  "  2. fix consumers for any API change (theme tokens, call sites, or ui wrappers — never the atom),",
+  "  3. run the package gates.",
 ].join("\n")
 
 function requireNames(command, names) {
@@ -35,7 +34,7 @@ function runValidate() {
     process.stderr.write(`registry.json is invalid:\n${failures.join("\n")}\n`)
     process.exit(1)
   }
-  process.stdout.write("registry.json is valid; every declared atom file exists.\n")
+  process.stdout.write("registry.json is valid; every declared atom file exists and matches shadcn.lock.json.\n")
 }
 
 function main() {

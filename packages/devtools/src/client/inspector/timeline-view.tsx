@@ -84,6 +84,10 @@ export function TimelineView({ state, store, port }: TimelineViewProps): ReactEl
           onValueChange={(value) => {
             if (value !== null) setSeverityFilter(value)
           }}
+          items={[
+            { value: ALL_SEVERITIES, label: "All severities" },
+            ...SEVERITIES.map((severity) => ({ value: severity, label: severity })),
+          ]}
         >
           <SelectTrigger aria-label="Severity" size="sm" className="min-w-28">
             <SelectValue />

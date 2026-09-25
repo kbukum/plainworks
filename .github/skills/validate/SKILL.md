@@ -26,7 +26,7 @@ Every change must pass these, in this order (same order CI runs them):
 | Tests | `bun run test` | Vitest, coverage ≥ 80% per package (≥ 85% for `auth`) |
 | Packaging | `bun run check-packaging` | publint (`--strict`) + are-the-types-wrong (`--pack --profile esm-only`) over each built tarball: `exports`/`types`/`files` resolve for ESM consumers |
 
-Plus: a **Changeset** added (`bun run changeset`) and the architecture invariants (no import-time side effects, no module-level singletons, header-only auth, typed errors, no `any` in public APIs).
+Plus: `registry:validate` green (CI runs it after lint — see below), a **Changeset** added (`bun run changeset`) and the architecture invariants (no import-time side effects, no module-level singletons, header-only auth, typed errors, no `any` in public APIs).
 
 ## Golden rule: scope to what changed
 
@@ -60,6 +60,17 @@ bun run check-versions      # sherif + syncpack lint
 
 `check-boundaries` also has a fixture-backed test proving the gate rejects an upward import — if you touch the `LAYERS` map or `.dependency-cruiser.cjs`, run `turbo run test --filter=@plainworks/boundaries` too.
 
+## Atom and theme changes
+
+If you touched `packages/elements` or `packages/theme`, also check the vendored atoms and the theme contract they read:
+
+```bash
+bun run --filter @plainworks/elements registry:validate   # atoms match shadcn.lock.json (CI runs it on every change)
+turbo run test --filter=@plainworks/elements              # lock test + theme-variables contract
+```
+
+A lock failure means a file under `src/shadcn/` changed outside the pipeline. Don't relock by hand: restore the file, or rerun `registry:update <atom>` and move your change down the deviation ladder (see the [Vendored atoms](../../copilot-instructions.md#vendored-atoms) baseline and the [`update-atoms`](../update-atoms/SKILL.md) skill).
+
 ## Generator changes
 
 If you touched `turbo/generators/**`, prove the golden template still yields a gate-passing package (both variants), then remove the throwaway:
@@ -72,7 +83,7 @@ rm -rf packages/scratch && bun install
 
 ## Before you hand work off
 
-The minimum passing standard for a self-contained change: `check-versions`, `lint`, `typecheck`, `check-boundaries`, scoped `build` + `test`, and `check-packaging` green (vitest race/shuffle safe), plus a Changeset. Escalate to the unscoped `bun run build && bun run test && bun run check-packaging` only for an audit or release.
+The minimum passing standard for a self-contained change: `check-versions`, `lint`, `typecheck`, `check-boundaries`, scoped `build` + `test`, and `check-packaging` green (vitest race/shuffle safe), `registry:validate` and the `elements` tests green when `elements` or `theme` changed, plus a Changeset. Escalate to the unscoped `bun run build && bun run test && bun run check-packaging` only for an audit or release.
 
 Treat a green run as **necessary but not sufficient**: it does not catch unbounded streams/buffers, missing timeouts/cancellation, module-level singletons, import-time side effects, or a token leaking into a URL. Those are on the reviewer.
 

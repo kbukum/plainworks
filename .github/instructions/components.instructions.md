@@ -4,6 +4,12 @@ applyTo: "packages/**/*.tsx,apps/**/*.tsx,packages/*/src/client.ts,packages/**/s
 
 Interactive React in a `@plainworks/*` client binding (`./client`, `"use client"`) or an app. This is the load-bearing summary for **UI/client** work; follow the full baseline in [`../copilot-instructions.md`](../copilot-instructions.md). Accessibility and responsiveness are **acceptance criteria here, not a follow-up** — a component that ships inaccessible or non-responsive is not done.
 
+Vendored atoms — never hand-edited:
+
+- **Never edit `packages/elements/src/shadcn/**` or `shadcn.lock.json`.** Those atoms are **vendored** shadcn CLI output, **locked** by hash; `registry:validate` fails on any hand edit. Change one only with `bun run --filter @plainworks/elements registry:update <atom>`, which relocks it and reruns `registry:codegen`.
+- **Never re-add a variant upstream doesn't ship** (a tone, size, or state). Follow the **deviation ladder**, lowest rung first: `@plainworks/theme` tokens/rules (color, contrast, focus, radius) → the call site (props, `className`, `role`) → a `@plainworks/ui` wrapper (reusable tones/behavior). An upstream bug gets fixed at the lowest rung and noted for upstream reporting.
+- **Primitives we write** go in `packages/elements/src/atoms/`, under the full lint and type rules. A name lives in only one folder. See the [Vendored atoms](../copilot-instructions.md#vendored-atoms) baseline.
+
 Separation of concerns (the host-independence seam):
 
 - **Server-safe logic stays out of the client leaf.** Pure logic, types, schemas, and contracts live in the server-safe `.` graph (or `@plainworks/std`); the `"use client"` module holds only what genuinely needs the DOM/hooks. The barrel (`index.ts` / `client.ts`) re-exports only. A `"use client"` module must never import server-only auth/token-custody code.
@@ -39,4 +45,6 @@ Scope every gate to the package you changed:
 ```bash
 turbo run lint typecheck build test --filter=@plainworks/<name>
 bun run check-boundaries                      # server/client + layer gate
+bun run --filter @plainworks/elements registry:validate   # when elements changed
+turbo run test --filter=@plainworks/elements              # when theme changed (theme-variables contract)
 ```

@@ -15,8 +15,6 @@
       "@plainworks/ui": ["../ui/src"],
       "@plainworks/ui/hooks": ["../ui/src/client/hooks/index.ts"],
       "@plainworks/ui/feedback": ["../ui/src/client/feedback/index.ts"],
-      "@plainworks/elements/*": ["../elements/src/atoms/*"],
-      "@/atoms/*": ["../elements/src/atoms/*"],
       "@plainworks/*": ["../*/src"]
     }
   },

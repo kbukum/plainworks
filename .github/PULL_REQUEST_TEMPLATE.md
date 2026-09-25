@@ -42,6 +42,7 @@
 - [ ] `bun run build` — tsdown builds all affected packages
 - [ ] `bun run test` — Vitest green, coverage floors met (≥ 80% package / ≥ 85% security-critical)
 - [ ] `bun run check-packaging` — publint + are-the-types-wrong on the built tarballs
+- [ ] `bun run --filter @plainworks/elements registry:validate` — vendored atoms match `shadcn.lock.json`; nothing under `packages/elements/src/shadcn/` edited by hand
 - [ ] New behavior was written test-first (a test that fails without this change)
 
 ### Test Evidence

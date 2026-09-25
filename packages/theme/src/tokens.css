@@ -81,17 +81,18 @@
 
 /*
  * Tier 2: semantic colors and elevation (light). Every pairing a component uses meets WCAG 2.2 AA:
- * 4.5:1 for text and 3:1 for input boundaries and the focus ring. The brand roles default to
- * neutral; each `.theme-*` below overrides them.
+ * 4.5:1 for text and 3:1 for input boundaries and the focus ring, including the half-opacity
+ * `ring-ring/50` focus halo and the translucent text (such as `text-foreground/60`) that shadcn
+ * atoms paint. The brand roles default to neutral; each `.theme-*` below overrides them.
  */
 :root {
   color-scheme: light;
   --pw-background: var(--pw-white);
-  --pw-foreground: var(--pw-neutral-900);
+  --pw-foreground: var(--pw-neutral-950);
   --pw-card: var(--pw-white);
-  --pw-card-foreground: var(--pw-neutral-900);
+  --pw-card-foreground: var(--pw-neutral-950);
   --pw-popover: var(--pw-white);
-  --pw-popover-foreground: var(--pw-neutral-900);
+  --pw-popover-foreground: var(--pw-neutral-950);
   --pw-secondary: var(--pw-neutral-100);
   --pw-secondary-foreground: var(--pw-neutral-900);
   --pw-muted: var(--pw-neutral-100);
@@ -111,7 +112,7 @@
 
   --pw-primary: var(--pw-neutral-900);
   --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: var(--pw-neutral-600);
+  --pw-ring: var(--pw-neutral-900);
 
   --pw-shadow-raised: 0 1px 2px 0 oklch(0 0 0 / 0.06), 0 1px 3px 0 oklch(0 0 0 / 0.1);
   --pw-shadow-overlay: 0 4px 6px -2px oklch(0 0 0 / 0.08), 0 12px 24px -4px oklch(0 0 0 / 0.14);
@@ -145,10 +146,25 @@
 
   --pw-primary: var(--pw-neutral-50);
   --pw-primary-foreground: var(--pw-neutral-900);
-  --pw-ring: var(--pw-neutral-400);
+  --pw-ring: var(--pw-neutral-300);
 
   --pw-shadow-raised: 0 1px 2px 0 oklch(0 0 0 / 0.4), 0 1px 3px 0 oklch(0 0 0 / 0.5);
   --pw-shadow-overlay: 0 4px 6px -2px oklch(0 0 0 / 0.4), 0 16px 32px -8px oklch(0 0 0 / 0.6);
+}
+
+/*
+ * shadcn names the vendored atoms read directly in arbitrary values. They alias the plain tokens
+ * and are re-declared on `.dark`, because a `var()` resolves where it is declared.
+ */
+:root {
+  --radius: var(--pw-radius);
+  --foreground: var(--pw-foreground);
+  --secondary: var(--pw-secondary);
+}
+
+.dark {
+  --foreground: var(--pw-foreground);
+  --secondary: var(--pw-secondary);
 }
 
 /* Densities: set `data-density` on any element to resize the spaces inside it. */
@@ -179,89 +195,89 @@
 .theme-indigo {
   --pw-primary: oklch(0.51 0.23 277);
   --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: oklch(0.51 0.23 277);
+  --pw-ring: oklch(0.37 0.23 277);
 }
 .dark.theme-indigo {
   --pw-primary: oklch(0.68 0.16 277);
   --pw-primary-foreground: var(--pw-neutral-950);
-  --pw-ring: oklch(0.68 0.16 277);
+  --pw-ring: oklch(0.81 0.16 277);
 }
 
 .theme-violet {
   --pw-primary: oklch(0.54 0.25 293);
   --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: oklch(0.54 0.25 293);
+  --pw-ring: oklch(0.36 0.25 293);
 }
 .dark.theme-violet {
   --pw-primary: oklch(0.7 0.17 293);
   --pw-primary-foreground: var(--pw-neutral-950);
-  --pw-ring: oklch(0.7 0.17 293);
+  --pw-ring: oklch(0.82 0.17 293);
 }
 
 .theme-blue {
   --pw-primary: oklch(0.55 0.22 260);
   --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: oklch(0.55 0.22 260);
+  --pw-ring: oklch(0.34 0.22 260);
 }
 .dark.theme-blue {
   --pw-primary: oklch(0.7 0.15 260);
   --pw-primary-foreground: var(--pw-neutral-950);
-  --pw-ring: oklch(0.7 0.15 260);
+  --pw-ring: oklch(0.81 0.15 260);
 }
 
 .theme-emerald {
   --pw-primary: oklch(0.53 0.12 163);
   --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: oklch(0.53 0.12 163);
+  --pw-ring: oklch(0.24 0.12 163);
 }
 .dark.theme-emerald {
   --pw-primary: oklch(0.7 0.15 163);
   --pw-primary-foreground: var(--pw-neutral-950);
-  --pw-ring: oklch(0.7 0.15 163);
+  --pw-ring: oklch(0.79 0.15 163);
 }
 
 .theme-orange {
   --pw-primary: oklch(0.55 0.17 42);
   --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: oklch(0.55 0.17 42);
+  --pw-ring: oklch(0.31 0.17 42);
 }
 .dark.theme-orange {
   --pw-primary: oklch(0.72 0.17 42);
   --pw-primary-foreground: var(--pw-neutral-950);
-  --pw-ring: oklch(0.72 0.17 42);
+  --pw-ring: oklch(0.83 0.17 42);
 }
 
 .theme-slate {
   --pw-primary: oklch(0.45 0.03 257);
   --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: oklch(0.45 0.03 257);
+  --pw-ring: oklch(0.25 0.03 257);
 }
 .dark.theme-slate {
   --pw-primary: oklch(0.7 0.03 257);
   --pw-primary-foreground: var(--pw-neutral-950);
-  --pw-ring: oklch(0.7 0.03 257);
+  --pw-ring: oklch(0.8 0.03 257);
 }
 
 .theme-rose {
   --pw-primary: oklch(0.56 0.22 12);
   --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: oklch(0.56 0.22 12);
+  --pw-ring: oklch(0.35 0.22 12);
 }
 .dark.theme-rose {
   --pw-primary: oklch(0.71 0.18 12);
   --pw-primary-foreground: var(--pw-neutral-950);
-  --pw-ring: oklch(0.71 0.18 12);
+  --pw-ring: oklch(0.83 0.18 12);
 }
 
 .theme-cyan {
   --pw-primary: oklch(0.53 0.1 220);
   --pw-primary-foreground: var(--pw-neutral-50);
-  --pw-ring: oklch(0.53 0.1 220);
+  --pw-ring: oklch(0.25 0.1 220);
 }
 .dark.theme-cyan {
   --pw-primary: oklch(0.72 0.13 220);
   --pw-primary-foreground: var(--pw-neutral-950);
-  --pw-ring: oklch(0.72 0.13 220);
+  --pw-ring: oklch(0.8 0.13 220);
 }
 
 /* A user who asks for more contrast gets stronger boundaries and secondary text. */
@@ -323,6 +339,17 @@
   /* A visible default focus indicator. An outline, not a shadow, so it survives forced colors. */
   :focus-visible {
     outline: var(--pw-focus-width) solid var(--pw-ring);
+    outline-offset: var(--pw-focus-offset);
+  }
+}
+
+/*
+ * Forced colors drop box-shadow focus rings, and `outline-none` removes the outline, so restore a
+ * system-color outline. Unlayered on purpose: it must beat the utility layer.
+ */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: var(--pw-focus-width) solid CanvasText;
     outline-offset: var(--pw-focus-offset);
   }
 }

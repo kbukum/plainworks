@@ -1,21 +1,8 @@
 import { defineConfig } from "vitest/config"
 
-// The owned atoms are consumed through their published `@plainworks/elements/<atom>` subpaths; one
-// regex alias resolves every one of them to elements source so ui tests run against live atom code
-// without either package being built first, and a new composite needs no config edit to import a
-// new atom.
-const elementsAtoms = new URL("../elements/src/atoms/", import.meta.url).pathname
-const elementsSrc = new URL("../elements/src/", import.meta.url).pathname
-
+// Atoms resolve through their published `@plainworks/elements/<atom>` subpaths to the built
+// package (turbo builds it first), exactly as a consumer sees them.
 export default defineConfig({
-  resolve: {
-    alias: [
-      { find: /^@plainworks\/elements\/(.+)$/, replacement: `${elementsAtoms}$1.tsx` },
-      // Resolved atoms import their siblings through the shadcn `@/` alias; map it to elements
-      // source so those internal imports resolve when ui renders an atom in a test.
-      { find: /^@\/(.*)$/, replacement: `${elementsSrc}$1` },
-    ],
-  },
   test: {
     // Always `node`: the server-safe `.` entry must prove it needs no DOM. Client tests opt into
     // jsdom per file via a `// @vitest-environment jsdom` docblock.

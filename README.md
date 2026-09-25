@@ -27,7 +27,7 @@ A second reference host, [`@plainworks/next-host`](./apps/next-host), assembles 
 | SSE and WebSocket channels | [`@plainworks/channel`](./packages/channel) |
 | Connect RPC clients and interceptors | [`@plainworks/connect`](./packages/connect) |
 | TanStack Query factories and cache integration | [`@plainworks/query`](./packages/query) |
-| Owned Base UI and shadcn atoms | [`@plainworks/elements`](./packages/elements) |
+| Vendored, locked Base UI and shadcn atoms | [`@plainworks/elements`](./packages/elements) |
 | Authentication and OIDC with PKCE | [`@plainworks/auth`](./packages/auth) |
 | Forms, data, navigation, and feedback composites | [`@plainworks/ui`](./packages/ui) |
 | Application composition | [`@plainworks/app`](./packages/app) |
@@ -61,7 +61,7 @@ This structure keeps neutral code free from React, DOM, Node, and framework assu
 - **Import downward.** Define cross-layer seams low and implement them higher.
 - **Construct explicitly.** Use per-request factories and injected registries. Imports must not open handles, read environment state, or create global singletons.
 
-Versioned npm exports are the primary distribution surface. `elements` and `ui` also generate local registry manifests for owned, editable component source.
+Versioned npm exports are the primary distribution surface. `elements` and `ui` also generate shadcn registry manifests so an app can copy a component's source and own its copy. Inside this repo, `elements` atoms stay **vendored** and **locked**; see [`@plainworks/elements`](./packages/elements/README.md).
 
 ## Develop the repository
 
@@ -69,6 +69,7 @@ Versioned npm exports are the primary distribution surface. `elements` and `ui` 
 bun install
 bun run check-versions
 bun run lint
+bun run --filter @plainworks/elements registry:validate
 bun run check-comments
 bun run typecheck
 bun run check-boundaries

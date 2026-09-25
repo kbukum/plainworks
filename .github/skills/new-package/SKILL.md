@@ -62,6 +62,8 @@ Follow the [`apply-step`](../apply-step/SKILL.md) discipline: failing vitest tes
 
 For a `hasClient` package, the server `.` graph holds the pure logic/types; the `"use client"` leaf holds only DOM/hook-bound code and never imports server-only auth. Interactive components are **accessible and responsive by default** — semantic roles, keyboard/focus, WCAG 2.2 AA, mobile-first/fluid layout with container-query adaptivity, `prefers-reduced-motion`/`-color-scheme` — and each component test queries by role (`@testing-library/user-event`, not `fireEvent`), mocks the network with MSW, and carries an axe assertion. See [`../../instructions/components.instructions.md`](../../instructions/components.instructions.md) and review pass [`08`](../review/references/08-ui-accessibility.md).
 
+A UI package composes atoms from `@plainworks/elements/<name>` — never copy one in or edit it. **Vendored atoms** (`src/shadcn/`) are **locked**; a needed deviation follows the **deviation ladder** (theme → call site → `ui` wrapper), and a new primitive we write goes in `elements/src/atoms/`. See the [Vendored atoms](../../copilot-instructions.md#vendored-atoms) baseline.
+
 ## Step 6 — Validate
 
 ```bash
@@ -79,6 +81,7 @@ bun run changeset          # add the release note
 - [ ] Created via `bun run gen package` (no hand-rolled package files)
 - [ ] `hasClient` chosen correctly; server `.` entry stays React/DOM-free
 - [ ] For a client package: components are accessible (WCAG 2.2 AA) and responsive; tests query by role, mock with MSW, and assert axe cleanliness
+- [ ] For a UI package: atoms consumed from `@plainworks/elements`, never copied or edited
 - [ ] Placed in the layer map and added to the `LAYERS` table (+ README + docs)
 - [ ] Imports only strictly-lower layers; a cross-layer need is a seam defined lower
 - [ ] `src/index.ts` re-exports only; logic in concern-named modules; multi-module concerns grouped into folders with barrel-only `index.ts`; names self-documenting by path (no `utils`/bare verbs); no `any` in the public surface

@@ -44,6 +44,7 @@ Verify each doc against the code it describes; a doc that lies is worse than non
 - **Governance table** (task runner, generator, build, lint, boundaries, version sync, tests, releases) names the tools actually in use.
 - **The TS6-now/TS7-later rationale** stays accurate to the catalog pin and the boundaries guard.
 - **Examples run.** Code/command snippets reflect current behavior and current APIs — never pseudo-code.
+- **Atom docs match the lock.** Docs describe `elements` atoms as **vendored** and **locked** (`src/shadcn/`, pinned by `shadcn.lock.json`) with owned primitives in `src/atoms/`. A doc that calls vendored atoms editable, tells a reader to change one in place, or skips the **deviation ladder** (theme → call site → `ui` wrapper) is stale.
 - **Links resolve.** Internal relative links point at files that exist; other-repo references use full URLs, never bare `#123`.
 
 ## Pass 3 — Clarity & developer experience

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, type RenderResult, render, screen } from "@testing-library/react"
+import { cleanup, type RenderResult, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import axe from "axe-core"
 import { type AnchorHTMLAttributes, createElement, type ReactNode } from "react"
@@ -55,9 +55,8 @@ describe("app shell", () => {
   it("exposes the section nav as a navigation landmark with real destinations", () => {
     renderShell()
     const nav = screen.getByRole("navigation", { name: "Sections" })
-    expect(nav).toBeDefined()
-    expect(screen.getByRole("link", { name: "Overview" }).getAttribute("href")).toBe("/")
-    expect(screen.getByRole("link", { name: "Tasks" }).getAttribute("href")).toBe("/tasks")
+    expect(within(nav).getByRole("link", { name: "Overview" }).getAttribute("href")).toBe("/")
+    expect(within(nav).getByRole("link", { name: "Tasks" }).getAttribute("href")).toBe("/tasks")
   })
 
   it("routes a breadcrumb click through the host router instead of a full reload", async () => {

@@ -26,7 +26,7 @@ flowchart TD
 |---|---|---|
 | **L0** | `std` | Errors, results, guards, resilience, shared seams, list contracts, and structural web types. No React. |
 | **L1** | `state`, `http`, `theme`, `observability` | Reactive state, typed HTTP, the design-token substrate, and logging/error-reporting/Web Vitals seams. |
-| **L2** | `channel`, `connect`, `query`, `elements` | Streaming, RPC, TanStack Query integration, and owned UI atoms. |
+| **L2** | `channel`, `connect`, `query`, `elements` | Streaming, RPC, TanStack Query integration, and vendored UI atoms. |
 | **L3** | `auth`, `ui` | Authentication, OIDC with PKCE, forms, data, navigation, and UI composites. |
 | **L4** | `app`, `testkit`, `mocks`, `devtools` | Application composition, shared test tooling, reusable MSW mock-building primitives, and the development-only runtime inspector. |
 
@@ -71,12 +71,12 @@ The neutral entry already gives React Server Components a server-safe build, so 
 
 ## Distribution
 
-Published packages use standard npm exports. `elements` and `ui` also derive local `registry.json` authoring manifests from their source files so components can remain owned and editable.
+Published packages use standard npm exports. `elements` and `ui` also derive shadcn `registry.json` manifests from their source files, so an app can copy a component's source and own its copy.
 
 | Surface | Use |
 |---|---|
 | **npm package** | Import versioned infrastructure and UI packages through their public exports. |
-| **Registry manifest** | Describe owned `elements` and `ui` source for component authoring. |
+| **Registry manifest** | Let an app copy `elements` or `ui` source into its own tree. Inside this repo, `elements` atoms stay vendored and locked. |
 
 ## Naming and structure
 
@@ -92,19 +92,39 @@ The UI packages share one design substrate and split by dependency weight.
 
 ```mermaid
 flowchart TD
-  theme["theme · L1<br/>tokens, schemes, runtime"] --> elements["elements · L2<br/>owned atoms"]
+  theme["theme · L1<br/>tokens, schemes, runtime"] --> elements["elements · L2<br/>vendored atoms"]
   elements --> ui["ui · L3<br/>forms, data, composites"]
 ```
 
 *UI dependencies flow from the theme substrate toward higher-level components.*
 
-`theme` owns token roles, color schemes, theme resolution, `styles.css`, and `cn`. `elements` owns the Base UI and shadcn atoms. `ui` composes those atoms into forms, data surfaces, navigation, overlays, and feedback.
+`theme` owns token roles, color schemes, theme resolution, `styles.css`, and `cn`. `elements` ships the vendored Base UI and shadcn atoms. `ui` composes those atoms into forms, data surfaces, navigation, overlays, and feedback.
 
 Create a separate UI package only for a **leaf concern** that has heavy, independent dependencies and is not imported by another UI-family package. Keep interdependent concerns inside `ui` so the boundary gate can enforce one direction.
 
 Inside `ui`, concerns follow a second downward-only order: **foundation → general → forms → data**. `data` may use `forms`; `forms` may not import `data`. Shared pieces move to a lower concern instead of creating a back-edge. The boundary configuration enforces this order.
 
-`elements` ingests atoms through its registry commands. `registry add` and `registry update` run shadcn, rewrite shared imports to `@plainworks/theme`, add `"use client"` where required, and format the owned source. `registry diff` is advisory. `registry validate` checks the derived manifest offline. Code generation derives `registry.json`, package exports, and tsdown entries from the atom files, so edit the manifest source rather than generated files.
+### Vendored atoms
+
+`elements` has two folders, and a name lives in only one:
+
+| Folder | Holds | Changed by |
+|---|---|---|
+| `src/shadcn/` | **Vendored** atoms: exact shadcn CLI output plus the compat transform (`cn` from `theme`, `"use client"`) and Biome safe fixes. | Only `registry:update` / `registry:add`. |
+| `src/atoms/` | Primitives we write, such as the `sonner` Toaster. | Us, under the full lint and type rules. |
+
+`shadcn.lock.json` **locks** the vendored atoms: the CLI version, the style, and a hash per atom. `registry:validate` runs in CI and fails on a hand edit, an unlocked atom, or a stale entry. `registry:codegen` derives `registry.json`, package exports, and tsdown entries from the files on disk.
+
+An atom is never edited. A needed change follows the **deviation ladder** and stops at the lowest rung that fixes it:
+
+```mermaid
+flowchart LR
+  need[Needed change] --> theme["theme<br/>tokens and rules"]
+  theme -->|still needed| site["call site<br/>props, className, role"]
+  site -->|reusable| wrapper["ui wrapper<br/>tones, behavior"]
+```
+
+*Fix color, contrast, focus, and radius in the theme; a one-off at the call site; a reusable tone or behavior in a `ui` wrapper. An upstream bug is fixed the same way and noted for upstream reporting.*
 
 Consumers import atoms through per-component exports such as `@plainworks/elements/button`.
 
@@ -211,6 +231,7 @@ Run all gates from the repository root:
 ```sh
 bun run check-versions
 bun run lint
+bun run --filter @plainworks/elements registry:validate
 bun run check-comments
 bun run typecheck
 bun run check-boundaries

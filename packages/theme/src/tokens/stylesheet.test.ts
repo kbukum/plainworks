@@ -115,6 +115,28 @@ describe("tokens.css", () => {
     expect(focus.get("outline-offset")).toBe("var(--pw-focus-offset)")
   })
 
+  it("restores a system-color focus outline under forced colors, above utilities", () => {
+    // Forced colors drop the atoms' box-shadow ring, and `outline-none` removes the outline, so
+    // this rule stays unlayered to beat the utility layer.
+    const forced = tokenRules.find(
+      (rule) =>
+        rule.selector === ":focus-visible" &&
+        rule.context.length === 1 &&
+        rule.context[0] === "@media (forced-colors: active)",
+    )
+    expect(forced?.declarations.get("outline")).toBe("var(--pw-focus-width) solid CanvasText")
+    expect(forced?.declarations.get("outline-offset")).toBe("var(--pw-focus-offset)")
+  })
+
+  it("aliases the shadcn variable names onto the tokens in both modes", () => {
+    for (const dark of [false, true]) {
+      const tokens = resolveTokens(tokenRules, { dark })
+      for (const name of ["radius", "foreground", "secondary"]) {
+        expect(tokens.get(`--${name}`)).toBe(tokens.get(`--pw-${name}`))
+      }
+    }
+  })
+
   it("is plain CSS that any host can load without a Tailwind build", () => {
     expect(tokensCss).not.toMatch(/@(import|theme|source|utility|custom-variant|apply|plugin)\b/)
     expect(tokensCss).not.toMatch(/--(color|spacing|shadow|font|text|ease|radius)-/)
@@ -151,6 +173,20 @@ describe("styles.css", () => {
     }
   })
 
+  it.each([
+    '[data-slot="tabs-content"]:focus-visible',
+    '[data-slot="slider-thumb"]:has(:focus-visible)',
+  ])("draws the focus outline on %s, which the atom leaves unmarked", (selector) => {
+    // In the utilities layer, the attribute selector outranks the atom's `outline-none`.
+    const rule = styleRules.find(
+      (candidate) =>
+        candidate.selector.split(/,\s*/).includes(selector) &&
+        candidate.context[0] === "@layer utilities",
+    )
+    expect(rule?.declarations.get("outline")).toBe("var(--pw-focus-width) solid var(--pw-ring)")
+    expect(rule?.declarations.get("outline-offset")).toBe("var(--pw-focus-offset)")
+  })
+
   it("ships a utility for every stacking layer and motion duration", () => {
     const utilities = new Map(
       styleRules
@@ -176,7 +212,8 @@ describe("both stylesheets", () => {
     expect(css).not.toMatch(/expression\s*\(/)
     expect(css).not.toContain("javascript:")
     expect(css).not.toMatch(/@import\s+url\(/)
-    expect(css).not.toMatch(/var\(--radius\)|--radius\s*:/)
+    const bareRadius = [...css.matchAll(/--radius\s*:\s*([^;]+);/g)].map(([, value]) => value)
+    expect(bareRadius.every((value) => value === "var(--pw-radius)")).toBe(true)
     expect(css).not.toContain("--pw-danger")
   })
 })

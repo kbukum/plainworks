@@ -31,6 +31,8 @@ Match the layer map — the adapter is part of, or sits beside, the core package
 
 Study an existing adapter in the same package for the exact shape before writing a new one.
 
+The shadcn atoms in `@plainworks/elements` are **not** a backend. They are **vendored** and **locked**, so they have no adapter seam to extend; refresh them with [`update-atoms`](../update-atoms/SKILL.md), and route a deviation through the deviation ladder in the [Vendored atoms](../../copilot-instructions.md#vendored-atoms) baseline.
+
 ## Steps
 
 1. **Locate the seam.** Find the interface the core package exports for this concern (transport, auth-header/identity, store). If it lives too high to be implemented downward, move the seam into the lower package (`std`) first — a separate, reviewed change.

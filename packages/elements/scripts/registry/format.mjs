@@ -24,7 +24,19 @@ export function formatSource(source, filename) {
   }
 }
 
-/** Format one atom's `.tsx` source. */
-export function formatTsx(source) {
-  return formatSource(source, "atom.tsx")
+/**
+ * Format one shadcn atom and apply Biome's safe fixes (organized imports, `import type`), so an
+ * ingested atom lands lint-clean without a hand edit. Unsafe fixes are never applied; any rule
+ * upstream still trips is switched off for `src/shadcn/` in `biome.json`. `path` is where the atom
+ * will be written, so folder overrides in `biome.json` apply exactly as they do in the lint gate.
+ */
+export function fixTsx(source, path) {
+  try {
+    return execFileSync(BIOME_BIN, ["check", "--write", `--stdin-file-path=${path}`], {
+      input: source,
+      encoding: "utf8",
+    })
+  } catch (error) {
+    throw new Error(`Biome failed to fix ${path}`, { cause: error })
+  }
 }

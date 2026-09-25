@@ -21,7 +21,7 @@ const SIZE_CLASS = { sm: "size-4", md: "size-6", lg: "size-8" } as const
  */
 export function Spinner({ label = "Loading", size = "md", className }: SpinnerProps): ReactElement {
   return (
-    <span role="status" className={cn("inline-flex items-center", className)}>
+    <span role="status" className={cn("inline-flex items-center align-middle", className)}>
       <svg
         data-slot="spinner"
         aria-hidden="true"

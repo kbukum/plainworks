@@ -20,6 +20,13 @@ export interface PresetOptions {
    * output and is covered by the packaging gate.
    */
   copy?: CopyOptions
+
+  /**
+   * The project declarations are emitted from. Defaults to `tsconfig.src.json` when present, else
+   * tsdown's own resolution. A project with `isolatedDeclarations` emits through Oxc; one without
+   * it emits through tsc, for sources that cannot carry explicit annotations (vendored code).
+   */
+  tsconfig?: string
 }
 
 /**
@@ -48,7 +55,7 @@ export function preset(options: PresetOptions = {}): UserConfig {
     // editor routes each file to the right project; that solution file has no `compilerOptions`, so
     // tsdown's dts generator must read `tsconfig.src.json` instead. Single-project packages keep
     // only `tsconfig.json`, so fall back to tsdown's default resolution there.
-    tsconfig: existsSync("tsconfig.src.json") ? "tsconfig.src.json" : true,
+    tsconfig: options.tsconfig ?? (existsSync("tsconfig.src.json") ? "tsconfig.src.json" : true),
     clean: true,
     unbundle: true,
     treeshake: true,

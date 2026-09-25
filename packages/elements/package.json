@@ -1,7 +1,7 @@
 {
   "name": "@plainworks/elements",
   "version": "0.1.0-alpha.1",
-  "description": "Owned Base-UI/shadcn atoms for the plainworks UI family, ingested and refreshed through the shadcn CLI.",
+  "description": "Vendored, locked Base-UI/shadcn atoms for the plainworks UI family, refreshed only through the shadcn CLI.",
   "type": "module",
   "sideEffects": [
     "**/*.css"
@@ -32,7 +32,10 @@
     "dist",
     "registry.json",
     "src/atoms",
-    "!src/atoms/**/*.test.*"
+    "src/shadcn",
+    "shadcn.lock.json",
+    "!src/atoms/**/*.test.*",
+    "!src/shadcn/**/*.test.*"
   ],
   "exports": {
     ".": {
@@ -231,7 +234,7 @@
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json",
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.shadcn.json",
     "test": "vitest run --coverage",
     "lint": "biome check .",
     "check-packaging": "publint --strict && attw --pack --profile esm-only --exclude-entrypoints @plainworks/elements/styles.css",

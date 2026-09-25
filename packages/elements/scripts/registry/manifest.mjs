@@ -2,27 +2,23 @@ import { readdirSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
 import { formatSource } from "./format.mjs"
+import { atomSources } from "./sources.mjs"
 
 // Everything the family publishes — registry.json, the package `exports` map, the tsdown entry
-// list, and the `.` manifest — is derived from the owned atom files on disk, so none of them can
+// list, and the `.` manifest — is derived from the atom files on disk (`src/shadcn/` + `src/atoms/`), so none of them can
 // silently drift from the actual atom set. `codegen` writes them; a test asserts re-deriving them
 // produces no change.
 
 export const packageRoot = fileURLToPath(new URL("../../", import.meta.url))
-
-const ATOM_DIR = "src/atoms"
 
 // react is a peer and `@plainworks/*` packages are workspace substrate — neither is a shadcn dep.
 // The `(\/|$)` boundary keeps this from also swallowing packages that merely start with `react`
 // (e.g. `react-day-picker`).
 const NON_DEPENDENCY = /^(react|react-dom)(\/|$)|^@plainworks\//
 
-/** Sorted names of the owned atoms, derived from the `.tsx` files on disk. */
+/** Sorted names of every published atom, shadcn and owned. */
 export function atomNames(root = packageRoot) {
-  return readdirSync(join(root, ATOM_DIR))
-    .filter((entry) => entry.endsWith(".tsx") && !entry.endsWith(".test.tsx"))
-    .map((entry) => entry.slice(0, -".tsx".length))
-    .sort()
+  return atomSources(root).map((atom) => atom.name)
 }
 
 // Every `from "<specifier>"` in an atom, deduped in source order.
@@ -57,16 +53,17 @@ export function scanDependencies(source) {
   const dependencies = new Set()
   const registryDependencies = new Set()
   for (const specifier of importSpecifiers(source)) {
-    if (specifier.startsWith("@/atoms/")) {
-      registryDependencies.add(specifier.slice("@/atoms/".length))
+    const sibling = /^@\/(?:shadcn|atoms)\/(.+)$/.exec(specifier)
+    if (sibling !== null) {
+      registryDependencies.add(sibling[1])
     } else if (specifier.startsWith("@/")) {
-      // Only sibling atoms (`@/atoms/*`) are a recognized registry dependency. Any other
+      // Only sibling atoms (`@/shadcn/*`, `@/atoms/*`) are a recognized registry dependency. Any other
       // `@/` alias (e.g. a future `@/hooks/*` or `@/lib/*`) has no ingestion or classification path
       // yet, so fail loudly at codegen rather than silently emitting an incomplete registry item
       // that would break `shadcn add @plainworks/elements/<atom>` for an external consumer.
       throw new Error(
-        `Unsupported atom import alias "${specifier}": only "@/atoms/*" is recognized as a ` +
-          "registry dependency. A new `@/` alias needs an ingestion and classification path first.",
+        `Unsupported atom import alias "${specifier}": only "@/shadcn/*" and "@/atoms/*" are ` +
+          "recognized registry dependencies. A new `@/` alias needs an ingestion and classification path first.",
       )
     } else if (!NON_DEPENDENCY.test(specifier)) {
       dependencies.add(packageName(specifier))
@@ -79,12 +76,12 @@ export function scanDependencies(source) {
 }
 
 /** The single shadcn registry item for one atom, keys ordered for stable codegen. */
-export function buildRegistryItem(name, source) {
+export function buildRegistryItem(name, path, source) {
   const { dependencies, registryDependencies } = scanDependencies(source)
   const item = { name, type: "registry:ui" }
   if (registryDependencies.length > 0) item.registryDependencies = registryDependencies
   if (dependencies.length > 0) item.dependencies = dependencies
-  item.files = [{ path: `${ATOM_DIR}/${name}.tsx`, type: "registry:ui" }]
+  item.files = [{ path, type: "registry:ui" }]
   return item
 }
 
@@ -94,8 +91,8 @@ export function buildRegistry(root = packageRoot) {
     $schema: "https://ui.shadcn.com/schema/registry.json",
     name: "plainworks-elements",
     homepage: "https://github.com/kbukum/plainworks",
-    items: atomNames(root).map((name) =>
-      buildRegistryItem(name, readFileSync(join(root, ATOM_DIR, `${name}.tsx`), "utf8")),
+    items: atomSources(root).map(({ name, path }) =>
+      buildRegistryItem(name, path, readFileSync(join(root, path), "utf8")),
     ),
   }
 }
@@ -114,9 +111,9 @@ export function buildExports(names) {
 }
 
 /** The tsdown entry map: the manifest entry plus one per atom, keyed by its published subpath name. */
-export function buildTsdownEntry(names) {
+export function buildTsdownEntry(sources) {
   const entry = { index: "src/index.ts" }
-  for (const name of names) entry[name] = `${ATOM_DIR}/${name}.tsx`
+  for (const { name, path } of sources) entry[name] = path
   return entry
 }
 
@@ -136,15 +133,15 @@ export function renderRegistryTs(names) {
   ].join("\n")}`
 }
 
-export function renderTsdownConfig(names) {
-  const entries = Object.entries(buildTsdownEntry(names))
+export function renderTsdownConfig(sources) {
+  const entries = Object.entries(buildTsdownEntry(sources))
     .map(([key, value]) => `    ${JSON.stringify(key)}: ${JSON.stringify(value)},`)
     .join("\n")
   return `${[
     "import { preset } from \"@plainworks/tsdown-config\"",
     "",
-    "// Generated by \`registry:codegen\` from the owned atoms on disk — do not edit the entry map by",
-    "// hand. Each atom is its own client entry so consumers tree-shake to the atoms they import.",
+    "// Generated by \`registry:codegen\` from the atoms on disk — do not edit the entry map by hand.",
+    "// Each atom is its own client entry so consumers tree-shake to the atoms they import.",
     "export default preset({",
     "  entry: {",
     entries,
@@ -152,6 +149,9 @@ export function renderTsdownConfig(names) {
     "  // tsdown has no CSS pipeline, so the Tailwind-source stylesheet is copied verbatim into",
     "  // `dist`; the `./styles.css` export resolves from the build output the packaging gate covers.",
     "  copy: [{ from: \"src/styles.css\", to: \"dist\" }],",
+    "  // Vendored shadcn atoms carry no \`isolatedDeclarations\` annotations, so declarations are",
+    "  // emitted with tsc through the vendored project.",
+    "  tsconfig: \"tsconfig.shadcn.json\",",
     "})",
     "",
   ].join("\n")}`
@@ -173,7 +173,7 @@ export function runCodegen(root = packageRoot) {
   writeFileSync(join(root, "src/registry.ts"), formatSource(renderRegistryTs(names), "registry.ts"))
   writeFileSync(
     join(root, "tsdown.config.ts"),
-    formatSource(renderTsdownConfig(names), "tsdown.config.ts"),
+    formatSource(renderTsdownConfig(atomSources(root)), "tsdown.config.ts"),
   )
   writePackageExports(root, names)
   return names

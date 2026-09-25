@@ -13,12 +13,6 @@
       "@plainworks/ui": ["../ui/src"],
       "@plainworks/ui/hooks": ["../ui/src/client/hooks/index.ts"],
       "@plainworks/ui/feedback": ["../ui/src/client/feedback/index.ts"],
-      // The owned atoms are consumed through their published subpaths; resolve them to
-      // `@plainworks/elements` source so devtools typechecks before either package is built.
-      "@plainworks/elements/*": ["../elements/src/atoms/*"],
-      // Those atoms compose siblings through the shadcn `@/atoms/*` alias; resolve it to the same
-      // elements source so their internal imports typecheck through to the real atom types.
-      "@/atoms/*": ["../elements/src/atoms/*"],
       "@plainworks/*": ["../*/src"]
     }
   },

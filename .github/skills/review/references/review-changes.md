@@ -49,6 +49,8 @@ turbo run test --filter='...[origin/main]'   # only packages the diff affects
 bun run check-boundaries                      # fast placement/acyclicity guard
 bun run check-versions                        # catalog single-source
 turbo run check-packaging --filter=@plainworks/<name>   # publint + attw on the built tarball
+bun run --filter @plainworks/elements registry:validate   # when elements changed
+turbo run test --filter=@plainworks/elements              # when theme changed (theme-variables contract)
 ```
 
 A green scoped run is necessary but **not sufficient** — it will not catch unbounded streams/buffers, missing timeouts/cancellation, module-level singletons, import-time side effects, or a token leaking into a URL. Those are on the reviewer.

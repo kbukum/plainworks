@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "check-production": "PLAINWORKS_BUNDLE_ANALYSIS=1 next build && bun ../../internal/bundle-exclusion/cli.ts devtools-exclusion.json",
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run"
@@ -15,6 +16,7 @@
     "@plainworks/app": "workspace:*",
     "@plainworks/auth": "workspace:*",
     "@plainworks/channel": "workspace:*",
+    "@plainworks/devtools": "workspace:*",
     "@plainworks/http": "workspace:*",
     "@plainworks/mocks": "workspace:*",
     "@plainworks/query": "workspace:*",

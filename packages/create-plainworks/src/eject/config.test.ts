@@ -6,7 +6,14 @@ import { EXAMPLE_SOURCE_APPS, isSkippedEntry, STANDALONE_TSCONFIG } from "./conf
 
 describe("isSkippedEntry", () => {
   it("skips dependency and build output", () => {
-    for (const name of ["node_modules", "dist", "coverage", ".turbo", ".next"]) {
+    for (const name of [
+      "node_modules",
+      "dist",
+      "coverage",
+      ".turbo",
+      ".next",
+      ".bundle-analysis",
+    ]) {
       expect(isSkippedEntry(name)).toBe(true)
     }
   })

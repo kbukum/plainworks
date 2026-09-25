@@ -67,6 +67,14 @@ describe("assertEjectable", () => {
     expect(() => assertEjectable({ appDir, repoRoot })).not.toThrow()
   })
 
+  it("ignores generated bundle-analysis output", () => {
+    writeSource(
+      join(appDir, ".bundle-analysis", "server", "generated.js"),
+      'import "../../../../packages/demo/src"\n',
+    )
+    expect(() => assertEjectable({ appDir, repoRoot })).not.toThrow()
+  })
+
   it.each(["dependencies", "devDependencies", "peerDependencies", "optionalDependencies"] as const)(
     "rejects a private/internal @plainworks package in %s",
     (section) => {

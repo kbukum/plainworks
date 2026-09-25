@@ -14,6 +14,8 @@
 import { type Clock, isRecord } from "@plainworks/std"
 import { type HttpHandler, HttpResponse, http } from "msw"
 import { type LatencyController, MAX_LATENCY_MS } from "../latency"
+import { MAX_REQUEST_LOG_SIZE } from "./limits"
+import { MOCK_CONTROL_PATHS } from "./paths"
 
 /** A single logged request captured by the logging handler. */
 export interface RequestLogEntry {
@@ -51,8 +53,6 @@ export interface MockControlGraph {
   /** The `/mock/*` control endpoints. */
   handlers: HttpHandler[]
 }
-
-const MAX_LOG_SIZE = 1000
 
 /**
  * Build the control graph for one mock server. `onReset` resets that server's data stores;
@@ -94,7 +94,7 @@ export function createMockControl(
     })
 
     // Keep log size bounded
-    if (requestLog.length > MAX_LOG_SIZE) {
+    if (requestLog.length > MAX_REQUEST_LOG_SIZE) {
       requestLog.shift()
     }
 
@@ -107,7 +107,7 @@ export function createMockControl(
 
   const handlers: HttpHandler[] = [
     // Get request log
-    http.get("*/mock/requests", async () => {
+    http.get(`*${MOCK_CONTROL_PATHS.requests}`, async () => {
       return HttpResponse.json({
         data: control.requestLog(),
         count: requestLog.length,
@@ -115,20 +115,20 @@ export function createMockControl(
     }),
 
     // Clear request log
-    http.delete("*/mock/requests", async () => {
+    http.delete(`*${MOCK_CONTROL_PATHS.requests}`, async () => {
       control.clearRequestLog()
       return HttpResponse.json({ success: true })
     }),
 
     // Get current mock state
-    http.get("*/mock/state", async () => {
+    http.get(`*${MOCK_CONTROL_PATHS.state}`, async () => {
       return HttpResponse.json({
         data: control.state(),
       })
     }),
 
     // Control global error simulation
-    http.post("*/mock/error", async ({ request }) => {
+    http.post(`*${MOCK_CONTROL_PATHS.error}`, async ({ request }) => {
       let body: unknown
       try {
         body = await request.json()
@@ -145,7 +145,7 @@ export function createMockControl(
     }),
 
     // Control global latency
-    http.post("*/mock/latency", async ({ request }) => {
+    http.post(`*${MOCK_CONTROL_PATHS.latency}`, async ({ request }) => {
       let body: unknown
       try {
         body = await request.json()
@@ -171,7 +171,7 @@ export function createMockControl(
     }),
 
     // Reset all mock data
-    http.post("*/mock/reset", async () => {
+    http.post(`*${MOCK_CONTROL_PATHS.reset}`, async () => {
       onReset()
       control.clearRequestLog()
       return HttpResponse.json({ success: true })

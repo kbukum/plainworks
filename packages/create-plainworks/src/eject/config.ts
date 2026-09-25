@@ -19,7 +19,14 @@ export const NEUTRALIZED_TSCONFIG_EXTENDS = "../../tsconfig.base.json"
 // dropped at any depth; the workspace-only task/test config (`test/`, `turbo.json`, …) is dropped
 // only at the app root, so a real nested route like `src/app/test/page.tsx` survives. Per-file
 // patterns (`*.test.ts(x)`, `*.tsbuildinfo`) are dropped at any depth.
-const SKIP_ANY_DEPTH = new Set(["node_modules", "dist", "coverage", ".turbo", ".next"])
+const SKIP_ANY_DEPTH = new Set([
+  "node_modules",
+  "dist",
+  "coverage",
+  ".turbo",
+  ".next",
+  ".bundle-analysis",
+])
 const SKIP_AT_ROOT = new Set(["test", "turbo.json", "vitest.config.ts", "next-env.d.ts"])
 
 /** Whether an entry (by its path relative to the app root) is dropped from the ejected output. */

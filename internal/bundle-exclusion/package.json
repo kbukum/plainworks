@@ -1,0 +1,16 @@
+{
+  "name": "@plainworks/bundle-exclusion",
+  "version": "0.0.0",
+  "description": "Production-exclusion gate: proves a host's built JavaScript and CSS carry none of a forbidden module graph, by reading source-map `sources` (which minification cannot rename) plus marker strings for CSS.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -97,7 +97,37 @@ describe("createHttpSource", () => {
     expect(settle?.summary).toMatchObject({ status: 500, outcome: "error" })
     const indicator = port.snapshot().indicators.find((entry) => entry.indicator.id === "http")
     expect(indicator?.indicator.severity).toBe("error")
-    expect(indicator?.indicator.value).toContain("failing")
+    expect(indicator?.indicator.value).toContain("1 failed")
+  })
+
+  it("turns the indicator healthy after a success while keeping the failure total", async () => {
+    let status = 500
+    const { port, client } = setup({ instance: "api" }, async () => new Response("{}", { status }))
+    await expect(client.request({ path: "/tasks" })).rejects.toBeInstanceOf(HttpError)
+    status = 200
+    await client.request({ path: "/tasks" })
+
+    const indicator = port.snapshot().indicators.find((entry) => entry.indicator.id === "http")
+    expect(indicator?.indicator.severity).toBe("ok")
+    expect(indicator?.indicator.value).toBe("2 requests · 1 failed")
+  })
+
+  it("keeps a newer session observing when an earlier registration is disposed", async () => {
+    const { source, interceptor } = createHttpSource({ instance: "api" })
+    const first = createDevtoolsSession()
+    const second = createDevtoolsSession()
+    first.registerSource(source)
+    second.registerSource(source)
+    first.dispose()
+
+    const client = createHttpClient({
+      baseUrl: "https://api.test",
+      fetch: (async () => new Response("{}", { status: 200 })) as never,
+      interceptors: [interceptor],
+    })
+    await client.request({ path: "/tasks" })
+
+    expect(eventsOf(second.connect()).map((event) => event.kind)).toContain("http.response")
   })
 
   it("reports a transport failure as an error and preserves the network error", async () => {
@@ -178,7 +208,7 @@ describe("createHttpSource", () => {
     const settle = eventsOf(port).find((event) => event.kind === "http.canceled")
     expect(settle?.severity).toBe("warn")
     const indicator = port.snapshot().indicators.find((entry) => entry.indicator.id === "http")
-    expect(indicator?.indicator.value).not.toContain("failing")
+    expect(indicator?.indicator.value).not.toContain("failed")
   })
 
   it("captures only allowlisted headers into on-demand detail; a secret header stays redacted", async () => {
@@ -233,7 +263,7 @@ describe("createHttpSource", () => {
     expect(settle?.severity).toBe("warn")
     expect(settle?.summary).toMatchObject({ outcome: "timeout" })
     const indicator = port.snapshot().indicators.find((entry) => entry.indicator.id === "http")
-    expect(indicator?.indicator.value).not.toContain("failing")
+    expect(indicator?.indicator.value).not.toContain("failed")
   })
 
   it("settles a timed-out attempt once when fetch ignores abort and resolves later", async () => {

@@ -134,6 +134,14 @@ Imports must not read environment state, open handles, or dial a network. Create
 
 ## Security and UI invariants
 
+### Development inspection
+
+[`@plainworks/devtools`](../packages/devtools/README.md) is an optional L4 consumer of public lower-layer seams. Under its own build-time development gate, a host creates named sources beside its runtime instances and passes them to `mountDevtools`, which owns the session and releases it with the shell on `dispose`. `DevtoolsShell` is the path for a session the host owns. Both views use the same bounded, redacted protocol. Custom renderers stay at the React call site; app-owned mock controls never introduce a same-layer dependency from devtools to mocks.
+
+The [showcase](../apps/showcase/README.md) proves a Vite-gated shell with HTTP/query adapters and a custom mock panel. The [Next host](../apps/next-host/README.md) proves client-only HTTP/query/channel inspection under RSC. Their production gate scans a source-mapped analysis build of emitted JavaScript and CSS, not just whether a launcher is visible. Cross-tab, server/RSC, extension, standalone, React Native rendering, auth inspection, and time travel remain outside embedded v1.
+
+### Shared acceptance bar
+
 | Invariant | Required behavior |
 |---|---|
 | **Authentication** | Send credentials in headers or secure `__Host-` cookies. Never put tokens in URLs, `localStorage`, or `sessionStorage`. Keep server token custody outside client graphs. |

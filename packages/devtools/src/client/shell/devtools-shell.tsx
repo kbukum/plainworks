@@ -98,7 +98,9 @@ export function DevtoolsShell({
         >
           <Bug aria-hidden className="size-4" />
           Inspect
-          {shortcut === null ? null : <Kbd>{shortcutLabel(shortcut, apple)}</Kbd>}
+          {shortcut === null ? null : (
+            <Kbd className="text-foreground">{shortcutLabel(shortcut, apple)}</Kbd>
+          )}
         </Button>
       ) : null}
       {showRail ? (

@@ -62,21 +62,64 @@ export function outcomeSeverity(outcome: ExchangeOutcome): Severity {
   }
 }
 
-/** Running totals for a request-shaped source's aggregate status indicator. */
-export interface ExchangeCounts {
-  total: number
-  failing: number
-  inFlight: number
+/** The rail readout of an {@link ExchangeTally}: indicator text plus its current health. */
+export interface ExchangeReadout {
+  readonly value: string
+  readonly severity: Severity
 }
 
 /**
- * One-line indicator text shared by every request-shaped adapter, so an HTTP client and a Connect
- * transport read identically: a total, then failing and in-flight counts only when non-zero. `unit`
- * is the singular exchange noun (`"request"`, `"call"`), pluralized with a trailing `s`.
+ * Totals and current health for a request-shaped source's aggregate status indicator. Totals are
+ * history: `total` and `failed` only grow. Health is current: it is `error` only while the most
+ * recent settled exchanges failed, so one success after an outage turns the indicator healthy
+ * again. A timeout or cancellation leaves health unchanged.
  */
-export function describeExchangeCounts(counts: ExchangeCounts, unit: string): string {
-  const parts = [`${counts.total} ${unit}${counts.total === 1 ? "" : "s"}`]
-  if (counts.failing > 0) parts.push(`${counts.failing} failing`)
-  if (counts.inFlight > 0) parts.push(`${counts.inFlight} in flight`)
-  return parts.join(" · ")
+export interface ExchangeTally {
+  /** Count a started exchange as in flight. */
+  start(): void
+  /** Settle one in-flight exchange with its outcome. */
+  settle(outcome: ExchangeOutcome): void
+  /** Drop one in-flight exchange with no outcome (its observation was torn down). */
+  release(): void
+  /**
+   * Indicator text shared by every request-shaped adapter, so an HTTP client and a Connect
+   * transport read identically: a total, then failed and in-flight counts only when non-zero.
+   * `unit` is the singular exchange noun (`"request"`, `"call"`), pluralized with a trailing `s`.
+   */
+  readout(unit: string): ExchangeReadout
+}
+
+/** Create an empty {@link ExchangeTally}. */
+export function createExchangeTally(): ExchangeTally {
+  let total = 0
+  let failed = 0
+  let inFlight = 0
+  let unhealthy = false
+  return {
+    start() {
+      total += 1
+      inFlight += 1
+    },
+    settle(outcome) {
+      inFlight -= 1
+      if (outcome === "error") {
+        failed += 1
+        unhealthy = true
+      } else if (outcome === "ok") {
+        unhealthy = false
+      }
+    },
+    release() {
+      inFlight -= 1
+    },
+    readout(unit) {
+      const parts = [`${total} ${unit}${total === 1 ? "" : "s"}`]
+      if (failed > 0) parts.push(`${failed} failed`)
+      if (inFlight > 0) parts.push(`${inFlight} in flight`)
+      return {
+        value: parts.join(" · "),
+        severity: unhealthy ? "error" : inFlight > 0 ? "info" : "ok",
+      }
+    },
+  }
 }

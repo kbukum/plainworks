@@ -19,10 +19,13 @@ export interface ObserverRelay extends SourceObserver {
    * holds captured detail for an event that is dropped (before registration or after disposal).
    */
   readonly active: boolean
-  /** Attach the session's observer and replay the latest indicator per id to it. */
-  bind(observer: SourceObserver): void
-  /** Detach the observer; subsequent calls are dropped until the next bind. */
-  unbind(): void
+  /**
+   * Attach the session's observer and replay the latest indicator per id to it. A later bind
+   * replaces the current observer. Returns this connection's unbind, which detaches only while this
+   * observer is still the bound one and reports whether it did — so a stale connection's disposal
+   * neither cuts off a newer session nor tears down resources that session still uses.
+   */
+  bind(observer: SourceObserver): () => boolean
 }
 
 /** Create an unbound {@link ObserverRelay}. */
@@ -52,9 +55,11 @@ export function createObserverRelay(): ObserverRelay {
       for (const indicator of latestIndicators.values()) {
         observeSafely(relay, () => observer.indicate(indicator))
       }
-    },
-    unbind() {
-      bound = undefined
+      return () => {
+        if (bound !== observer) return false
+        bound = undefined
+        return true
+      }
     },
   }
   return relay

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "typecheck": {
+      "inputs": ["cli.ts", "rules.ts", "scan.ts", "test/**", "tsconfig.json"],
+      "outputs": []
+    },
+    "test": {
+      "inputs": ["rules.ts", "scan.ts", "test/**", "vitest.config.ts"],
+      "outputs": []
+    }
+  }
+}

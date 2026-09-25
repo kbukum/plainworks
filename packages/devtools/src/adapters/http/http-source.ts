@@ -6,9 +6,9 @@ import type { Source, SourceHandle } from "../../source"
 import {
   type Correlator,
   createCorrelator,
-  describeExchangeCounts,
-  type ExchangeCounts,
+  createExchangeTally,
   type ExchangeOutcome,
+  type ExchangeTally,
   isDeadlineAbort,
   outcomeSeverity,
 } from "../correlation"
@@ -74,14 +74,13 @@ export function createHttpSource(options: HttpSourceOptions): HttpInstrumentatio
   assertPositiveCapacity("HTTP detail capacity", detailCapacity)
   const details = new Map<string, Json>()
 
-  const counts = { total: 0, failing: 0, inFlight: 0 }
+  const tally = createExchangeTally()
 
   function indicate(): void {
     relay.indicate({
       id: "http",
       label: options.label ?? `HTTP ${options.instance}`,
-      value: describeExchangeCounts(counts, "request"),
-      severity: counts.failing > 0 ? "error" : counts.inFlight > 0 ? "info" : "ok",
+      ...tally.readout("request"),
       updatedAt: now(),
       target: "http",
     })
@@ -105,7 +104,7 @@ export function createHttpSource(options: HttpSourceOptions): HttpInstrumentatio
     relay,
     correlator,
     allow,
-    counts,
+    tally,
     indicate,
     rememberDetail,
   })
@@ -114,7 +113,7 @@ export function createHttpSource(options: HttpSourceOptions): HttpInstrumentatio
     id: { kind: "http", instance: options.instance },
     label: options.label ?? `HTTP ${options.instance}`,
     connect(observer) {
-      relay.bind(observer)
+      const unbind = relay.bind(observer)
       observeSafely(relay, indicate)
       const handle: SourceHandle = {
         resolveDetail(ref) {
@@ -123,7 +122,7 @@ export function createHttpSource(options: HttpSourceOptions): HttpInstrumentatio
           return Promise.resolve(record)
         },
         dispose() {
-          relay.unbind()
+          if (!unbind()) return
           details.clear()
         },
       }
@@ -139,13 +138,13 @@ interface InterceptorDeps {
   readonly relay: ObserverRelay
   readonly correlator: Correlator
   readonly allow: readonly string[] | undefined
-  readonly counts: ExchangeCounts
+  readonly tally: ExchangeTally
   readonly indicate: () => void
   readonly rememberDetail: (id: string, record: Json) => void
 }
 
 function createHttpInterceptor(deps: InterceptorDeps): HttpInterceptor {
-  const { now, relay, correlator, allow, counts, indicate, rememberDetail } = deps
+  const { now, relay, correlator, allow, tally, indicate, rememberDetail } = deps
   return (next) => async (request) => {
     const id = correlator.next()
     const method = request.method
@@ -158,8 +157,7 @@ function createHttpInterceptor(deps: InterceptorDeps): HttpInterceptor {
     // `next(request)`, never by the instrumentation around it.
     observeSafely(relay, () => {
       startedAt = now()
-      counts.total += 1
-      counts.inFlight += 1
+      tally.start()
       relay.emit({
         kind: "http.request",
         label: `${method} ${url}`,
@@ -175,8 +173,7 @@ function createHttpInterceptor(deps: InterceptorDeps): HttpInterceptor {
       settled = true
       const observedStartedAt = startedAt
       const outcome = classifyThrow(error, request.signal)
-      counts.inFlight -= 1
-      if (outcome === "error") counts.failing += 1
+      tally.settle(outcome)
       observeSafely(relay, () => {
         const endedAt = now()
         const durationMs = endedAt - observedStartedAt
@@ -206,8 +203,7 @@ function createHttpInterceptor(deps: InterceptorDeps): HttpInterceptor {
       settled = true
       const observedStartedAt = startedAt
       const outcome: ExchangeOutcome = response.ok ? "ok" : "error"
-      counts.inFlight -= 1
-      if (outcome === "error") counts.failing += 1
+      tally.settle(outcome)
       observeSafely(relay, () => {
         const endedAt = now()
         const durationMs = endedAt - observedStartedAt

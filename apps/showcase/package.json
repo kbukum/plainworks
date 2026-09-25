@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "bun run server.ts",
-    "build": "vite build",
+    "build": "NODE_ENV=production vite build",
+    "check-production": "NODE_ENV=production vite build --sourcemap hidden --outDir .bundle-analysis --emptyOutDir --logLevel warn && bun ../../internal/bundle-exclusion/cli.ts devtools-exclusion.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "playwright test"
@@ -16,6 +17,7 @@
     "@plainworks/auth": "workspace:*",
     "@plainworks/channel": "workspace:*",
     "@plainworks/demo": "workspace:*",
+    "@plainworks/devtools": "workspace:*",
     "@plainworks/elements": "workspace:*",
     "@plainworks/http": "workspace:*",
     "@plainworks/mocks": "workspace:*",

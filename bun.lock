@@ -21,6 +21,7 @@
         "@plainworks/app": "workspace:*",
         "@plainworks/auth": "workspace:*",
         "@plainworks/channel": "workspace:*",
+        "@plainworks/devtools": "workspace:*",
         "@plainworks/http": "workspace:*",
         "@plainworks/mocks": "workspace:*",
         "@plainworks/query": "workspace:*",
@@ -60,6 +61,7 @@
         "@plainworks/auth": "workspace:*",
         "@plainworks/channel": "workspace:*",
         "@plainworks/demo": "workspace:*",
+        "@plainworks/devtools": "workspace:*",
         "@plainworks/elements": "workspace:*",
         "@plainworks/http": "workspace:*",
         "@plainworks/mocks": "workspace:*",
@@ -100,6 +102,15 @@
       "devDependencies": {
         "@types/node": "catalog:",
         "dependency-cruiser": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
+    "internal/bundle-exclusion": {
+      "name": "@plainworks/bundle-exclusion",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@types/node": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:",
       },
@@ -1150,6 +1161,8 @@
     "@plainworks/auth": ["@plainworks/auth@workspace:packages/auth"],
 
     "@plainworks/boundaries": ["@plainworks/boundaries@workspace:internal/boundaries"],
+
+    "@plainworks/bundle-exclusion": ["@plainworks/bundle-exclusion@workspace:internal/bundle-exclusion"],
 
     "@plainworks/channel": ["@plainworks/channel@workspace:packages/channel"],
 

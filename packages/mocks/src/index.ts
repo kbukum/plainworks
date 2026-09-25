@@ -7,6 +7,20 @@
 // fixtures package. Everything is a factory — importing this module creates no stores, workers, or
 // other state.
 
+// The mock control plane: server handlers, and a typed client that drives them over HTTP.
+export {
+  createMockControl,
+  createMockControlClient,
+  type InternalState,
+  MOCK_CONTROL_PATHS,
+  type MockControl,
+  type MockControlClient,
+  type MockControlClientOptions,
+  MockControlError,
+  type MockControlGraph,
+  type MockControlTransport,
+  type RequestLogEntry,
+} from "./control"
 // Data primitives for custom entities.
 export type {
   EntityFactory,
@@ -21,11 +35,9 @@ export {
   createReloadableFixtureSources,
   createStore,
 } from "./data/common"
-
 // PostgREST/Supabase-style filter dialect: one codec shared by serializer and parser.
 export type { FilterCondition, FilterOperator, FilterQuery } from "./filter"
 export { parseApiParams } from "./filter"
-
 // Fixture-generation primitives: seeded randomness plus id and date helpers.
 export {
   createSeededRandom,
@@ -43,21 +55,13 @@ export {
   randomInt,
   randomString,
 } from "./fixture"
-
-// Handler builders for custom entities and the control plane.
+// Handler builders for custom entities.
 export {
   type CrudHandlerConfig,
   createCrudHandlers,
   type InputSpec,
   type MutationAuthorizer,
 } from "./handlers/common"
-export type {
-  InternalState,
-  MockControl,
-  MockControlGraph,
-  RequestLogEntry,
-} from "./handlers/internal"
-export { createMockControl } from "./handlers/internal"
 
 // The latency seam applied before a response.
 export { createLatency, type LatencyController, MAX_LATENCY_MS } from "./latency"

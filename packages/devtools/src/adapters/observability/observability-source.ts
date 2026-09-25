@@ -191,7 +191,7 @@ export function createObservabilitySource(
     id: { kind: "observability", instance: options.instance },
     label,
     connect(observer) {
-      relay.bind(observer)
+      const unbind = relay.bind(observer)
       observeSafely(relay, indicateLogs)
       const handle: SourceHandle = {
         resolveDetail(ref) {
@@ -200,9 +200,9 @@ export function createObservabilitySource(
           return Promise.resolve(record)
         },
         dispose() {
+          if (!unbind()) return
           logSampler.dispose()
           details.clear()
-          relay.unbind()
         },
       }
       return handle

@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.client.json",
+  // The consumer fixture is a host entry: it type-checks against the package's own public
+  // entries (resolved to source) with Vite's `import.meta.env`/`hot` types, so an API change
+  // fails here instead of silently drifting in a fixture the build only transpiles.
+  "compilerOptions": {
+    "types": ["vite/client"],
+    "paths": {
+      "@plainworks/devtools/client": ["./src/client.ts"],
+      "@plainworks/devtools/query": ["./src/adapters/query/index.ts"],
+      "@plainworks/devtools/state": ["./src/adapters/state/index.ts"],
+      "@plainworks/testkit": ["../testkit/src"],
+      "@plainworks/testkit/client": ["../testkit/src/client/index.ts"],
+      "@plainworks/theme": ["../theme/src"],
+      "@plainworks/ui": ["../ui/src"],
+      "@plainworks/ui/hooks": ["../ui/src/client/hooks/index.ts"],
+      "@plainworks/ui/feedback": ["../ui/src/client/feedback/index.ts"],
+      "@plainworks/elements/*": ["../elements/src/atoms/*"],
+      "@/atoms/*": ["../elements/src/atoms/*"],
+      "@plainworks/*": ["../*/src"]
+    }
+  },
+  "include": ["src/client.ts", "src/client", "fixtures/consumer"]
+}

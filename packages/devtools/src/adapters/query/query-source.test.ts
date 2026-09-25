@@ -1,4 +1,4 @@
-import { QueryClient } from "@tanstack/query-core"
+import { QueryClient, QueryObserver } from "@tanstack/query-core"
 import { describe, expect, it } from "vitest"
 import { createDevtoolsSession, type DevtoolsSession } from "../../session"
 import { fakeSource } from "../../testing/fake-source"
@@ -169,6 +169,33 @@ describe("createQuerySource", () => {
     expect(indicator?.indicator.severity).toBe("error")
     expect(indicator?.indicator.value).toContain("1 failing")
     expect(indicator?.indicator.target).toBe("query")
+  })
+
+  it("ignores observer and mutation churn that cannot change the indicator", async () => {
+    // A host's `useQuery` emits observer events while rendering; republishing on them would
+    // re-render the inspector root and interrupt the host render in a loop.
+    const client = new QueryClient({
+      defaultOptions: { queries: { staleTime: Number.POSITIVE_INFINITY } },
+    })
+    let clock = 1_000
+    const { port } = setup({ client, instance: "main", now: () => clock })
+    await client.fetchQuery({ queryKey: ["tasks"], queryFn: async () => ["a"] })
+    const indicatorAt = () =>
+      port.snapshot().indicators.find((entry) => entry.indicator.id === "queries")?.indicator
+        .updatedAt
+    const before = indicatorAt()
+    clock = 2_000
+
+    // The query is fresh, so attaching an observer emits observer events but starts no fetch.
+    const observer = new QueryObserver(client, { queryKey: ["tasks"], queryFn: async () => ["a"] })
+    const unsubscribe = observer.subscribe(() => {})
+    unsubscribe()
+    await client
+      .getMutationCache()
+      .build(client, { mutationKey: ["createTask"], mutationFn: async () => "done" })
+      .execute(undefined)
+
+    expect(indicatorAt()).toBe(before)
   })
 
   it("resolves a query's full state on demand, sanitized by the session", async () => {

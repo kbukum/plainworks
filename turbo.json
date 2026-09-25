@@ -37,6 +37,17 @@
       "inputs": ["dist/**", "package.json"],
       "outputs": []
     },
+    "check-production": {
+      // Runs the host's own source-mapped analysis build, so it needs only built dependencies.
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_ROOT$/internal/bundle-exclusion/*.ts",
+        "devtools-exclusion.json",
+        "package.json"
+      ],
+      "outputs": [],
+      "cache": false
+    },
     "test": {
       "dependsOn": ["^build"],
       "inputs": ["src/**", "vitest.config.ts", "tsconfig.json"],

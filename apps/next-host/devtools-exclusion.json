@@ -1,0 +1,13 @@
+{
+  "rule": "devtools",
+  "directories": [".bundle-analysis/static", ".bundle-analysis/server"],
+  "expectedSources": ["/apps/next-host/src/"],
+  "forbiddenSources": ["/apps/next-host/src/client/dev-tools/"],
+  "allowUnmapped": [
+    "-manifest.js",
+    "/_buildManifest.js",
+    "/_ssgManifest.js",
+    "/_clientMiddlewareManifest.js",
+    "/static/chunks/0cz1d0mv5g_q7.js"
+  ]
+}

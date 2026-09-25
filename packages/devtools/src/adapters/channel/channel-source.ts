@@ -128,13 +128,13 @@ export function createChannelSource(options: ChannelSourceOptions): ChannelInstr
     id: { kind: "channel", instance: options.instance },
     label,
     connect(observer) {
-      relay.bind(observer)
+      const unbind = relay.bind(observer)
       observeSafely(relay, indicate)
       const handle: SourceHandle = {
         dispose() {
+          if (!unbind()) return
           for (const observation of observations) observation.unsubscribe()
           observations.clear()
-          relay.unbind()
         },
       }
       return handle

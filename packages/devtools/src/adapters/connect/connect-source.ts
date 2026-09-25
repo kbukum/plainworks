@@ -6,9 +6,9 @@ import type { Source, SourceHandle } from "../../source"
 import {
   type Correlator,
   createCorrelator,
-  describeExchangeCounts,
-  type ExchangeCounts,
+  createExchangeTally,
   type ExchangeOutcome,
+  type ExchangeTally,
   isDeadlineAbort,
   outcomeSeverity,
 } from "../correlation"
@@ -66,13 +66,12 @@ export function createConnectSource(options: ConnectSourceOptions): ConnectInstr
   assertTimerMs(messageIntervalMs)
   const activeStreams = new Set<ActiveStreamObservation>()
 
-  const counts = { total: 0, failing: 0, inFlight: 0 }
+  const tally = createExchangeTally()
   function indicate(): void {
     relay.indicate({
       id: "rpc",
       label: options.label ?? `RPC ${options.instance}`,
-      value: describeExchangeCounts(counts, "call"),
-      severity: counts.failing > 0 ? "error" : counts.inFlight > 0 ? "info" : "ok",
+      ...tally.readout("call"),
       updatedAt: now(),
       target: "connect",
     })
@@ -82,7 +81,7 @@ export function createConnectSource(options: ConnectSourceOptions): ConnectInstr
     now,
     relay,
     correlator,
-    counts,
+    tally,
     indicate,
     messageIntervalMs,
     activeStreams,
@@ -92,13 +91,13 @@ export function createConnectSource(options: ConnectSourceOptions): ConnectInstr
     id: { kind: "connect", instance: options.instance },
     label: options.label ?? `RPC ${options.instance}`,
     connect(observer) {
-      relay.bind(observer)
+      const unbind = relay.bind(observer)
       observeSafely(relay, indicate)
       const handle: SourceHandle = {
         dispose() {
+          if (!unbind()) return
           for (const stream of activeStreams) stream.dispose()
           activeStreams.clear()
-          relay.unbind()
         },
       }
       return handle
@@ -112,14 +111,14 @@ interface InterceptorDeps {
   readonly now: () => number
   readonly relay: ObserverRelay
   readonly correlator: Correlator
-  readonly counts: ExchangeCounts
+  readonly tally: ExchangeTally
   readonly indicate: () => void
   readonly messageIntervalMs: number
   readonly activeStreams: Set<ActiveStreamObservation>
 }
 
 function createConnectInterceptor(deps: InterceptorDeps): Interceptor {
-  const { now, relay, correlator, counts, indicate, messageIntervalMs, activeStreams } = deps
+  const { now, relay, correlator, tally, indicate, messageIntervalMs, activeStreams } = deps
   return (next) => async (request) => {
     const id = correlator.next()
     const service = request.service.typeName
@@ -130,8 +129,7 @@ function createConnectInterceptor(deps: InterceptorDeps): Interceptor {
     // response or error the caller is owed — the outcome comes from `next(request)` alone.
     observeSafely(relay, () => {
       startedAt = now()
-      counts.total += 1
-      counts.inFlight += 1
+      tally.start()
       relay.emit({
         kind: request.stream ? "rpc.stream.open" : "rpc.request",
         label: request.stream ? `stream ${rpc}` : rpc,
@@ -146,8 +144,7 @@ function createConnectInterceptor(deps: InterceptorDeps): Interceptor {
       if (startedAt === undefined) return
       const { outcome, code } = classification
       const observedStartedAt = startedAt
-      counts.inFlight -= 1
-      if (outcome === "error") counts.failing += 1
+      tally.settle(outcome)
       observeSafely(relay, () => {
         const endedAt = now()
         const durationMs = endedAt - observedStartedAt
@@ -194,7 +191,7 @@ function createConnectInterceptor(deps: InterceptorDeps): Interceptor {
         startedAt,
         now,
         relay,
-        counts,
+        tally,
         indicate,
         messageIntervalMs,
         signal: request.signal,
@@ -211,7 +208,7 @@ interface StreamContext {
   readonly startedAt: number
   readonly now: () => number
   readonly relay: ObserverRelay
-  readonly counts: ExchangeCounts
+  readonly tally: ExchangeTally
   readonly indicate: () => void
   readonly messageIntervalMs: number
   readonly signal: WebAbortSignal | undefined
@@ -247,7 +244,7 @@ function trackStream<T>(source: AsyncIterable<T>, ctx: StreamContext): AsyncIter
       active = false
       sampler.dispose()
       ctx.activeStreams.delete(observation)
-      ctx.counts.inFlight -= 1
+      ctx.tally.release()
     },
   }
   ctx.activeStreams.add(observation)
@@ -257,8 +254,7 @@ function trackStream<T>(source: AsyncIterable<T>, ctx: StreamContext): AsyncIter
     active = false
     ctx.activeStreams.delete(observation)
     const { outcome, code } = classification
-    ctx.counts.inFlight -= 1
-    if (outcome === "error") ctx.counts.failing += 1
+    ctx.tally.settle(outcome)
     observeSafely(ctx.relay, () => {
       sampler.flush()
       const endedAt = ctx.now()

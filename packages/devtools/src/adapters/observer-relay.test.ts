@@ -80,7 +80,7 @@ describe("createObserverRelay", () => {
   it("forwards live calls to the bound observer and stops after unbind", () => {
     const relay = createObserverRelay()
     const observer = fakeObserver()
-    relay.bind(observer)
+    const unbind = relay.bind(observer)
 
     relay.emit(sampleEvent)
     relay.fail(new Error("x"))
@@ -89,7 +89,7 @@ describe("createObserverRelay", () => {
     expect(observer.failures).toHaveLength(1)
     expect(observer.recoveries).toBe(1)
 
-    relay.unbind()
+    unbind()
     relay.emit(sampleEvent)
     expect(observer.events).toHaveLength(1)
   })
@@ -97,9 +97,9 @@ describe("createObserverRelay", () => {
   it("rebinds to a fresh observer and replays the latest indicator to it", () => {
     const relay = createObserverRelay()
     const first = fakeObserver()
-    relay.bind(first)
+    const unbindFirst = relay.bind(first)
     relay.indicate({ ...sampleIndicator, value: "open" })
-    relay.unbind()
+    unbindFirst()
 
     const second = fakeObserver()
     relay.bind(second)
@@ -114,10 +114,25 @@ describe("createObserverRelay", () => {
   it("reports active only while an observer is bound, gating detail retention", () => {
     const relay = createObserverRelay()
     expect(relay.active).toBe(false)
-    relay.bind(fakeObserver())
+    const unbind = relay.bind(fakeObserver())
     expect(relay.active).toBe(true)
-    relay.unbind()
+    unbind()
     expect(relay.active).toBe(false)
+  })
+
+  it("keeps a newer observer bound when an earlier connection unbinds late", () => {
+    const relay = createObserverRelay()
+    const first = fakeObserver()
+    const second = fakeObserver()
+    const unbindFirst = relay.bind(first)
+    relay.bind(second)
+
+    expect(unbindFirst()).toBe(false)
+    relay.emit(sampleEvent)
+
+    expect(relay.active).toBe(true)
+    expect(first.events).toHaveLength(0)
+    expect(second.events).toHaveLength(1)
   })
 
   it("isolates indicator replay failures and remains safely unbound", () => {

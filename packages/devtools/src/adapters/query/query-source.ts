@@ -32,6 +32,12 @@ export interface QuerySourceOptions {
 
 const MAX_KEY_LABEL = 60
 
+const CACHE_STATE_EVENTS: ReadonlySet<QueryCacheNotifyEvent["type"]> = new Set([
+  "added",
+  "removed",
+  "updated",
+])
+
 /**
  * Observe a TanStack query client as a devtools source: lifecycle summary events (fetch, success,
  * error — never payloads), an aggregate health indicator, and on-demand detail for one query at a
@@ -83,7 +89,11 @@ export function createQuerySource(options: QuerySourceOptions): Source {
         }
       }
 
+      // The indicator derives from query state and cache membership only. Observer events are
+      // skipped: a host's `useQuery` emits them while rendering, and republishing re-renders the
+      // inspector root, which interrupts that render and loops.
       const onQueryEvent = (event: QueryCacheNotifyEvent): void => {
+        if (!CACHE_STATE_EVENTS.has(event.type)) return
         if (event.type === "removed") forgetQuery(event.query)
         try {
           const summary = summarizeQueryEvent(event, now(), keyLabel, detailIdFor)
@@ -100,9 +110,7 @@ export function createQuerySource(options: QuerySourceOptions): Source {
           if (summary !== null) observer.emit(summary)
         } catch (error) {
           observer.fail(error)
-          return
         }
-        indicate()
       }
 
       const unsubscribeQueries = options.client.getQueryCache().subscribe(onQueryEvent)

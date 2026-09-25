@@ -33,6 +33,9 @@ const channel = createChannelContext()
 /** The channel Provider — connect on mount, tear down on unmount. */
 export const LiveChannelProvider = channel.ChannelProvider
 
+/** Read the live channel built by {@link LiveChannelProvider}; used to observe it in development. */
+export const useLiveChannel = channel.useChannel
+
 /**
  * An app-local demo {@link StreamTransportFactory} that stands in for a real SSE/WS backend: on
  * open it emits a `task.upserted` frame every `intervalMs`, and it tears its timer down when the

@@ -103,7 +103,23 @@ describe("createConnectSource", () => {
     expect(settle?.severity).toBe("error")
     expect(settle?.summary).toMatchObject({ outcome: "error", code: "internal" })
     const indicator = port.snapshot().indicators.find((entry) => entry.indicator.id === "rpc")
-    expect(indicator?.indicator.value).toContain("failing")
+    expect(indicator?.indicator.value).toContain("1 failed")
+  })
+
+  it("turns the indicator healthy after a successful call", async () => {
+    const { port, interceptor } = setup({ instance: "api" })
+    const failing: Next = async () => {
+      throw new ConnectError("boom", Code.Internal)
+    }
+    await expect(interceptor(failing)(unaryRequest("shop.Cart", "AddItem"))).rejects.toBeInstanceOf(
+      ConnectError,
+    )
+    const healthy: Next = async () => unaryResponse()
+    await interceptor(healthy)(unaryRequest("shop.Cart", "AddItem"))
+
+    const indicator = port.snapshot().indicators.find((entry) => entry.indicator.id === "rpc")
+    expect(indicator?.indicator.severity).toBe("ok")
+    expect(indicator?.indicator.value).toBe("2 calls · 1 failed")
   })
 
   it("classifies a per-attempt deadline as a timeout with a typed code, not a cancellation", async () => {
@@ -127,7 +143,7 @@ describe("createConnectSource", () => {
     expect(settle?.severity).toBe("warn")
     expect(settle?.summary).toMatchObject({ outcome: "timeout", code: "deadline_exceeded" })
     const indicator = port.snapshot().indicators.find((entry) => entry.indicator.id === "rpc")
-    expect(indicator?.indicator.value).not.toContain("failing")
+    expect(indicator?.indicator.value).not.toContain("failed")
   })
 
   it("classifies a canceled call as canceled, not a failure", async () => {
@@ -141,7 +157,7 @@ describe("createConnectSource", () => {
     const settle = eventsOf(port).find((event) => event.kind === "rpc.canceled")
     expect(settle?.severity).toBe("warn")
     const indicator = port.snapshot().indicators.find((entry) => entry.indicator.id === "rpc")
-    expect(indicator?.indicator.value).not.toContain("failing")
+    expect(indicator?.indicator.value).not.toContain("failed")
   })
 
   it("reports the streaming lifecycle: open, message counts, and a definite close", async () => {

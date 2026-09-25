@@ -7,6 +7,9 @@ import { expect, type Page } from "@playwright/test"
 // `runOnly` is what enables it here.
 const BROWSER_ONLY_RULES = ["color-contrast", "target-size"] as const
 
+// Longer than any UI transition in the kit, short enough that a stuck animation cannot stall a run.
+const ANIMATION_SETTLE_TIMEOUT_MS = 2_000
+
 /**
  * Run axe-core in the live browser over the current page, scoped to the layout-dependent rules the
  * unit floor skips, and fail with actionable `rule: help — target` detail on any violation. Reuses
@@ -14,6 +17,26 @@ const BROWSER_ONLY_RULES = ["color-contrast", "target-size"] as const
  * vocabulary.
  */
 export async function expectNoBrowserAxeViolations(page: Page): Promise<void> {
+  // Contrast sampled mid-transition (e.g. an overlay fading in) is neither the start nor the end
+  // state, so settle every running finite animation first. Infinite ones (spinners) are skipped,
+  // and the wait is bounded because a paused or replaced animation may never finish.
+  await page.evaluate(
+    (timeoutMs) =>
+      Promise.race([
+        Promise.all(
+          document
+            .getAnimations()
+            .filter(
+              (animation) =>
+                animation.playState === "running" &&
+                animation.effect?.getComputedTiming().endTime !== Infinity,
+            )
+            .map((animation) => animation.finished.catch(() => undefined)),
+        ),
+        new Promise((resolve) => setTimeout(resolve, timeoutMs)),
+      ]),
+    ANIMATION_SETTLE_TIMEOUT_MS,
+  )
   const { violations } = await new AxeBuilder({ page })
     .options({ runOnly: { type: "rule", values: [...BROWSER_ONLY_RULES] } })
     .analyze()

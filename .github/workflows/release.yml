@@ -68,7 +68,7 @@ jobs:
       - name: Lint
         run: bun run lint
 
-      - name: Owned atom registry validity
+      - name: Atom registry + shadcn lock (registry:validate)
         run: bun run --filter @plainworks/elements registry:validate
 
       - name: Comments (over-width)

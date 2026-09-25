@@ -22,6 +22,11 @@ describe("Spinner", () => {
     )
     await expectNoAxeViolations(container)
   })
+
+  it("sits on the text baseline when placed inline", () => {
+    render(<Spinner size="sm" />)
+    expect(screen.getByRole("status").getAttribute("class")).toContain("align-middle")
+  })
 })
 
 describe("SkeletonText", () => {
@@ -74,4 +79,17 @@ describe("Callout", () => {
     )
     expect(screen.getByRole("status").getAttribute("data-tone")).toBe("info")
   })
+
+  it.each(["info", "success", "warning", "danger"] as const)(
+    "stays accessible in the %s tone",
+    async (tone) => {
+      const { container } = render(
+        <Callout tone={tone} title="Notice">
+          Details.
+        </Callout>,
+      )
+      expect(container.querySelector(`[data-tone="${tone}"]`)).not.toBeNull()
+      await expectNoAxeViolations(container)
+    },
+  )
 })

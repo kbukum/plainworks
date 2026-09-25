@@ -13,6 +13,11 @@ The client-binding pass. It runs **only when the change touches interactive UI**
 - **Target size & contrast.** Pointer targets ≥ `24×24` CSS px (2.5.8, minus the listed exceptions); text contrast ≥ 4.5:1, UI/graphics ≥ 3:1 (1.4.3/1.4.11).
 - **Automated floor in the test.** Each client component test asserts axe cleanliness (`expect(await axe(container)).toHaveNoViolations()`). Its **absence on a new/changed component is a should-fix**. Automation catches ~57% of WCAG issues — a green axe run is a floor, never proof; keyboard operability, focus order, and role correctness are still judged by reading the component.
 
+## Vendored atoms
+
+- **Fix atoms off the atom.** An accessibility gap in a vendored atom (`packages/elements/src/shadcn/`) — low contrast, a missing focus ring, a small target — is fixed on the **deviation ladder**: `@plainworks/theme` tokens/rules (including focus for keyboard stops an atom leaves unmarked) → the call site (props, `className`, `role`) → a `@plainworks/ui` wrapper. Editing the atom, or re-adding a tone variant upstream doesn't ship, is a **blocker**. Note a real upstream bug for upstream reporting.
+- **Proof lives beside the atoms.** `src/theme-variables.test.ts` guards the raw CSS variables atoms read, and the showcase atoms browser gate (`apps/showcase/e2e/atoms.spec.ts`) checks contrast, target size, focus, reflow, and reduced motion on real layout. A theme change that an atom depends on keeps both green.
+
 ## Responsive & adaptive
 
 - **Mobile-first & fluid.** Relative units, `clamp()` type (not `vw`-only — breaks zoom, 1.4.4), `minmax()`/`auto-fit`/`min()` grids. A **fixed-pixel width/height trap**, horizontal scroll at 320px, or breakage at 200% zoom is a should-fix.

@@ -1,6 +1,7 @@
 "use client"
 
 import { Alert, AlertDescription, AlertTitle } from "@plainworks/elements/alert"
+import { cn } from "@plainworks/theme"
 import type { ReactElement, ReactNode } from "react"
 
 /** The semantic tone of a {@link Callout}. */
@@ -20,8 +21,17 @@ export interface CalloutProps {
 }
 
 // Urgent tones interrupt with `alert`; informational tones use the polite `status` role so a
-// screen reader is not preempted. `danger` also maps to the atom's destructive styling.
+// screen reader is not preempted.
 const URGENT: ReadonlySet<CalloutTone> = new Set<CalloutTone>(["warning", "danger"])
+
+// The atom only styles `default` and `destructive`; the other tones color the border, title, and
+// icon on the card surface, a pairing the theme's contrast test covers.
+const TONE_CLASS = {
+  info: "border-info text-info",
+  success: "border-success text-success",
+  warning: "border-warning text-warning",
+  danger: "border-destructive",
+} as const satisfies Record<CalloutTone, string>
 
 /**
  * A ready-made message banner built on the `alert` atom — a wrapper, not an edited atom. It picks
@@ -40,7 +50,7 @@ export function Callout({
       variant={tone === "danger" ? "destructive" : "default"}
       role={URGENT.has(tone) ? "alert" : "status"}
       data-tone={tone}
-      className={className}
+      className={cn(TONE_CLASS[tone], className)}
     >
       {icon}
       {title === undefined ? null : <AlertTitle>{title}</AlertTitle>}

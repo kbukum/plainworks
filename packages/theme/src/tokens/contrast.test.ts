@@ -9,6 +9,13 @@ const TEXT = 4.5
 const NON_TEXT = 3
 // The strongest tint a toned status surface (badge, callout) may paint behind status-colored text.
 const STATUS_TINT_ALPHA = 0.2
+// Vendored shadcn atoms paint focus as a `ring-ring/50` halo, so the ring must still reach 3:1 at
+// half opacity over every surface a control sits on.
+const FOCUS_HALO_ALPHA = 0.5
+const FOCUS_SURFACES = ["background", "card", "popover", "muted"] as const
+// Translucent text the atoms paint, as [role, alpha, surface]: inactive tabs use
+// `text-foreground/60` on the muted tab list.
+const TRANSLUCENT_TEXT = [["foreground", 0.6, "muted"]] as const
 
 const rules = parseRules(readStylesheet("tokens.css"))
 
@@ -49,20 +56,40 @@ function failures(tokens: Map<string, string>): string[] {
       [tone, { role: tone, tint: "card" }, TEXT],
     ]),
   ]
-  return pairs.flatMap(([front, back, minimum]) => {
-    const backdrop =
-      typeof back === "string"
-        ? color(back)
-        : { color: color(back.role), alpha: STATUS_TINT_ALPHA, backdrop: color(back.tint) }
-    const ratio = contrastRatio(color(front), backdrop)
-    const label = typeof back === "string" ? back : `${back.role} tint on ${back.tint}`
-    return ratio >= minimum ? [] : [`${front} on ${label}: ${ratio.toFixed(2)} < ${minimum}`]
+  const halos = FOCUS_SURFACES.flatMap((surface) => {
+    const halo = { color: color("ring"), alpha: FOCUS_HALO_ALPHA, backdrop: color(surface) }
+    const ratio = contrastRatio(halo, color(surface))
+    return ratio >= NON_TEXT ? [] : [`ring halo on ${surface}: ${ratio.toFixed(2)} < ${NON_TEXT}`]
   })
+  const translucent = TRANSLUCENT_TEXT.flatMap(([role, alpha, surface]) => {
+    const text = { color: color(role), alpha, backdrop: color(surface) }
+    const ratio = contrastRatio(text, color(surface))
+    return ratio >= TEXT ? [] : [`${role}/${alpha} on ${surface}: ${ratio.toFixed(2)} < ${TEXT}`]
+  })
+  return [
+    ...halos,
+    ...translucent,
+    ...pairs.flatMap(([front, back, minimum]) => {
+      const backdrop =
+        typeof back === "string"
+          ? color(back)
+          : { color: color(back.role), alpha: STATUS_TINT_ALPHA, backdrop: color(back.tint) }
+      const ratio = contrastRatio(color(front), backdrop)
+      const label = typeof back === "string" ? back : `${back.role} tint on ${back.tint}`
+      return ratio >= minimum ? [] : [`${front} on ${label}: ${ratio.toFixed(2)} < ${minimum}`]
+    }),
+  ]
 }
 
 describe("token contrast (WCAG 2.2 AA)", () => {
   it.each(conditions)("$scheme dark=$dark $media meets AA", (condition) => {
     expect(failures(resolveTokens(rules, condition))).toEqual([])
+  })
+
+  it("reports a focus ring that is too faint as a half-opacity halo", () => {
+    const tokens = resolveTokens(rules)
+    tokens.set("--pw-ring", "oklch(0.55 0 0)")
+    expect(failures(tokens)).toContainEqual(expect.stringMatching(/^ring halo on background:/))
   })
 
   it("reports a failing pair instead of passing vacuously", () => {

@@ -54,6 +54,8 @@ A release is the one time to run the **complete** gates rather than the affected
 ```bash
 bun run check-versions        # sherif + syncpack: catalog is the single source of versions
 bun run lint
+bun run --filter @plainworks/elements registry:validate   # vendored atoms match shadcn.lock.json
+bun run check-comments
 bun run typecheck
 bun run check-boundaries      # zero upward/sideways imports, zero cycles
 bun run build                 # tsdown, ESM-only, every package ships dist/
@@ -66,6 +68,8 @@ Also run the [`review`](../review/SKILL.md) project audit in a fresh agent befor
 ```bash
 (cd packages/<name> && bun pm pack)   # inspect the tarball: only dist/, correct exports/types/files
 ```
+
+Confirm `packages/elements/shadcn.lock.json` records the same shadcn CLI version as the `shadcn` catalog pin in the root `package.json`. The lock stores the version that last ran `registry:update`, so a mismatch means atoms were not refreshed after a CLI bump — run [`update-atoms`](../update-atoms/SKILL.md) before releasing. Never edit the lock by hand.
 
 Confirm each publishable package's `package.json` has `"files": ["dist"]`, correct `exports` (`.` and, where present, `./client`), `"type": "module"`, and `react`/`react-dom` as `catalog:` peer ranges (never a hard dep).
 

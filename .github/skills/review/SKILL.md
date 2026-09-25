@@ -49,7 +49,7 @@ Stop and reject as soon as a change fails pass `00` or `01` — misplaced or dup
 severity (blocker / should-fix / nit) — file:line — what's wrong — which principle — suggested fix
 ```
 
-- **blocker** — hard-principle violation (upward/sideways/cyclic import, concern reimplemented instead of reusing `std`, `any` in a public surface, thrown string / swallowed error on a runtime path, unbounded stream/buffer or missing cancellation, module-level singleton / import-time side effect / global registry, server-only auth pulled into a `"use client"` graph, token in a URL, trust boundary not validated, behavioral change with no test, an interactive control that is keyboard-inoperable or has no accessible name/role). Fix before merge.
+- **blocker** — hard-principle violation (upward/sideways/cyclic import, concern reimplemented instead of reusing `std`, `any` in a public surface, thrown string / swallowed error on a runtime path, unbounded stream/buffer or missing cancellation, module-level singleton / import-time side effect / global registry, server-only auth pulled into a `"use client"` graph, token in a URL, trust boundary not validated, behavioral change with no test, an interactive control that is keyboard-inoperable or has no accessible name/role, a hand edit under `packages/elements/src/shadcn/` or `shadcn.lock.json` that the registry pipeline didn't produce, a vendored atom given a variant upstream doesn't ship). Fix before merge.
 - **should-fix** — real defect or debt that isn't a baseline violation (a compat shim, a hand-rolled fake that belongs in `testkit`, an over-long concern-mixed file, an inline version that should be `catalog:`, a missing Changeset, a new/changed component with no axe assertion, a fixed-pixel layout trap or missing reduced-motion path).
 - **nit** — minor/style, take-it-or-leave-it.
 
@@ -62,6 +62,7 @@ turbo run lint typecheck build test --filter=@plainworks/<name>
 turbo run test --filter='...[origin/main]'   # affected set
 bun run check-boundaries                      # placement/acyclicity (fast, source-level)
 bun run check-versions                        # catalog single-source
+bun run --filter @plainworks/elements registry:validate   # vendored atoms match shadcn.lock.json
 ```
 
 Treat a green run as **necessary but not sufficient**: it does not catch unbounded streams/buffers, missing timeouts/cancellation, module-level singletons, import-time side effects, or a token leaking into a URL. Those are on the reviewer.

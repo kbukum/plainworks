@@ -9,6 +9,7 @@ Catch debt and drift that compiles cleanly but should not land. None of this is 
 ## Checks
 
 - **Root-cause over patches.** Pre-stable: no compatibility shims, no back-compat wrappers "to avoid breaking callers" (there are none to protect). Prefer a clean redesign over a symptom patch; flag a shim as should-fix with a redesign suggestion. Pre-existing defects and design smells in the blast radius (touched files and their close callers/callees) are in scope.
+- **No patched or re-extended atoms.** A vendored atom (`packages/elements/src/shadcn/`) edited in place to fix a bug, restyle, or re-add a tone/size/state variant upstream doesn't ship is a **blocker** — it breaks the lock and every future `registry:update`. Move the change down the **deviation ladder**: theme tokens/rules → call site → a `@plainworks/ui` wrapper. An upstream bug is fixed at the lowest rung and noted for upstream reporting.
 - **Dead / useless code.** No-caller exports, speculative generality (one impl, no near-term second), commented-out blocks, leftover scaffolding. Remove. Commented-out code is a should-fix — git history exists.
 - **Simplicity.** The simplest design that fully solves it. Over-abstraction (an adapter seam with a single impl and no real second, a generic where a concrete type reads better) is as much a finding as under-design. Indirection that hurts DX is a finding — flag it.
 - **ESM / packaging discipline.** `"type": "module"`, `"sideEffects": false`, correct `exports` (`.` and, where present, `./client`), `"files": ["dist"]`, `typecheck` separate from `build`. A CJS interop hack, a wrong/missing `exports` condition, a committed `dist/`, or a `dist`-less publishable package is a should-fix.
@@ -26,6 +27,7 @@ rg -n "^\s*//\s*(export|const|function|class|if|return)" packages/*/src   # comm
 rg -n "\"(react|zustand|@tanstack)[^\"]*\":\s*\"[^c]" packages/*/package.json  # inline version, not catalog:
 rg -n "TODO|FIXME|HACK" packages/*/src                                    # each needs a tracked issue link
 grep -l '"main"\|"require"' packages/*/package.json                       # CJS leftovers in an ESM-only kit
+git diff --name-only origin/main... -- packages/elements/src/shadcn packages/elements/shadcn.lock.json  # vendored atoms touched: must come from registry:update
 ```
 
 Then `bun run lint` for the style gate and `bun run check-versions` for the catalog gate.

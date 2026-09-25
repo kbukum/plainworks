@@ -72,6 +72,19 @@
   }
 }
 
+/*
+ * Keyboard stops the shadcn atoms leave without a focus indicator: a tab panel is focusable but
+ * `outline-none`, and a slider thumb styles `:focus-visible` while focus lands on its hidden input.
+ * In the utilities layer, these attribute selectors outrank `outline-none`.
+ */
+@layer utilities {
+  [data-slot="tabs-content"]:focus-visible,
+  [data-slot="slider-thumb"]:has(:focus-visible) {
+    outline: var(--pw-focus-width) solid var(--pw-ring);
+    outline-offset: var(--pw-focus-offset);
+  }
+}
+
 /* Accordion open/close keyframes referenced by the vendored accordion primitive. */
 @theme inline {
   @keyframes accordion-down {

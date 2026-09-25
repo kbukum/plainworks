@@ -12,8 +12,8 @@ describe("compat transform", () => {
     expect(out).toBe('import { cn } from "@plainworks/theme"\n')
   })
 
-  it("leaves sibling `@/atoms/*` imports untouched", () => {
-    const source = 'import { Button } from "@/atoms/button"\n'
+  it("leaves sibling `@/shadcn/*` imports untouched", () => {
+    const source = 'import { Button } from "@/shadcn/button"\n'
     expect(rewriteCnImport(source)).toBe(source)
   })
 

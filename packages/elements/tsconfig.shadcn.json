@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.client.json",
+  // Vendored shadcn project. `src/shadcn/` is upstream output locked by `shadcn.lock.json`, so it
+  // cannot be edited to satisfy repo-only strictness. Relax just the options upstream does not
+  // meet; every other strict check still applies. Declarations for the whole atom set are emitted
+  // through this project with tsc, since upstream has no `isolatedDeclarations` annotations.
+  "compilerOptions": {
+    "isolatedDeclarations": false,
+    "exactOptionalPropertyTypes": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": ["src/shadcn", "src/atoms"]
+}

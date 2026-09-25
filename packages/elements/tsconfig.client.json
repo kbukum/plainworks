@@ -1,16 +1,16 @@
 {
   "extends": "../../tsconfig.base.json",
-  // Client-only project: the owned atoms under `src/atoms/` are the surface allowed to touch the
-  // DOM, so they — and only they — layer the DOM libs on top of the base config. The server
-  // `tsconfig.json` stays DOM-free and excludes this graph, so the `.` manifest can never silently
-  // depend on a browser global.
+  // Client project for the atoms plainworks writes (`src/atoms/`), held to the full strict base.
+  // Atoms are the surface allowed to touch the DOM, so only the client projects add DOM libs; the
+  // server project stays DOM-free, so the `.` manifest can never silently depend on a browser
+  // global. Vendored shadcn atoms are checked by `tsconfig.shadcn.json`.
   "compilerOptions": {
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "paths": {
       "@/*": ["./src/*"],
       // The published per-atom subpaths resolve to owned source during typecheck, so an adoption
       // test can import `@plainworks/elements/button` before the package is built.
-      "@plainworks/elements/*": ["./src/atoms/*"],
+      "@plainworks/elements/*": ["./src/shadcn/*", "./src/atoms/*"],
       "@plainworks/testkit": ["../testkit/src"],
       "@plainworks/testkit/client": ["../testkit/src/client/index.ts"],
       "@plainworks/theme": ["../theme/src"],

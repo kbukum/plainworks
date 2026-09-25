@@ -9,7 +9,7 @@
       "dependencies": ["@base-ui/react", "lucide-react"],
       "files": [
         {
-          "path": "src/atoms/accordion.tsx",
+          "path": "src/shadcn/accordion.tsx",
           "type": "registry:ui"
         }
       ]
@@ -20,7 +20,7 @@
       "dependencies": ["class-variance-authority"],
       "files": [
         {
-          "path": "src/atoms/alert.tsx",
+          "path": "src/shadcn/alert.tsx",
           "type": "registry:ui"
         }
       ]
@@ -32,7 +32,7 @@
       "dependencies": ["@base-ui/react"],
       "files": [
         {
-          "path": "src/atoms/alert-dialog.tsx",
+          "path": "src/shadcn/alert-dialog.tsx",
           "type": "registry:ui"
         }
       ]
@@ -42,7 +42,7 @@
       "type": "registry:ui",
       "files": [
         {
-          "path": "src/atoms/aspect-ratio.tsx",
+          "path": "src/shadcn/aspect-ratio.tsx",
           "type": "registry:ui"
         }
       ]
@@ -53,7 +53,7 @@
       "dependencies": ["@base-ui/react"],
       "files": [
         {
-          "path": "src/atoms/avatar.tsx",
+          "path": "src/shadcn/avatar.tsx",
           "type": "registry:ui"
         }
       ]
@@ -64,7 +64,7 @@
       "dependencies": ["@base-ui/react", "class-variance-authority"],
       "files": [
         {
-          "path": "src/atoms/badge.tsx",
+          "path": "src/shadcn/badge.tsx",
           "type": "registry:ui"
         }
       ]
@@ -75,7 +75,7 @@
       "dependencies": ["@base-ui/react", "lucide-react"],
       "files": [
         {
-          "path": "src/atoms/breadcrumb.tsx",
+          "path": "src/shadcn/breadcrumb.tsx",
           "type": "registry:ui"
         }
       ]
@@ -86,7 +86,7 @@
       "dependencies": ["@base-ui/react", "class-variance-authority"],
       "files": [
         {
-          "path": "src/atoms/button.tsx",
+          "path": "src/shadcn/button.tsx",
           "type": "registry:ui"
         }
       ]
@@ -98,7 +98,7 @@
       "dependencies": ["@base-ui/react", "class-variance-authority"],
       "files": [
         {
-          "path": "src/atoms/button-group.tsx",
+          "path": "src/shadcn/button-group.tsx",
           "type": "registry:ui"
         }
       ]
@@ -110,7 +110,7 @@
       "dependencies": ["lucide-react", "react-day-picker"],
       "files": [
         {
-          "path": "src/atoms/calendar.tsx",
+          "path": "src/shadcn/calendar.tsx",
           "type": "registry:ui"
         }
       ]
@@ -120,7 +120,7 @@
       "type": "registry:ui",
       "files": [
         {
-          "path": "src/atoms/card.tsx",
+          "path": "src/shadcn/card.tsx",
           "type": "registry:ui"
         }
       ]
@@ -131,7 +131,7 @@
       "dependencies": ["@base-ui/react", "lucide-react"],
       "files": [
         {
-          "path": "src/atoms/checkbox.tsx",
+          "path": "src/shadcn/checkbox.tsx",
           "type": "registry:ui"
         }
       ]
@@ -142,7 +142,7 @@
       "dependencies": ["@base-ui/react"],
       "files": [
         {
-          "path": "src/atoms/collapsible.tsx",
+          "path": "src/shadcn/collapsible.tsx",
           "type": "registry:ui"
         }
       ]
@@ -154,7 +154,7 @@
       "dependencies": ["cmdk", "lucide-react"],
       "files": [
         {
-          "path": "src/atoms/command.tsx",
+          "path": "src/shadcn/command.tsx",
           "type": "registry:ui"
         }
       ]
@@ -165,7 +165,7 @@
       "dependencies": ["@base-ui/react", "lucide-react"],
       "files": [
         {
-          "path": "src/atoms/context-menu.tsx",
+          "path": "src/shadcn/context-menu.tsx",
           "type": "registry:ui"
         }
       ]
@@ -177,7 +177,7 @@
       "dependencies": ["@base-ui/react", "lucide-react"],
       "files": [
         {
-          "path": "src/atoms/dialog.tsx",
+          "path": "src/shadcn/dialog.tsx",
           "type": "registry:ui"
         }
       ]
@@ -188,7 +188,7 @@
       "dependencies": ["@base-ui/react", "lucide-react"],
       "files": [
         {
-          "path": "src/atoms/dropdown-menu.tsx",
+          "path": "src/shadcn/dropdown-menu.tsx",
           "type": "registry:ui"
         }
       ]
@@ -199,7 +199,7 @@
       "dependencies": ["class-variance-authority"],
       "files": [
         {
-          "path": "src/atoms/empty.tsx",
+          "path": "src/shadcn/empty.tsx",
           "type": "registry:ui"
         }
       ]
@@ -211,7 +211,7 @@
       "dependencies": ["class-variance-authority"],
       "files": [
         {
-          "path": "src/atoms/field.tsx",
+          "path": "src/shadcn/field.tsx",
           "type": "registry:ui"
         }
       ]
@@ -222,7 +222,7 @@
       "dependencies": ["@base-ui/react"],
       "files": [
         {
-          "path": "src/atoms/hover-card.tsx",
+          "path": "src/shadcn/hover-card.tsx",
           "type": "registry:ui"
         }
       ]
@@ -230,9 +230,10 @@
     {
       "name": "input",
       "type": "registry:ui",
+      "dependencies": ["@base-ui/react"],
       "files": [
         {
-          "path": "src/atoms/input.tsx",
+          "path": "src/shadcn/input.tsx",
           "type": "registry:ui"
         }
       ]
@@ -244,7 +245,7 @@
       "dependencies": ["class-variance-authority"],
       "files": [
         {
-          "path": "src/atoms/input-group.tsx",
+          "path": "src/shadcn/input-group.tsx",
           "type": "registry:ui"
         }
       ]
@@ -255,7 +256,7 @@
       "dependencies": ["input-otp", "lucide-react"],
       "files": [
         {
-          "path": "src/atoms/input-otp.tsx",
+          "path": "src/shadcn/input-otp.tsx",
           "type": "registry:ui"
         }
       ]
@@ -267,7 +268,7 @@
       "dependencies": ["@base-ui/react", "class-variance-authority"],
       "files": [
         {
-          "path": "src/atoms/item.tsx",
+          "path": "src/shadcn/item.tsx",
           "type": "registry:ui"
         }
       ]
@@ -277,7 +278,7 @@
       "type": "registry:ui",
       "files": [
         {
-          "path": "src/atoms/kbd.tsx",
+          "path": "src/shadcn/kbd.tsx",
           "type": "registry:ui"
         }
       ]
@@ -287,7 +288,7 @@
       "type": "registry:ui",
       "files": [
         {
-          "path": "src/atoms/label.tsx",
+          "path": "src/shadcn/label.tsx",
           "type": "registry:ui"
         }
       ]
@@ -299,7 +300,7 @@
       "dependencies": ["@base-ui/react", "lucide-react"],
       "files": [
         {
-          "path": "src/atoms/menubar.tsx",
+          "path": "src/shadcn/menubar.tsx",
           "type": "registry:ui"
         }
       ]
@@ -310,7 +311,7 @@
       "dependencies": ["lucide-react"],
       "files": [
         {
-          "path": "src/atoms/native-select.tsx",
+          "path": "src/shadcn/native-select.tsx",
           "type": "registry:ui"
         }
       ]
@@ -321,7 +322,7 @@
       "dependencies": ["@base-ui/react", "class-variance-authority", "lucide-react"],
       "files": [
         {
-          "path": "src/atoms/navigation-menu.tsx",
+          "path": "src/shadcn/navigation-menu.tsx",
           "type": "registry:ui"
         }
       ]
@@ -333,7 +334,7 @@
       "dependencies": ["lucide-react"],
       "files": [
         {
-          "path": "src/atoms/pagination.tsx",
+          "path": "src/shadcn/pagination.tsx",
           "type": "registry:ui"
         }
       ]
@@ -344,7 +345,7 @@
       "dependencies": ["@base-ui/react"],
       "files": [
         {
-          "path": "src/atoms/popover.tsx",
+          "path": "src/shadcn/popover.tsx",
           "type": "registry:ui"
         }
       ]
@@ -355,7 +356,7 @@
       "dependencies": ["@base-ui/react"],
       "files": [
         {
-          "path": "src/atoms/progress.tsx",
+          "path": "src/shadcn/progress.tsx",
           "type": "registry:ui"
         }
       ]
@@ -366,7 +367,7 @@
       "dependencies": ["@base-ui/react"],
       "files": [
         {
-          "path": "src/atoms/radio-group.tsx",
+          "path": "src/shadcn/radio-group.tsx",
           "type": "registry:ui"
         }
       ]
@@ -377,7 +378,7 @@
       "dependencies": ["@base-ui/react"],
       "files": [
         {
-          "path": "src/atoms/scroll-area.tsx",
+          "path": "src/shadcn/scroll-area.tsx",
           "type": "registry:ui"
         }
       ]
@@ -388,7 +389,7 @@
       "dependencies": ["@base-ui/react", "lucide-react"],
       "files": [
         {
-          "path": "src/atoms/select.tsx",
+          "path": "src/shadcn/select.tsx",
           "type": "registry:ui"
         }
       ]
@@ -399,7 +400,7 @@
       "dependencies": ["@base-ui/react"],
       "files": [
         {
-          "path": "src/atoms/separator.tsx",
+          "path": "src/shadcn/separator.tsx",
           "type": "registry:ui"
         }
       ]
@@ -411,7 +412,7 @@
       "dependencies": ["@base-ui/react", "lucide-react"],
       "files": [
         {
-          "path": "src/atoms/sheet.tsx",
+          "path": "src/shadcn/sheet.tsx",
           "type": "registry:ui"
         }
       ]
@@ -421,7 +422,7 @@
       "type": "registry:ui",
       "files": [
         {
-          "path": "src/atoms/skeleton.tsx",
+          "path": "src/shadcn/skeleton.tsx",
           "type": "registry:ui"
         }
       ]
@@ -432,7 +433,7 @@
       "dependencies": ["@base-ui/react"],
       "files": [
         {
-          "path": "src/atoms/slider.tsx",
+          "path": "src/shadcn/slider.tsx",
           "type": "registry:ui"
         }
       ]
@@ -454,7 +455,7 @@
       "dependencies": ["@base-ui/react"],
       "files": [
         {
-          "path": "src/atoms/switch.tsx",
+          "path": "src/shadcn/switch.tsx",
           "type": "registry:ui"
         }
       ]
@@ -464,7 +465,7 @@
       "type": "registry:ui",
       "files": [
         {
-          "path": "src/atoms/table.tsx",
+          "path": "src/shadcn/table.tsx",
           "type": "registry:ui"
         }
       ]
@@ -475,7 +476,7 @@
       "dependencies": ["@base-ui/react", "class-variance-authority"],
       "files": [
         {
-          "path": "src/atoms/tabs.tsx",
+          "path": "src/shadcn/tabs.tsx",
           "type": "registry:ui"
         }
       ]
@@ -485,7 +486,7 @@
       "type": "registry:ui",
       "files": [
         {
-          "path": "src/atoms/textarea.tsx",
+          "path": "src/shadcn/textarea.tsx",
           "type": "registry:ui"
         }
       ]
@@ -496,7 +497,7 @@
       "dependencies": ["@base-ui/react", "class-variance-authority"],
       "files": [
         {
-          "path": "src/atoms/toggle.tsx",
+          "path": "src/shadcn/toggle.tsx",
           "type": "registry:ui"
         }
       ]
@@ -508,7 +509,7 @@
       "dependencies": ["@base-ui/react", "class-variance-authority"],
       "files": [
         {
-          "path": "src/atoms/toggle-group.tsx",
+          "path": "src/shadcn/toggle-group.tsx",
           "type": "registry:ui"
         }
       ]
@@ -519,7 +520,7 @@
       "dependencies": ["@base-ui/react"],
       "files": [
         {
-          "path": "src/atoms/tooltip.tsx",
+          "path": "src/shadcn/tooltip.tsx",
           "type": "registry:ui"
         }
       ]

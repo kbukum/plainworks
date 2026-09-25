@@ -25,10 +25,10 @@ describe("Breadcrumbs", () => {
     expect(nav).toBeDefined()
     expect(screen.getByRole("link", { name: "Home" }).getAttribute("href")).toBe("/")
     expect(screen.getByRole("link", { name: "Invoices" })).toBeDefined()
-    // The final entry has no href → current page, not a link.
-    expect(screen.queryByRole("link", { name: "INV-42" })).toBeNull()
-    const current = screen.getByText("INV-42")
-    expect(current.getAttribute("aria-current")).toBe("page")
+    // The final entry is the current page: a disabled link with no destination.
+    const current = screen.getByRole("link", { name: "INV-42", current: "page" })
+    expect(current.getAttribute("aria-disabled")).toBe("true")
+    expect(current.hasAttribute("href")).toBe(false)
     await expectNoAxeViolations(container)
   })
 
@@ -71,9 +71,9 @@ describe("Breadcrumbs", () => {
         ]}
       />,
     )
-    // Last entry is current regardless of its href.
-    expect(screen.queryByRole("link", { name: "Now" })).toBeNull()
-    expect(screen.getByText("Now").getAttribute("aria-current")).toBe("page")
+    // Last entry is current regardless of its href, so it never navigates.
+    const current = screen.getByRole("link", { name: "Now", current: "page" })
+    expect(current.hasAttribute("href")).toBe(false)
   })
 
   it("renders an intermediate entry without an href as plain text, never a second current page", () => {

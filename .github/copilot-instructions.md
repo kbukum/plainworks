@@ -23,7 +23,7 @@ Shared baseline — apply to all work here:
 - **Keep code current:** use current idioms and standards. Verify that each dependency is maintained, no platform or standard-library feature already covers the need, and no open advisory applies.
 - **Best practices over parity, consistency above both:** current idiomatic TS/React best practices outrank any cross-kit mimicry of gokit/rskit — parity is spirit and intuition-transfer, never a forced non-idiomatic type or API shape. Above both, be **consistent across plainworks**: internal consistency of naming, seams, and package shapes is one of the most important properties.
 
-Standing, re-runnable development skills that encode this baseline live in [`skills/`](skills/README.md) — the `review` skill runs the review passes in a fresh, clean-context agent (high-capability model) after every change set and before releases (reviewing the change's **blast radius**, not just the diff, and reporting/fixing pre-existing problems it surfaces, redesign over patch); `create-branch`, `create-plan`, `apply-plan`, `apply-step`, `commit`, `create-pr`, `fix-reviews`, `validate`, `new-package`, `new-backend`, `docs`, and `release` cover the rest of the workflow. Validation is driven through `bun run` / `turbo`, scoped to the changed package(s).
+Standing, re-runnable development skills that encode this baseline live in [`skills/`](skills/README.md) — the `review` skill runs the review passes in a fresh, clean-context agent (high-capability model) after every change set and before releases (reviewing the change's **blast radius**, not just the diff, and reporting/fixing pre-existing problems it surfaces, redesign over patch); `create-branch`, `create-plan`, `apply-plan`, `apply-step`, `commit`, `create-pr`, `fix-reviews`, `validate`, `new-package`, `new-backend`, `update-atoms`, `docs`, and `release` cover the rest of the workflow. Validation is driven through `bun run` / `turbo`, scoped to the changed package(s).
 
 ## Stack
 
@@ -52,11 +52,12 @@ bun run check-boundaries          # dependency-cruiser: zero upward/sideways imp
 bun run build                     # tsdown, ESM-only, ships dist/
 bun run test                      # vitest run --coverage
 bun run check-packaging           # publint + are-the-types-wrong over each built tarball
+bun run --filter @plainworks/elements registry:validate   # vendored atoms match shadcn.lock.json
 bun run gen package               # scaffold a new @plainworks/* package from the golden template
 bun run changeset                 # add a Changeset for the release
 ```
 
-The Definition of Done for every change is those eight gates green — **check-versions · lint · check-comments · typecheck · check-boundaries · build · test · check-packaging** — plus a Changeset and the architecture invariants below. Scope with turbo filters: `turbo run test --filter=@plainworks/<name>` for one package, `--filter='...[origin/main]'` for the affected set.
+The Definition of Done for every change is those eight gates green — **check-versions · lint · check-comments · typecheck · check-boundaries · build · test · check-packaging** — plus `registry:validate` (CI runs it on every change; run it locally whenever `elements` changes, and run the `elements` tests when `theme` changes), a Changeset, and the architecture invariants below. Scope with turbo filters: `turbo run test --filter=@plainworks/<name>` for one package, `--filter='...[origin/main]'` for the affected set.
 
 ## Package structure
 
@@ -73,12 +74,25 @@ Every published package: `"type": "module"`, `"sideEffects": false`, a server-sa
 ```
 L0  std                                   errors/result/guards/contracts (seams), no React
 L1  state (seam + zustand adapter) · http (typed fetch client) · theme (UI design substrate) · observability (logging, reporting, Web Vitals)
-L2  channel (+sse/ws) · connect (RPC) · query (TanStack wiring) · elements (owned shadcn/Base-UI atoms)
+L2  channel (+sse/ws) · connect (RPC) · query (TanStack wiring) · elements (vendored, locked shadcn/Base-UI atoms)
 L3  auth (core + custom/BYO & oidc adapters, PKCE flow, server split, client entry) · ui (composites + forms/data)
 L4  app (providers, harness) · testkit · mocks     (route tree stays app-local)
 ```
 
 The map has a single source of truth: the `LAYERS` table in [`../internal/boundaries/.dependency-cruiser.cjs`](../internal/boundaries/.dependency-cruiser.cjs), mirrored in README + `docs/architecture.md`. Adding a package means adding it to `LAYERS` (a package absent from the map may import no other `@plainworks` package — the gate fails **closed**, never vacuously green). A fixture-backed test in `@plainworks/boundaries` proves the gate rejects an upward import.
+
+## Vendored atoms
+
+`@plainworks/elements` has two folders. **`src/shadcn/`** holds **vendored** atoms: exact shadcn CLI output plus only the compat transform (`cn` from `@plainworks/theme`, `"use client"`) and Biome safe fixes. They are **locked** by `shadcn.lock.json` (CLI version, style, per-atom hash). **`src/atoms/`** holds primitives we write and own (today, the `sonner` Toaster). A name lives in only one folder.
+
+- **Never hand-edit `src/shadcn/**` or `shadcn.lock.json`.** Change an atom only with `registry:update <atom>` (or `registry:add`), which relocks it and reruns `registry:codegen`. `registry:validate` and the lock test fail on a hand edit, an unlocked atom, or a stale entry.
+- **Never re-add a variant upstream doesn't ship** (a tone, size, or state). Follow the **deviation ladder** and stop at the lowest rung that fixes it:
+  1. **Theme** — `@plainworks/theme` tokens and rules: color, contrast, focus, radius, and focus for keyboard stops an atom leaves unmarked.
+  2. **Call site** — props, `className`, `role`.
+  3. **`@plainworks/ui` wrapper** — reusable tones or behavior.
+- **Upstream bug?** Fix it at the lowest rung and note it for upstream reporting. Never patch the atom.
+
+The strictness relaxations for vendored code (`tsconfig.shadcn.json`, the `src/shadcn` Biome override) exist only for `src/shadcn`; `src/atoms` stays under the full rules. See [`../packages/elements/README.md`](../packages/elements/README.md).
 
 ## Code style
 
@@ -105,6 +119,7 @@ Checked in review and by the gates, for every package:
 - **ESM-only**, `exports`/`types`/`files` discipline; each package ships a real tsdown `dist`.
 - **Single catalog** — every dependency (peer ranges included) references `catalog:`; Syncpack/Sherif fail CI on an inline version or cross-package drift.
 - **Accessible & responsive by default** — interactive `./client` code meets WCAG 2.2 AA (semantic roles, keyboard/focus, contrast, target size), is mobile-first and fluid (no fixed-pixel traps; container queries for component adaptivity), and honors `prefers-reduced-motion` / `prefers-color-scheme`. Non-negotiable for any UI/client change.
+- **Vendored atoms are locked** — `packages/elements/src/shadcn/**` changes only through `registry:update`/`registry:add`, never by hand, and never gains a variant upstream doesn't ship. Deviations follow the deviation ladder (theme → call site → `ui` wrapper); see [Vendored atoms](#vendored-atoms).
 
 ## Documentation
 

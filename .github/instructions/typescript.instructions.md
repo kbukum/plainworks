@@ -25,6 +25,7 @@ Code style:
 - **Layer direction.** Import `@plainworks` packages only from a strictly lower layer. A cross-layer need defines the seam in the lower package (`std` owns shared contracts/event shapes) and implements it higher. `check-boundaries` fails on any upward/sideways import or cycle.
 - **Async discipline.** Timeout every remote call with an `AbortSignal`; give every stream/subscription/timer explicit teardown; bound buffers; unsubscribe on shutdown.
 - **Reuse the lower owner.** Errors, result/guards, retry/backoff, contracts live in `@plainworks/std` — extend it rather than re-implement locally.
+- **Vendored code is off-limits.** `packages/elements/src/shadcn/**` is **vendored**, **locked** shadcn output — never edit it by hand, and don't "fix" it to satisfy the strict flags (`tsconfig.shadcn.json` and a Biome override relax them there on purpose). Change an atom with `registry:update`; route any deviation through the **deviation ladder** in the [Vendored atoms](../copilot-instructions.md#vendored-atoms) baseline.
 
 Tests (Vitest, test-first):
 

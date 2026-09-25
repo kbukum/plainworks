@@ -1,0 +1,6 @@
+{
+  // Editor routing only: point files here at the vendored shadcn project, so the editor reports
+  // what the `typecheck` gate reports.
+  "extends": "../../tsconfig.shadcn.json",
+  "include": ["."]
+}

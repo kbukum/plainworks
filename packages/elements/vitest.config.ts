@@ -5,9 +5,9 @@ export default defineConfig({
     alias: {
       // The published per-atom subpaths resolve to owned source so an adoption test can prove the
       // exports map, and the shadcn `@/` alias resolves siblings the way the atoms import them.
-      "@plainworks/elements/button": new URL("./src/atoms/button.tsx", import.meta.url).pathname,
-      "@plainworks/elements/card": new URL("./src/atoms/card.tsx", import.meta.url).pathname,
-      "@plainworks/elements/input": new URL("./src/atoms/input.tsx", import.meta.url).pathname,
+      "@plainworks/elements/button": new URL("./src/shadcn/button.tsx", import.meta.url).pathname,
+      "@plainworks/elements/card": new URL("./src/shadcn/card.tsx", import.meta.url).pathname,
+      "@plainworks/elements/input": new URL("./src/shadcn/input.tsx", import.meta.url).pathname,
       "@/": new URL("./src/", import.meta.url).pathname,
     },
   },
@@ -23,16 +23,16 @@ export default defineConfig({
       // The `.mjs` ingestion pipeline under `scripts/` is the code this package authors, so it is
       // measured alongside `src/` — not left to run tested-but-unmeasured.
       include: ["src/**/*.{ts,tsx}", "scripts/**/*.mjs"],
-      // Re-export-only barrels carry no logic to unit-test. Owned Base-UI/shadcn atoms under
-      // `atoms/` are upstream code verified by the accessibility gallery and the
-      // declaration-emit typecheck, not by per-line unit coverage. `shadcn.mjs` is the
+      // Re-export-only barrels carry no logic to unit-test. Vendored shadcn atoms under `shadcn/`
+      // are upstream code verified by the accessibility gallery and the declaration-emit
+      // typecheck, not by per-line unit coverage. `shadcn.mjs` is the
       // network-bound ingestion seam (maintainer-run); the pipeline tests inject a fake `pull` so
       // they stay offline, so its spawn path is not unit-measured — like a barrel. All are excluded
       // so coverage measures only the offline logic this package authors.
       exclude: [
         "src/**/*.test.{ts,tsx}",
         "src/**/index.ts",
-        "src/atoms/**",
+        "src/shadcn/**",
         "scripts/**/*.test.mjs",
         "scripts/registry/shadcn.mjs",
         "scripts/registry/cli.mjs",

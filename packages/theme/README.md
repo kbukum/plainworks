@@ -46,8 +46,9 @@ themeVar("z-toast") // "var(--pw-z-toast)"
 
 What you get by default:
 
-- **Accessible colors.** Every text pairing meets WCAG 2.2 AA (4.5:1). Input borders and the focus ring meet 3:1. This holds in light and dark mode, for all nine color schemes, and under `prefers-contrast: more`, which strengthens borders and secondary text.
-- **Safe base rules.** A bare `border` uses the `border` token, not the text color. The body uses the background, foreground, and sans font. Every `:focus-visible` element gets a visible outline. Base rules sit in the `base` cascade layer, so your own styles win.
+- **Accessible colors.** Every text pairing meets WCAG 2.2 AA (4.5:1), including the translucent text the shadcn atoms paint. Input borders and the focus ring meet 3:1, including the atoms' half-opacity `ring-ring/50` halo. This holds in light and dark mode, for all nine color schemes, and under `prefers-contrast: more`, which strengthens borders and secondary text.
+- **Safe base rules.** A bare `border` uses the `border` token, not the text color. The body uses the background, foreground, and sans font. Every `:focus-visible` element gets a visible outline. Base rules sit in the `base` cascade layer, so your own styles win. One rule is unlayered on purpose: under forced colors, focus falls back to a `CanvasText` outline, because the browser drops box-shadow rings. Tab panels and slider thumbs, which the atoms leave unmarked, also get the outline.
+- **shadcn names.** `--radius`, `--foreground`, and `--secondary` alias the plain tokens, so atoms that read these names directly get theme values.
 - **Reduced motion.** When the user prefers reduced motion, all durations become `0ms`.
 - **Status needs more than color.** Status tones are readable, but pair them with text or an icon so color is never the only signal.
 

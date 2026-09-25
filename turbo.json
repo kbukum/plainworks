@@ -14,6 +14,8 @@
         "src/**",
         "tsconfig.json",
         "tsconfig.src.json",
+        "tsconfig.shadcn.json",
+        "tsconfig.client.json",
         "tsdown.config.ts",
         "package.json"
       ],
@@ -26,6 +28,7 @@
         "tsconfig.json",
         "tsconfig.src.json",
         "tsconfig.client.json",
+        "tsconfig.shadcn.json",
         "tsconfig.test.json"
       ],
       "outputs": []

@@ -11,12 +11,6 @@
       "@plainworks/testkit/client": ["../testkit/src/client/index.ts"],
       "@plainworks/theme": ["../theme/src"],
       "@plainworks/theme/client": ["../theme/src/client/index.ts"],
-      // The owned atoms are consumed through their published subpaths; resolve them to
-      // `@plainworks/elements` source so ui typechecks before either package is built.
-      "@plainworks/elements/*": ["../elements/src/atoms/*"],
-      // Those atoms compose siblings through the shadcn `@/atoms/*` alias; resolve it to the same
-      // elements source so the generated re-export shims typecheck through to the real atom types.
-      "@/atoms/*": ["../elements/src/atoms/*"],
       "@plainworks/*": ["../*/src"]
     }
   },

@@ -1,15 +1,16 @@
 {
   "extends": "../../tsconfig.base.json",
-  // Server project: the `.` entry is the owned-atom manifest (data only) and must stay DOM-free.
-  // Every atom under `src/atoms/` is a `"use client"`, DOM-typed module, so it is excluded here
-  // and typechecked with DOM libs via `tsconfig.client.json`. Keeping the `.` barrel DOM-free proves
-  // a host-only global on the manifest surface fails to compile.
+  // Server project: the `.` entry is the atom manifest (data only) and must stay DOM-free. Every
+  // atom (`src/shadcn/`, `src/atoms/`) is a `"use client"`, DOM-typed module, so it is excluded
+  // here and typechecked with DOM libs by the client projects. Keeping the `.` barrel DOM-free
+  // proves a host-only global on the manifest surface fails to compile. The two Node-only contract
+  // tests read files from disk and run under Vitest only.
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"],
       "@plainworks/*": ["../*/src"]
     }
   },
-  "exclude": ["src/atoms", "src/styles.test.ts"],
+  "exclude": ["src/atoms", "src/shadcn", "src/styles.test.ts", "src/theme-variables.test.ts"],
   "include": ["src", "../../types/universal-web.d.ts"]
 }

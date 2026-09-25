@@ -76,7 +76,7 @@
   },
   "overrides": [
     {
-      "includes": ["packages/elements/src/atoms/**"],
+      "includes": ["packages/elements/src/shadcn/**"],
       "linter": {
         "rules": {
           "a11y": {
@@ -86,7 +86,9 @@
             "useAriaPropsForRole": "off",
             "noLabelWithoutControl": "off",
             "noRedundantRoles": "off"
-          }
+          },
+          "suspicious": { "noDoubleEquals": "off" },
+          "correctness": { "noUnusedImports": "off" }
         }
       }
     }

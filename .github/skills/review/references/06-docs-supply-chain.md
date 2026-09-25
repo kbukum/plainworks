@@ -27,6 +27,7 @@ Docs that match the code, and a release path that stays reproducible and honest.
 - **Single catalog.** Versions resolve through the root catalog (`catalog:` / `workspace:*`); Sherif + Syncpack are green (`bun run check-versions`). A second copy of a dependency at a different version, or an inline range, is a should-fix.
 - **Lockfile committed & frozen-install clean.** `bun.lock` is committed and consistent; CI installs with `--frozen-lockfile`. A dependency change without a lockfile update (or a lockfile that drifts) is a should-fix.
 - **Actions pinned by SHA.** Every `uses:` in `.github/workflows/**` is pinned to a full commit SHA with a `# vX.Y.Z` comment, not a moving tag. A tag-pinned action is a should-fix (supply-chain baseline). Each job declares least-privilege `permissions`.
+- **Vendored atoms are reproducible.** `packages/elements/shadcn.lock.json` pins the shadcn CLI version (the `shadcn` catalog entry), the style, and a hash per atom; `registry:validate` must be green. A lock or `src/shadcn/` change without a matching `registry:update` run (lock mismatch), or a CLI catalog bump that leaves atoms produced by the old version, is a **blocker**. Doc that invites editing an atom by hand is a should-fix.
 - **New dependency is justified.** A newly added runtime dep needs a one-line reason, a maintained upstream, a compatible license, and no unfixed advisory. Prefer the platform (`fetch`, `EventSource`, `AbortController`, Web Crypto) and `@plainworks/std` over a new dep. An unjustified or redundant dep is a should-fix.
 
 ## Detection starters
@@ -36,4 +37,5 @@ git diff --name-only origin/main... | rg '^packages/' | cut -d/ -f2 | sort -u   
 ls .changeset/*.md                                                             # …must have a changeset
 rg -n "uses:\s+\S+@[^#]*$" .github/workflows                                    # tag-pinned (unpinned) actions
 bun run check-versions                                                          # catalog / dedupe gate
+bun run --filter @plainworks/elements registry:validate                          # vendored atoms match the lock
 ```

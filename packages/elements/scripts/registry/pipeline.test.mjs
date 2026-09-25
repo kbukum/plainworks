@@ -1,17 +1,20 @@
 import { afterEach, describe, expect, it } from "vitest"
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { diffAtom, diffReport, ingestAtom, validateRegistry } from "./pipeline.mjs"
+import { LOCK_FILE } from "./lock.mjs"
+import { OWNED_DIR, SHADCN_DIR } from "./sources.mjs"
 
-// Every case runs the pipeline with an injected `pull`, so it exercises the exact transform and
-// codegen CI runs, never a network call to the shadcn registry.
+// Every case injects offline seams, so it exercises the exact transform, write, and lock CI runs,
+// never a network call to the shadcn registry. The fixer is the identity so assertions read the
+// exact transform output; the real Biome fixer is covered in format.test.mjs.
 const upstream = (name) =>
   [`// ${name}`, 'import * as React from "react"', 'import { cn } from "cn"', ""].join("\n")
 
-// The formatter seam is exercised for real by the gates; here it is the identity so the pipeline
-// stays offline and the assertions read the exact transform output.
-const identity = (source) => source
+function seams(pull = upstream) {
+  return { pull, fix: (source) => source, upstream: () => ({ cli: "4.21.0", style: "base-nova" }) }
+}
 
 const roots = []
 afterEach(() => {
@@ -21,77 +24,65 @@ afterEach(() => {
 function stageRoot() {
   const root = mkdtempSync(join(tmpdir(), "pw-elements-cli-"))
   roots.push(root)
-  mkdirSync(join(root, "src/atoms"), { recursive: true })
+  mkdirSync(join(root, SHADCN_DIR), { recursive: true })
+  mkdirSync(join(root, OWNED_DIR), { recursive: true })
   return root
 }
 
+const moved = (name) => `${upstream(name)}export const version = 2\n`
+
 describe("atom ingest pipeline", () => {
-  it("writes an owned file that is a client module rendering against the theme cn", () => {
+  it("writes a client module under src/shadcn that renders against the theme cn", () => {
     const root = stageRoot()
-    ingestAtom(root, "button", upstream, identity)
-    const owned = readFileSync(join(root, "src/atoms/button.tsx"), "utf8")
-    expect(owned.startsWith('"use client"')).toBe(true)
-    expect(owned).toContain('import { cn } from "@plainworks/theme"')
-    expect(owned).not.toContain('from "cn"')
+    ingestAtom(root, "button", seams())
+    const atom = readFileSync(join(root, SHADCN_DIR, "button.tsx"), "utf8")
+    expect(atom.startsWith('"use client"')).toBe(true)
+    expect(atom).toContain('import { cn } from "@plainworks/theme"')
+    expect(atom).not.toContain('from "cn"')
+  })
+
+  it("locks the ingested atom so the lock verifies clean", () => {
+    const root = stageRoot()
+    ingestAtom(root, "button", seams())
+    const lock = JSON.parse(readFileSync(join(root, LOCK_FILE), "utf8"))
+    expect(Object.keys(lock.atoms)).toEqual(["button"])
+    expect(lock.shadcn).toEqual({ cli: "4.21.0", style: "base-nova" })
+  })
+
+  it("refuses a name an owned atom already publishes", () => {
+    const root = stageRoot()
+    writeFileSync(join(root, OWNED_DIR, "sonner.tsx"), "export {}\n")
+    expect(() => ingestAtom(root, "sonner", seams())).toThrow(/is an owned atom/)
   })
 
   it("reports no delta once an atom has been ingested from that upstream", () => {
     const root = stageRoot()
-    ingestAtom(root, "button", upstream, identity)
-    expect(diffAtom(root, "button", upstream, identity).changed).toBe(false)
+    ingestAtom(root, "button", seams())
+    expect(diffAtom(root, "button", seams()).changed).toBe(false)
   })
 
-  it("applies a declared accessibility correction while materializing, durably across diff", () => {
+  it("reports a delta when upstream moves away from the locked file", () => {
     const root = stageRoot()
-    // Upstream ItemGroup ships an invalid default `role="list"`; the materialize pipeline must
-    // strip it, and a re-diff against the same upstream must then report no delta — proving the
-    // correction is reproduced, not a one-off hand edit that `registry:update` would drop.
-    const itemUpstream = () =>
-      [
-        'import * as React from "react"',
-        "export function ItemGroup(props) {",
-        "  return (",
-        "    <div",
-        '      role="list"',
-        '      data-slot="item-group"',
-        "    />",
-        "  )",
-        "}",
-        "",
-      ].join("\n")
-    const owned = ingestAtom(root, "item", itemUpstream, identity)
-    expect(owned).not.toContain('role="list"')
-    expect(owned).toContain('data-slot="item-group"')
-    expect(diffAtom(root, "item", itemUpstream, identity).changed).toBe(false)
-  })
-
-  it("reports a delta when upstream moves away from the owned file", () => {
-    const root = stageRoot()
-    ingestAtom(root, "button", upstream, identity)
-    const moved = (name) => `${upstream(name)}export const version = 2\n`
-    const result = diffAtom(root, "button", moved, identity)
+    ingestAtom(root, "button", seams())
+    const result = diffAtom(root, "button", seams(moved))
     expect(result.changed).toBe(true)
     expect(result.fresh).toContain("version = 2")
   })
 
-  it("prints a reviewable unified diff per changed atom, not byte counts", () => {
+  it("prints a reviewable unified diff per changed atom", () => {
     const root = stageRoot()
-    ingestAtom(root, "button", upstream, identity)
-    const moved = (name) => `${upstream(name)}export const version = 2\n`
-    const report = diffReport(root, ["button"], moved, identity)
-    expect(report).toContain("--- button (owned)\n+++ button (upstream + compat)\n")
+    ingestAtom(root, "button", seams())
+    const report = diffReport(root, ["button"], seams(moved))
+    expect(report).toContain("--- button (locked)\n+++ button (upstream)\n")
     expect(report).toContain("+export const version = 2")
     expect(report).toContain("@@ ")
-    expect(report).not.toContain("bytes")
     expect(report).toContain("registry:update")
   })
 
   it("reports an unchanged atom as up to date", () => {
     const root = stageRoot()
-    ingestAtom(root, "button", upstream, identity)
-    expect(diffReport(root, ["button"], upstream, identity)).toBe(
-      "button: up to date with upstream (compat delta aside).\n",
-    )
+    ingestAtom(root, "button", seams())
+    expect(diffReport(root, ["button"], seams())).toBe("button: up to date with upstream.\n")
   })
 })
 
@@ -100,23 +91,35 @@ describe("registry validation (offline)", () => {
     writeFileSync(join(root, "registry.json"), JSON.stringify(registry))
   }
 
-  it("passes when every declared atom file exists", () => {
+  it("passes when every declared atom file exists and the lock holds", () => {
     const root = stageRoot()
-    ingestAtom(root, "button", upstream, identity)
+    ingestAtom(root, "button", seams())
     writeRegistry(root, {
       name: "plainworks-elements",
-      items: [{ name: "button", type: "registry:ui", files: [{ path: "src/atoms/button.tsx" }] }],
+      items: [{ name: "button", type: "registry:ui", files: [{ path: `${SHADCN_DIR}/button.tsx` }] }],
     })
     expect(validateRegistry(root)).toEqual([])
+  })
+
+  it("fails when a shadcn atom was edited by hand", () => {
+    const root = stageRoot()
+    ingestAtom(root, "button", seams())
+    writeFileSync(join(root, SHADCN_DIR, "button.tsx"), "// tweaked\n")
+    writeRegistry(root, { name: "plainworks-elements", items: [] })
+    expect(validateRegistry(root)).toEqual([
+      `${SHADCN_DIR}/button.tsx was edited by hand; only \`registry:update button\` may change it.`,
+    ])
   })
 
   it("fails when a declared file is missing", () => {
     const root = stageRoot()
     writeRegistry(root, {
       name: "plainworks-elements",
-      items: [{ name: "ghost", type: "registry:ui", files: [{ path: "src/atoms/ghost.tsx" }] }],
+      items: [{ name: "ghost", type: "registry:ui", files: [{ path: `${SHADCN_DIR}/ghost.tsx` }] }],
     })
-    expect(validateRegistry(root)).toContain("ghost: declared file is missing: src/atoms/ghost.tsx")
+    expect(validateRegistry(root)).toContain(
+      `ghost: declared file is missing: ${SHADCN_DIR}/ghost.tsx`,
+    )
   })
 
   it("fails when the registry has no name", () => {

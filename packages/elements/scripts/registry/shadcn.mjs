@@ -4,6 +4,7 @@ import { tmpdir } from "node:os"
 import { spawnSync } from "node:child_process"
 import { join } from "node:path"
 import { packageRoot } from "./manifest.mjs"
+import { SHADCN_DIR, shadcnPath } from "./sources.mjs"
 
 // The shadcn CLI is a catalog-pinned dev dependency of this package: resolve the *installed* entry
 // and execute it with the current runtime, so the lockfile — not a `bunx shadcn@latest` download —
@@ -28,7 +29,7 @@ export function shadcnPull(name, root = packageRoot) {
   const staging = mkdtempSync(join(tmpdir(), "pw-elements-stage-"))
   try {
     mkdirSync(join(staging, "src/lib"), { recursive: true })
-    mkdirSync(join(staging, "src/atoms"), { recursive: true })
+    mkdirSync(join(staging, SHADCN_DIR), { recursive: true })
     cpSync(join(root, "components.json"), join(staging, "components.json"))
     writeFileSync(join(staging, "src/styles.css"), "")
     writeFileSync(join(staging, "src/lib/utils.ts"), "export function cn(...c: unknown[]) {\n  return c\n}\n")
@@ -50,8 +51,16 @@ export function shadcnPull(name, root = packageRoot) {
     if (result.status !== 0) {
       throw new Error(`shadcn add ${name} failed with exit code ${result.status}`)
     }
-    return readFileSync(join(staging, `src/atoms/${name}.tsx`), "utf8")
+    return readFileSync(join(staging, shadcnPath(name)), "utf8")
   } finally {
     rmSync(staging, { recursive: true, force: true })
   }
+}
+
+/** The CLI version and style that `shadcnPull` runs with, recorded in the lock. */
+export function shadcnUpstream(root = packageRoot) {
+  const entry = shadcnEntry()
+  const pkg = JSON.parse(readFileSync(join(entry, "../../package.json"), "utf8"))
+  const { style } = JSON.parse(readFileSync(join(root, "components.json"), "utf8"))
+  return { cli: pkg.version, style }
 }

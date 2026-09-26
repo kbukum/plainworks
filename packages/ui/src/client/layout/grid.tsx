@@ -28,6 +28,7 @@ export function Grid({
 }: GridProps): ReactElement {
   return (
     <div
+      {...props}
       data-slot="grid"
       className={cn("grid", GAP_CLASS[gap], className)}
       // Inline style carries the one dynamic track value; `min()` keeps a single wide child
@@ -36,7 +37,6 @@ export function Grid({
         gridTemplateColumns: `repeat(auto-fit, minmax(min(${minColumnWidth}, 100%), 1fr))`,
         ...style,
       }}
-      {...props}
     />
   )
 }

@@ -2,7 +2,7 @@
 
 import { Badge } from "@plainworks/elements/badge"
 import { DateValue } from "@plainworks/ui/display"
-import { Callout, SkeletonText } from "@plainworks/ui/feedback"
+import { Callout, LoadingState } from "@plainworks/ui/feedback"
 import { useQuery } from "@tanstack/react-query"
 import type { ReactElement } from "react"
 import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE, RECENT_ACTIVITY_PARAMS } from "../../app/constants"
@@ -23,11 +23,7 @@ export function ActivityFeed(): ReactElement {
   const query = useQuery(taskListPlan(httpClient, RECENT_ACTIVITY_PARAMS))
 
   if (query.isPending) {
-    return (
-      <div role="status" aria-label="Loading recent activity">
-        <SkeletonText lines={5} />
-      </div>
-    )
+    return <LoadingState label="Loading recent activity" lines={5} />
   }
 
   if (query.isError) {

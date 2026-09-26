@@ -43,9 +43,9 @@ export function Split({
   )
   return (
     <div
+      {...props}
       data-slot="split"
       className={cn("flex flex-wrap", GAP_CLASS[gap], className)}
-      {...props}
       // Merge the caller style, then set the required custom property last so a passed `style` (via
       // the spread props above) can never drop `--split-basis`.
       style={{ ...style, ["--split-basis" as string]: sideBasis }}

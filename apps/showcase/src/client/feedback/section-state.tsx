@@ -7,7 +7,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@plainworks/elements/empty"
-import { Callout, SkeletonText } from "@plainworks/ui/feedback"
+import { Callout, LoadingState } from "@plainworks/ui/feedback"
 import type { ReactElement, ReactNode } from "react"
 
 /** The empty-state copy a section shows when a successful read returns nothing. */
@@ -50,8 +50,8 @@ export type SectionStateProps = SectionStateBaseProps &
 
 /**
  * The one loading/error/empty gate every section renders its body behind, so the whole app speaks
- * the same feedback language. It composes the kit's `SkeletonText`, `Callout`, and `Empty` — a
- * labelled `status` region while pending, a danger callout on failure, the empty state when a
+ * the same feedback language. It composes the kit's `LoadingState`, `Callout`, and `Empty` — a
+ * polite `status` region while pending, a danger callout on failure, the empty state when a
  * successful read is blank, and otherwise the children.
  */
 export function SectionState(props: SectionStateProps): ReactElement {
@@ -65,11 +65,7 @@ export function SectionState(props: SectionStateProps): ReactElement {
     children,
   } = props
   if (pending) {
-    return (
-      <div role="status" aria-label={loadingLabel}>
-        <SkeletonText lines={skeletonLines} />
-      </div>
-    )
+    return <LoadingState label={loadingLabel} lines={skeletonLines} />
   }
   if (error) {
     return (

@@ -3,8 +3,8 @@ import { dirname, join, relative } from "node:path"
 import { fileURLToPath } from "node:url"
 import { formatSource } from "./format.mjs"
 
-// Everything ui publishes that can drift — the package `exports` map, the tsdown entry list, and
-// the shadcn `registry.json` — is generated from the `CONCERNS` manifest below: it declares each
+// Everything ui publishes that can drift — the package `exports` map and `files` whitelist, the
+// tsdown entry list, and the shadcn `registry.json` — is generated from the `CONCERNS` manifest below: it declares each
 // published concern, its build entry, and its registry classification. A `registry` concern's
 // authored folder is the only thing scanned on disk, for that item's files and dependencies.
 // `codegen` writes the outputs; a test asserts re-deriving them produces no change, so the surface
@@ -27,12 +27,7 @@ const CONCERNS = [
   { subpath: "./data-table", entry: "data-table", dir: "src/client/data-table", registry: "ui" },
   { subpath: "./forms", entry: "forms", dir: "src/client/forms", registry: "ui" },
   { subpath: "./list", entry: "list", dir: "src/client/list", registry: "ui" },
-  {
-    subpath: "./error-fallback",
-    entry: "error-fallback",
-    dir: "src/client/error-fallback",
-    registry: "ui",
-  },
+  { subpath: "./page", entry: "page", dir: "src/client/page", registry: "ui" },
   { subpath: "./theme", entry: "theme-client", source: "src/client/theme/index.ts" },
 ]
 
@@ -185,6 +180,20 @@ export function buildExports() {
   return exports
 }
 
+/**
+ * The package `files` whitelist: the build, the registry manifest, and every source folder a
+ * registry item ships (tests excluded). Deriving it from the registry means a `shadcn add` from the
+ * published tarball can always resolve each file the manifest lists.
+ */
+export function buildPublishedFiles(registry) {
+  const roots = new Set()
+  for (const item of registry.items) {
+    for (const { path } of item.files) roots.add(path.split("/").slice(0, 2).join("/"))
+  }
+  const dirs = [...roots].sort()
+  return ["dist", "registry.json", ...dirs, ...dirs.map((dir) => `!${dir}/**/*.test.*`)]
+}
+
 /** The tsdown entry map: the neutral manifest and each concern entry. */
 export function buildTsdownEntry() {
   const entry = { index: "src/index.ts" }
@@ -214,23 +223,28 @@ export function renderTsdownConfig() {
   ].join("\n")}`
 }
 
-// Rewrite package.json's `exports` in place, preserving the rest of the file and the 2-space style.
-function writePackageExports(root) {
+// Rewrite package.json's `exports` and `files` in place, preserving the rest of the file and the
+// 2-space style.
+function writePackageManifest(root, registry) {
   const path = join(root, "package.json")
   const pkg = JSON.parse(readFileSync(path, "utf8"))
   pkg.exports = buildExports()
+  pkg.files = buildPublishedFiles(registry)
   writeFileSync(path, formatSource(`${JSON.stringify(pkg, null, 2)}\n`, "package.json"))
 }
 
 /**
- * Regenerate `registry.json`, the tsdown entries, and the package exports map from disk.
+ * Regenerate `registry.json`, the tsdown entries, and the package exports and files from disk.
  */
 export function runCodegen(root = packageRoot) {
-  const registry = `${JSON.stringify(buildRegistry(root), null, 2)}\n`
-  writeFileSync(join(root, "registry.json"), formatSource(registry, "registry.json"))
+  const registry = buildRegistry(root)
+  writeFileSync(
+    join(root, "registry.json"),
+    formatSource(`${JSON.stringify(registry, null, 2)}\n`, "registry.json"),
+  )
   writeFileSync(
     join(root, "tsdown.config.ts"),
     formatSource(renderTsdownConfig(), "tsdown.config.ts"),
   )
-  writePackageExports(root)
+  writePackageManifest(root, registry)
 }

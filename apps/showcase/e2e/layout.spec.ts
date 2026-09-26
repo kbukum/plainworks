@@ -52,6 +52,12 @@ test("low-priority table columns adapt visibility to container presentation", as
   await page.setViewportSize({ width: 390, height: 844 })
   await expect(page.getByRole("columnheader", { name: "Priority" })).toBeHidden()
   await expect(page.getByRole("columnheader", { name: "Due" })).toBeHidden()
+  const disclosure = page.getByRole("button", { name: /^Details for / }).first()
+  await disclosure.click()
+  await expect(disclosure).toHaveAttribute("aria-expanded", "true")
+  const details = page.locator(`#${await disclosure.getAttribute("aria-controls")}`)
+  await expect(details.getByText("Priority")).toBeVisible()
+  await expect(details.getByText("Due")).toBeVisible()
 
   await page.setViewportSize({ width: 1440, height: 1000 })
   await expect(page.getByRole("columnheader", { name: "Priority" })).toBeVisible()

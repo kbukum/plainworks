@@ -62,10 +62,7 @@ export function Drawer({
       ) : (
         <SheetTrigger>{trigger}</SheetTrigger>
       )}
-      <SheetContent
-        side={side}
-        className="motion-reduce:transition-none motion-reduce:transform-none"
-      >
+      <SheetContent side={side}>
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
           {description === undefined ? null : <SheetDescription>{description}</SheetDescription>}

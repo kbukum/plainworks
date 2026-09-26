@@ -2,7 +2,7 @@
 
 import type { ListFilter } from "@plainworks/std"
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
-import { cleanup, render, screen, within } from "@testing-library/react"
+import { act, cleanup, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ReactElement } from "react"
 import { useState } from "react"
@@ -225,5 +225,148 @@ describe("FilterBar", () => {
     expect(within(operator).getByRole("option", { name: "IS" })).toBeTruthy()
     // Other operators keep their defaults — the override is a subset merge, not a replacement.
     expect(within(operator).getByRole("option", { name: "Not equals" })).toBeTruthy()
+  })
+})
+
+function ControlledFilterBar({
+  initial = [],
+}: {
+  readonly initial?: readonly ListFilter[]
+}): ReactElement {
+  const [value, setValue] = useState<readonly ListFilter[]>(initial)
+  return <FilterBar fields={fields} value={value} onChange={setValue} />
+}
+
+describe("FilterBar applied state and keyboard flow", () => {
+  it("announces how many filters apply and clears them all at once", async () => {
+    const user = userEvent.setup()
+    render(
+      <ControlledFilterBar
+        initial={[
+          { field: "name", op: "eq", value: "a" },
+          { field: "price", op: "gt", value: 5 },
+        ]}
+      />,
+    )
+
+    expect(screen.getByRole("status").textContent).toBe("2 filters applied")
+    await user.click(screen.getByRole("button", { name: "Clear all filters" }))
+    expect(screen.getByRole("status").textContent).toBe("No filters applied")
+    expect(screen.queryByRole("button", { name: "Clear all filters" })).toBeNull()
+    expect(screen.getByRole("button", { name: "Add filter" })).toBe(document.activeElement)
+  })
+
+  it("moves focus to the new row's field picker after adding a filter", async () => {
+    const user = userEvent.setup()
+    render(<ControlledFilterBar />)
+
+    await user.click(screen.getByRole("button", { name: "Add filter" }))
+    const row = screen.getByRole("group", { name: "Filter 1" })
+    expect(within(row).getByRole("combobox", { name: "Field" })).toBe(document.activeElement)
+    expect(screen.getByRole("status").textContent).toBe("1 filter applied")
+  })
+
+  it("keeps focus in the list when a row is removed", async () => {
+    const user = userEvent.setup()
+    render(
+      <ControlledFilterBar
+        initial={[
+          { field: "name", op: "eq", value: "a" },
+          { field: "price", op: "gt", value: 5 },
+        ]}
+      />,
+    )
+
+    await user.click(screen.getByRole("button", { name: "Remove filter 1" }))
+    const remaining = screen.getByRole("group", { name: "Filter 1" })
+    expect(within(remaining).getByRole("combobox", { name: "Field" })).toBe(document.activeElement)
+    expect(within(remaining).getByRole("combobox", { name: "Field" })).toHaveProperty(
+      "value",
+      "price",
+    )
+
+    await user.click(screen.getByRole("button", { name: "Remove filter 1" }))
+    expect(screen.getByRole("button", { name: "Add filter" })).toBe(document.activeElement)
+  })
+
+  it("moves focus once a parent commits the change later, not before", async () => {
+    const user = userEvent.setup()
+    let commit = (): void => undefined
+    function DeferredFilterBar(): ReactElement {
+      const [value, setValue] = useState<readonly ListFilter[]>([
+        { field: "name", op: "eq", value: "a" },
+        { field: "price", op: "gt", value: 5 },
+      ])
+      return (
+        <FilterBar
+          fields={fields}
+          value={value}
+          onChange={(next) => {
+            commit = () => setValue(next)
+          }}
+        />
+      )
+    }
+    render(<DeferredFilterBar />)
+
+    await user.click(screen.getByRole("button", { name: "Add filter" }))
+    expect(screen.queryByRole("group", { name: "Filter 3" })).toBeNull()
+    act(() => commit())
+    const added = screen.getByRole("group", { name: "Filter 3" })
+    expect(within(added).getByRole("combobox", { name: "Field" })).toBe(document.activeElement)
+
+    await user.click(screen.getByRole("button", { name: "Remove filter 1" }))
+    expect(screen.getByRole("group", { name: "Filter 3" })).toBeDefined()
+    act(() => commit())
+    const next = screen.getByRole("group", { name: "Filter 1" })
+    expect(within(next).getByRole("combobox", { name: "Field" })).toBe(document.activeElement)
+    expect(within(next).getByRole("combobox", { name: "Field" })).toHaveProperty("value", "price")
+  })
+
+  it("cancels a pending focus request when a parent supplies a different filter set", async () => {
+    const user = userEvent.setup()
+    function RejectingFilterBar(): ReactElement {
+      const [value, setValue] = useState<readonly ListFilter[]>([])
+      return (
+        <>
+          <button type="button" onClick={() => setValue([{ field: "price", op: "gt", value: 5 }])}>
+            Load saved filters
+          </button>
+          <FilterBar fields={fields} value={value} onChange={() => undefined} />
+        </>
+      )
+    }
+    render(<RejectingFilterBar />)
+
+    await user.click(screen.getByRole("button", { name: "Add filter" }))
+    const loadButton = screen.getByRole("button", { name: "Load saved filters" })
+    await user.click(loadButton)
+
+    expect(loadButton).toBe(document.activeElement)
+    expect(screen.getByRole("combobox", { name: "Field" })).not.toBe(document.activeElement)
+  })
+
+  it("keeps stale saved filters removable when no fields are available", async () => {
+    const user = userEvent.setup()
+    function EmptyFieldsFilterBar(): ReactElement {
+      const [value, setValue] = useState<readonly ListFilter[]>([
+        { field: "retired", op: "eq", value: "legacy" },
+      ])
+      return <FilterBar fields={[]} value={value} onChange={setValue} />
+    }
+    render(<EmptyFieldsFilterBar />)
+
+    expect(screen.getByRole("group", { name: "Filter 1" })).toBeDefined()
+    expect(screen.getByRole("status").textContent).toBe("1 filter applied")
+    expect(screen.queryByRole("button", { name: "Add filter" })).toBeNull()
+
+    await user.click(screen.getByRole("button", { name: "Clear all filters" }))
+    expect(screen.getByRole("status").textContent).toBe("No filters applied")
+    expect(screen.queryByRole("group", { name: "Filter 1" })).toBeNull()
+  })
+
+  it("adapts its rows to its own container width", () => {
+    const { container } = render(<ControlledFilterBar />)
+    expect(container.querySelector("fieldset")?.className).toContain("@container/filter-bar")
   })
 })

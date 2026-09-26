@@ -19,15 +19,24 @@ export { DateValue, NumberValue } from "./client/display"
 // single concern; this aggregate is the convenience surface. The DOM-free stately behaviour hooks
 // live in the neutral-compiled `src/hooks/` folder but are React, so they ship from here — never
 // from the neutral `.` entry.
-export type { ErrorFallbackProps } from "./client/error-fallback"
-export { ErrorFallback } from "./client/error-fallback"
 export type {
+  AsyncStateProps,
   CalloutProps,
   CalloutTone,
-  SkeletonTextProps,
+  EmptyStateProps,
+  ErrorStateAction,
+  ErrorStateProps,
+  LoadingStateProps,
   SpinnerProps,
 } from "./client/feedback"
-export { Callout, SkeletonText, Spinner } from "./client/feedback"
+export {
+  AsyncState,
+  Callout,
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  Spinner,
+} from "./client/feedback"
 export type {
   CheckboxFieldProps,
   DateFieldProps,
@@ -104,13 +113,17 @@ export {
 } from "./client/list"
 export type { BreadcrumbEntry, BreadcrumbsProps } from "./client/navigation"
 export { Breadcrumbs } from "./client/navigation"
+export type { DrawerProps, DrawerSide, ModalProps } from "./client/overlays"
+export { Drawer, Modal } from "./client/overlays"
 export type {
-  DrawerProps,
-  DrawerSide,
-  ModalProps,
-  PopoverPanelProps,
-} from "./client/overlays"
-export { Drawer, Modal, PopoverPanel } from "./client/overlays"
+  PageHeaderProps,
+  PageProps,
+  PageWidth,
+  SectionHeadingLevel,
+  SectionProps,
+  ToolbarProps,
+} from "./client/page"
+export { Page, PageHeader, Section, Toolbar } from "./client/page"
 export type {
   ThemeContextValue,
   ThemeProviderProps,

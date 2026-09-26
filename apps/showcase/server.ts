@@ -252,9 +252,13 @@ async function main(): Promise<void> {
   // The mock backend that serves the browser's `/api/*` calls is wired here (not in `vite.config`)
   // so its order-write authorizer verifies cookies under the *same* `SIGNING_KEY` the session flow
   // signs with — a config-time authorizer would resolve its own key and reject every real session.
+  // A custom app has no `index.html` for Vite to crawl, so it would find dependencies one page at a
+  // time and re-bundle them mid-session. A page loaded across that re-bundle mixes two copies of
+  // React. Naming every browser entry, including the E2E fixtures, pre-bundles them all at start.
   vite = await createViteServer({
     server: { middlewareMode: true, hmr: { server } },
     appType: "custom",
+    optimizeDeps: { entries: [CLIENT_ENTRY.slice(1), "e2e/fixtures/*.tsx"] },
     plugins: [
       mockServerPlugin(browserMock.handlers, { basePath: "/api" }),
       mockServerPlugin(browserMock.handlers, { basePath: "/mock" }),

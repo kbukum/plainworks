@@ -79,9 +79,9 @@
       "types": "./dist/list.d.ts",
       "import": "./dist/list.js"
     },
-    "./error-fallback": {
-      "types": "./dist/error-fallback.d.ts",
-      "import": "./dist/error-fallback.js"
+    "./page": {
+      "types": "./dist/page.d.ts",
+      "import": "./dist/page.js"
     },
     "./theme": {
       "types": "./dist/theme-client.d.ts",
@@ -94,8 +94,10 @@
     "registry.json",
     "src/client",
     "src/hooks",
+    "src/region",
     "!src/client/**/*.test.*",
-    "!src/hooks/**/*.test.*"
+    "!src/hooks/**/*.test.*",
+    "!src/region/**/*.test.*"
   ],
   "homepage": "https://github.com/kbukum/plainworks/tree/main/packages/ui#readme",
   "keywords": [

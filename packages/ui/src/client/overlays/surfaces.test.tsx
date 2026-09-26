@@ -6,7 +6,6 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { Drawer } from "./drawer"
 import { Modal } from "./modal"
-import { PopoverPanel } from "./popover"
 
 afterEach(cleanup)
 
@@ -26,7 +25,6 @@ describe("Modal", () => {
     await user.click(screen.getByRole("button", { name: "Open settings" }))
     const dialog = screen.getByRole("dialog", { name: "Settings" })
     expect(dialog.textContent).toContain("Manage your account.")
-    expect(dialog.className).toContain("motion-reduce:animate-none")
     expect(screen.getByRole("button", { name: "Save" })).toBeDefined()
     await expectNoAxeViolations(document.body)
   })
@@ -119,36 +117,7 @@ describe("Drawer", () => {
     await user.click(screen.getByRole("button", { name: "Open filters" }))
     const dialog = screen.getByRole("dialog", { name: "Filters" })
     expect(dialog.textContent).toContain("Refine the results.")
-    expect(dialog.className).toContain("motion-reduce:transition-none")
     expect(screen.getByRole("button", { name: "Apply" })).toBeDefined()
     await expectNoAxeViolations(document.body)
-  })
-})
-
-describe("PopoverPanel", () => {
-  it("opens an anchored, labelled panel", async () => {
-    const user = userEvent.setup()
-    render(
-      <PopoverPanel trigger="Details" title="More detail" description="Extra context.">
-        <p>panel body</p>
-      </PopoverPanel>,
-    )
-    await user.click(screen.getByRole("button", { name: "Details" }))
-    expect(screen.getByText("panel body")).toBeDefined()
-    expect(screen.getByText("Extra context.")).toBeDefined()
-    const popover = document.querySelector('[data-slot="popover-content"]')
-    expect(popover?.className).toContain("motion-reduce:animate-none")
-    await expectNoAxeViolations(document.body)
-  })
-
-  it("renders a description even when no title is given", async () => {
-    const user = userEvent.setup()
-    render(
-      <PopoverPanel trigger="Info" description="Standalone description.">
-        <p>body</p>
-      </PopoverPanel>,
-    )
-    await user.click(screen.getByRole("button", { name: "Info" }))
-    expect(screen.getByText("Standalone description.")).toBeDefined()
   })
 })

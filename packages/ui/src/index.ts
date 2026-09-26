@@ -1,7 +1,9 @@
 // Server-safe public entry for `@plainworks/ui` — re-export-only barrel (no logic here). No React
 // or DOM imports, so the `.` entry runs anywhere (Node, edge, RSC). The design substrate (tokens,
 // schemes, theme runtime) is re-exported for DX from the `@plainworks/theme` package that owns it.
-// The React behaviour hooks are React (not neutral), so they ship from `./client`, never here.
+// Pure view logic (`asyncStatus`) is exported here too, so server code can use it without crossing
+// a `"use client"` boundary. The React behaviour hooks are React (not neutral), so they ship from
+// `./client`, never here.
 
 export type {
   BrandColorRole,
@@ -25,3 +27,6 @@ export {
   STATUS_TONES,
   themeVar,
 } from "@plainworks/theme"
+
+export type { AsyncFlags, AsyncStatus } from "./region"
+export { asyncStatus } from "./region"

@@ -16,7 +16,7 @@ export default preset({
     "data-table": "src/client/data-table/index.ts",
     forms: "src/client/forms/index.ts",
     list: "src/client/list/index.ts",
-    "error-fallback": "src/client/error-fallback/index.ts",
+    page: "src/client/page/index.ts",
     "theme-client": "src/client/theme/index.ts",
   },
   // tsdown has no CSS pipeline, so the Tailwind-source stylesheet is copied verbatim into

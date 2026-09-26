@@ -17,16 +17,22 @@ export interface DataTableHeaderModel {
 /** A single rendered cell, pre-projected so the body view is not generic. */
 export interface DataTableCellModel {
   readonly columnId: string
+  /** The column header, repeated as the term when the cell moves into the row detail. */
+  readonly header: ReactNode
   readonly align: ColumnAlign
   readonly content: ReactNode
   readonly priority?: "high" | "low" | undefined
+  readonly nowrap: boolean
 }
 
-/** A row reduced to its stable id, pre-rendered cells, and accessible selection label. */
+/** A row reduced to its stable id, pre-rendered cells, and accessible control labels. */
 export interface DataTableRowModel {
   readonly id: string
+  /** DOM id of the row's detail row, referenced by its disclosure button while expanded. */
+  readonly detailId: string
   readonly cells: readonly DataTableCellModel[]
   readonly selectAriaLabel: string
+  readonly detailsAriaLabel: string
 }
 
 /**
@@ -40,6 +46,14 @@ export interface DataTableContextValue {
   readonly labels: DataTableLabels
   readonly icons: DataTableIcons
   readonly selectable: boolean
+  /** True when some column is low priority, so narrow rows carry a detail disclosure. */
+  readonly hasDetails: boolean
+  readonly isRowExpanded: (id: string) => boolean
+  readonly toggleRowDetails: (id: string) => void
+  /** Close every open row detail, once the container is wide enough to show all columns. */
+  readonly collapseRowDetails: () => void
+  /** The zero-row view. */
+  readonly empty: ReactNode
   readonly loading: boolean
   readonly loadingRowCount: number
   /** Number of `<td>`s a full-width row (empty/loading) must span. */

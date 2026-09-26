@@ -215,11 +215,13 @@ test("developer mock inspector mounts and drives a control", async ({ page }) =>
   await signIn(page)
   // The inspector loads only through the DEV-gated dynamic import + isolated mount in the client
   // entry, so opening it here exercises that path the component tests cannot reach.
-  const trigger = page.getByRole("button", { name: "Open Plainworks inspector" })
+  const trigger = page
+    .getByRole("region", { name: "Plainworks devtools" })
+    .getByRole("button", { name: "Inspect" })
   await expect(trigger).toBeVisible()
   await trigger.click()
 
-  const panel = page.getByRole("dialog", { name: "Plainworks inspector" })
+  const panel = page.getByRole("region", { name: "Plainworks inspector" })
   await expect(panel).toBeVisible()
   await expectNoBrowserAxeViolations(page)
 

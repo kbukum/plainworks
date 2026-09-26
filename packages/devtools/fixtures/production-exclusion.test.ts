@@ -1,7 +1,6 @@
 import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import tailwindcss from "@tailwindcss/vite"
 import { build } from "vite"
 import { afterAll, describe, expect, it } from "vitest"
 
@@ -29,7 +28,6 @@ async function buildConsumer(mode: "development" | "production"): Promise<Consum
     root: fixtureRoot,
     mode,
     logLevel: "silent",
-    plugins: [tailwindcss()],
     // Vite dev serves `import.meta.env.DEV === true`; a production build replaces it with
     // `false` and eliminates the dead branch. Build mode alone does not flip this flag, so the
     // fixture defines both bundler conditions explicitly.
@@ -39,16 +37,14 @@ async function buildConsumer(mode: "development" | "production"): Promise<Consum
     },
     resolve: {
       alias: {
-        // Consume the built package: the client, adapters, and stylesheet resolve from `dist`, so
-        // the stylesheet's `@source "./**/*.js"` scans the shipped `dist/*.js` (where component
-        // class names live) exactly as a real consumer's Tailwind build does. What is proven is
-        // the host bundler's dead-code elimination plus the stylesheet's source directive.
+        // Consume the built package: the client, adapters, and precompiled stylesheet resolve from
+        // `dist`, and the consumer has no Tailwind build at all. What is proven is the host
+        // bundler's dead-code elimination over a stylesheet that needs no host tooling.
         "@plainworks/devtools/client": join(packageRoot, "dist", "client.js"),
         "@plainworks/devtools/query": join(packageRoot, "dist", "query.js"),
         "@plainworks/devtools/state": join(packageRoot, "dist", "state.js"),
         "@plainworks/devtools/styles.css": join(packageRoot, "dist", "styles.css"),
         "@plainworks/devtools": join(packageRoot, "dist", "index.js"),
-        "@plainworks/ui/styles.css": join(packageRoot, "..", "ui", "src", "styles.css"),
       },
     },
     build: {
@@ -70,8 +66,8 @@ afterAll(() => {
   for (const outDir of outDirs) rmSync(outDir, { recursive: true, force: true })
 })
 
-// Two real bundler runs (development + production, the second with Tailwind and minification)
-// take far longer than a unit test.
+// Two real bundler runs (development + production, the second minified) take far longer than a
+// unit test.
 const BUILD_TIMEOUT = 120_000
 
 describe("consumer development gate", () => {
@@ -81,9 +77,10 @@ describe("consumer development gate", () => {
     const output = await buildConsumer("development")
     expect(output.js.some((chunk) => chunk.includes("Plainworks inspector"))).toBe(true)
     expect(output.js.some((chunk) => chunk.includes("createDevtoolsSession"))).toBe(true)
-    // Proof the stylesheet's `@source` scanned the devtools `dist`: `bg-popover/95` is used only by
-    // the rail, so its compiled rule can only appear if devtools classes were actually collected.
-    expect(output.css.some((css) => css.includes("bg-popover"))).toBe(true)
+    // The precompiled stylesheet arrives as plain, scoped CSS a host without Tailwind can use.
+    const css = output.css.join("\n")
+    expect(css).toContain("[data-plainworks-devtools] .bg-popover:not(")
+    expect(css).not.toMatch(/@(tailwind|source|apply|theme|layer)\b/)
   })
 
   it("emits no devtools JavaScript or CSS in production", { timeout: BUILD_TIMEOUT }, async () => {

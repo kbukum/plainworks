@@ -1,6 +1,8 @@
 "use client"
 
 import type { ErrorSnapshot } from "@plainworks/std"
+import { cn } from "@plainworks/theme"
+import { Callout } from "@plainworks/ui/feedback"
 import type { ReactElement } from "react"
 import {
   type SourceDescriptor,
@@ -59,8 +61,8 @@ export function panelPropsFor(
 }
 
 const SEVERITY_TONE: Readonly<Record<StatusIndicator["severity"], string>> = {
-  error: "border-destructive/40",
-  warn: "border-amber-500/40",
+  error: "border-destructive",
+  warn: "border-warning",
   info: "",
   ok: "",
 }
@@ -80,12 +82,7 @@ export function GenericSourcePanel({
   return (
     <div className="grid gap-4">
       {failure === undefined ? null : (
-        <p
-          role="alert"
-          className="rounded-md border border-destructive/40 p-2 text-destructive text-xs"
-        >
-          {`${source.label} failed: ${failure.message}`}
-        </p>
+        <Callout tone="danger">{`${source.label} failed: ${failure.message}`}</Callout>
       )}
       {indicators.length === 0 ? null : (
         <dl className="grid grid-cols-[repeat(auto-fit,minmax(8rem,1fr))] gap-2">
@@ -93,10 +90,17 @@ export function GenericSourcePanel({
             <div
               key={entry.indicator.id}
               data-severity={entry.indicator.severity}
-              className={`rounded-md border p-2 ${SEVERITY_TONE[entry.indicator.severity]}`}
+              className={cn(
+                "min-w-0 rounded-md border bg-card p-2",
+                SEVERITY_TONE[entry.indicator.severity],
+              )}
             >
-              <dt className="text-muted-foreground text-xs">{entry.indicator.label}</dt>
-              <dd className="font-medium text-sm tabular-nums">{entry.indicator.value}</dd>
+              <dt className="wrap-anywhere text-muted-foreground text-xs">
+                {entry.indicator.label}
+              </dt>
+              <dd className="wrap-anywhere font-medium text-sm tabular-nums">
+                {entry.indicator.value}
+              </dd>
             </div>
           ))}
         </dl>

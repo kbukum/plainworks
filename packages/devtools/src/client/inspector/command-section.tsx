@@ -1,18 +1,16 @@
 "use client"
 
-import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@plainworks/elements/alert-dialog"
 import { Badge } from "@plainworks/elements/badge"
 import { Button } from "@plainworks/elements/button"
-import { type ReactElement, useEffect, useRef, useState } from "react"
+import {
+  type KeyboardEvent,
+  type ReactElement,
+  type RefObject,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react"
 import { type CommandDescriptor, type SourceDescriptor, sourceKey } from "../../protocol"
 import type { DevtoolsClientPort } from "../../session"
 
@@ -29,16 +27,18 @@ type Outcome =
   | { readonly status: "failed"; readonly text: string }
 
 /**
- * The command surface of a source, separated from observation by risk. Safe commands run on
- * intent; mutating commands carry a visible marker; destructive commands gate behind an explicit
- * confirmation. Outcomes are announced (`status` / `alert`) and failures stay actionable — the
- * typed error message is shown, never swallowed. Generic commands run with `null` input; a custom
- * panel that needs arguments calls `port.runCommand` itself.
+ * The command surface of a source, separated from observation by risk. Safe commands run on intent;
+ * mutating commands carry a visible marker; destructive commands gate behind an inline confirmation
+ * that keeps the inspector non-modal and puts focus on the safe choice. Outcomes are announced
+ * (`status` / `alert`) and failures stay actionable — the typed error message is shown, never
+ * swallowed. Generic commands run with `null` input; a custom panel that needs arguments calls
+ * `port.runCommand` itself.
  */
 export function CommandSection({ port, source }: CommandSectionProps): ReactElement | null {
   const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(new Set())
   const [outcome, setOutcome] = useState<Outcome>()
   const controllers = useRef(new Map<string, AbortController>())
+  const sectionRef = useRef<HTMLElement>(null)
   const currentKey = sourceKey(source.id)
 
   // Abort every in-flight command on unmount or when the source/port identity changes.
@@ -90,13 +90,19 @@ export function CommandSection({ port, source }: CommandSectionProps): ReactElem
   }
 
   return (
-    <section aria-label={`${source.label} commands`} className="grid gap-2">
+    <section
+      ref={sectionRef}
+      aria-label={`${source.label} commands`}
+      tabIndex={-1}
+      className="grid gap-2"
+    >
       <div className="flex flex-wrap items-center gap-2">
         {source.commands.map((command) => (
           <CommandControl
             key={command.id}
             command={command}
             pending={pendingIds.has(command.id)}
+            focusFallback={sectionRef}
             onRun={() => void run(command)}
           />
         ))}
@@ -118,62 +124,121 @@ interface CommandControlProps {
   readonly command: CommandDescriptor
   readonly pending: boolean
   readonly onRun: () => void
+  /** Takes focus when a closed confirmation cannot return it to a disabled trigger. */
+  readonly focusFallback: RefObject<HTMLElement | null>
 }
 
-function CommandControl({ command, pending, onRun }: CommandControlProps): ReactElement {
-  const marker =
-    command.risk === "mutating" ? <Badge variant="secondary">Mutates state</Badge> : null
-
-  if (command.risk !== "destructive") {
+function CommandControl({
+  command,
+  pending,
+  onRun,
+  focusFallback,
+}: CommandControlProps): ReactElement {
+  const disabled = !command.available || pending
+  if (command.risk === "destructive") {
     return (
-      <span className="inline-flex items-center gap-1">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={!command.available || pending}
-          onClick={onRun}
-        >
-          {command.label}
-        </Button>
-        {marker}
-      </span>
+      <DestructiveCommand
+        command={command}
+        disabled={disabled}
+        onRun={onRun}
+        focusFallback={focusFallback}
+      />
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1">
+      <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={onRun}>
+        {command.label}
+      </Button>
+      {command.risk === "mutating" ? <Badge variant="secondary">Mutates state</Badge> : null}
+    </span>
+  )
+}
+
+interface DestructiveCommandProps {
+  readonly command: CommandDescriptor
+  readonly disabled: boolean
+  readonly onRun: () => void
+  readonly focusFallback: RefObject<HTMLElement | null>
+}
+
+function DestructiveCommand({
+  command,
+  disabled,
+  onRun,
+  focusFallback,
+}: DestructiveCommandProps): ReactElement {
+  const [confirming, setConfirming] = useState(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const cancelRef = useRef<HTMLButtonElement>(null)
+  const restoreFocus = useRef(false)
+  const descriptionId = useId()
+
+  useEffect(() => {
+    if (confirming) {
+      cancelRef.current?.focus()
+    } else if (restoreFocus.current) {
+      restoreFocus.current = false
+      const trigger = triggerRef.current
+      // A confirmed run disables the trigger while pending; keep focus in the section instead.
+      if (trigger !== null && !trigger.disabled) trigger.focus()
+      else focusFallback.current?.focus()
+    }
+  }, [confirming, focusFallback])
+
+  const cancel = (): void => {
+    restoreFocus.current = true
+    setConfirming(false)
+  }
+  const handleKeyDown = (event: KeyboardEvent<HTMLFieldSetElement>): void => {
+    if (event.key !== "Escape") return
+    // Consumed here, so the inspector around the confirmation stays open.
+    event.preventDefault()
+    cancel()
+  }
+
+  if (!confirming) {
+    return (
+      <Button
+        ref={triggerRef}
+        type="button"
+        variant="destructive"
+        size="sm"
+        disabled={disabled}
+        onClick={() => setConfirming(true)}
+      >
+        {command.label}
+      </Button>
     )
   }
 
   return (
-    <span className="inline-flex items-center gap-1">
-      <AlertDialog>
-        <AlertDialogTrigger
-          render={
-            <Button
-              type="button"
-              variant="destructive"
-              size="sm"
-              disabled={!command.available || pending}
-            >
-              {command.label}
-            </Button>
-          }
-        />
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{command.label}</AlertDialogTitle>
-            <AlertDialogDescription>
-              This is a destructive command. It cannot be undone from the inspector.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            {/* The action atom does not close; the confirm is a Close styled as the destructive
-                action so the dialog dismisses and the outcome is announced on the page. */}
-            <AlertDialogCancel variant="destructive" onClick={onRun}>
-              {`Confirm ${command.label}`}
-            </AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </span>
+    <fieldset
+      aria-label={`Confirm ${command.label}`}
+      aria-describedby={descriptionId}
+      onKeyDown={handleKeyDown}
+      className="flex min-w-0 basis-full flex-wrap items-center gap-2 rounded-md border border-destructive p-2"
+    >
+      <p id={descriptionId} className="min-w-0 flex-1 basis-48 text-xs">
+        {`${command.label} is destructive and cannot be undone from the inspector.`}
+      </p>
+      <Button ref={cancelRef} type="button" variant="outline" size="sm" onClick={cancel}>
+        Cancel
+      </Button>
+      <Button
+        type="button"
+        variant="destructive"
+        size="sm"
+        disabled={disabled}
+        onClick={() => {
+          restoreFocus.current = true
+          setConfirming(false)
+          onRun()
+        }}
+      >
+        {`Confirm ${command.label}`}
+      </Button>
+    </fieldset>
   )
 }
 

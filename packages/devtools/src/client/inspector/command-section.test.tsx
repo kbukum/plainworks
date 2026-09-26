@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
-import { cleanup, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { CommandDescriptor, SourceId } from "../../protocol"
@@ -79,21 +79,73 @@ describe("CommandSection", () => {
     expect(screen.getByText("Mutates state")).toBeTruthy()
   })
 
-  it("runs a destructive command only after confirmation", async () => {
+  it("runs a destructive command only after an inline confirmation", async () => {
     const user = userEvent.setup()
     const runCommand = vi.fn(() => "done")
-    const { port } = setup(
-      [{ id: "reset", label: "Reset data", risk: "destructive", available: true }],
-      runCommand,
-    )
-    renderSection(port, [
-      { id: "reset", label: "Reset data", risk: "destructive", available: true },
-    ])
+    const reset: CommandDescriptor = {
+      id: "reset",
+      label: "Reset data",
+      risk: "destructive",
+      available: true,
+    }
+    const { port } = setup([reset], runCommand)
+    renderSection(port, [reset])
     await user.click(screen.getByRole("button", { name: "Reset data" }))
     expect(runCommand).not.toHaveBeenCalled()
+    expect(screen.queryByRole("alertdialog")).toBeNull()
+    const confirmation = screen.getByRole("group", { name: "Confirm Reset data" })
+    expect(confirmation.textContent).toContain("cannot be undone")
+    // The safe choice takes focus, so a stray Enter never runs the destructive command.
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Cancel" }))
     await user.click(screen.getByRole("button", { name: "Confirm Reset data" }))
     expect(runCommand).toHaveBeenCalledWith("reset", null, expect.any(Object))
     expect(await screen.findByRole("status")).toBeTruthy()
+    expect(screen.queryByRole("group", { name: "Confirm Reset data" })).toBeNull()
+  })
+
+  it("keeps focus in the command section after confirming, while the command is pending", async () => {
+    const user = userEvent.setup()
+    const reset: CommandDescriptor = {
+      id: "reset",
+      label: "Reset data",
+      risk: "destructive",
+      available: true,
+    }
+    const { port } = setup([reset], () => new Promise(() => {}))
+    renderSection(port, [reset])
+    await user.click(screen.getByRole("button", { name: "Reset data" }))
+    await user.click(screen.getByRole("button", { name: "Confirm Reset data" }))
+    // The trigger is disabled while the run is pending, so focus lands on its section instead
+    // of falling back to the document body.
+    expect(screen.getByRole("button", { name: "Reset data" })).toHaveProperty("disabled", true)
+    expect(document.activeElement).toBe(screen.getByRole("region", { name: "Mocks demo commands" }))
+  })
+
+  it("cancels a destructive confirmation and returns focus to the command", async () => {
+    const user = userEvent.setup()
+    const runCommand = vi.fn(() => "done")
+    const reset: CommandDescriptor = {
+      id: "reset",
+      label: "Reset data",
+      risk: "destructive",
+      available: true,
+    }
+    const { port } = setup([reset], runCommand)
+    renderSection(port, [reset])
+    await user.click(screen.getByRole("button", { name: "Reset data" }))
+    await user.click(screen.getByRole("button", { name: "Cancel" }))
+    expect(screen.queryByRole("group", { name: "Confirm Reset data" })).toBeNull()
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Reset data" }))
+
+    await user.click(screen.getByRole("button", { name: "Reset data" }))
+    // Escape is consumed (default prevented) by the confirmation, so it does not also close the
+    // inspector around it.
+    expect(
+      fireEvent.keyDown(screen.getByRole("button", { name: "Cancel" }), { key: "Escape" }),
+    ).toBe(false)
+    await screen.findByRole("button", { name: "Reset data" })
+    expect(screen.queryByRole("group", { name: "Confirm Reset data" })).toBeNull()
+    expect(runCommand).not.toHaveBeenCalled()
   })
 
   it("tracks pending state per command independently during concurrent runs", async () => {

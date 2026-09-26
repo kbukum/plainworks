@@ -59,9 +59,9 @@ afterEach(() => {
 })
 
 describe("DiagnosticsRail", () => {
-  it("renders a named region with one button per prioritized indicator", () => {
+  it("renders a named list with one button per prioritized indicator", () => {
     renderRail()
-    expect(screen.getByRole("region", { name: "Diagnostics" })).toBeTruthy()
+    expect(screen.getByRole("list", { name: "Diagnostics" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "HTTP: 2 in flight" })).toBeTruthy()
   })
 
@@ -116,7 +116,7 @@ describe("DiagnosticsRail", () => {
 
   it("renders nothing when there are no signals", () => {
     const { container } = renderRail({ sources: [], indicators: [] })
-    expect(screen.queryByRole("region")).toBeNull()
+    expect(screen.queryByRole("list")).toBeNull()
     expect(container.firstChild).toBeNull()
   })
 

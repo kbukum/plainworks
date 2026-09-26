@@ -1,6 +1,6 @@
 "use client"
 
-import { Spinner } from "@plainworks/ui/feedback"
+import { Callout, Spinner } from "@plainworks/ui/feedback"
 import { type ReactElement, useEffect, useState } from "react"
 import type { Json } from "../../privacy"
 import type { SourceId } from "../../protocol"
@@ -58,11 +58,7 @@ export function DetailPanel({ port, source, detailRef }: DetailPanelProps): Reac
     )
   }
   if (state.status === "failed") {
-    return (
-      <p role="alert" className="py-2 text-destructive text-xs">
-        {state.error}
-      </p>
-    )
+    return <Callout tone="danger">{state.error}</Callout>
   }
   return <JsonTree value={state.value} />
 }

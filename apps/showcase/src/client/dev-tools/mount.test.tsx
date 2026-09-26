@@ -4,7 +4,7 @@ import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient, type HttpInterceptor } from "@plainworks/http"
 import { createQueryClient } from "@plainworks/query"
 import { deferred } from "@plainworks/testkit"
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { mountShowcaseDevtools } from "./mount"
 import { createShowcaseDevtoolsSeams } from "./seams"
 
@@ -37,10 +37,12 @@ describe("showcase devtools", () => {
     expect(document.querySelector("[data-plainworks-devtools]")).toBeNull()
   })
 
-  it("mounts the inspector beside the runtime and tears it down on cleanup", () => {
+  it("mounts the inspector beside the runtime and tears it down on cleanup", async () => {
     const { dispose } = mount()
     try {
-      expect(document.querySelector("[data-plainworks-devtools]")).not.toBeNull()
+      await vi.waitFor(() =>
+        expect(document.querySelector("[data-plainworks-devtools]")).not.toBeNull(),
+      )
     } finally {
       dispose()
     }

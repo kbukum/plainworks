@@ -1,0 +1,16 @@
+/*
+ * The inspector's Tailwind entry. It is compiled at package build time into the self-contained
+ * `dist/styles.css`, with only the utilities the shipped client uses, every rule scoped beneath
+ * the `[data-plainworks-devtools]` style root. A host imports that output as plain CSS and needs
+ * no Tailwind build of its own.
+ */
+@import "@plainworks/ui/styles.css";
+
+/*
+ * Production-exclusion sentinel. It names the style root and survives minification, so the repo's
+ * `check-production` gate can prove a production stylesheet carries no devtools styles. It sets
+ * nothing the shell reads.
+ */
+[data-plainworks-devtools] {
+  --plainworks-devtools-present: 1;
+}

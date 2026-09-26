@@ -1,6 +1,7 @@
 "use client"
 
 import { Badge } from "@plainworks/elements/badge"
+import { EmptyState } from "@plainworks/ui/feedback"
 import { type ReactElement, useState } from "react"
 import { type Severity, type SourceDescriptor, sourceKey } from "../../protocol"
 import type { RetentionEntry } from "../../retention"
@@ -38,17 +39,20 @@ export function EventList({ entries, sources, port, emptyLabel }: EventListProps
   const labels = new Map(sources.map((source) => [sourceKey(source.id), source.label]))
 
   if (newestFirst.length === 0) {
-    return <p className="py-4 text-center text-muted-foreground text-xs">{emptyLabel}</p>
+    return <EmptyState title={emptyLabel} className="p-6" />
   }
 
   return (
-    <ul aria-label="Events" className="grid divide-y divide-border/60">
+    <ul aria-label="Events" className="grid divide-y divide-border">
       {newestFirst.map((entry) => {
         const key = `${sourceKey(entry.id)}:${entry.seq}`
         const isSelected = selected === key
         return (
-          <li key={key} className="grid gap-1 py-1.5">
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+          <li
+            key={key}
+            className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 gap-y-1 py-2"
+          >
+            <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
               <time
                 dateTime={new Date(entry.event.at).toISOString()}
                 className="tabular-nums text-muted-foreground"
@@ -56,27 +60,29 @@ export function EventList({ entries, sources, port, emptyLabel }: EventListProps
                 {formatEventTime(entry.event.at)}
               </time>
               <Badge variant={SEVERITY_VARIANT[entry.event.severity]}>{entry.event.severity}</Badge>
-              <span className="text-muted-foreground">
+              <span className="min-w-0 truncate text-muted-foreground">
                 {labels.get(sourceKey(entry.id)) ?? entry.id.kind}
               </span>
-              <span className="rounded bg-muted px-1 py-0.5 font-mono text-[0.6875rem]">
+              <span className="min-w-0 truncate rounded bg-muted px-1 py-0.5 font-mono text-caption">
                 {entry.event.kind}
               </span>
-              <span className="min-w-0 flex-1 break-words">{entry.event.label}</span>
-              {entry.event.detail === undefined ? null : (
-                <button
-                  type="button"
-                  aria-expanded={isSelected}
-                  aria-label={`Details for ${entry.event.label}`}
-                  onClick={() => setSelected(isSelected ? undefined : key)}
-                  className="min-h-6 rounded-md px-2 text-primary hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
-                >
-                  Details
-                </button>
-              )}
             </div>
+            {entry.event.detail === undefined ? null : (
+              <button
+                type="button"
+                aria-expanded={isSelected}
+                aria-label={`Details for ${entry.event.label}`}
+                onClick={() => setSelected(isSelected ? undefined : key)}
+                className="min-h-6 rounded-md px-2 text-primary text-xs hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+              >
+                Details
+              </button>
+            )}
+            <p className="col-span-2 wrap-anywhere font-mono text-xs">{entry.event.label}</p>
             {isSelected && entry.event.detail !== undefined ? (
-              <DetailPanel port={port} source={entry.id} detailRef={entry.event.detail} />
+              <div className="col-span-2 min-w-0">
+                <DetailPanel port={port} source={entry.id} detailRef={entry.event.detail} />
+              </div>
             ) : null}
           </li>
         )

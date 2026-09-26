@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { cleanup, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it } from "vitest"
 import type { SourceId } from "../../protocol"
@@ -13,12 +13,7 @@ import { TimelineView } from "./timeline-view"
 const http: SourceId = { kind: "http", instance: "api" }
 const state: SourceId = { kind: "state", instance: "cart" }
 
-afterEach(() => {
-  cleanup()
-  // Base UI's focus manager tracks the pre-popup active element module-globally; without a blur,
-  // a later test's popup opens against a detached node and instantly closes.
-  if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
-})
+afterEach(cleanup)
 
 interface Harness {
   readonly port: DevtoolsClientPort
@@ -51,21 +46,6 @@ function emit(
   source.emit({ kind, label, severity, at })
 }
 
-/**
- * Open a Base UI select and pick an option. The popup is opened with a raw `ArrowDown` keydown:
- * a jsdom×user-event×Base-UI interaction quirk makes `user.keyboard` and pointer opens flaky
- * once an earlier test in the module has run pointer interactions. The open gesture itself is
- * the atom's own tested behavior; these tests assert what devtools does with the selection.
- */
-async function chooseSelectOption(
-  user: ReturnType<typeof userEvent.setup>,
-  combobox: string,
-  option: string,
-): Promise<void> {
-  fireEvent.keyDown(screen.getByRole("combobox", { name: combobox }), { key: "ArrowDown" })
-  await user.click(screen.getByRole("option", { name: option }))
-}
-
 describe("TimelineView", () => {
   it("lists events across sources, newest first", () => {
     const harness = setup()
@@ -83,7 +63,7 @@ describe("TimelineView", () => {
     emit(harness.httpSource, "request", "GET /ok", "ok", 1_000)
     emit(harness.httpSource, "request", "GET /broken", "error", 2_000)
     renderTimeline(harness)
-    await chooseSelectOption(user, "Severity", "error")
+    await user.selectOptions(screen.getByRole("combobox", { name: "Severity" }), "Error")
     expect(screen.getAllByRole("listitem")).toHaveLength(1)
     expect(screen.getByText("GET /broken")).toBeTruthy()
   })
@@ -94,7 +74,7 @@ describe("TimelineView", () => {
     emit(harness.httpSource, "request", "GET /tasks", "ok", 1_000)
     emit(harness.stateSource, "change", "item added", "info", 2_000)
     renderTimeline(harness)
-    await chooseSelectOption(user, "Source", "Cart store")
+    await user.selectOptions(screen.getByRole("combobox", { name: "Source" }), "Cart store")
     expect(screen.getAllByRole("listitem")).toHaveLength(1)
     expect(screen.getByText("item added")).toBeTruthy()
   })

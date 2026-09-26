@@ -63,7 +63,7 @@
     "./styles.css": "./dist/styles.css"
   },
   "scripts": {
-    "build": "tsdown",
+    "build": "tsdown && node scripts/styles/cli.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.fixtures.json",
     "test": "vitest run --coverage",
     "lint": "biome check .",
@@ -123,7 +123,7 @@
     "@plainworks/state": "workspace:*",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
-    "@tailwindcss/vite": "catalog:",
+    "@tailwindcss/oxide": "catalog:",
     "@tanstack/query-core": "catalog:",
     "@testing-library/react": "catalog:",
     "@testing-library/user-event": "catalog:",
@@ -133,6 +133,9 @@
     "@vitest/coverage-v8": "catalog:",
     "axe-core": "catalog:",
     "jsdom": "catalog:",
+    "lightningcss": "catalog:",
+    "postcss": "catalog:",
+    "postcss-selector-parser": "catalog:",
     "publint": "catalog:",
     "tailwindcss": "catalog:",
     "tsdown": "catalog:",

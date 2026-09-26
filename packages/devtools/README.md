@@ -61,7 +61,7 @@ if (import.meta.env.DEV) {
 }
 ```
 
-The host must compile Tailwind v4: `styles.css` includes the kit's design styles and registers the shipped inspector classes. Production must remove the whole development module, not just hide its UI.
+`styles.css` is **plain, precompiled CSS** — the host needs no Tailwind build. Every inspector rule and keyframe is scoped to the shell's `[data-plainworks-devtools]` root, so it never restyles your page. The inspector lives in your document, not a shadow root, so a page rule that targets it directly (for example a later, more specific, or `!important` rule) can still apply. Your `.dark`, theme, and density classes on `<html>` still apply. Production must remove the whole development module, not just hide its UI.
 
 ## One session, two views
 
@@ -77,7 +77,26 @@ flowchart LR
 
 *The rail and inspector read the same session; React renderers never enter the neutral protocol.*
 
-`mountDevtools` creates an isolated React root. Reach for `DevtoolsShell` instead when the inspector must render inside an existing React tree; it takes a session you own and never disposes it, which is also the path for sharing one session across several views. Choose `presentation: "rail"`, `"launcher"`, or `"both"` (default), and `dock: "right"` or `"bottom"`. The shell reserves bottom space for the rail, restores focus after closing, and opens with **⌘/Ctrl+Shift+D**. Use `shortcut: null` to disable that binding.
+`mountDevtools` creates an isolated React root. Reach for `DevtoolsShell` instead when the inspector must render inside an existing React tree; it takes a session you own and never disposes it, which is also the path for sharing one session across several views.
+
+The shell is a **docked bar** at the bottom of the viewport — the diagnostics rail plus an **Inspect** button — and a **non-modal inspector** beside your app. The page stays usable while it is open: nothing is dimmed, blurred, or made inert. Escape or the close button hands focus back to the button, and **⌘/Ctrl+Shift+D** toggles it (`shortcut: null` disables that binding).
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `dock` | `"auto"` | `"right"`, `"bottom"`, or `"auto"` — right from `48rem` wide, bottom below. |
+| `reserveSpace` | `true` | Pads `<html>` so the chrome never covers your content or a focused control. |
+| `renderers` | — | Kind-keyed custom panels. They render in a slot the package CSS leaves to your own styles. |
+
+### Host space
+
+The shell claims its space through attributes on `<html>` and publishes the result as custom properties:
+
+| Property | Meaning |
+| --- | --- |
+| `--plainworks-devtools-inset-block-end` | Space taken at the bottom: the bar, plus a bottom-docked panel. |
+| `--plainworks-devtools-inset-inline-end` | Space taken at the inline end by a side-docked panel. |
+
+With `reserveSpace` on, these are added to your own `padding` and `scroll-padding` on `<html>`, which suits document-scrolling pages. If your layout is a fixed-height shell (for example `h-dvh` with its own scroller), pass `reserveSpace={false}` and apply the properties where your layout needs them. Mount one shell per document.
 
 Give every source a stable **kind + instance** pair and a readable label. Multiple sources of one kind get an instance picker. Unknown kinds still receive a generic event/detail view. Source failures stay visible without disabling other sources.
 
@@ -183,7 +202,7 @@ Implement `Source.connect(observer, signal)` beside the runtime it observes. Pub
 
 Declare commands with an ID, label, availability, and risk (`safe`, `mutating`, or `destructive`). Validate command inputs inside the handler. The generic panel separates mutations and confirms destructive actions; **custom renderers must provide their own confirmation** and forward an abort signal to `port.runCommand`.
 
-Pass a kind-keyed `renderers` map to the shell. A renderer receives `SourcePanelProps` with the selected instance, events, indicators, failure, and port. The [showcase mock source](../../apps/showcase/src/client/dev-tools/mock-source.ts) and [mock panel](../../apps/showcase/src/client/dev-tools/mock-panel.tsx) demonstrate allowlisted probes, latency/error controls, and a confirmed reset. Neither fixture knowledge nor components belong in the package's neutral protocol.
+Pass a kind-keyed `renderers` map to the shell. A renderer receives `SourcePanelProps` with the selected instance, events, indicators, failure, and port. It is styled by **your** CSS (it renders in a slot the package stylesheet skips), and it still inherits the kit theme tokens from the inspector. The [showcase mock source](../../apps/showcase/src/client/dev-tools/mock-source.ts) and [mock panel](../../apps/showcase/src/client/dev-tools/mock-panel.tsx) demonstrate allowlisted probes, latency/error controls, and a confirmed reset. Neither fixture knowledge nor components belong in the package's neutral protocol.
 
 ## What the session guarantees
 
@@ -214,7 +233,8 @@ The session defaults to 200 retained events per source and 500 aggregate events.
 | Duplicate registration error | Each kind/instance pair must be unique within a session. Tear down the old registration before replacing it. |
 | Failed or stale rail indicator | Inspect the source panel; fix the upstream read and call `recover`. Freshness is based on the source's `updatedAt`. |
 | Missing history after resume | Retention is bounded. Inspect dropped counts; pause affects presentation, not collection. |
-| Unstyled inspector | Import `@plainworks/devtools/styles.css` from the gated module and run the host's Tailwind v4 pipeline. |
+| Unstyled inspector | Import `@plainworks/devtools/styles.css` from the gated module. No Tailwind setup is needed. |
+| Inspector covers content | Keep `reserveSpace` on, or apply `--plainworks-devtools-inset-*` inside your own full-height layout. |
 | Devtools in production output | Gate the source factories and CSS too. Use `NODE_ENV=production` for Vite build fixtures; `--mode production` alone need not disable `DEV`. Inspect emitted artifacts rather than relying on a hidden launcher. |
 | Leaks after navigation or HMR | Call the mount's `dispose`; also release adapter observations you own outside the session, such as `channel.observe`. |
 

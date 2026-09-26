@@ -1,7 +1,6 @@
 "use client"
 
 import type { Order } from "@plainworks/demo"
-import { Badge } from "@plainworks/elements/badge"
 import { Label } from "@plainworks/elements/label"
 import { NativeSelect, NativeSelectOption } from "@plainworks/elements/native-select"
 import {
@@ -12,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@plainworks/elements/table"
-import { DateValue, NumberValue } from "@plainworks/ui/display"
+import { DateValue, NumberValue, StatusBadge } from "@plainworks/ui/display"
 import { Callout } from "@plainworks/ui/feedback"
 import { Modal } from "@plainworks/ui/overlays"
 import { type ReactElement, useId } from "react"
@@ -70,9 +69,9 @@ export function OrderDetail({
               timeZone={DISPLAY_TIME_ZONE}
             />
           </div>
-          <Badge variant={ORDER_STATUS_TONE[order.status]}>
+          <StatusBadge tone={ORDER_STATUS_TONE[order.status]}>
             {ORDER_STATUS_LABEL[order.status]}
-          </Badge>
+          </StatusBadge>
         </div>
 
         <Table>

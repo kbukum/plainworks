@@ -93,7 +93,7 @@ const useCount = createScopedState<number>({
 
 ## RSC prefetch → dehydrate → hydrate
 
-Warm the cache on the server, ship it to the browser, hydrate with no loading flash. (Hydration is not "no refetch": with the default `staleTime: 0` a hydrated query is stale and refetches in the background on mount — freshness follows the client's stale policy.) `prefetchQuery`/`prefetchInfiniteQuery` are **best-effort**: a warming failure resolves to a `{ status: "failed", cause }` `PrefetchOutcome` (never rejects) so it never aborts the server render, and the cause is preserved so the caller can log it — never swallowed. TanStack's default dehydration ships only successful queries, so a failed prefetch is not sent to the browser; the client mounts that query cold and fetches it fresh, where its own error boundary handles a repeat failure.
+Warm the cache on the server, ship it to the browser, hydrate with no loading flash. Hydrated data stays fresh for `DEFAULT_QUERY_STALE_TIME_MS` (one minute), so the browser does not refetch it on mount; set your own `staleTime` in `createQueryClient` to change that. `prefetchQuery`/`prefetchInfiniteQuery` are **best-effort**: a warming failure resolves to a `{ status: "failed", cause }` `PrefetchOutcome` (never rejects) so it never aborts the server render, and the cause is preserved so the caller can log it — never swallowed. TanStack's default dehydration ships only successful queries, so a failed prefetch is not sent to the browser; the client mounts that query cold and fetches it fresh, where its own error boundary handles a repeat failure.
 
 ```tsx
 // server

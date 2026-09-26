@@ -16,19 +16,20 @@ Then import atoms from `@plainworks/elements` and composites from `@plainworks/u
 
 ```tsx
 import { Button } from "@plainworks/elements/button"
-import { ThemeProvider, ThemeToggle } from "@plainworks/ui/theme"
+import { ThemeModeMenu, ThemeProvider } from "@plainworks/ui/theme"
 
 export function Header({ themeSource, serverTheme }) {
   return (
     <ThemeProvider source={themeSource} initialTheme={serverTheme}>
-      <ThemeToggle />
+      <ThemeModeMenu />
+      <ThemeSaveAlert />
       <Button>Sign in</Button>
     </ThemeProvider>
   )
 }
 ```
 
-The tokens, color schemes, and stylesheet are owned by [`@plainworks/theme`](../theme/README.md); `@plainworks/ui` re-exports the neutral theme surface for convenience and adds the ready-made `ThemeToggle`.
+`ThemeSaveAlert` is your own small component that announces a failed save; see [Theme](#theme). The tokens, color schemes, and stylesheet are owned by [`@plainworks/theme`](../theme/README.md); `@plainworks/ui` re-exports the neutral theme surface for convenience and adds ready-made color-mode controls.
 
 ## Components
 
@@ -36,15 +37,40 @@ The interactive composites live behind per-concern client subpaths, so you impor
 
 | Import | You get |
 | --- | --- |
+| `@plainworks/ui/shell` | `AppShell` — the app frame: header, navigation rail or drawer, skip link, and main landmark |
 | `@plainworks/ui/page` | `Page`, `PageHeader`, `Section`, `Toolbar` — page structure with headings, widths, and spacing |
 | `@plainworks/ui/layout` | `Stack`, `Grid`, `Split` — fluid, container-first layout primitives |
 | `@plainworks/ui/feedback` | `LoadingState`, `EmptyState`, `ErrorState`, `AsyncState`, `Spinner`, `Callout` — region states and inline status |
-| `@plainworks/ui/display` | `DateValue`, `NumberValue` — SSR-stable `Intl` formatting |
-| `@plainworks/ui/navigation` | `Breadcrumbs` — an accessible trail from an items array |
-| `@plainworks/ui/overlays` | `Modal`, `Drawer` — labelled, controllable overlays |
+| `@plainworks/ui/display` | `DateValue`, `NumberValue`, `StatusBadge` — SSR-stable `Intl` formatting and toned status labels |
+| `@plainworks/ui/navigation` | `Breadcrumbs`, `NavList` — an accessible trail and a primary nav list that marks the current page |
+| `@plainworks/ui/overlays` | `Modal`, `Drawer` — labelled, controllable overlays; a drawer body scrolls on its own |
 | `@plainworks/ui/data-table` | `DataTable` — the controlled, sortable, selectable table exemplar |
 | `@plainworks/ui/list` | `Pagination`, `FilterBar` — controlled paging and filter building over `std/list` |
 | `@plainworks/ui/forms` | `Form`, the typed `*Field` set, `FormSubmit` — schema-validated forms on React 19 Actions |
+
+`AppShell` frames the whole app. Navigation sits in a rail on wide screens and in a drawer behind a menu button on narrow ones, measured by the shell's own width. It adds a skip link and a named main landmark, and moves focus to main when the page changes. The rail and drawer copies of the navigation can both be mounted, so give each a unique label based on `placement`. Pass `renderLink` to `NavList` to use your router's link.
+
+```tsx
+import { NavList } from "@plainworks/ui/navigation"
+import { AppShell } from "@plainworks/ui/shell"
+
+<AppShell
+  brand={<a href="/">Acme</a>}
+  actions={<ThemeModeMenu />}
+  mainLabel={page.title}
+  navigationKey={page.id}
+  navigation={({ placement, onNavigate }) => (
+    <NavList
+      label={placement === "rail" ? "Primary" : "Sections"}
+      items={navItems}
+      onNavigate={onNavigate}
+    />
+  )}
+>
+  <ThemeSaveAlert />
+  {page.content}
+</AppShell>
+```
 
 A page reads top-down: one `PageHeader`, then titled `Section`s. Each section is a labelled landmark, and each piece adapts to its own width, so it works in a sidebar or a full page.
 
@@ -130,11 +156,34 @@ import { useClipboard } from "@plainworks/ui/hooks"
 
 Use `parseThemeCookie` and `resolveTheme` from the neutral `@plainworks/ui` entry (re-exported from `@plainworks/theme`) during SSR, then apply the returned `htmlClass` and `colorScheme` to `<html>` before hydration. On the client, pass a caller-owned `StateSource<ThemePreference>` to `ThemeProvider`; a cookie scope from `@plainworks/state/client/scope` keeps the value server-readable without creating a singleton or using browser storage directly.
 
+Two controls set the color mode. `ThemeModeMenu` is a compact header menu; `ThemeModeGroup` is an inline Light / Dark / System button group for a settings page. Both take optional `icons` and `labels`, so the kit ships no icon set and no fixed copy.
+
+A save can fail, for example when the cookie write is rejected. The selection then stays unchanged and the failure lands on `useTheme().error`:
+
+- `ThemeModeGroup` announces it below itself. Pass `announceError={false}` when the page already does.
+- `ThemeModeMenu` has no room for an inline message. **Render one app-level alert yourself**, or the failure is silent.
+
 ```tsx
-import { ThemeProvider, ThemeToggle } from "@plainworks/ui/theme"
+import { Callout } from "@plainworks/ui/feedback"
+import {
+  defaultThemeModeLabels,
+  ThemeModeGroup,
+  ThemeModeMenu,
+  ThemeProvider,
+  useTheme,
+} from "@plainworks/ui/theme"
+
+function ThemeSaveAlert() {
+  const { error } = useTheme()
+  return error === undefined ? null : (
+    <Callout tone="danger">{defaultThemeModeLabels.error}</Callout>
+  )
+}
 
 <ThemeProvider source={themeSource} initialTheme={serverTheme}>
-  <ThemeToggle />
+  <ThemeModeMenu icons={{ light: <Sun />, dark: <Moon />, system: <Monitor /> }} />
+  <ThemeSaveAlert />
+  <ThemeModeGroup announceError={false} />
 </ThemeProvider>
 ```
 

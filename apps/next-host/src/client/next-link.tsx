@@ -3,7 +3,8 @@
 import type { AnchorHTMLAttributes, MouseEvent, ReactElement } from "react"
 
 /**
- * The host router adapter for the `ui` breadcrumb `render` seam. It renders each entry as a real
+ * The host router adapter for the `ui` link seams (the `NavList` `renderLink` and the breadcrumb
+ * `render`). It renders each entry as a real
  * `<a href>` and enhances a plain left click into an App Router client navigation through the
  * host's `navigate` (`router.push`) — the same progressive-enhancement contract the Vite showcase
  * backs with its history router. Modified clicks and keyboard activation keep native anchor

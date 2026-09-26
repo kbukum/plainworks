@@ -1,7 +1,6 @@
 "use client"
 
-import { Badge } from "@plainworks/elements/badge"
-import { NumberValue } from "@plainworks/ui/display"
+import { NumberValue, StatusBadge } from "@plainworks/ui/display"
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react"
 import type { ReactElement } from "react"
 import { DISPLAY_LOCALE } from "../../app/constants"
@@ -19,7 +18,10 @@ export function GrowthBadge({ value, periodLabel }: GrowthBadgeProps): ReactElem
     direction === "neutral" ? Minus : direction === "increase" ? ArrowUpRight : ArrowDownRight
 
   return (
-    <Badge variant={direction === "decrease" ? "destructive" : "secondary"} className="gap-1">
+    <StatusBadge
+      tone={direction === "neutral" ? "neutral" : direction === "increase" ? "success" : "danger"}
+      className="gap-1"
+    >
       <Arrow aria-hidden className="size-3.5" />
       <NumberValue
         value={value / 100}
@@ -29,6 +31,6 @@ export function GrowthBadge({ value, periodLabel }: GrowthBadgeProps): ReactElem
       <span className="sr-only">
         {direction === "neutral" ? " no change" : ` ${direction}`} {periodLabel}
       </span>
-    </Badge>
+    </StatusBadge>
   )
 }

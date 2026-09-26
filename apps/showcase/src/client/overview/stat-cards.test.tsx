@@ -8,6 +8,23 @@ import { StatCards } from "./stat-cards"
 afterEach(cleanup)
 
 describe("StatCards", () => {
+  it("gives every card a supporting line so the row reads evenly", () => {
+    render(
+      <StatCards
+        stats={{
+          totalUsers: 10,
+          totalOrders: 20,
+          totalRevenue: 30,
+          totalProducts: 40,
+          userGrowth: 1,
+          orderGrowth: 1,
+          revenueGrowth: 1,
+        }}
+      />,
+    )
+    expect(screen.getByText("Listed in the catalog")).toBeDefined()
+  })
+
   it("presents zero growth as no change", async () => {
     const { container } = render(
       <StatCards

@@ -4,7 +4,7 @@ import type { Product } from "@plainworks/demo"
 import { Badge } from "@plainworks/elements/badge"
 import { Button } from "@plainworks/elements/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@plainworks/elements/card"
-import { NumberValue } from "@plainworks/ui/display"
+import { NumberValue, StatusBadge } from "@plainworks/ui/display"
 import type { ReactElement } from "react"
 import { DISPLAY_LOCALE } from "../../app/constants"
 import { PRODUCT_STATUS_LABEL, PRODUCT_STATUS_TONE, productInStock } from "./product-fields"
@@ -32,9 +32,9 @@ export function ProductCard({ product, onView }: ProductCardProps): ReactElement
       <CardHeader className="gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">{product.category}</Badge>
-          <Badge variant={PRODUCT_STATUS_TONE[product.status]}>
+          <StatusBadge tone={PRODUCT_STATUS_TONE[product.status]}>
             {PRODUCT_STATUS_LABEL[product.status]}
-          </Badge>
+          </StatusBadge>
         </div>
         <CardTitle className="text-base">{product.name}</CardTitle>
       </CardHeader>

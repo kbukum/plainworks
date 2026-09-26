@@ -24,7 +24,7 @@ test("server markup is styled before client hydration", async ({ page }) => {
   await page.reload({ waitUntil: "domcontentloaded" })
 
   await expect(page.locator('link[rel="stylesheet"][href="/src/client/styles.css"]')).toHaveCount(1)
-  await expect(page.locator("[data-mode]")).toHaveCSS("display", "grid")
+  await expect(page.locator("[data-slot='app-shell']")).toHaveCSS("display", "grid")
   await expect(page.getByRole("banner")).toHaveCSS("position", "sticky")
 })
 

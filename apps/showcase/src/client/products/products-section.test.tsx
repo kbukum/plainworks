@@ -107,10 +107,17 @@ describe("products section", () => {
     expect(within(dialog).getByText("Availability")).toBeDefined()
   })
 
-  it("renders an error callout when the catalog query fails", async () => {
-    handle.server.use(http.get("*/api/products", () => new HttpResponse(null, { status: 500 })))
+  it("shows a failure the user can retry when the products query fails", async () => {
+    const user = userEvent.setup()
+    handle.server.use(
+      http.get("*/api/products", () => new HttpResponse(null, { status: 500 }), { once: true }),
+    )
     await renderProducts({ prefetch: false })
-    expect(await screen.findByText("Products are unavailable")).toBeDefined()
+
+    const failure = await screen.findByRole("alert")
+    expect(within(failure).getByText("Products are unavailable")).toBeDefined()
+    await user.click(within(failure).getByRole("button", { name: "Try again" }))
+    expect(await screen.findByRole("list", { name: "Product results" })).toBeDefined()
   })
 
   it("carries no axe violations with the detail overlay open", async () => {

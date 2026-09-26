@@ -41,8 +41,9 @@ export interface DrawerProps {
 
 /**
  * A ready-made edge drawer built on the `sheet` atom — a wrapper, not an edited atom. It always
- * renders a `SheetTitle` so the surface is labelled, and stays controllable through
- * `open`/`onOpenChange`.
+ * renders a `SheetTitle` so the surface is labelled, bounds every side to the viewport and gives
+ * the body inset padding and its own scroll so long content never pushes the footer off screen, and
+ * stays controllable through `open`/`onOpenChange`.
  */
 export function Drawer({
   title,
@@ -62,12 +63,17 @@ export function Drawer({
       ) : (
         <SheetTrigger>{trigger}</SheetTrigger>
       )}
-      <SheetContent side={side}>
+      {/* The atom sizes top/bottom sheets to their content; the bound lets the body scroll. */}
+      <SheetContent side={side} className="max-h-dvh">
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
           {description === undefined ? null : <SheetDescription>{description}</SheetDescription>}
         </SheetHeader>
-        {children}
+        {children === undefined ? null : (
+          <div data-slot="drawer-body" className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+            {children}
+          </div>
+        )}
         {footer === undefined ? null : <SheetFooter>{footer}</SheetFooter>}
       </SheetContent>
     </Sheet>

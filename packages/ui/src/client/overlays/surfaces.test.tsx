@@ -120,4 +120,40 @@ describe("Drawer", () => {
     expect(screen.getByRole("button", { name: "Apply" })).toBeDefined()
     await expectNoAxeViolations(document.body)
   })
+
+  it("scrolls long content inside its own body while the header stays in view", async () => {
+    const user = userEvent.setup()
+    render(
+      <Drawer trigger="Open filters" title="Filters">
+        <p>filter body</p>
+      </Drawer>,
+    )
+    await user.click(screen.getByRole("button", { name: "Open filters" }))
+    const body = screen.getByText("filter body").closest("[data-slot='drawer-body']")
+    expect(body?.className).toContain("overflow-y-auto")
+    expect(body?.contains(screen.getByRole("heading", { name: "Filters" }))).toBe(false)
+  })
+
+  it.each(["top", "right", "bottom", "left"] as const)(
+    "bounds a %s drawer to the viewport so its body, not the page, scrolls",
+    async (side) => {
+      const user = userEvent.setup()
+      render(
+        <Drawer trigger="Open filters" title="Filters" side={side} footer="Apply">
+          <p>filter body</p>
+        </Drawer>,
+      )
+      await user.click(screen.getByRole("button", { name: "Open filters" }))
+      expect(screen.getByRole("dialog", { name: "Filters" }).className).toContain("max-h-dvh")
+    },
+  )
+
+  it("renders no body region when it has no content", async () => {
+    const user = userEvent.setup()
+    render(<Drawer trigger="Open notes" title="Notes" />)
+    await user.click(screen.getByRole("button", { name: "Open notes" }))
+    expect(
+      screen.getByRole("dialog", { name: "Notes" }).querySelector("[data-slot='drawer-body']"),
+    ).toBeNull()
+  })
 })

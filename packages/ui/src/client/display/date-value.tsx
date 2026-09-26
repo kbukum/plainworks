@@ -19,6 +19,10 @@ export interface DateValueProps {
   /**
    * `Intl.DateTimeFormat` options. Defaults to a medium date. `timeZone` is excluded — it is set
    * from the required {@link DateValueProps.timeZone} prop so SSR/client stability is never lost.
+   *
+   * Runtimes ship different locale data, and they join a combined date and time differently
+   * (`"Sep 26, 2026 at 10:38 PM"` in one, `"Sep 26, 2026, 10:38 PM"` in another). When the server
+   * and the browser may differ, render the date and the time as two values.
    */
   readonly options?: Omit<Intl.DateTimeFormatOptions, "timeZone">
   readonly className?: string

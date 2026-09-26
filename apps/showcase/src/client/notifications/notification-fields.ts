@@ -1,13 +1,12 @@
 import type { Notification } from "@plainworks/demo"
+import type { StatusTone } from "@plainworks/ui/display"
 import { CircleAlert, CircleCheck, Info, type LucideIcon, TriangleAlert } from "lucide-react"
-
-type BadgeTone = "default" | "secondary" | "destructive" | "outline"
 
 /** Presentation for one notification type: its icon, its accessible type label, and a badge tone. */
 export interface NotificationTypeMeta {
   readonly icon: LucideIcon
   readonly label: string
-  readonly tone: BadgeTone
+  readonly tone: StatusTone
 }
 
 /**
@@ -16,8 +15,8 @@ export interface NotificationTypeMeta {
  * the vocabulary lives in one place.
  */
 export const NOTIFICATION_TYPE_META: Record<Notification["type"], NotificationTypeMeta> = {
-  info: { icon: Info, label: "Info", tone: "secondary" },
-  success: { icon: CircleCheck, label: "Success", tone: "default" },
-  warning: { icon: TriangleAlert, label: "Warning", tone: "outline" },
-  error: { icon: CircleAlert, label: "Error", tone: "destructive" },
+  info: { icon: Info, label: "Info", tone: "info" },
+  success: { icon: CircleCheck, label: "Success", tone: "success" },
+  warning: { icon: TriangleAlert, label: "Warning", tone: "warning" },
+  error: { icon: CircleAlert, label: "Error", tone: "danger" },
 }

@@ -202,12 +202,20 @@ describe("notifications section", () => {
     expect(await screen.findByText("You're all caught up")).toBeDefined()
   })
 
-  it("renders an error state when the feed query fails", async () => {
+  it("shows a failure the user can retry when the notifications query fails", async () => {
+    const user = userEvent.setup()
     handle.server.use(
-      http.get("*/api/notifications", () => new HttpResponse(null, { status: 500 })),
+      http.get("*/api/notifications", () => new HttpResponse(null, { status: 500 }), {
+        once: true,
+      }),
     )
     await renderNotifications({ prefetch: false })
-    expect(await screen.findByText("Notifications are unavailable")).toBeDefined()
+
+    const failure = await screen.findByText("Notifications are unavailable")
+    const alert = failure.closest("[role='alert']")
+    if (!(alert instanceof HTMLElement)) throw new Error("expected the failure to be an alert")
+    await user.click(within(alert).getByRole("button", { name: "Try again" }))
+    expect(await screen.findAllByRole("button", { name: /^Mark read/ })).toBeDefined()
   })
 
   it("carries no axe violations", async () => {

@@ -1,7 +1,6 @@
 import type { Product } from "@plainworks/demo"
+import type { StatusTone } from "@plainworks/ui/display"
 import type { FacetOption } from "../catalog"
-
-type BadgeTone = "default" | "secondary" | "destructive" | "outline"
 
 const CATALOG_PRODUCT_STATUSES = [
   "available",
@@ -28,14 +27,14 @@ export const PRODUCT_STATUS_LABEL: Record<Product["status"], string> = {
   archived: "Archived",
 }
 
-/** Badge tone per status — available reads as solid, out-of-stock as an error, the rest quieter. */
-export const PRODUCT_STATUS_TONE: Record<Product["status"], BadgeTone> = {
-  available: "default",
-  out_of_stock: "destructive",
-  discontinued: "outline",
-  active: "default",
-  draft: "secondary",
-  archived: "outline",
+/** Status tone per product status: sellable is a success, out of stock needs attention. */
+export const PRODUCT_STATUS_TONE: Record<Product["status"], StatusTone> = {
+  available: "success",
+  out_of_stock: "warning",
+  discontinued: "neutral",
+  active: "success",
+  draft: "info",
+  archived: "neutral",
 }
 
 /** Category facet options for the shared {@link FacetPanel}. */

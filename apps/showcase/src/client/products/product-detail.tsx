@@ -2,7 +2,7 @@
 
 import type { Product } from "@plainworks/demo"
 import { Badge } from "@plainworks/elements/badge"
-import { NumberValue } from "@plainworks/ui/display"
+import { NumberValue, StatusBadge } from "@plainworks/ui/display"
 import { Modal } from "@plainworks/ui/overlays"
 import type { ReactElement, ReactNode } from "react"
 import { DISPLAY_LOCALE } from "../../app/constants"
@@ -44,9 +44,9 @@ export function ProductDetail({ product, onOpenChange }: ProductDetailProps): Re
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{product.category}</Badge>
-            <Badge variant={PRODUCT_STATUS_TONE[product.status]}>
+            <StatusBadge tone={PRODUCT_STATUS_TONE[product.status]}>
               {PRODUCT_STATUS_LABEL[product.status]}
-            </Badge>
+            </StatusBadge>
           </div>
           <span className="font-semibold text-xl">
             <NumberValue value={product.price} locale={DISPLAY_LOCALE} options={currency} />

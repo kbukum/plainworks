@@ -1,10 +1,9 @@
 "use client"
 
 import type { Task } from "@plainworks/demo"
-import { Badge } from "@plainworks/elements/badge"
 import { Button } from "@plainworks/elements/button"
 import type { DataTableColumn } from "@plainworks/ui/data-table"
-import { DateValue } from "@plainworks/ui/display"
+import { DateValue, StatusBadge } from "@plainworks/ui/display"
 import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../app/constants"
 import { PRIORITY_LABEL, PRIORITY_TONE, STATUS_LABEL, STATUS_TONE } from "./task-fields"
 
@@ -35,7 +34,9 @@ export function taskColumns({ onEdit }: TaskColumnsOptions = {}): DataTableColum
       id: "status",
       header: "Status",
       sortable: true,
-      cell: (task) => <Badge variant={STATUS_TONE[task.status]}>{STATUS_LABEL[task.status]}</Badge>,
+      cell: (task) => (
+        <StatusBadge tone={STATUS_TONE[task.status]}>{STATUS_LABEL[task.status]}</StatusBadge>
+      ),
     },
     {
       id: "priority",
@@ -43,7 +44,9 @@ export function taskColumns({ onEdit }: TaskColumnsOptions = {}): DataTableColum
       sortable: true,
       priority: "low",
       cell: (task) => (
-        <Badge variant={PRIORITY_TONE[task.priority]}>{PRIORITY_LABEL[task.priority]}</Badge>
+        <StatusBadge tone={PRIORITY_TONE[task.priority]}>
+          {PRIORITY_LABEL[task.priority]}
+        </StatusBadge>
       ),
     },
     {

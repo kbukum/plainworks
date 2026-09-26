@@ -1,10 +1,9 @@
 "use client"
 
 import type { Order } from "@plainworks/demo"
-import { Badge } from "@plainworks/elements/badge"
 import { Button } from "@plainworks/elements/button"
 import type { DataTableColumn } from "@plainworks/ui/data-table"
-import { DateValue, NumberValue } from "@plainworks/ui/display"
+import { DateValue, NumberValue, StatusBadge } from "@plainworks/ui/display"
 import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../app/constants"
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from "./order-fields"
 
@@ -53,7 +52,9 @@ export function orderColumns({ onView }: OrderColumnsOptions): DataTableColumn<O
       sortable: true,
       priority: "low",
       cell: (order) => (
-        <Badge variant={ORDER_STATUS_TONE[order.status]}>{ORDER_STATUS_LABEL[order.status]}</Badge>
+        <StatusBadge tone={ORDER_STATUS_TONE[order.status]}>
+          {ORDER_STATUS_LABEL[order.status]}
+        </StatusBadge>
       ),
     },
     {

@@ -51,7 +51,11 @@ async function renderOverview(
     <QueryClientProvider client={queryClient}>
       <HttpClientProvider client={httpClient}>
         <RouterProvider initialPath="/">
-          <OverviewSection />
+          {/* The section ships inside the shell's main landmark, under the page's h1. */}
+          <main>
+            <h1>Overview</h1>
+            <OverviewSection />
+          </main>
         </RouterProvider>
       </HttpClientProvider>
     </QueryClientProvider>,
@@ -90,15 +94,25 @@ describe("overview section", () => {
     expect(screen.getByRole("status", { name: "Loading recent activity" })).toBeDefined()
   })
 
-  it("surfaces a typed error when the summary read fails", async () => {
+  it("surfaces a retryable error when the summary read fails", async () => {
+    const user = userEvent.setup()
     handle.server.use(
-      http.get("*/api/dashboard/overview", () => new HttpResponse(null, { status: 500 })),
+      http.get("*/api/dashboard/overview", () => new HttpResponse(null, { status: 500 }), {
+        once: true,
+      }),
     )
     await renderOverview({ prefetch: false })
 
-    expect(
-      await screen.findByRole("alert", { name: "Summary statistics are unavailable" }),
-    ).toBeDefined()
+    const failure = await screen.findByRole("alert", { name: "Summary statistics are unavailable" })
+    await user.click(within(failure).getByRole("button", { name: "Try again" }))
+    expect(await screen.findAllByText(/from last period/)).toHaveLength(3)
+  })
+
+  it("titles each dashboard panel with a heading under the page title", async () => {
+    await renderOverview()
+    for (const name of ["Revenue trend", "Top products", "Recent activity"]) {
+      expect(screen.getByRole("heading", { level: 2, name })).toBeDefined()
+    }
   })
 
   it("replaces stale summary data when a background refresh fails", async () => {

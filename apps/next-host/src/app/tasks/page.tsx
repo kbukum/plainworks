@@ -1,8 +1,8 @@
 // The gated Tasks route (RSC). It enforces the session gate, prefetches the task list into a
 // request-scoped query client through `@plainworks/query` over `@plainworks/http`, and hands the
 // dehydrated cache to the client `HydrationBoundary` — so the browser mounts the list under the
-// identical key with no refetch flash. Dynamic: the prefetch reads the live mock backend per
-// request.
+// identical key with no refetch flash. The app frame supplies the page title. Dynamic: the prefetch
+// reads the live mock backend per request.
 
 import { createHttpClient } from "@plainworks/http"
 import { createQueryClient, dehydrateClient, prefetchQuery } from "@plainworks/query"
@@ -29,7 +29,6 @@ export default async function TasksPage(): Promise<ReactElement> {
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <h1>Tasks</h1>
       <TaskList />
     </HydrationBoundary>
   )

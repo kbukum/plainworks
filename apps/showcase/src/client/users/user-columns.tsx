@@ -5,9 +5,9 @@ import { Avatar, AvatarFallback } from "@plainworks/elements/avatar"
 import { Badge } from "@plainworks/elements/badge"
 import { Button } from "@plainworks/elements/button"
 import type { DataTableColumn } from "@plainworks/ui/data-table"
+import { StatusBadge } from "@plainworks/ui/display"
 import {
   USER_ROLE_LABEL,
-  USER_ROLE_TONE,
   USER_STATUS_LABEL,
   USER_STATUS_TONE,
   userDisplayName,
@@ -48,9 +48,7 @@ export function userColumns({ onView }: UserColumnsOptions): DataTableColumn<Use
       id: "role",
       header: "Role",
       priority: "low",
-      cell: (user) => (
-        <Badge variant={USER_ROLE_TONE[user.role]}>{USER_ROLE_LABEL[user.role]}</Badge>
-      ),
+      cell: (user) => <Badge variant="outline">{USER_ROLE_LABEL[user.role]}</Badge>,
     },
     {
       id: "department",
@@ -63,7 +61,9 @@ export function userColumns({ onView }: UserColumnsOptions): DataTableColumn<Use
       header: "Status",
       priority: "low",
       cell: (user) => (
-        <Badge variant={USER_STATUS_TONE[user.status]}>{USER_STATUS_LABEL[user.status]}</Badge>
+        <StatusBadge tone={USER_STATUS_TONE[user.status]}>
+          {USER_STATUS_LABEL[user.status]}
+        </StatusBadge>
       ),
     },
     {

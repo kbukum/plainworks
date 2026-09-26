@@ -83,6 +83,10 @@
       "types": "./dist/page.d.ts",
       "import": "./dist/page.js"
     },
+    "./shell": {
+      "types": "./dist/shell.d.ts",
+      "import": "./dist/shell.js"
+    },
     "./theme": {
       "types": "./dist/theme-client.d.ts",
       "import": "./dist/theme-client.js"

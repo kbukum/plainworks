@@ -17,6 +17,7 @@ export default preset({
     forms: "src/client/forms/index.ts",
     list: "src/client/list/index.ts",
     page: "src/client/page/index.ts",
+    shell: "src/client/shell/index.ts",
     "theme-client": "src/client/theme/index.ts",
   },
   // tsdown has no CSS pipeline, so the Tailwind-source stylesheet is copied verbatim into

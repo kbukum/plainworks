@@ -45,7 +45,7 @@ const tasks: Section = {
   id: "tasks",
   label: "Tasks",
   path: "/tasks",
-  summary: "The flagship interactive surface — filter, sort, edit, and watch live updates.",
+  summary: "Filter, sort, and edit tasks while live updates arrive.",
   icon: SquareCheckBig,
 }
 
@@ -53,7 +53,7 @@ const orders: Section = {
   id: "orders",
   label: "Orders",
   path: "/orders",
-  summary: "A read-first catalog of orders with server-prefetched, filterable rows.",
+  summary: "Filter orders by status and review each order's line items and total.",
   icon: ShoppingCart,
 }
 
@@ -61,7 +61,7 @@ const products: Section = {
   id: "products",
   label: "Products",
   path: "/products",
-  summary: "Browse the product catalog in a fluid, responsive grid.",
+  summary: "Browse the catalog by category, status, and price.",
   icon: Package,
 }
 
@@ -69,7 +69,7 @@ const users: Section = {
   id: "users",
   label: "Users",
   path: "/users",
-  summary: "The team directory, hydrated from the mock backend.",
+  summary: "Find members by role, status, and department.",
   icon: Users,
 }
 
@@ -77,7 +77,7 @@ const notifications: Section = {
   id: "notifications",
   label: "Notifications",
   path: "/notifications",
-  summary: "Recent notifications you can read and mark done.",
+  summary: "Filter to what is unread, mark items read, or dismiss them.",
   icon: Bell,
 }
 
@@ -85,7 +85,7 @@ const settings: Section = {
   id: "settings",
   label: "Settings",
   path: "/settings",
-  summary: "Manage your account and workspace preferences.",
+  summary: "Your profile, preferences, notifications, and appearance.",
   icon: Settings,
 }
 

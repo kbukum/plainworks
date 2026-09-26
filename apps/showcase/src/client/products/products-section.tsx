@@ -1,13 +1,13 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@plainworks/elements/card"
+import { asyncStatus } from "@plainworks/ui"
+import { AsyncState, EmptyState, ErrorState, LoadingState } from "@plainworks/ui/feedback"
 import { Pagination } from "@plainworks/ui/list"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { type ReactElement, useState } from "react"
 import { PRODUCT_LIST_PARAMS } from "../../app/constants"
 import { productListPlan } from "../../app/product-read"
 import { CatalogLayout, FacetPanel, ListSearch, useCatalogList } from "../catalog"
-import { SectionState } from "../feedback"
 import { useHttpClient } from "../http-client"
 import { PriceRange } from "./price-range"
 import { ProductCard } from "./product-card"
@@ -41,22 +41,22 @@ export function ProductsSection(): ReactElement {
   const selected = rows.find((product) => product.id === selectedId)
 
   return (
-    <section aria-label="Products" className="grid gap-4">
-      <p className="text-muted-foreground text-sm">
-        Browse the catalog, filter by category, status, and price, and open a product for details.
-      </p>
+    <>
       <CatalogLayout
-        filtersLabel="Product controls"
+        filtersLabel="Product filters"
+        activeFilters={list.filters.length}
+        search={
+          <ListSearch
+            label="Search products"
+            value={list.search}
+            onChange={list.setSearch}
+            placeholder="Product name"
+          />
+        }
         filters={
           <>
-            <ListSearch
-              label="Search products"
-              value={list.search}
-              onChange={list.setSearch}
-              placeholder="Product name"
-            />
             <FacetPanel
-              label="Catalog filters"
+              label="Filter by category and status"
               fields={[
                 { field: "category", label: "Category", options: PRODUCT_CATEGORY_OPTIONS },
                 { field: "status", label: "Status", options: PRODUCT_STATUS_OPTIONS },
@@ -69,43 +69,45 @@ export function ProductsSection(): ReactElement {
           </>
         }
       >
-        <Card className="min-w-0 border-border/70">
-          <CardHeader className="px-4 sm:px-6">
-            <CardTitle>Products</CardTitle>
-          </CardHeader>
-          <CardContent className="grid min-w-0 gap-4 px-4 sm:px-6">
-            <SectionState
-              pending={query.isPending}
-              error={query.isError}
-              loadingLabel="Loading products"
-              errorTitle="Products are unavailable"
-              errorBody="The catalog could not be loaded. Try again shortly."
-              isEmpty={!query.isPending && rows.length === 0}
-              empty={{
-                title: "No products match",
-                body: "Adjust the filters, price range, or search to see more products.",
-              }}
-            >
-              <ul
-                aria-label="Product results"
-                className="grid list-none grid-cols-[repeat(auto-fit,minmax(min(100%,16rem),1fr))] gap-4 p-0"
-              >
-                {rows.map((product) => (
-                  <li key={product.id}>
-                    <ProductCard product={product} onView={() => setSelectedId(product.id)} />
-                  </li>
-                ))}
-              </ul>
-              <Pagination
-                page={list.page}
-                pageSize={PAGE_SIZE}
-                total={total}
-                siblingCount={0}
-                onPageChange={list.setPage}
-              />
-            </SectionState>
-          </CardContent>
-        </Card>
+        <AsyncState
+          status={asyncStatus({
+            pending: query.isPending,
+            error: query.isError,
+            empty: rows.length === 0,
+          })}
+          loading={<LoadingState label="Loading products" lines={6} />}
+          error={
+            <ErrorState
+              title="Products are unavailable"
+              description="The catalog could not be loaded."
+              onRetry={() => void query.refetch()}
+            />
+          }
+          empty={
+            <EmptyState
+              title="No products match"
+              description="Adjust the filters, price range, or search to see more products."
+            />
+          }
+        >
+          <ul
+            aria-label="Product results"
+            className="grid list-none grid-cols-[repeat(auto-fit,minmax(min(100%,16rem),1fr))] gap-4 p-0"
+          >
+            {rows.map((product) => (
+              <li key={product.id}>
+                <ProductCard product={product} onView={() => setSelectedId(product.id)} />
+              </li>
+            ))}
+          </ul>
+          <Pagination
+            page={list.page}
+            pageSize={PAGE_SIZE}
+            total={total}
+            siblingCount={0}
+            onPageChange={list.setPage}
+          />
+        </AsyncState>
       </CatalogLayout>
       <ProductDetail
         product={selected}
@@ -115,6 +117,6 @@ export function ProductsSection(): ReactElement {
           }
         }}
       />
-    </section>
+    </>
   )
 }

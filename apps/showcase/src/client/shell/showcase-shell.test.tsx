@@ -92,17 +92,26 @@ describe("app shell", () => {
     expect(screen.getByRole("main").getAttribute("id")).toBe("main-content")
   })
 
-  it("moves focus to the section heading on client navigation without stealing focus on mount", async () => {
+  it("moves focus to the main landmark on client navigation without stealing focus on mount", async () => {
     const user = userEvent.setup()
     await renderShell({ initialPath: "/overview" })
 
-    const initialHeading = screen.getByRole("heading", { level: 1, name: "Overview" })
-    expect(document.activeElement).not.toBe(initialHeading)
+    expect(document.activeElement).toBe(document.body)
 
     await user.click(within(railNav()).getByRole("link", { name: "Tasks" }))
 
-    const tasksHeading = screen.getByRole("heading", { level: 1, name: "Tasks" })
-    expect(document.activeElement).toBe(tasksHeading)
+    expect(document.activeElement).toBe(screen.getByRole("main", { name: "Tasks" }))
+  })
+
+  it("keeps every header action on one row as compact, named controls", async () => {
+    await renderShell()
+    const banner = screen.getByRole("banner")
+    expect(
+      within(banner).getByRole("button", { name: "Search sections and actions" }),
+    ).toBeDefined()
+    expect(within(banner).getByRole("button", { name: /^Color mode: / })).toBeDefined()
+    expect(within(banner).getByRole("button", { name: /Signed in as/ })).toBeDefined()
+    expect(within(banner).queryByRole("group", { name: "Color mode" })).toBeNull()
   })
 
   it("reflects the active section in the title and breadcrumb", async () => {

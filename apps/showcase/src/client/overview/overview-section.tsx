@@ -1,11 +1,12 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@plainworks/elements/card"
+import { asyncStatus } from "@plainworks/ui"
+import { AsyncState, EmptyState, ErrorState, LoadingState } from "@plainworks/ui/feedback"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { type ReactElement, useState } from "react"
 import { REVENUE_TREND_DAYS } from "../../app/constants"
 import { overviewStatsPlan, productSalesPlan, revenueTrendPlan } from "../../app/overview-read"
-import { SectionState } from "../feedback"
 import { useHttpClient } from "../http-client"
 import { ActivityFeed } from "./activity-feed"
 import { DateRangeControl } from "./date-range-control"
@@ -30,11 +31,11 @@ export function OverviewSection(): ReactElement {
   const productSales = useQuery(productSalesPlan(httpClient))
 
   return (
-    <section aria-label="Overview" className="grid gap-4 @container/main">
+    <div className="@container/main grid gap-4">
       {stats.isPending ? (
         <StatCardsSkeleton />
       ) : stats.isError ? (
-        <StatCardsError />
+        <StatCardsError onRetry={() => void stats.refetch()} />
       ) : stats.data === undefined ? null : (
         <StatCards stats={stats.data} />
       )}
@@ -42,64 +43,84 @@ export function OverviewSection(): ReactElement {
       <div className="grid gap-4 @4xl/main:grid-cols-[minmax(0,2fr)_minmax(16rem,1fr)]">
         <Card className="min-w-0">
           <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
-            <CardTitle>Revenue trend</CardTitle>
+            <CardTitle>
+              <h2>Revenue trend</h2>
+            </CardTitle>
             <DateRangeControl days={days} onChange={setDays} />
           </CardHeader>
           <CardContent>
-            <SectionState
-              pending={revenue.isPending && revenue.data === undefined}
-              error={revenue.isError}
-              isEmpty={!revenue.isPending && !revenue.isError && revenue.data?.data.length === 0}
-              empty={{
-                title: "No revenue data for this period",
-                body: "Choose a broader date range or check back after the next sale.",
-              }}
-              loadingLabel="Loading revenue trend"
-              errorTitle="Revenue trend is unavailable"
-              errorBody="The revenue series could not be loaded. Try again shortly."
+            <AsyncState
+              status={asyncStatus({
+                pending: revenue.isPending && revenue.data === undefined,
+                error: revenue.isError,
+                empty: revenue.data?.data.length === 0,
+              })}
+              loading={<LoadingState label="Loading revenue trend" lines={4} />}
+              error={
+                <ErrorState
+                  title="Revenue trend is unavailable"
+                  description="The revenue series could not be loaded."
+                  onRetry={() => void revenue.refetch()}
+                />
+              }
+              empty={
+                <EmptyState
+                  title="No revenue data for this period"
+                  description="Choose a broader date range or check back after the next sale."
+                />
+              }
             >
-              {revenue.data === undefined || revenue.data.data.length === 0 ? null : (
-                <TrendVisual revenue={revenue.data} />
-              )}
-            </SectionState>
+              {revenue.data === undefined ? null : <TrendVisual revenue={revenue.data} />}
+            </AsyncState>
           </CardContent>
         </Card>
 
         <Card className="min-w-0">
           <CardHeader>
-            <CardTitle>Top products</CardTitle>
+            <CardTitle>
+              <h2>Top products</h2>
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <SectionState
-              pending={productSales.isPending}
-              error={productSales.isError}
-              isEmpty={
-                !productSales.isPending && !productSales.isError && productSales.data?.length === 0
+            <AsyncState
+              status={asyncStatus({
+                pending: productSales.isPending,
+                error: productSales.isError,
+                empty: productSales.data?.length === 0,
+              })}
+              loading={<LoadingState label="Loading top products" lines={4} />}
+              error={
+                <ErrorState
+                  title="Product sales are unavailable"
+                  description="The product breakdown could not be loaded."
+                  onRetry={() => void productSales.refetch()}
+                />
               }
-              empty={{
-                title: "No product sales yet",
-                body: "Product performance will appear after the first sale.",
-              }}
-              loadingLabel="Loading top products"
-              errorTitle="Product sales are unavailable"
-              errorBody="The product breakdown could not be loaded. Try again shortly."
+              empty={
+                <EmptyState
+                  title="No product sales yet"
+                  description="Product performance will appear after the first sale."
+                />
+              }
             >
-              {productSales.data === undefined || productSales.data.length === 0 ? null : (
+              {productSales.data === undefined ? null : (
                 <ProductSalesVisual products={productSales.data} />
               )}
-            </SectionState>
+            </AsyncState>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent activity</CardTitle>
+          <CardTitle>
+            <h2>Recent activity</h2>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <ActivityFeed />
         </CardContent>
       </Card>
-    </section>
+    </div>
   )
 }

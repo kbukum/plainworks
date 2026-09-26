@@ -122,7 +122,15 @@ async function main(): Promise<void> {
       // login.
       if (req.method === "GET" || req.method === "HEAD") {
         const returnTo = sanitizeReturnTo(url.searchParams.get("returnTo") ?? "/")
-        sendHtml(res, renderLoginPage(returnTo), req.method === "HEAD")
+        sendHtml(
+          res,
+          renderLoginPage({
+            returnTo,
+            cookieHeader: req.headers.cookie ?? "",
+            stylesheets: [STYLESHEET_ENTRY],
+          }),
+          req.method === "HEAD",
+        )
         return
       }
       if (req.method !== "POST") {

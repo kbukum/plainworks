@@ -60,7 +60,7 @@ const LAYERS = {
 //
 //   0  foundation   hooks (neutral stately + DOM) · client hooks
 //   1  general      layout · feedback · overlays · display · navigation · theme
-//   2  forms
+//   2  composites   forms · shell
 //   3  data         data-table · list
 //
 // A concern folder may import only a STRICTLY LOWER band; a same-band sibling import (baseline
@@ -81,6 +81,7 @@ const UI_CONCERNS = {
   navigation: { band: 1, dir: "client/navigation" },
   theme: { band: 1, dir: "client/theme" },
   forms: { band: 2, dir: "client/forms" },
+  shell: { band: 2, dir: "client/shell" },
   "data-table": { band: 3, dir: "client/data-table" },
   list: { band: 3, dir: "client/list" },
 }

@@ -204,10 +204,17 @@ describe("orders section", () => {
     await waitFor(() => expect(select.value).toBe(original))
   })
 
-  it("renders an error callout when the orders query fails", async () => {
-    handle.server.use(http.get("*/api/orders", () => new HttpResponse(null, { status: 500 })))
+  it("shows a failure the user can retry when the orders query fails", async () => {
+    const user = userEvent.setup()
+    handle.server.use(
+      http.get("*/api/orders", () => new HttpResponse(null, { status: 500 }), { once: true }),
+    )
     await renderOrders({ prefetch: false })
-    expect(await screen.findByText("Orders are unavailable")).toBeDefined()
+
+    const failure = await screen.findByRole("alert")
+    expect(within(failure).getByText("Orders are unavailable")).toBeDefined()
+    await user.click(within(failure).getByRole("button", { name: "Try again" }))
+    expect(await screen.findByRole("table")).toBeDefined()
   })
 
   it("carries no axe violations with the detail overlay open", async () => {

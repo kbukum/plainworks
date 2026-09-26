@@ -8,7 +8,7 @@ import { type DevtoolsMount, type MountDevtoolsOptions, mountDevtools } from "./
 
 afterEach(cleanup)
 
-const LAUNCHER = "Open Plainworks inspector"
+const LAUNCHER = "Inspect"
 
 /** Mount inside `act` with the clock frozen, so a test never races the rail's freshness tick. */
 function mount(options: MountDevtoolsOptions = {}): DevtoolsMount {

@@ -15,6 +15,7 @@
       "@plainworks/ui": ["../ui/src"],
       "@plainworks/ui/hooks": ["../ui/src/client/hooks/index.ts"],
       "@plainworks/ui/feedback": ["../ui/src/client/feedback/index.ts"],
+      "@plainworks/ui/page": ["../ui/src/client/page/index.ts"],
       "@plainworks/*": ["../*/src"]
     }
   },

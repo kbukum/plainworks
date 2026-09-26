@@ -2,6 +2,21 @@
   "$schema": "https://turbo.build/schema.json",
   "extends": ["//"],
   "tasks": {
+    // The build compiles `dist/styles.css` with the scripts under `scripts/styles`, so they bust
+    // the build cache like the sources do.
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": [
+        "src/**",
+        "scripts/**",
+        "tsconfig.json",
+        "tsconfig.src.json",
+        "tsconfig.client.json",
+        "tsdown.config.ts",
+        "package.json"
+      ],
+      "outputs": ["dist/**"]
+    },
     // The consumer fixture is type-checked too, so its sources and project must bust the cache.
     "typecheck": {
       "dependsOn": ["^build"],
@@ -18,10 +33,11 @@
     "test": {
       "dependsOn": ["^build", "build"],
       // The production-exclusion fixture drives real Vite consumer builds against this package's
-      // own `dist` (so the stylesheet's `@source` scans the shipped JS); its sources must bust the
-      // test cache like `src/**` does.
+      // own `dist`, and the stylesheet build has its own tests; both must bust the test cache like
+      // `src/**` does.
       "inputs": [
         "src/**",
+        "scripts/**",
         "fixtures/**",
         "vitest.config.ts",
         "tsconfig.json",

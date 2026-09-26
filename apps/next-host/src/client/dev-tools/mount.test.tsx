@@ -4,7 +4,7 @@ import { type Channel, createChannel } from "@plainworks/channel"
 import { createQueryClient } from "@plainworks/query"
 import type { Subscription } from "@plainworks/std"
 import { fakeStreamTransport } from "@plainworks/testkit"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { mountNextHostDevtools } from "./mount"
 import { createDevtoolsSeams, type DevtoolsSeams } from "./seams"
 
@@ -37,7 +37,7 @@ function trackObservation(seams: DevtoolsSeams): { seams: DevtoolsSeams; release
 }
 
 describe("mountNextHostDevtools", () => {
-  it("mounts the inspector beside the runtime and tears it down on cleanup", () => {
+  it("mounts the inspector beside the runtime and tears it down on cleanup", async () => {
     const tracked = trackObservation(createDevtoolsSeams())
 
     const teardown = mountNextHostDevtools({
@@ -45,7 +45,9 @@ describe("mountNextHostDevtools", () => {
       queryClient: createQueryClient(),
       channel: idleChannel(),
     })
-    expect(document.querySelector("[data-plainworks-devtools]")).not.toBeNull()
+    await vi.waitFor(() =>
+      expect(document.querySelector("[data-plainworks-devtools]")).not.toBeNull(),
+    )
 
     teardown()
     expect(document.querySelector("[data-plainworks-devtools]")).toBeNull()

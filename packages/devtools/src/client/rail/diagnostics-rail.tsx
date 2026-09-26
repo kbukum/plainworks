@@ -2,11 +2,10 @@
 
 import type { ErrorSnapshot } from "@plainworks/std"
 import { cn } from "@plainworks/theme"
-import { type ReactElement, useEffect } from "react"
+import type { ReactElement } from "react"
 import type { Severity, SourceDescriptor } from "../../protocol"
 import type { IndicatorEntry } from "../../session/client-port"
 import { useNow } from "../shell/use-now"
-import { reserveBodyPadding } from "./body-reservation"
 import { buildRailEntries, splitRailOverflow } from "./prioritize"
 
 /** Props for {@link DiagnosticsRail}. */
@@ -31,18 +30,27 @@ export interface DiagnosticsRailProps {
   readonly onOpen: (target?: string) => void
 }
 
+// Semantic theme tokens only, so the rail follows the host's mode, scheme, and contrast choice.
 const SEVERITY_STYLES: Readonly<Record<Severity, string>> = {
   error: "text-destructive",
-  warn: "text-amber-700 dark:text-amber-400",
+  warn: "text-warning",
   info: "text-foreground",
   ok: "text-muted-foreground",
 }
 
+const DOT_STYLES: Readonly<Record<Severity, string>> = {
+  error: "bg-destructive",
+  warn: "bg-warning",
+  info: "bg-info",
+  ok: "bg-success",
+}
+
 /**
- * The compact ambient rail: a prioritized, glanceable strip of the same session signals the full
+ * The compact ambient rail: a prioritized, glanceable list of the same session signals the full
  * inspector renders — never a second telemetry path. It leads with failures and abnormal values,
- * fades stale ones, collapses overflow behind an explicit count, and stays quiet when there is
- * nothing to say. Every row is a button that opens the relevant inspector view.
+ * fades stale ones, collapses overflow behind an explicit count, and renders nothing when there is
+ * nothing to say. Every entry is a button that opens the relevant inspector view. It lays out
+ * inline, so the shell's docked bar decides where it sits.
  */
 export function DiagnosticsRail({
   sources,
@@ -66,69 +74,58 @@ export function DiagnosticsRail({
   })
   const { visible, overflowCount } = splitRailOverflow(entries, maxVisible)
 
-  const hasEntries = entries.length > 0
-
-  useEffect(() => {
-    if (!hasEntries) return
-    // A shared, reference-counted reservation so concurrent rails never clobber the body padding.
-    return reserveBodyPadding(36)
-  }, [hasEntries])
-
-  if (!hasEntries) return null
+  if (entries.length === 0) return null
 
   return (
-    <section
-      aria-label="Diagnostics"
-      className={cn(
-        "@container fixed inset-x-0 bottom-0 z-overlay flex w-full max-w-full items-center gap-1 overflow-x-auto",
-        "border-t bg-popover/95 px-2 py-1 text-xs backdrop-blur motion-reduce:transition-none",
-      )}
-    >
-      {visible.map((entry) => (
-        <button
-          key={entry.key}
-          type="button"
-          data-severity={entry.severity}
-          data-stale={entry.stale || undefined}
-          aria-label={
-            entry.stale
-              ? `${entry.label}: ${entry.value} (stale)`
-              : `${entry.label}: ${entry.value}`
-          }
-          onClick={() => onOpen(entry.target)}
-          className={cn(
-            "inline-flex min-h-6 shrink-0 items-center gap-1.5 rounded-md px-2 py-0.5",
-            "hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring",
-            "@max-md:gap-1 @max-md:px-1.5",
-            SEVERITY_STYLES[entry.severity],
-          )}
-        >
-          <span
-            aria-hidden
-            data-stale={entry.stale || undefined}
-            className={cn(
-              "size-1.5 rounded-full bg-current data-stale:opacity-40",
-              entry.severity === "ok" && "bg-emerald-500",
-            )}
-          />
-          {/* Container-adaptive: at narrow rail widths the label yields to the value, which is
-              the glanceable signal; the full name stays in the accessible label. */}
-          <span className="@max-md:hidden font-medium">{entry.label}</span>
-          <span className="tabular-nums">{entry.value}</span>
-        </button>
-      ))}
+    <div className="@container/rail flex min-w-0 flex-1 items-center gap-1">
+      <ul
+        aria-label="Diagnostics"
+        className="no-scrollbar flex min-w-0 items-center gap-1 overflow-x-auto"
+      >
+        {visible.map((entry) => (
+          <li key={entry.key} className="shrink-0">
+            <button
+              type="button"
+              data-severity={entry.severity}
+              data-stale={entry.stale || undefined}
+              aria-label={
+                entry.stale
+                  ? `${entry.label}: ${entry.value} (stale)`
+                  : `${entry.label}: ${entry.value}`
+              }
+              onClick={() => onOpen(entry.target)}
+              className={cn(
+                "inline-flex min-h-7 items-center gap-1.5 rounded-md px-2 text-xs",
+                "hover:bg-muted @max-md/rail:gap-1 @max-md/rail:px-1.5",
+                SEVERITY_STYLES[entry.severity],
+              )}
+            >
+              {/* Staleness fades only the dot, so the value text keeps its full contrast. */}
+              <span
+                aria-hidden
+                data-stale={entry.stale || undefined}
+                className={cn(
+                  "size-2 shrink-0 rounded-full data-stale:opacity-40",
+                  DOT_STYLES[entry.severity],
+                )}
+              />
+              {/* Container-adaptive: at narrow rail widths the label yields to the value, which
+                  is the glanceable signal; the full name stays in the accessible label. */}
+              <span className="font-medium @max-md/rail:hidden">{entry.label}</span>
+              <span className="tabular-nums">{entry.value}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
       {overflowCount === 0 ? null : (
         <button
           type="button"
           onClick={() => onOpen(undefined)}
-          className={cn(
-            "inline-flex min-h-6 shrink-0 items-center rounded-md px-2 py-0.5 text-muted-foreground",
-            "hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring",
-          )}
+          className="inline-flex min-h-7 shrink-0 items-center rounded-md px-2 text-muted-foreground text-xs hover:bg-muted"
         >
           {`Show ${overflowCount} more diagnostic${overflowCount === 1 ? "" : "s"}`}
         </button>
       )}
-    </section>
+    </div>
   )
 }

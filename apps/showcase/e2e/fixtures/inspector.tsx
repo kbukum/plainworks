@@ -2,9 +2,49 @@ import "@plainworks/devtools/styles.css"
 
 import type { Source, SourceObserver } from "@plainworks/devtools"
 import { mountDevtools } from "@plainworks/devtools/client"
-import { Button } from "@plainworks/elements/button"
 import { useEffect, useState } from "react"
 import { createRoot } from "react-dom/client"
+
+// `?scenario=large` stresses layout with production-sized data: many source tabs, a full timeline
+// of long URL labels, and long indicator values.
+const LARGE = new URLSearchParams(window.location.search).get("scenario") === "large"
+const LARGE_KINDS = ["http", "query", "state", "channel", "connect", "observability", "mock"]
+const LONG_URL =
+  "https://api.example.test/v1/organizations/acme-corporation/projects/plainworks-inspector/notifications/read-all?include=recipients,delivery-status"
+
+function largeSource(kind: string): Source {
+  return {
+    id: { kind, instance: `${kind}-primary-instance-with-a-long-name` },
+    label: `${kind} runtime with a deliberately long descriptive label`,
+    connect(observer) {
+      for (let i = 0; i < 120; i++) {
+        observer.emit({
+          kind: `${kind}.response`,
+          label: `POST ${LONG_URL}&page=${i} → 403 (8ms)`,
+          severity: i % 7 === 0 ? "error" : "ok",
+          at: 1_000 + i,
+          detail: `${kind}-${i}`,
+        })
+      }
+      observer.indicate({
+        id: "latency",
+        label: "Latency percentile across every registered endpoint",
+        value: "p99 1,284ms over the last 1,000 requests",
+        severity: "warn",
+        updatedAt: 1_000,
+        target: kind,
+      })
+      return {
+        resolveDetail: async (ref) => ({
+          ref,
+          url: LONG_URL,
+          headers: { "x-request-id": `${ref}-${"f".repeat(96)}` },
+        }),
+        dispose() {},
+      }
+    },
+  }
+}
 
 function createFixtureRuntime() {
   const observers = new Map<string, SourceObserver>()
@@ -49,8 +89,12 @@ function createFixtureRuntime() {
     }
   }
   const { dispose: unmount } = mountDevtools({
-    sources: [source("primary", "Primary"), source("secondary", "Secondary")],
-    sessionOptions: { retention: { perSource: 3, aggregate: 3 } },
+    sources: LARGE
+      ? LARGE_KINDS.map(largeSource)
+      : [source("primary", "Primary"), source("secondary", "Secondary")],
+    sessionOptions: LARGE
+      ? { retention: { perSource: 120, aggregate: 500 } }
+      : { retention: { perSource: 3, aggregate: 3 } },
     now: () => 1_000,
     tickMs: 0,
     railMaxVisible: 2,
@@ -79,9 +123,9 @@ function InspectorConsumer() {
   }, [])
   const [disposedSources, setDisposedSources] = useState(0)
   return (
-    <main className="grid gap-4 p-4">
+    <main>
       <h1>Inspector consumer fixture</h1>
-      <Button
+      <button
         type="button"
         disabled={disposed || runtime === undefined}
         onClick={() =>
@@ -89,8 +133,8 @@ function InspectorConsumer() {
         }
       >
         Fail primary source
-      </Button>
-      <Button
+      </button>
+      <button
         type="button"
         disabled={disposed || runtime === undefined}
         onClick={() => {
@@ -105,8 +149,8 @@ function InspectorConsumer() {
         }}
       >
         Emit burst
-      </Button>
-      <Button
+      </button>
+      <button
         type="button"
         disabled={disposed || runtime === undefined}
         onClick={() => {
@@ -116,8 +160,11 @@ function InspectorConsumer() {
         }}
       >
         Dispose inspector
-      </Button>
+      </button>
       <p role="status">{disposed ? `Disposed ${disposedSources} sources` : "Observing"}</p>
+      {/* Tall host content whose last control must stay reachable beside the docked chrome. */}
+      <div style={{ height: "150vh" }} />
+      <button type="button">Last host control</button>
     </main>
   )
 }

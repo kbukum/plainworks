@@ -1,6 +1,7 @@
 "use client"
 
 import { Badge } from "@plainworks/elements/badge"
+import { Callout, EmptyState } from "@plainworks/ui/feedback"
 import type { ReactElement } from "react"
 import { sourceKey } from "../../protocol"
 import type { DevtoolsStoreState } from "../../store"
@@ -19,41 +20,46 @@ export interface OverviewViewProps {
 export function OverviewView({ state }: OverviewViewProps): ReactElement {
   if (state.sources.length === 0) {
     return (
-      <p className="py-8 text-center text-muted-foreground text-sm">
-        No sources registered. Construct adapters beside your runtime instances and register them
-        with the devtools session.
-      </p>
+      <EmptyState
+        title="No sources registered"
+        description="Construct adapters beside your runtime instances and register them with the devtools session."
+      />
     )
   }
 
   return (
     <section aria-label="Overview" className="grid gap-3">
       {state.droppedAggregate === 0 ? null : (
-        <p className="text-muted-foreground text-xs">
-          {`${state.droppedAggregate} events dropped — retention is bounded, so the timeline is incomplete.`}
-        </p>
+        <Callout tone="info" title="The timeline is incomplete">
+          {`${state.droppedAggregate} events dropped — retention is bounded, so the oldest events were released.`}
+        </Callout>
       )}
       <ul aria-label="Sources" className="grid gap-2">
         {state.sources.map((source) => {
           const failure = state.failures.get(sourceKey(source.id))
           const dropped = state.droppedBySource.get(sourceKey(source.id)) ?? 0
           return (
-            <li key={sourceKey(source.id)} className="grid gap-1 rounded-lg border p-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium text-sm">{source.label}</span>
-                <span className="text-muted-foreground text-xs">
+            <li
+              key={sourceKey(source.id)}
+              className="grid min-w-0 gap-2 rounded-lg border bg-card p-3"
+            >
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="min-w-0 wrap-anywhere font-medium text-sm">{source.label}</span>
+                <span className="min-w-0 wrap-anywhere text-muted-foreground text-xs">
                   {`${source.id.kind} · ${source.id.instance}`}
                 </span>
                 {failure === undefined ? (
-                  <Badge variant="outline">Observing</Badge>
+                  <Badge variant="outline" className="ms-auto">
+                    Observing
+                  </Badge>
                 ) : (
-                  <Badge variant="destructive">Failed</Badge>
+                  <Badge variant="destructive" className="ms-auto">
+                    Failed
+                  </Badge>
                 )}
               </div>
               {failure === undefined ? null : (
-                <p role="alert" className="text-destructive text-xs">
-                  {`${source.label}: ${failure.message}`}
-                </p>
+                <Callout tone="danger">{`${source.label}: ${failure.message}`}</Callout>
               )}
               <p className="text-muted-foreground text-xs">
                 {[

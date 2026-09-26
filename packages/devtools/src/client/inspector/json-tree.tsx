@@ -18,7 +18,7 @@ export interface JsonTreeProps {
  */
 export function JsonTree({ value }: JsonTreeProps): ReactElement {
   return (
-    <div className="font-mono text-xs leading-5" data-json-tree="">
+    <div className="min-w-0 font-mono text-xs leading-5" data-json-tree="">
       <JsonNode name={undefined} value={value} depth={0} />
     </div>
   )
@@ -107,7 +107,7 @@ function Leaf({
   return (
     <div className="pl-3">
       {name === undefined ? null : <span className="mr-1 text-muted-foreground">{name}</span>}
-      <span className="break-all">{text}</span>
+      <span className="wrap-anywhere">{text}</span>
     </div>
   )
 }

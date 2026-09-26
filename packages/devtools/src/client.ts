@@ -37,7 +37,7 @@ export {
 } from "./client/rail"
 export {
   type DevtoolsConnection,
-  type DevtoolsPresentation,
+  type DevtoolsDock,
   DevtoolsShell,
   type DevtoolsShellProps,
   useDevtoolsConnection,

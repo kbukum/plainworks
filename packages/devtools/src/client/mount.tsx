@@ -38,8 +38,8 @@ export interface DevtoolsMount {
  * Pass {@link DevtoolsShellProps.session} to {@link DevtoolsShell} instead when the inspector must
  * render inside an existing React tree over a session the host already owns.
  *
- * The diagnostics rail and launcher are fixed at the viewport bottom. While active, the rail
- * automatically reserves its own bottom space so it never covers focused application controls.
+ * The shell docks at the viewport edge and, by default, reserves that space on the document root so
+ * it never covers application content; see {@link DevtoolsShellProps.reserveSpace}.
  */
 export function mountDevtools({
   sources = [],
@@ -56,7 +56,6 @@ export function mountDevtools({
   }
 
   const host = document.createElement("div")
-  host.dataset.plainworksDevtools = ""
   ;(container ?? document.body).append(host)
   const root = createRoot(host)
   root.render(<DevtoolsShell {...shellProps} session={session} />)

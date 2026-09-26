@@ -28,6 +28,7 @@ const CONCERNS = [
   { subpath: "./forms", entry: "forms", dir: "src/client/forms", registry: "ui" },
   { subpath: "./list", entry: "list", dir: "src/client/list", registry: "ui" },
   { subpath: "./page", entry: "page", dir: "src/client/page", registry: "ui" },
+  { subpath: "./shell", entry: "shell", dir: "src/client/shell", registry: "ui" },
   { subpath: "./theme", entry: "theme-client", source: "src/client/theme/index.ts" },
 ]
 

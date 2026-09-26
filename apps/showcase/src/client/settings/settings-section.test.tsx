@@ -7,7 +7,7 @@ import { fakeStateSource } from "@plainworks/testkit"
 import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/client"
 import { ThemeProvider } from "@plainworks/theme/client"
 import { QueryClientProvider } from "@tanstack/react-query"
-import { cleanup, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
@@ -203,7 +203,10 @@ describe("settings section", () => {
 
   it("shows a sign-in prompt to a guest instead of the panels", async () => {
     renderSettings({ authed: false })
-    expect(await screen.findByText("Sign in to manage your account settings.")).toBeDefined()
+    expect(await screen.findByText("Sign in to manage your settings")).toBeDefined()
+    expect(screen.getByRole("link", { name: "Sign in" }).getAttribute("href")).toBe(
+      "/login?returnTo=%2Fsettings",
+    )
     expect(screen.queryByLabelText("Display name")).toBeNull()
   })
 
@@ -218,10 +221,17 @@ describe("settings section", () => {
     expect(await screen.findByRole("radiogroup", { name: "Motion" })).toBeDefined()
   })
 
-  it("renders an error state when the settings read fails", async () => {
-    handle.server.use(http.get("*/api/settings", () => new HttpResponse(null, { status: 500 })))
+  it("shows a failure the user can retry when the settings read fails", async () => {
+    const user = userEvent.setup()
+    handle.server.use(
+      http.get("*/api/settings", () => new HttpResponse(null, { status: 500 }), { once: true }),
+    )
     renderSettings()
-    expect(await screen.findByText("Settings are unavailable")).toBeDefined()
+
+    const failure = await screen.findByRole("alert")
+    expect(within(failure).getByText("Settings are unavailable")).toBeDefined()
+    await user.click(within(failure).getByRole("button", { name: "Try again" }))
+    expect(await screen.findByRole("tablist", { name: "Settings sections" })).toBeDefined()
   })
 
   it.each([

@@ -33,7 +33,10 @@ type Page = PaginatedResult<Notification>
 
 function harness(options: { rows?: Notification[]; observe?: boolean } = {}) {
   const httpClient = createHttpClient({ baseUrl: "http://showcase.test" })
-  const queryClient = createQueryClient({ defaultOptions: { queries: { retry: false } } })
+  // Seeded rows start stale so an observer refetches them, which the race tests depend on.
+  const queryClient = createQueryClient({
+    defaultOptions: { queries: { retry: false, staleTime: 0 } },
+  })
   const plan = notificationListPlan(httpClient, NOTIFICATION_LIST_PARAMS)
   const key = plan.queryKey
   if (options.rows !== undefined) {

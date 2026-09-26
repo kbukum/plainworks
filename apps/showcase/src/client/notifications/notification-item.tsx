@@ -1,7 +1,6 @@
 "use client"
 
 import type { Notification } from "@plainworks/demo"
-import { Badge } from "@plainworks/elements/badge"
 import { Button } from "@plainworks/elements/button"
 import {
   Item,
@@ -13,7 +12,7 @@ import {
   ItemTitle,
 } from "@plainworks/elements/item"
 import { cn } from "@plainworks/theme"
-import { DateValue } from "@plainworks/ui/display"
+import { DateValue, StatusBadge } from "@plainworks/ui/display"
 import { Check, X } from "lucide-react"
 import type { ReactElement, Ref } from "react"
 import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../app/constants"
@@ -36,7 +35,8 @@ export interface NotificationItemProps {
  * One feed row: the type icon, an unread emphasis that never relies on colour alone (a dot with an
  * "Unread" label, plus a heavier title), the title and message, a type badge and the timestamp, and
  * the act-on controls. An authorized user gets Mark read (only while unread) and Dismiss; a guest
- * sees the row without the controls. Rendered as a list item so the feed is a semantic list.
+ * sees the row without the controls. The text keeps a readable width, so on a narrow screen the
+ * controls wrap below it. Rendered as a list item so the feed is a semantic list.
  */
 export function NotificationItem({
   notification,
@@ -56,7 +56,7 @@ export function NotificationItem({
       <ItemMedia variant="icon" className="text-muted-foreground">
         <Icon aria-hidden />
       </ItemMedia>
-      <ItemContent className="min-w-0">
+      <ItemContent className="min-w-0 basis-48">
         <ItemTitle className={cn("gap-2", unread ? "font-semibold" : "font-medium")}>
           {unread ? (
             <span className="inline-flex items-center gap-1.5 text-primary">
@@ -68,17 +68,27 @@ export function NotificationItem({
         </ItemTitle>
         <ItemDescription>{notification.message}</ItemDescription>
         <ItemFooter className="justify-start gap-2 text-muted-foreground text-xs">
-          <Badge variant={meta.tone}>{meta.label}</Badge>
-          <DateValue
-            value={notification.createdAt}
-            locale={DISPLAY_LOCALE}
-            timeZone={DISPLAY_TIME_ZONE}
-            options={{ dateStyle: "medium", timeStyle: "short" }}
-          />
+          <StatusBadge tone={meta.tone}>{meta.label}</StatusBadge>
+          {/* Date and time render apart: runtimes join a combined format differently. */}
+          <span>
+            <DateValue
+              value={notification.createdAt}
+              locale={DISPLAY_LOCALE}
+              timeZone={DISPLAY_TIME_ZONE}
+              options={{ dateStyle: "medium" }}
+            />
+            <span aria-hidden> · </span>
+            <DateValue
+              value={notification.createdAt}
+              locale={DISPLAY_LOCALE}
+              timeZone={DISPLAY_TIME_ZONE}
+              options={{ timeStyle: "short" }}
+            />
+          </span>
         </ItemFooter>
       </ItemContent>
       <Can authorizer={canManageNotifications} action="notifications:manage" fallback={null}>
-        <ItemActions className="self-center">
+        <ItemActions className="ms-auto self-center">
           {unread ? (
             <Button
               variant="ghost"

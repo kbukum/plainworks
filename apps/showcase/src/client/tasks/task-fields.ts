@@ -1,9 +1,8 @@
 import { TASK_PRIORITIES, type Task } from "@plainworks/demo"
+import type { StatusTone } from "@plainworks/ui/display"
 import type { SelectFieldOption } from "@plainworks/ui/forms"
 import type { FilterFieldOption } from "@plainworks/ui/list"
 import { TASK_STATUSES } from "../../app/task-shape"
-
-type BadgeTone = "default" | "secondary" | "destructive" | "outline"
 
 /** Human-readable label for each task status. */
 export const STATUS_LABEL: Record<Task["status"], string> = {
@@ -20,19 +19,19 @@ export const PRIORITY_LABEL: Record<Task["priority"], string> = {
   high: "High",
 }
 
-/** Badge tone for each status — blocked reads as an error, done as solid, the rest as quieter. */
-export const STATUS_TONE: Record<Task["status"], BadgeTone> = {
-  todo: "outline",
-  "in-progress": "secondary",
-  done: "default",
-  blocked: "destructive",
+/** Status tone per task status: blocked is a problem, done a success, in progress underway. */
+export const STATUS_TONE: Record<Task["status"], StatusTone> = {
+  todo: "neutral",
+  "in-progress": "info",
+  done: "success",
+  blocked: "danger",
 }
 
-/** Badge tone for each priority — high reads as an error, medium as secondary, low as quiet. */
-export const PRIORITY_TONE: Record<Task["priority"], BadgeTone> = {
-  low: "outline",
-  medium: "secondary",
-  high: "destructive",
+/** Status tone per priority: high needs attention, the rest stay calm. */
+export const PRIORITY_TONE: Record<Task["priority"], StatusTone> = {
+  low: "neutral",
+  medium: "info",
+  high: "warning",
 }
 
 /** Status options for a select control, in workflow order. */

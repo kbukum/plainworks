@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from "@testing-library/react"
-import axe from "axe-core"
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { afterEach, describe, expect, it } from "vitest"
 import { AccountPanel } from "./account-panel"
@@ -58,10 +58,22 @@ describe("account authorization", () => {
         <AccountPanel />
       </SessionProvider>,
     )
-    await waitFor(() =>
-      expect(screen.getByRole("heading", { name: "Manage your account" })).toBeDefined(),
+    const profile = await screen.findByRole("region", { name: "Profile" })
+    expect(within(profile).getByText("Ada")).toBeDefined()
+    expect(within(profile).getByText("user-123")).toBeDefined()
+    await expectNoAxeViolations(container)
+  })
+
+  it("explains the denial to a signed-in identity the policy rejects", async () => {
+    render(
+      <SessionProvider
+        initialSnapshot={{ status: "authenticated", identity: { subject: "u-9", claims: {} } }}
+      >
+        <AccountPanel />
+      </SessionProvider>,
     )
-    const results = await axe.run(container)
-    expect(results.violations).toEqual([])
+    const alert = await screen.findByRole("alert")
+    expect(alert.textContent).toContain("You do not have access to account settings.")
+    expect(screen.queryByRole("region", { name: "Profile" })).toBeNull()
   })
 })

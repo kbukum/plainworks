@@ -411,6 +411,7 @@ describe("DataTable", () => {
     render(<DataTable columns={idColumns} rows={people} getRowId={getRowId} />)
     expect(screen.getByRole("cell", { name: "1" }).className).toContain("whitespace-nowrap")
     expect(screen.getByRole("cell", { name: "Ada Lovelace" }).className).toContain("wrap-anywhere")
+    expect(screen.getByRole("cell", { name: "Ada Lovelace" }).className).toContain("hyphens-auto")
   })
 
   it("aligns sortable header buttons according to column alignment", () => {

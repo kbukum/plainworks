@@ -3,56 +3,63 @@
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { cleanup, render, screen } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
-import { TrendVisual } from "./trend-visual"
+import { revenueTicks, TrendVisual } from "./trend-visual"
 
 afterEach(cleanup)
 
+const RISING = {
+  total: 250,
+  growth: -2,
+  data: [
+    { date: "2024-01-01", value: 100 },
+    { date: "2024-01-02", value: 150 },
+  ],
+}
+
+describe("revenueTicks", () => {
+  it("rounds the top of the scale up to a readable step from zero", () => {
+    expect(revenueTicks(150)).toEqual([0, 100, 200])
+    expect(revenueTicks(4_380)).toEqual([0, 2_500, 5_000])
+    expect(revenueTicks(1_000)).toEqual([0, 500, 1_000])
+  })
+
+  it("keeps a usable scale for an all-zero series", () => {
+    expect(revenueTicks(0)).toEqual([0, 1, 2])
+  })
+})
+
 describe("TrendVisual", () => {
-  it("places a constant series on the mid-line and presents zero growth as no change", async () => {
-    const revenue = {
-      total: 300,
-      growth: 0,
-      data: [
-        { date: "2024-01-01", value: 100 },
-        { date: "2024-01-02", value: 100 },
-        { date: "2024-01-03", value: 100 },
-      ],
-    }
-    const { container } = render(<TrendVisual revenue={revenue} />)
+  it("labels the value axis and plots against a zero baseline", async () => {
+    const { container } = render(<TrendVisual revenue={RISING} />)
+
+    const axis = screen.getByTestId("trend-value-axis")
+    expect([...axis.children].map((tick) => tick.textContent)).toEqual(["$0", "$100", "$200"])
     const polyline = container.querySelector("polyline")
-    expect(polyline?.getAttribute("points")).toBe("0.00,15.00 50.00,15.00 100.00,15.00")
-    expect(screen.getByText(/no change over the period/)).toBeDefined()
+    expect(polyline?.getAttribute("points")).toBe("0.00,15.00 100.00,7.50")
     await expectNoAxeViolations(container)
   })
 
-  it("places a single point on the mid-line", () => {
-    const revenue = {
-      total: 100,
-      growth: 0,
-      data: [{ date: "2024-01-01", value: 100 }],
-    }
-    const { container } = render(<TrendVisual revenue={revenue} />)
-    const polyline = container.querySelector("polyline")
-    expect(polyline?.getAttribute("points")).toBe("0.00,15.00")
+  it("labels the time axis with the first and last day", () => {
+    render(<TrendVisual revenue={RISING} />)
+    const axis = screen.getByTestId("trend-time-axis")
+    expect(axis.textContent).toContain("Jan 1, 2024")
+    expect(axis.textContent).toContain("Jan 2, 2024")
   })
 
-  it("exposes the visible period and date range without relying on the line color", async () => {
+  it("keeps the data available as a table and the change in words", () => {
+    render(<TrendVisual revenue={RISING} />)
+    expect(screen.getByRole("table", { name: "Revenue by day over the period" })).toBeDefined()
+    expect(screen.getAllByRole("row")).toHaveLength(3)
+    expect(screen.getByText(/decrease over the period/)).toBeDefined()
+  })
+
+  it("draws a single day as one point", () => {
     const { container } = render(
       <TrendVisual
-        revenue={{
-          total: 250,
-          growth: -2,
-          data: [
-            { date: "2024-01-01", value: 100 },
-            { date: "2024-01-02", value: 150 },
-          ],
-        }}
+        revenue={{ total: 100, growth: 0, data: [{ date: "2024-01-01", value: 100 }] }}
       />,
     )
-
-    expect(screen.getAllByText(/Jan 1, 2024/)).toHaveLength(2)
-    expect(screen.getAllByText(/Jan 2, 2024/)).toHaveLength(2)
-    expect(screen.getByText(/decrease over the period/)).toBeDefined()
-    await expectNoAxeViolations(container)
+    expect(container.querySelector("polyline")?.getAttribute("points")).toBe("0.00,0.00")
+    expect(screen.getByText(/no change over the period/)).toBeDefined()
   })
 })

@@ -6,10 +6,10 @@ import type { ChannelOptions } from "@plainworks/channel"
 import { createQueryClient } from "@plainworks/query"
 import dynamic from "next/dynamic"
 import { type ComponentType, type ReactElement, type ReactNode, useState } from "react"
-import { AppShell } from "./app-shell"
 import { buildClientCapabilities } from "./capabilities"
 import type { DevtoolsMountProps } from "./dev-tools/devtools-mount"
 import { createDevtoolsSeams, type DevtoolsSeams } from "./dev-tools/seams"
+import { HostShell } from "./host-shell"
 import { HttpClientProvider } from "./http-client"
 import { createDemoTransport, LiveChannelProvider, LiveTaskSink } from "./live-stream"
 import { createLiveTasksSource, createThemeSource } from "./sources"
@@ -83,7 +83,7 @@ export function Providers({ snapshot, origin, children }: ProvidersProps): React
       >
         <LiveChannelProvider options={channelOptions}>
           <LiveTaskSink source={liveSource}>
-            <AppShell liveSource={liveSource}>{children}</AppShell>
+            <HostShell liveSource={liveSource}>{children}</HostShell>
             {DevtoolsMount !== null && seams !== undefined ? <DevtoolsMount seams={seams} /> : null}
           </LiveTaskSink>
         </LiveChannelProvider>

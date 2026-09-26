@@ -32,10 +32,7 @@ describe("QueryProvider", () => {
     await waitFor(() => expect(screen.getByText("greeting: fetched")).toBeDefined())
   })
 
-  it("hydrates a server-dehydrated cache so the first render shows server data — no loading flash", async () => {
-    // Note: this asserts the first render only. With the default `staleTime: 0` the hydrated query
-    // is stale and refetches in the background on mount — hydration's contract is "no loading
-    // flash", not "no refetch" (freshness follows the client's stale policy).
+  it("hydrates a server-dehydrated cache with no loading flash and no refetch on mount", async () => {
     // Server: prefetch and dehydrate.
     const server = createQueryClient()
     await prefetchQuery<string>(server, {
@@ -55,6 +52,8 @@ describe("QueryProvider", () => {
       </QueryProvider>,
     )
     expect(screen.getByText("greeting: from-server")).toBeDefined()
+    // The default stale time keeps the hydrated data fresh, so mounting starts no fetch.
+    expect(browser.isFetching()).toBe(0)
   })
 
   it("wraps its children transparently with no accessibility violations", async () => {

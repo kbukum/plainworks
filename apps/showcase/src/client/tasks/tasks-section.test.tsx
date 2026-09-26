@@ -321,10 +321,18 @@ describe("tasks section", () => {
     })
   })
 
-  it("renders an error callout when the task list query fails", async () => {
-    handle.server.use(http.get("*/api/tasks", () => new HttpResponse(null, { status: 500 })))
+  it("shows a failure the user can retry when the tasks query fails", async () => {
+    const user = userEvent.setup()
+    handle.server.use(
+      http.get("*/api/tasks", () => new HttpResponse(null, { status: 500 }), { once: true }),
+    )
     await renderTasks({ prefetch: false })
-    expect(await screen.findByText("Tasks are unavailable")).toBeDefined()
+
+    const failure = await screen.findByText("Tasks are unavailable")
+    const alert = failure.closest("[role='alert']")
+    if (!(alert instanceof HTMLElement)) throw new Error("expected the failure to be an alert")
+    await user.click(within(alert).getByRole("button", { name: "Try again" }))
+    expect(await screen.findByRole("table")).toBeDefined()
   })
 
   it("carries no axe violations with open dialog", async () => {

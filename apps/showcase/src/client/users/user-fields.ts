@@ -1,8 +1,7 @@
 import type { User } from "@plainworks/demo"
+import type { StatusTone } from "@plainworks/ui/display"
 import { USER_DEPARTMENTS, USER_ROLES, USER_STATUSES } from "../../app/user-shape"
 import type { FacetOption } from "../catalog"
-
-type BadgeTone = "default" | "secondary" | "destructive" | "outline"
 
 /** Human-readable label for each role. */
 export const USER_ROLE_LABEL: Record<User["role"], string> = {
@@ -21,21 +20,12 @@ export const USER_STATUS_LABEL: Record<User["status"], string> = {
   suspended: "Suspended",
 }
 
-/** Badge tone per role — admin reads as solid, moderator/editor as secondary, the rest as quiet. */
-export const USER_ROLE_TONE: Record<User["role"], BadgeTone> = {
-  admin: "default",
-  moderator: "secondary",
-  editor: "secondary",
-  user: "outline",
-  viewer: "outline",
-}
-
-/** Badge tone per status — active reads as solid, suspended as an error, the rest as quieter. */
-export const USER_STATUS_TONE: Record<User["status"], BadgeTone> = {
-  active: "default",
-  inactive: "outline",
-  pending: "secondary",
-  suspended: "destructive",
+/** Status tone per member status: suspended is a problem, pending awaits action. */
+export const USER_STATUS_TONE: Record<User["status"], StatusTone> = {
+  active: "success",
+  inactive: "neutral",
+  pending: "warning",
+  suspended: "danger",
 }
 
 /** Role facet options for the shared {@link FacetPanel}. */

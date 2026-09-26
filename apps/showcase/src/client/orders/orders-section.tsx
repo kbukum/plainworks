@@ -1,14 +1,14 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@plainworks/elements/card"
+import { asyncStatus } from "@plainworks/ui"
 import { DataTable } from "@plainworks/ui/data-table"
+import { AsyncState, EmptyState, ErrorState, LoadingState } from "@plainworks/ui/feedback"
 import { Pagination } from "@plainworks/ui/list"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { type ReactElement, useState } from "react"
 import { ORDER_LIST_PARAMS } from "../../app/constants"
 import { orderListPlan } from "../../app/order-read"
 import { CatalogLayout, FacetPanel, ListSearch, useCatalogList } from "../catalog"
-import { SectionState } from "../feedback"
 import { useHttpClient } from "../http-client"
 import { orderColumns } from "./order-columns"
 import { OrderDetail } from "./order-detail"
@@ -41,70 +41,70 @@ export function OrdersSection(): ReactElement {
   const [selectedOrder, setSelectedOrder] = useState<(typeof rows)[number] | null>(null)
 
   return (
-    <section aria-label="Orders" className="grid gap-4">
-      <p className="text-muted-foreground text-sm">
-        Browse orders, filter by status, and review each order's line items and total.
-      </p>
+    <>
       <CatalogLayout
-        filtersLabel="Order controls"
+        filtersLabel="Order filters"
+        activeFilters={list.filters.length}
+        search={
+          <ListSearch
+            label="Search orders"
+            value={list.search}
+            onChange={list.setSearch}
+            placeholder="Customer name or email"
+          />
+        }
         filters={
-          <>
-            <ListSearch
-              label="Search orders"
-              value={list.search}
-              onChange={list.setSearch}
-              placeholder="Customer name or email"
-            />
-            <FacetPanel
-              label="Order filters"
-              fields={[{ field: "status", label: "Status", options: ORDER_STATUS_OPTIONS }]}
-              facets={query.data?.facets}
-              value={list.filters}
-              onChange={list.setFilters}
-            />
-          </>
+          <FacetPanel
+            label="Filter by status"
+            fields={[{ field: "status", label: "Status", options: ORDER_STATUS_OPTIONS }]}
+            facets={query.data?.facets}
+            value={list.filters}
+            onChange={list.setFilters}
+          />
         }
       >
-        <Card className="min-w-0 border-border/70">
-          <CardHeader className="px-4 sm:px-6">
-            <CardTitle>Orders</CardTitle>
-          </CardHeader>
-          <CardContent className="grid min-w-0 gap-4 px-4 sm:px-6">
-            <SectionState
-              pending={query.isPending}
-              error={query.isError}
-              loadingLabel="Loading orders"
-              errorTitle="Orders are unavailable"
-              errorBody="The order list could not be loaded. Try again shortly."
-              isEmpty={!query.isPending && rows.length === 0}
-              empty={{
-                title: "No orders match",
-                body: "Adjust the filters or search to see more orders.",
-              }}
-            >
-              <DataTable
-                columns={orderColumns({
-                  onView: (order) => {
-                    mutations.clearError()
-                    setSelectedOrder(order)
-                  },
-                })}
-                rows={rows}
-                getRowId={(order) => order.id}
-                sort={list.sort}
-                onSortChange={list.setSort}
-                caption="Orders, filterable by status and sortable."
-              />
-              <Pagination
-                page={list.page}
-                pageSize={PAGE_SIZE}
-                total={total}
-                siblingCount={0}
-                onPageChange={list.setPage}
-              />
-            </SectionState>
-          </CardContent>
-        </Card>
+        <AsyncState
+          status={asyncStatus({
+            pending: query.isPending,
+            error: query.isError,
+            empty: rows.length === 0,
+          })}
+          loading={<LoadingState label="Loading orders" lines={6} />}
+          error={
+            <ErrorState
+              title="Orders are unavailable"
+              description="The order list could not be loaded."
+              onRetry={() => void query.refetch()}
+            />
+          }
+          empty={
+            <EmptyState
+              title="No orders match"
+              description="Adjust the filters or search to see more orders."
+            />
+          }
+        >
+          <DataTable
+            columns={orderColumns({
+              onView: (order) => {
+                mutations.clearError()
+                setSelectedOrder(order)
+              },
+            })}
+            rows={rows}
+            getRowId={(order) => order.id}
+            sort={list.sort}
+            onSortChange={list.setSort}
+            caption="Orders, filterable by status and sortable."
+          />
+          <Pagination
+            page={list.page}
+            pageSize={PAGE_SIZE}
+            total={total}
+            siblingCount={0}
+            onPageChange={list.setPage}
+          />
+        </AsyncState>
       </CatalogLayout>
       <OrderDetail
         order={selectedOrder ?? undefined}
@@ -127,6 +127,6 @@ export function OrdersSection(): ReactElement {
         pending={mutations.isPending}
         error={mutations.error}
       />
-    </section>
+    </>
   )
 }

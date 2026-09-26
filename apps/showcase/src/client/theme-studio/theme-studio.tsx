@@ -1,9 +1,10 @@
 "use client"
 
 import { useTheme } from "@plainworks/theme/client"
+import { ThemeModeGroup } from "@plainworks/ui/theme"
 import type { ReactElement } from "react"
 import { AccentPicker } from "./accent-picker"
-import { ModeControl } from "./mode-control"
+import { THEME_MODE_ICONS } from "./mode-icons"
 import { THEME_ERROR_MESSAGE } from "./theme-error"
 import { ThemePreview } from "./theme-preview"
 
@@ -14,11 +15,11 @@ export interface ThemeStudioProps {
 }
 
 /**
- * The theme studio: the mode control, the accent picker, and a live preview in one surface.
- * Every control drives the shared theme context, so a change is reflected across the whole document
- * — the preview included — and persists through the existing theme source with no extra path.
- * Settings embeds this studio; it carries its own labelled region and control headings so it drops
- * into a page section without assuming a heading level above `h2`.
+ * The theme studio: the kit's color-mode group, the accent picker, and a live preview in one
+ * surface. Every control drives the shared theme context, so a change is reflected across the whole
+ * document — the preview included — and persists through the existing theme source with no extra
+ * path. Settings embeds this studio; it carries its own labelled region and control headings so it
+ * drops into a page section without assuming a heading level above `h2`.
  */
 export function ThemeStudio({ announceError = true }: ThemeStudioProps): ReactElement {
   const { error } = useTheme()
@@ -44,7 +45,7 @@ export function ThemeStudio({ announceError = true }: ThemeStudioProps): ReactEl
         <div className="grid content-start gap-6">
           <div className="grid gap-2">
             <h3 className="text-sm font-medium">Mode</h3>
-            <ModeControl announceError={false} />
+            <ThemeModeGroup icons={THEME_MODE_ICONS} announceError={false} />
           </div>
           <div className="grid gap-2">
             <h3 className="text-sm font-medium">Accent</h3>

@@ -1,6 +1,7 @@
 "use client"
 
 import { assertNever } from "@plainworks/std"
+import { LoadingState } from "@plainworks/ui/feedback"
 import { lazy, type ReactElement, Suspense } from "react"
 import type { Section } from "../../app/navigation"
 
@@ -71,13 +72,7 @@ export function SectionOutlet({ section }: SectionOutletProps): ReactElement {
       assertNever(section.id)
   }
   return (
-    <Suspense
-      fallback={
-        <p role="status" className="text-muted-foreground">
-          Loading {section.label.toLocaleLowerCase()}...
-        </p>
-      }
-    >
+    <Suspense fallback={<LoadingState label={`Loading ${section.label.toLocaleLowerCase()}`} />}>
       {content}
     </Suspense>
   )

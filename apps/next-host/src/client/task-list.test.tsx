@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { createQueryClient } from "@plainworks/query"
 import { QueryProvider } from "@plainworks/query/client"
-import { cleanup, render, screen } from "@testing-library/react"
-import axe from "axe-core"
-import { http } from "msw"
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
+import { cleanup, render, screen, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import { HttpResponse, http } from "msw"
 import { setupServer } from "msw/node"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { createDemoBackend } from "../server/mock-dispatch"
@@ -12,18 +13,13 @@ import { TaskList } from "./task-list"
 
 // The query-driven list read through the browser HTTP client against the seeded mock backend — the
 // same `taskListPlan` the RSC page prefetches, so the client mounts under the identical key. The
-// in-process backend routes through MSW with `onUnhandledRequest: "error"`, ensuring network
-// requests are intercepted at the boundary without stubbing `fetch`; the rendered table must also
-// be accessible.
+// in-process backend routes through MSW with `onUnhandledRequest: "error"`, so requests are
+// intercepted at the network boundary rather than by stubbing `fetch`.
 
 const ORIGIN = "http://next-host.test"
 const backend = createDemoBackend({ seed: 7 })
 
-const server = setupServer(
-  http.all(`${ORIGIN}/*`, async ({ request }) => {
-    return backend.dispatch(request)
-  }),
-)
+const server = setupServer(http.all(`${ORIGIN}/*`, ({ request }) => backend.dispatch(request)))
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }))
 afterEach(() => {
@@ -33,7 +29,7 @@ afterEach(() => {
 afterAll(() => server.close())
 
 function renderList() {
-  const queryClient = createQueryClient()
+  const queryClient = createQueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryProvider client={queryClient}>
       <HttpClientProvider origin={ORIGIN}>
@@ -43,28 +39,40 @@ function renderList() {
   )
 }
 
+const STATUS_LABELS = ["To do", "In progress", "Done", "Blocked"]
+
 describe("task list", () => {
-  it("renders the seeded task rows read through the browser query", async () => {
+  it("announces the load, then renders the seeded tasks with a readable status", async () => {
     renderList()
-    await screen.findByRole("table", { name: "Tasks, highest priority first" })
-    const rows = await screen.findAllByRole("row")
-    // The header row plus at least one seeded data row.
-    expect(rows.length).toBeGreaterThan(1)
+    expect(screen.getByRole("status", { name: "Loading tasks" })).toBeDefined()
+    const table = await screen.findByRole("table", { name: "Tasks, highest priority first" })
+    const rows = within(table).getAllByRole("row").slice(1)
+    expect(rows.length).toBeGreaterThan(0)
+    for (const row of rows) {
+      const text = row.textContent ?? ""
+      expect(STATUS_LABELS.some((label) => text.includes(label))).toBe(true)
+    }
   })
 
-  it("announces the load and its outcome from one mounted polite live region", async () => {
-    const { container } = renderList()
-    const region = container.querySelector("[aria-live='polite']")
-    expect(region?.getAttribute("aria-busy")).toBe("true")
-    await screen.findByRole("table")
-    expect(region?.getAttribute("aria-busy")).toBe("false")
-    expect(region?.contains(screen.getByRole("table"))).toBe(true)
+  it("shows a failure the user can retry", async () => {
+    const user = userEvent.setup()
+    server.use(
+      http.get(`${ORIGIN}/api/tasks`, () => new HttpResponse(null, { status: 500 }), {
+        once: true,
+      }),
+    )
+    renderList()
+    const alert = await screen.findByRole("alert")
+    expect(alert.textContent).toContain("Tasks are unavailable")
+    await user.click(within(alert).getByRole("button", { name: "Try again" }))
+    expect(
+      await screen.findByRole("table", { name: "Tasks, highest priority first" }),
+    ).toBeDefined()
   })
 
   it("has no detectable accessibility violations once loaded", async () => {
     const { container } = renderList()
     await screen.findByRole("table")
-    const results = await axe.run(container)
-    expect(results.violations).toEqual([])
+    await expectNoAxeViolations(container)
   })
 })

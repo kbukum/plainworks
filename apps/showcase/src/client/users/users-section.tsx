@@ -1,14 +1,14 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@plainworks/elements/card"
+import { asyncStatus } from "@plainworks/ui"
 import { DataTable } from "@plainworks/ui/data-table"
+import { AsyncState, EmptyState, ErrorState, LoadingState } from "@plainworks/ui/feedback"
 import { Pagination } from "@plainworks/ui/list"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { type ReactElement, useState } from "react"
 import { USER_LIST_PARAMS } from "../../app/constants"
 import { userListPlan } from "../../app/user-read"
 import { CatalogLayout, FacetPanel, ListSearch, useCatalogList } from "../catalog"
-import { SectionState } from "../feedback"
 import { useHttpClient } from "../http-client"
 import { userColumns } from "./user-columns"
 import { USER_DEPARTMENT_OPTIONS, USER_ROLE_OPTIONS, USER_STATUS_OPTIONS } from "./user-fields"
@@ -40,69 +40,69 @@ export function UsersSection(): ReactElement {
   const selected = rows.find((user) => user.id === selectedId)
 
   return (
-    <section aria-label="Users" className="grid gap-4">
-      <p className="text-muted-foreground text-sm">
-        Browse the member directory, filter by role, status, and department, and open a profile.
-      </p>
+    <>
       <CatalogLayout
-        filtersLabel="Directory controls"
+        filtersLabel="Directory filters"
+        activeFilters={list.filters.length}
+        search={
+          <ListSearch
+            label="Search users"
+            value={list.search}
+            onChange={list.setSearch}
+            placeholder="Name or email"
+          />
+        }
         filters={
-          <>
-            <ListSearch
-              label="Search users"
-              value={list.search}
-              onChange={list.setSearch}
-              placeholder="Name or email"
-            />
-            <FacetPanel
-              label="Directory filters"
-              fields={[
-                { field: "role", label: "Role", options: USER_ROLE_OPTIONS },
-                { field: "status", label: "Status", options: USER_STATUS_OPTIONS },
-                { field: "department", label: "Department", options: USER_DEPARTMENT_OPTIONS },
-              ]}
-              facets={query.data?.facets}
-              value={list.filters}
-              onChange={list.setFilters}
-            />
-          </>
+          <FacetPanel
+            label="Filter by role, status, and department"
+            fields={[
+              { field: "role", label: "Role", options: USER_ROLE_OPTIONS },
+              { field: "status", label: "Status", options: USER_STATUS_OPTIONS },
+              { field: "department", label: "Department", options: USER_DEPARTMENT_OPTIONS },
+            ]}
+            facets={query.data?.facets}
+            value={list.filters}
+            onChange={list.setFilters}
+          />
         }
       >
-        <Card className="min-w-0 border-border/70">
-          <CardHeader className="px-4 sm:px-6">
-            <CardTitle>Users</CardTitle>
-          </CardHeader>
-          <CardContent className="grid min-w-0 gap-4 px-4 sm:px-6">
-            <SectionState
-              pending={query.isPending}
-              error={query.isError}
-              loadingLabel="Loading users"
-              errorTitle="Users are unavailable"
-              errorBody="The member directory could not be loaded. Try again shortly."
-              isEmpty={!query.isPending && rows.length === 0}
-              empty={{
-                title: "No members match",
-                body: "Adjust the filters or search to see more members.",
-              }}
-            >
-              <DataTable
-                columns={userColumns({ onView: (user) => setSelectedId(user.id) })}
-                rows={rows}
-                getRowId={(user) => user.id}
-                sort={list.sort}
-                onSortChange={list.setSort}
-                caption="Users, filterable by role, status, and department, and sortable."
-              />
-              <Pagination
-                page={list.page}
-                pageSize={PAGE_SIZE}
-                total={total}
-                siblingCount={0}
-                onPageChange={list.setPage}
-              />
-            </SectionState>
-          </CardContent>
-        </Card>
+        <AsyncState
+          status={asyncStatus({
+            pending: query.isPending,
+            error: query.isError,
+            empty: rows.length === 0,
+          })}
+          loading={<LoadingState label="Loading users" lines={6} />}
+          error={
+            <ErrorState
+              title="Users are unavailable"
+              description="The member directory could not be loaded."
+              onRetry={() => void query.refetch()}
+            />
+          }
+          empty={
+            <EmptyState
+              title="No members match"
+              description="Adjust the filters or search to see more members."
+            />
+          }
+        >
+          <DataTable
+            columns={userColumns({ onView: (user) => setSelectedId(user.id) })}
+            rows={rows}
+            getRowId={(user) => user.id}
+            sort={list.sort}
+            onSortChange={list.setSort}
+            caption="Users, filterable by role, status, and department, and sortable."
+          />
+          <Pagination
+            page={list.page}
+            pageSize={PAGE_SIZE}
+            total={total}
+            siblingCount={0}
+            onPageChange={list.setPage}
+          />
+        </AsyncState>
       </CatalogLayout>
       <UserProfile
         user={selected}
@@ -112,6 +112,6 @@ export function UsersSection(): ReactElement {
           }
         }}
       />
-    </section>
+    </>
   )
 }

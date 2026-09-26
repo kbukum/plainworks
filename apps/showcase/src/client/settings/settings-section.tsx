@@ -1,10 +1,11 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@plainworks/elements/card"
+import { buttonVariants } from "@plainworks/elements/button"
+import { asyncStatus } from "@plainworks/ui"
+import { AsyncState, EmptyState, ErrorState, LoadingState } from "@plainworks/ui/feedback"
 import { useQuery } from "@tanstack/react-query"
 import type { ReactElement } from "react"
 import { settingsQueryPlan } from "../../app/settings-read"
-import { SectionState } from "../feedback"
 import { useHttpClient } from "../http-client"
 import { RequireAuth, useIdentity } from "../session"
 import { SettingsFrame } from "./settings-frame"
@@ -13,11 +14,15 @@ import { useSettingsMutation } from "./use-settings-mutation"
 /** The sign-in prompt a guest sees in place of the settings — there is no account to manage yet. */
 function GuestPrompt(): ReactElement {
   return (
-    <Card className="border-border/70">
-      <CardContent className="px-4 py-8 text-center sm:px-6">
-        <p className="text-muted-foreground">Sign in to manage your account settings.</p>
-      </CardContent>
-    </Card>
+    <EmptyState
+      title="Sign in to manage your settings"
+      description="Your profile, preferences, and notifications live with your account."
+      action={
+        <a href="/login?returnTo=%2Fsettings" className={buttonVariants({ variant: "default" })}>
+          Sign in
+        </a>
+      }
+    />
   )
 }
 
@@ -29,24 +34,21 @@ function AccountSettings({ userId }: { readonly userId: string }): ReactElement 
   const mutation = useSettingsMutation(plan.queryKey, userId)
 
   return (
-    <Card className="min-w-0 border-border/70">
-      <CardHeader className="px-4 sm:px-6">
-        <CardTitle>Settings</CardTitle>
-      </CardHeader>
-      <CardContent className="grid min-w-0 gap-4 px-4 sm:px-6">
-        <SectionState
-          pending={query.isPending}
-          error={query.isError}
-          loadingLabel="Loading settings"
-          errorTitle="Settings are unavailable"
-          errorBody="Your settings could not be loaded. Try again shortly."
-        >
-          {query.data === undefined ? null : (
-            <SettingsFrame settings={query.data} save={mutation.save} />
-          )}
-        </SectionState>
-      </CardContent>
-    </Card>
+    <AsyncState
+      status={asyncStatus({ pending: query.isPending, error: query.isError })}
+      loading={<LoadingState label="Loading settings" lines={6} />}
+      error={
+        <ErrorState
+          title="Settings are unavailable"
+          description="Your settings could not be loaded."
+          onRetry={() => void query.refetch()}
+        />
+      }
+    >
+      {query.data === undefined ? null : (
+        <SettingsFrame settings={query.data} save={mutation.save} />
+      )}
+    </AsyncState>
   )
 }
 
@@ -65,14 +67,8 @@ function IdentitySettings(): ReactElement {
  */
 export function SettingsSection(): ReactElement {
   return (
-    <section aria-label="Settings" className="grid gap-4">
-      <p className="text-muted-foreground text-sm">
-        Manage your profile, preferences, notifications, and appearance. Account changes are saved
-        to the server; appearance is saved to this device.
-      </p>
-      <RequireAuth fallback={<GuestPrompt />}>
-        <IdentitySettings />
-      </RequireAuth>
-    </section>
+    <RequireAuth fallback={<GuestPrompt />}>
+      <IdentitySettings />
+    </RequireAuth>
   )
 }

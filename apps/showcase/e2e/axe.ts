@@ -11,15 +11,11 @@ const BROWSER_ONLY_RULES = ["color-contrast", "target-size"] as const
 const ANIMATION_SETTLE_TIMEOUT_MS = 2_000
 
 /**
- * Run axe-core in the live browser over the current page, scoped to the layout-dependent rules the
- * unit floor skips, and fail with actionable `rule: help — target` detail on any violation. Reuses
- * the same axe engine version the `@plainworks/testkit` floor pins, so the two gates speak one rule
- * vocabulary.
+ * Wait for every running finite animation and transition to finish, so a measurement sees the end
+ * state rather than a frame in between. Infinite ones (spinners) are skipped, and the wait is
+ * bounded because a paused or replaced animation may never finish.
  */
-export async function expectNoBrowserAxeViolations(page: Page): Promise<void> {
-  // Contrast sampled mid-transition (e.g. an overlay fading in) is neither the start nor the end
-  // state, so settle every running finite animation first. Infinite ones (spinners) are skipped,
-  // and the wait is bounded because a paused or replaced animation may never finish.
+async function settleAnimations(page: Page): Promise<void> {
   await page.evaluate(
     (timeoutMs) =>
       Promise.race([
@@ -37,6 +33,18 @@ export async function expectNoBrowserAxeViolations(page: Page): Promise<void> {
       ]),
     ANIMATION_SETTLE_TIMEOUT_MS,
   )
+}
+
+/**
+ * Run axe-core in the live browser over the current page, scoped to the layout-dependent rules the
+ * unit floor skips, and fail with actionable `rule: help — target` detail on any violation. Reuses
+ * the same axe engine version the `@plainworks/testkit` floor pins, so the two gates speak one rule
+ * vocabulary.
+ */
+export async function expectNoBrowserAxeViolations(page: Page): Promise<void> {
+  // Contrast sampled mid-transition (e.g. an overlay fading in) is neither the start nor the end
+  // state, so settle running animations first.
+  await settleAnimations(page)
   const { violations } = await new AxeBuilder({ page })
     .options({ runOnly: { type: "rule", values: [...BROWSER_ONLY_RULES] } })
     .analyze()
@@ -71,6 +79,8 @@ export async function expectReflowAtNarrowViewport(page: Page): Promise<void> {
   const original = page.viewportSize()
   try {
     await page.setViewportSize(REFLOW_VIEWPORT)
+    // Controls that resize with their container transition to the narrow layout; measure the end.
+    await settleAnimations(page)
     // `scrollWidth` exceeding `clientWidth` is a horizontal scrollbar — the reflow failure WCAG
     // 1.4.10 forbids. Allow a 1px rounding slack.
     const overflow = await page.evaluate(

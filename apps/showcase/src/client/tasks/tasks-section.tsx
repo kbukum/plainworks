@@ -2,12 +2,11 @@
 
 import type { Task } from "@plainworks/demo"
 import { Button } from "@plainworks/elements/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@plainworks/elements/card"
 import type { ListFilter, ListQueryParams } from "@plainworks/query"
 import type { StreamTransportFactory } from "@plainworks/std"
 import type { DataTableSort } from "@plainworks/ui/data-table"
 import { DataTable } from "@plainworks/ui/data-table"
-import { Callout } from "@plainworks/ui/feedback"
+import { ErrorState } from "@plainworks/ui/feedback"
 import { FilterBar, type FilterFieldDef, Pagination } from "@plainworks/ui/list"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { type ReactElement, useMemo, useState } from "react"
@@ -100,12 +99,7 @@ export function TasksSection({ streamFactory }: TasksSectionProps): ReactElement
     <LiveTaskChannelProvider options={{ transport: stream }}>
       <section aria-label="Task board" className="grid gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <p className="text-muted-foreground text-sm">
-              Filter, sort, and edit tasks while live updates arrive.
-            </p>
-            <LiveToggle enabled={liveEnabled} onToggle={() => setLiveEnabled((prev) => !prev)} />
-          </div>
+          <LiveToggle enabled={liveEnabled} onToggle={() => setLiveEnabled((prev) => !prev)} />
           <Can
             authorizer={canManageTasks}
             action="tasks:manage"
@@ -129,40 +123,35 @@ export function TasksSection({ streamFactory }: TasksSectionProps): ReactElement
           }}
         />
 
-        <Card className="min-w-0 border-border/70">
-          <CardHeader className="px-4 sm:px-6">
-            <CardTitle>Tasks</CardTitle>
-          </CardHeader>
-          <CardContent className="grid min-w-0 gap-4 px-4 sm:px-6">
-            {query.isError ? (
-              <Callout tone="danger" title="Tasks are unavailable">
-                The task list could not be loaded. Try again shortly.
-              </Callout>
-            ) : (
-              <>
-                <DataTable
-                  columns={taskColumns(canManage ? { onEdit: openEdit } : {})}
-                  rows={rows}
-                  getRowId={(task) => task.id}
-                  sort={sort}
-                  onSortChange={(next) => {
-                    setSort(next)
-                    setPage(1)
-                  }}
-                  loading={query.isPending}
-                  caption="Tasks, filterable and sortable, updated live."
-                />
-                <Pagination
-                  page={page}
-                  pageSize={PAGE_SIZE}
-                  total={total}
-                  siblingCount={0}
-                  onPageChange={setPage}
-                />
-              </>
-            )}
-          </CardContent>
-        </Card>
+        {query.isError ? (
+          <ErrorState
+            title="Tasks are unavailable"
+            description="The task list could not be loaded."
+            onRetry={() => void query.refetch()}
+          />
+        ) : (
+          <div className="grid min-w-0 gap-4">
+            <DataTable
+              columns={taskColumns(canManage ? { onEdit: openEdit } : {})}
+              rows={rows}
+              getRowId={(task) => task.id}
+              sort={sort}
+              onSortChange={(next) => {
+                setSort(next)
+                setPage(1)
+              }}
+              loading={query.isPending}
+              caption="Tasks, filterable and sortable, updated live."
+            />
+            <Pagination
+              page={page}
+              pageSize={PAGE_SIZE}
+              total={total}
+              siblingCount={0}
+              onPageChange={setPage}
+            />
+          </div>
+        )}
 
         <Can authorizer={canManageTasks} action="tasks:manage" fallback={null}>
           <TaskDialog

@@ -3,13 +3,12 @@
 import type { User } from "@plainworks/demo"
 import { Avatar, AvatarFallback } from "@plainworks/elements/avatar"
 import { Badge } from "@plainworks/elements/badge"
-import { DateValue } from "@plainworks/ui/display"
+import { DateValue, StatusBadge } from "@plainworks/ui/display"
 import { Modal } from "@plainworks/ui/overlays"
 import type { ReactElement, ReactNode } from "react"
 import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../app/constants"
 import {
   USER_ROLE_LABEL,
-  USER_ROLE_TONE,
   USER_STATUS_LABEL,
   USER_STATUS_TONE,
   userDisplayName,
@@ -53,11 +52,13 @@ export function UserProfile({ user, onOpenChange }: UserProfileProps): ReactElem
             <AvatarFallback className="text-foreground">{userInitials(user)}</AvatarFallback>
           </Avatar>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={USER_ROLE_TONE[user.role]}>{USER_ROLE_LABEL[user.role]}</Badge>
-            <Badge variant={USER_STATUS_TONE[user.status]}>{USER_STATUS_LABEL[user.status]}</Badge>
-            <Badge variant={user.verified ? "default" : "outline"}>
+            <Badge variant="outline">{USER_ROLE_LABEL[user.role]}</Badge>
+            <StatusBadge tone={USER_STATUS_TONE[user.status]}>
+              {USER_STATUS_LABEL[user.status]}
+            </StatusBadge>
+            <StatusBadge tone={user.verified ? "success" : "neutral"}>
               {user.verified ? "Verified" : "Unverified"}
-            </Badge>
+            </StatusBadge>
           </div>
         </div>
 

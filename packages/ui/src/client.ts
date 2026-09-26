@@ -10,8 +10,14 @@ export type {
   SortDirection,
 } from "./client/data-table"
 export { DataTable, defaultDataTableLabels } from "./client/data-table"
-export type { DateInput, DateValueProps, NumberValueProps } from "./client/display"
-export { DateValue, NumberValue } from "./client/display"
+export type {
+  DateInput,
+  DateValueProps,
+  NumberValueProps,
+  StatusBadgeProps,
+  StatusTone,
+} from "./client/display"
+export { DateValue, NumberValue, StatusBadge } from "./client/display"
 // Client public entry for `@plainworks/ui` — re-export-only barrel over every client concern
 // module (never the server `.` barrel). The per-module `"use client"` directives make tsdown emit
 // this (and only the client graph) as the client entry; the server `.` entry stays clean. Per-
@@ -111,8 +117,14 @@ export {
   Pagination,
   parseListValues,
 } from "./client/list"
-export type { BreadcrumbEntry, BreadcrumbsProps } from "./client/navigation"
-export { Breadcrumbs } from "./client/navigation"
+export type {
+  BreadcrumbEntry,
+  BreadcrumbsProps,
+  LinkRender,
+  NavListItem,
+  NavListProps,
+} from "./client/navigation"
+export { Breadcrumbs, NavList } from "./client/navigation"
 export type { DrawerProps, DrawerSide, ModalProps } from "./client/overlays"
 export { Drawer, Modal } from "./client/overlays"
 export type {
@@ -124,12 +136,23 @@ export type {
   ToolbarProps,
 } from "./client/page"
 export { Page, PageHeader, Section, Toolbar } from "./client/page"
+export type { AppShellLabels, AppShellNavigationSlot, AppShellProps } from "./client/shell"
+export { AppShell, defaultAppShellLabels } from "./client/shell"
 export type {
   ThemeContextValue,
+  ThemeModeGroupProps,
+  ThemeModeIcons,
+  ThemeModeLabels,
+  ThemeModeMenuProps,
   ThemeProviderProps,
-  ThemeToggleProps,
 } from "./client/theme"
-export { ThemeProvider, ThemeToggle, useTheme } from "./client/theme"
+export {
+  defaultThemeModeLabels,
+  ThemeModeGroup,
+  ThemeModeMenu,
+  ThemeProvider,
+  useTheme,
+} from "./client/theme"
 export type {
   Disclosure,
   ListState,

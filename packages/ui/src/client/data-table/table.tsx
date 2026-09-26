@@ -63,7 +63,8 @@ const LOW_PRIORITY_CLASS = "@max-2xl:hidden"
 const NARROW_ONLY_CLASS = "@2xl:hidden"
 // `overflow-wrap: anywhere`, not `break-word`: only `anywhere` lowers a cell's min-content width,
 // so one long unbroken value (an email, a URL) cannot force the table wider than its container.
-const WRAPPING_CELL_CLASS = "whitespace-normal wrap-anywhere"
+// `hyphens: auto` breaks ordinary words at a hyphenation point first, so text stays readable.
+const WRAPPING_CELL_CLASS = "whitespace-normal wrap-anywhere hyphens-auto"
 
 /**
  * A compound, controlled-first data table. It owns only ephemeral view state — sort direction, row

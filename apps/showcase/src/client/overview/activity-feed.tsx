@@ -1,7 +1,6 @@
 "use client"
 
-import { Badge } from "@plainworks/elements/badge"
-import { DateValue } from "@plainworks/ui/display"
+import { DateValue, StatusBadge } from "@plainworks/ui/display"
 import { Callout, LoadingState } from "@plainworks/ui/feedback"
 import { useQuery } from "@tanstack/react-query"
 import type { ReactElement } from "react"
@@ -50,7 +49,7 @@ export function ActivityFeed(): ReactElement {
             children: task.title,
           })}
           <span className="flex shrink-0 items-center gap-2">
-            <Badge variant={STATUS_TONE[task.status]}>{STATUS_LABEL[task.status]}</Badge>
+            <StatusBadge tone={STATUS_TONE[task.status]}>{STATUS_LABEL[task.status]}</StatusBadge>
             <span className="text-muted-foreground text-sm">
               <DateValue
                 value={task.createdAt}

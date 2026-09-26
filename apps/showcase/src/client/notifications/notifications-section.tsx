@@ -1,13 +1,14 @@
 "use client"
 
 import type { Notification } from "@plainworks/demo"
-import { Card, CardContent, CardHeader, CardTitle } from "@plainworks/elements/card"
+import { asyncStatus } from "@plainworks/ui"
+import { AsyncState, ErrorState, LoadingState } from "@plainworks/ui/feedback"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import type { ReactElement } from "react"
 import { NOTIFICATION_LIST_PARAMS } from "../../app/constants"
 import { notificationListPlan } from "../../app/notification-read"
 import { countUnread } from "../../app/notification-shape"
-import { SectionState, useToast } from "../feedback"
+import { useToast } from "../feedback"
 import { useHttpClient } from "../http-client"
 import { useNotificationMutations } from "./notification-mutations"
 import { NotificationsFeed } from "./notifications-feed"
@@ -58,34 +59,25 @@ export function NotificationsSection(): ReactElement {
   }
 
   return (
-    <section aria-label="Notifications" className="grid gap-4">
-      <p className="text-muted-foreground text-sm">
-        Triage your inbox — filter to what's unread, mark items read, or dismiss what you're done
-        with.
-      </p>
-      <Card className="min-w-0 border-border/70">
-        <CardHeader className="px-4 sm:px-6">
-          <CardTitle>Notifications</CardTitle>
-        </CardHeader>
-        <CardContent className="grid min-w-0 gap-4 px-4 sm:px-6">
-          <SectionState
-            pending={query.isPending}
-            error={query.isError}
-            loadingLabel="Loading notifications"
-            errorTitle="Notifications are unavailable"
-            errorBody="The notifications feed could not be loaded. Try again shortly."
-          >
-            <NotificationsFeed
-              notifications={rows}
-              unreadCount={unreadCount}
-              bulkPending={mutations.isBulkPending}
-              onMarkRead={handleMarkRead}
-              onDismiss={handleDismiss}
-              onMarkAllRead={handleMarkAllRead}
-            />
-          </SectionState>
-        </CardContent>
-      </Card>
-    </section>
+    <AsyncState
+      status={asyncStatus({ pending: query.isPending, error: query.isError })}
+      loading={<LoadingState label="Loading notifications" lines={6} />}
+      error={
+        <ErrorState
+          title="Notifications are unavailable"
+          description="The notifications feed could not be loaded."
+          onRetry={() => void query.refetch()}
+        />
+      }
+    >
+      <NotificationsFeed
+        notifications={rows}
+        unreadCount={unreadCount}
+        bulkPending={mutations.isBulkPending}
+        onMarkRead={handleMarkRead}
+        onDismiss={handleDismiss}
+        onMarkAllRead={handleMarkAllRead}
+      />
+    </AsyncState>
   )
 }

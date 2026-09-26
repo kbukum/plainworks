@@ -136,6 +136,7 @@ describe("codegen orchestration writes every artifact from disk", () => {
         "src/client/forms",
         "src/client/list",
         "src/client/page",
+        "src/client/shell",
       ]
       for (const dir of registryDirs) {
         mkdirSync(join(root, dir), { recursive: true })

@@ -1,6 +1,7 @@
 "use client"
 
 import type { DashboardStats } from "@plainworks/demo"
+import { Button } from "@plainworks/elements/button"
 import {
   Card,
   CardContent,
@@ -16,29 +17,30 @@ import { GrowthBadge } from "./growth-badge"
 
 const STAT_LABELS = ["Total users", "Total orders", "Revenue", "Products"] as const
 
-/** One headline metric: a label, its formatted value, and an optional growth badge. */
+/** One headline metric: a label, its formatted value, and a supporting line. */
 function StatCard({
   label,
   value,
-  growth,
+  detail,
 }: {
   readonly label: string
   readonly value: ReactNode
-  readonly growth?: number
+  /** The supporting line: a growth badge or a short caption, so every card has the same shape. */
+  readonly detail: ReactNode
 }): ReactElement {
   return (
     <Card>
       <CardHeader>
         <CardDescription>{label}</CardDescription>
-        <CardTitle className="text-2xl">{value}</CardTitle>
+        <CardTitle className="text-2xl tabular-nums">{value}</CardTitle>
       </CardHeader>
-      {growth !== undefined ? (
-        <CardContent>
-          <GrowthBadge value={growth} periodLabel="from last period" />
-        </CardContent>
-      ) : null}
+      <CardContent className="text-caption text-muted-foreground">{detail}</CardContent>
     </Card>
   )
+}
+
+function growthDetail(value: number): ReactElement {
+  return <GrowthBadge value={value} periodLabel="from last period" />
 }
 
 /** Props for {@link StatCards}. */
@@ -58,12 +60,12 @@ export function StatCards({ stats }: StatCardsProps): ReactElement {
       <StatCard
         label="Total users"
         value={<NumberValue value={stats.totalUsers} locale={DISPLAY_LOCALE} />}
-        growth={stats.userGrowth}
+        detail={growthDetail(stats.userGrowth)}
       />
       <StatCard
         label="Total orders"
         value={<NumberValue value={stats.totalOrders} locale={DISPLAY_LOCALE} />}
-        growth={stats.orderGrowth}
+        detail={growthDetail(stats.orderGrowth)}
       />
       <StatCard
         label="Revenue"
@@ -74,11 +76,12 @@ export function StatCards({ stats }: StatCardsProps): ReactElement {
             options={{ style: "currency", currency: "USD", maximumFractionDigits: 0 }}
           />
         }
-        growth={stats.revenueGrowth}
+        detail={growthDetail(stats.revenueGrowth)}
       />
       <StatCard
         label="Products"
         value={<NumberValue value={stats.totalProducts} locale={DISPLAY_LOCALE} />}
+        detail="Listed in the catalog"
       />
     </div>
   )
@@ -102,13 +105,24 @@ export function StatCardsSkeleton(): ReactElement {
   )
 }
 
+/** Props for {@link StatCardsError}. */
+export interface StatCardsErrorProps {
+  /** Retry the summary read. */
+  readonly onRetry: () => void
+}
+
 /** A card-preserving failure state for a summary read that failed as one atomic payload. */
-export function StatCardsError(): ReactElement {
+export function StatCardsError({ onRetry }: StatCardsErrorProps): ReactElement {
   return (
     <section role="alert" aria-labelledby="summary-error-title" className="grid gap-3">
-      <h2 id="summary-error-title" className="font-semibold text-destructive">
-        Summary statistics are unavailable
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="summary-error-title" className="font-semibold text-destructive">
+          Summary statistics are unavailable
+        </h2>
+        <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+          Try again
+        </Button>
+      </div>
       <div className="grid grid-cols-1 gap-4 @sm/main:grid-cols-2 @4xl/main:grid-cols-4">
         {STAT_LABELS.map((label) => (
           <Card key={label}>

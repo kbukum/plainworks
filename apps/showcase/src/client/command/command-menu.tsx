@@ -67,13 +67,13 @@ export function CommandMenu(): ReactElement {
         aria-label="Search sections and actions"
         onClick={() => setOpen(true)}
         className={cn(
-          buttonVariants({ variant: "outline", size: "sm" }),
-          "text-muted-foreground gap-2 sm:w-56 sm:justify-start",
+          buttonVariants({ variant: "outline", size: "icon" }),
+          "gap-2 text-muted-foreground @2xl/shell:w-56 @2xl/shell:justify-start @2xl/shell:px-3",
         )}
       >
         <Search aria-hidden className="size-4 shrink-0" />
-        <span className="sr-only sm:not-sr-only">Search</span>
-        <KbdGroup aria-hidden className="ml-auto hidden sm:flex">
+        <span className="sr-only @2xl/shell:not-sr-only">Search</span>
+        <KbdGroup aria-hidden className="ml-auto hidden @2xl/shell:flex">
           <Kbd>⌘</Kbd>
           <Kbd>K</Kbd>
         </KbdGroup>

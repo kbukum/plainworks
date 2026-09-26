@@ -27,7 +27,7 @@ The mock backend is a catch-all Route Handler (`/api/[...path]`) that dispatches
 - **The three-bucket architecture, by path.** `src/neutral` names no host global (constants, theme/task narrowing); `src/client` is `"use client"` (providers, chrome, list); `src/server` is server-only (session, identity provider, backend). The layout threads a serializable snapshot from server to client as a plain prop.
 - **Token custody stays server-side.** Auth runs through `@plainworks/auth`'s `createServerSession` — Authorization Code + PKCE, an HMAC-signed **identity-only** session in a `__Host-` cookie. The BFF routes `/login`, `/auth/callback`, and `/logout` drive the flow; no token ever crosses to the client, and the token-custody modules carry the `server-only` marker so they cannot enter a client bundle.
 - **Query prefetch survives RSC.** The gated Tasks page prefetches the list into a request-scoped query client and hands the dehydrated cache to a client `HydrationBoundary`, so the browser mounts the list under the identical key with no refetch flash.
-- **A different router behind the same seam.** The section nav uses `next/link`; the `ui` breadcrumb `render` seam is backed by `router.push` from `next/navigation` — the same seam the showcase drives with a history router.
+- **The same app frame on a different router.** The host builds its frame from the kit's `AppShell`, `NavList`, `PageHeader`, `ThemeModeMenu`, and `DataTable`, with no showcase code. Every nav and breadcrumb link runs through `router.push` from `next/navigation`, the same link seam the showcase drives with a history router.
 - **Development-only inspection under RSC.** The Plainworks inspector observes the browser's HTTP client, query cache, and live channel. Pure interceptor seams are constructed behind `process.env.NODE_ENV` gates; the DOM shell and CSS load dynamically after mount and dispose on unmount. Run `bun run check-production --filter=@plainworks/next-host` to build and inspect client/server artifacts. There is no operational logging pipeline or standalone store to inspect; server/RSC requests and auth custody are deliberately not exposed.
 
 ## Rough edges to know
@@ -42,9 +42,9 @@ The mock backend is a catch-all Route Handler (`/api/[...path]`) that dispatches
 
 | Path | Responsibility |
 |---|---|
-| `src/neutral` | Host-agnostic constants and the theme/task-read validation shared by every bucket. |
+| `src/neutral` | Host-agnostic constants, the page table (titles and summaries), and the theme/task-read validation shared by every bucket. |
 | `src/server` | Server-only request resolution, the auth composition, the mock-backend dispatch, and the BFF cookie plumbing. |
-| `src/client` | The `"use client"` providers, app chrome, live stream, task list, and session gates. |
+| `src/client` | The `"use client"` providers, the app frame (`HostShell`), live stream, task list, and session gates. |
 | `src/app` | The App Router tree: RSC layout and pages, the BFF route handlers, and the mock-backend catch-all. |
 
 The app consumes only published package exports. Nothing in `packages/` imports it, and its route tree stays local.

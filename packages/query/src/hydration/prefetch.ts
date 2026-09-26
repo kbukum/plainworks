@@ -73,9 +73,9 @@ export type DehydrateClientOptions = Omit<DehydrateOptions, "shouldDehydrateQuer
  * Snapshot a server `client`'s cache into a serializable {@link DehydratedState} to ship to the
  * browser — the second half of the flow. Pass the result to the client `HydrationBoundary` (from
  * `./client`), which rehydrates it into the browser client so the first client render reuses the
- * server's data with no loading flash. Hydration does not imply *no refetch*: with the default
- * `staleTime: 0` a hydrated query is immediately stale and refetches in the background on mount —
- * freshness follows the client's configured stale/refetch policy.
+ * server's data with no loading flash. Freshness follows the client's stale policy: under the
+ * `createQueryClient` default a hydrated query stays fresh for a minute, while a client configured
+ * with `staleTime: 0` refetches it in the background on mount.
  *
  * The query policy is mandatory (see {@link DehydrateClientOptions}); TanStack's
  * {@link DehydrateOptions} also lets the policy transform non-serializable data before it ships.

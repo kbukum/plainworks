@@ -93,10 +93,17 @@ describe("users section", () => {
     expect(within(dialog).queryByRole("combobox")).toBeNull()
   })
 
-  it("renders an error callout when the directory query fails", async () => {
-    handle.server.use(http.get("*/api/users", () => new HttpResponse(null, { status: 500 })))
+  it("shows a failure the user can retry when the users query fails", async () => {
+    const user = userEvent.setup()
+    handle.server.use(
+      http.get("*/api/users", () => new HttpResponse(null, { status: 500 }), { once: true }),
+    )
     await renderUsers({ prefetch: false })
-    expect(await screen.findByText("Users are unavailable")).toBeDefined()
+
+    const failure = await screen.findByRole("alert")
+    expect(within(failure).getByText("Users are unavailable")).toBeDefined()
+    await user.click(within(failure).getByRole("button", { name: "Try again" }))
+    expect(await screen.findByRole("table")).toBeDefined()
   })
 
   it("carries no axe violations with the profile overlay open", async () => {

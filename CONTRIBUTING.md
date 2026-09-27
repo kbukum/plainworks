@@ -29,22 +29,14 @@ Use deterministic tests. Inject clocks, use Vitest fake timers, seed random valu
 Run focused checks while developing:
 
 ```sh
-turbo run typecheck build test --filter=@plainworks/<name>
-turbo run typecheck build test --filter='...[origin/main]'
+bun run verify --filter=@plainworks/<name>
+bun run verify --filter='...[origin/main]'
 ```
 
-Run every repository gate before handoff:
+Run every repository gate before handoff. `verify` runs them in order and stops at the first failure; `bun run verify --list` shows what each gate enforces:
 
 ```sh
-bun run check-versions
-bun run lint
-bun run --filter @plainworks/elements registry:validate
-bun run check-comments
-bun run typecheck
-bun run check-boundaries
-bun run build
-bun run test
-bun run check-packaging
+bun run verify
 ```
 
 `bun run format` applies Biome fixes. Coverage must stay at or above **80% per package** and **85% for security-critical packages such as `auth`**.
@@ -63,7 +55,7 @@ For non-interactive generation:
 bun run gen package --args state "Reactive state primitives" false
 ```
 
-Then add the package to the `LAYERS` table in [`internal/boundaries/.dependency-cruiser.cjs`](internal/boundaries/.dependency-cruiser.cjs) and update the layer maps in [`README.md`](README.md) and [`docs/architecture.md`](docs/architecture.md). An unregistered package cannot import another `@plainworks/*` package.
+Then add the package to [`internal/boundaries/layers.json`](internal/boundaries/layers.json) and run `bun run sync-layer-map` to regenerate the layer maps in the docs. An unregistered package cannot import another `@plainworks/*` package.
 
 Use **one plain word** for one concern. Do not use names such as `core`, `engine`, `foundation`, or `utils`.
 
@@ -95,7 +87,7 @@ Need the atom to look or behave differently? Follow the **deviation ladder** and
 | Dependencies | Use `catalog:` and `workspace:*`; never inline dependency versions. |
 | Documentation | Add TSDoc to every public export and `@throws` for typed errors. Keep Markdown paragraphs on one source line. |
 
-The [`LAYERS` table](internal/boundaries/.dependency-cruiser.cjs) is authoritative. [Architecture](docs/architecture.md) explains package placement, host independence, and the runtime primitive contract.
+[`internal/boundaries/layers.json`](internal/boundaries/layers.json) is authoritative. [Architecture](docs/architecture.md) explains package placement, host independence, and the runtime primitive contract.
 
 ## Submit the change
 

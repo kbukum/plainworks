@@ -34,20 +34,14 @@
 
 <!-- Confirm the Definition of Done gates pass locally, scoped to what changed. -->
 
-- [ ] `bun run check-versions` — catalog / dedupe clean (Sherif + Syncpack)
-- [ ] `bun run lint` — Biome clean
-- [ ] `bun run check-comments` — comment prose within the 100-col width
-- [ ] `bun run typecheck` — no type errors
-- [ ] `bun run check-boundaries` — dependency-cruiser layer gate green
-- [ ] `bun run build` — tsdown builds all affected packages
-- [ ] `bun run test` — Vitest green, coverage floors met (≥ 80% package / ≥ 85% security-critical)
-- [ ] `bun run check-packaging` — publint + are-the-types-wrong on the built tarballs
-- [ ] `bun run --filter @plainworks/elements registry:validate` — vendored atoms match `shadcn.lock.json`; nothing under `packages/elements/src/shadcn/` edited by hand
+- [ ] `bun run verify` green, scoped to what changed (`--filter='...[origin/main]'`)
+- [ ] Coverage floors met (≥ 80% package / ≥ 85% security-critical)
+- [ ] Nothing under `packages/elements/src/shadcn/` edited by hand
 - [ ] New behavior was written test-first (a test that fails without this change)
 
 ### Test Evidence
 
-<!-- Optional: paste scoped output, e.g. `turbo run test --filter=@plainworks/<name>` -->
+<!-- Optional: paste scoped output, e.g. `bun run verify --filter=@plainworks/<name>` -->
 
 ```
 $ turbo run test --filter=@plainworks/<name>
@@ -62,7 +56,7 @@ $ turbo run test --filter=@plainworks/<name>
 - [ ] Server-safe code stays in `.`; client-only code (`"use client"`) stays in `./client`
 - [ ] Adapters/backends register explicitly (`register()` / `createX({...})`) — no `init()`-style magic
 - [ ] No `any` in public APIs; errors are typed; tokens are header-only (never query string / localStorage)
-- [ ] No upward imports — the layer map (`internal/boundaries` LAYERS) is respected
+- [ ] No upward imports — the layer map (`internal/boundaries/layers.json`) is respected
 
 ## Breaking Changes
 

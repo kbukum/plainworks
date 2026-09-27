@@ -1,0 +1,41 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    // The build regenerates `src/versions.json` from the root catalog and every package version,
+    // then ejects `apps/next-host` into `examples/`. Those files live outside this package, so they
+    // are listed here. The app exclusions mirror what the eject skips (`src/eject/config.ts`).
+    "build": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!**/*.md",
+        "!src/versions.json",
+        "$TURBO_ROOT$/package.json",
+        "$TURBO_ROOT$/packages/*/package.json",
+        "$TURBO_ROOT$/apps/next-host/**",
+        "!$TURBO_ROOT$/apps/next-host/**/node_modules/**",
+        "!$TURBO_ROOT$/apps/next-host/**/dist/**",
+        "!$TURBO_ROOT$/apps/next-host/**/coverage/**",
+        "!$TURBO_ROOT$/apps/next-host/**/.turbo/**",
+        "!$TURBO_ROOT$/apps/next-host/**/.next/**",
+        "!$TURBO_ROOT$/apps/next-host/**/.bundle-analysis/**",
+        "!$TURBO_ROOT$/apps/next-host/test/**",
+        "!$TURBO_ROOT$/apps/next-host/turbo.json",
+        "!$TURBO_ROOT$/apps/next-host/vitest.config.ts",
+        "!$TURBO_ROOT$/apps/next-host/next-env.d.ts",
+        "!$TURBO_ROOT$/apps/next-host/**/*.test.{ts,tsx}",
+        "!$TURBO_ROOT$/apps/next-host/**/*.tsbuildinfo"
+      ],
+      "outputs": ["dist/**", "examples/**", "src/versions.json"]
+    },
+    // `versions.test.ts` re-derives the pinned maps from the same root manifests to catch drift.
+    "test": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!**/*.md",
+        "$TURBO_ROOT$/package.json",
+        "$TURBO_ROOT$/packages/*/package.json"
+      ]
+    }
+  }
+}

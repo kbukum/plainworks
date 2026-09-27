@@ -33,7 +33,7 @@ A change is a probe into its neighborhood, not an island. Review the changed lin
 
 Stop and reject as soon as a change fails pass `00` or `01` — misplaced or duplicated code makes every later pass unreliable. Passes `00`–`07` run on every change; pass `08` runs **only when the change touches interactive UI** (a `"use client"`/`./client` module, a `.tsx` component, or its styles/tests) — skip it with an explicit note otherwise. Each file also carries a "Project mode" note for tree-wide sweeps and can be run standalone.
 
-1. [`references/00-structure-placement.md`](references/00-structure-placement.md) — package placement (`packages`/`apps`/`internal`), acyclic layering + the `LAYERS` map, barrel discipline, the server/client import boundary, generator-born packages.
+1. [`references/00-structure-placement.md`](references/00-structure-placement.md) — package placement (`packages`/`apps`/`internal`), acyclic layering + the layer map, barrel discipline, the server/client import boundary, generator-born packages.
 2. [`references/01-canonical-reuse.md`](references/01-canonical-reuse.md) — did the code reimplement a concern `@plainworks/std` (or the platform) already owns? *(blocker class)*
 3. [`references/02-principles.md`](references/02-principles.md) — typed/minimal APIs, errors & resilience, async/concurrency, composition, current idioms, AI features.
 4. [`references/03-security-privacy.md`](references/03-security-privacy.md) — trust-boundary validation, header-only auth, PKCE/cookie MUSTs, server/client custody, crypto, data minimization.

@@ -1,0 +1,20 @@
+{
+  "name": "@plainworks/visual-baselines",
+  "version": "0.0.0",
+  "description": "Regenerate an app's Linux Playwright screenshot baselines inside the CI browser image.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "plainworks-visual-baselines": "./src/cli.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -63,8 +63,8 @@
     "./styles.css": "./dist/styles.css"
   },
   "scripts": {
-    "build": "tsdown && node scripts/styles/cli.mjs",
-    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.fixtures.json",
+    "build": "tsdown && bun scripts/styles/cli.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.fixtures.json && tsc --noEmit -p tsconfig.scripts.json",
     "test": "vitest run --coverage",
     "lint": "biome check .",
     "check-packaging": "publint --strict && attw --pack --profile esm-only --exclude-entrypoints @plainworks/devtools/styles.css"

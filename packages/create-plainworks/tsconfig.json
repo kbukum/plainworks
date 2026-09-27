@@ -9,6 +9,7 @@
   // `examples/` is generated (gitignored) eject payload — the source apps under `apps/*` are the
   // single source of truth. It is rebuilt from them by `bun run build` and shipped verbatim via
   // `files`, so it is excluded from this package's typecheck (and lint/vitest below).
-  "include": ["src"],
+  // `scripts/` is the bun-run build tooling (version sync, eject bundling, the end-to-end smoke).
+  "include": ["src", "scripts"],
   "exclude": ["examples", "dist", "node_modules"]
 }

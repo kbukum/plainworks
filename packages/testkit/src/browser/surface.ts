@@ -43,6 +43,12 @@ export interface VisualSurface {
   readonly capture?: VisualCapture
   /** Regions that differ on every run for a reason outside the kit, painted over in the capture. */
   readonly mask?: (page: Page) => Locator[]
+  /**
+   * `arrange` pauses the page clock (`page.clock.pauseAt`), so content a real timer drives stays
+   * still until the capture. The run then resumes the clock and runs the axe scan, which needs
+   * running timers. Defaults to `false`.
+   */
+  readonly holdsClock?: boolean
 }
 
 /** The tag every visual test carries, so a run can select (`--grep`) or skip (`--grep-invert`) them. */
@@ -89,8 +95,10 @@ export interface VisualTestFixtures {
 
 /**
  * Run one planned visual test: apply the variant, arrange the surface, run its checks, and compare
- * its baseline. Declare the tests in the spec file itself, so each keeps the spec's location for
- * reports and file filters. Playwright reads fixture names from the destructured argument:
+ * its baseline. A surface that {@link VisualSurface.holdsClock | holds the clock} is captured
+ * before its axe scan, because the scan needs running timers. Declare the tests in the spec file
+ * itself, so each keeps the spec's location for reports and file filters. Playwright reads fixture
+ * names from the destructured argument:
  *
  * ```ts
  * for (const planned of planVisualTests(surfaces)) {
@@ -116,11 +124,15 @@ export async function runVisualTest(
     await expectOverlaysInViewport(page, label)
   }
   if (surface.checks?.focus === true) await expectFocusVisible(page)
-  if (surface.checks?.axe !== false) await expectNoBrowserAxeViolations(page, surface.axe)
+  const axe = surface.checks?.axe !== false
+  const held = surface.holdsClock === true
+  if (axe && !held) await expectNoBrowserAxeViolations(page, surface.axe)
   await withCaptureFrame(page, surface.capture, () =>
     expect(page).toHaveScreenshot(snapshot, {
       ...captureOptions(surface.capture),
       ...(surface.mask === undefined ? {} : { mask: surface.mask(page) }),
     }),
   )
+  if (held) await page.clock.resume()
+  if (axe && held) await expectNoBrowserAxeViolations(page, surface.axe)
 }

@@ -1,0 +1,25 @@
+{
+  "$comment": "The single source of the package layer map. Each entry is one layer, L0 first. A package may import @plainworks packages only from a strictly lower layer. After editing, run `bun run sync-layer-map` to regenerate the docs.",
+  "layers": [
+    {
+      "packages": ["std"],
+      "summary": "Errors, results, guards, resilience, shared seams, list contracts, and structural web types. No React."
+    },
+    {
+      "packages": ["state", "http", "theme", "observability"],
+      "summary": "Reactive state, typed HTTP, the design-token substrate, and logging/error-reporting/Web Vitals seams."
+    },
+    {
+      "packages": ["channel", "connect", "query", "elements"],
+      "summary": "Streaming, RPC, TanStack Query integration, and vendored UI atoms."
+    },
+    {
+      "packages": ["auth", "ui"],
+      "summary": "Authentication, OIDC with PKCE, forms, data, navigation, and UI composites."
+    },
+    {
+      "packages": ["app", "testkit", "mocks", "devtools"],
+      "summary": "Application composition, shared test tooling, reusable MSW mock-building primitives, and the development-only runtime inspector."
+    }
+  ]
+}

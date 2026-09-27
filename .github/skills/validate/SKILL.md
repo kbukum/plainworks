@@ -9,64 +9,44 @@ description: >-
 
 # Validating plainworks changes with bun run / turbo
 
-plainworks is a bun-workspace monorepo (`packages/*`, `apps/*`, `internal/*`) driven by **Turborepo**. The root `package.json` scripts are the canonical gates; they run through `turbo` and are cache-correct (declared inputs/outputs). Prefer them over raw tool invocations, and **always scope to what changed** — the unscoped scripts are for CI sign-off.
+plainworks is a bun-workspace monorepo (`packages/*`, `apps/*`, `internal/*`) driven by **Turborepo**. **`bun run verify` is the Definition of Done**: it runs every gate in order and stops at the first failure. The gate list lives only there (`internal/verify`); CI and the release workflow call the same command, so a local green means the same thing as a CI green.
 
-## The Definition of Done — eight gates
-
-Every change must pass these, in this order (same order CI runs them):
-
-| Gate | Root script | What it enforces |
-|---|---|---|
-| Versions | `bun run check-versions` | Sherif + Syncpack: every dep resolves via the bun **catalog**; no inline drift |
-| Lint / format | `bun run lint` | Biome clean (`bun run format` to fix) |
-| Comments | `bun run check-comments` | comment-format: `//` and `/** */` prose within the 100-col width (`bun run format-comments` to fix) |
-| Types | `bun run typecheck` | `tsc --noEmit` across packages + the generator config |
-| Boundaries | `bun run check-boundaries` | dependency-cruiser: zero upward/sideways imports, zero cycles |
-| Build | `bun run build` | tsdown, ESM-only, ships `dist/` |
-| Tests | `bun run test` | Vitest, coverage ≥ 80% per package (≥ 85% for `auth`) |
-| Packaging | `bun run check-packaging` | publint (`--strict`) + are-the-types-wrong (`--pack --profile esm-only`) over each built tarball: `exports`/`types`/`files` resolve for ESM consumers |
-
-Plus: `registry:validate` green (CI runs it after lint — see below), a **Changeset** added (`bun run changeset`) and the architecture invariants (no import-time side effects, no module-level singletons, header-only auth, typed errors, no `any` in public APIs).
-
-## Golden rule: scope to what changed
-
-Never rebuild the whole tree for a small change. Scope with turbo filters:
+## Run the gates
 
 ```bash
-turbo run lint typecheck build test --filter=@plainworks/<name>   # one package (+ its deps)
-turbo run test --filter='...[origin/main]'                        # only packages affected by the diff
-turbo run build --filter=@plainworks/<name>...                    # a package and everything that depends on it
-turbo run check-packaging --filter=@plainworks/<name>             # publint + attw on the built tarball
+bun run verify --list                          # the gates, in order, and what each enforces
+bun run verify --filter=@plainworks/<name>     # one package (+ what it needs)
+bun run verify --filter='...[origin/main]'     # only packages affected by the diff
+bun run verify                                 # everything — CI sign-off, audits, releases
 ```
 
-Within a single package you can also run its own scripts directly:
+`--filter` takes any turbo filter and is repeatable. It scopes the package gates (typecheck, build, test, packaging, production); the repo-wide gates (versions, lint, comments, layer map, atom lock, boundaries) are cheap and always run over the whole graph.
+
+Plus a **Changeset** (`bun run changeset`) and the architecture invariants (no import-time side effects, no module-level singletons, header-only auth, typed errors, no `any` in public APIs).
+
+## Iterate on one gate
+
+While you work, run a single gate directly. Every gate is a root script or a turbo task:
 
 ```bash
-cd packages/<name>
-bun run test        # vitest run --coverage
-bun run typecheck   # tsc --noEmit
-bun run build       # tsdown
-bun run lint        # biome check .
+turbo run test --filter=@plainworks/<name>    # one task for one package
+bun run lint                                   # one repo-wide gate (`bun run format` fixes)
+cd packages/<name> && bun run test             # a package's own script
 ```
 
-## Repo-wide-but-fast gates
+Finish with `verify` before you hand work off.
 
-Two gates are cheap and analyze the whole graph at once — run them as-is, not per package:
+## Boundary and layer-map changes
 
-```bash
-bun run check-boundaries    # dependency-cruiser over packages/apps/internal (source-level; no build needed)
-bun run check-versions      # sherif + syncpack lint
-```
-
-`check-boundaries` also has a fixture-backed test proving the gate rejects an upward import — if you touch the `LAYERS` map or `.dependency-cruiser.cjs`, run `turbo run test --filter=@plainworks/boundaries` too.
+`check-boundaries` has a fixture-backed test proving the gate rejects an upward import. If you touch `internal/boundaries/layers.json` or `.dependency-cruiser.cjs`, run `turbo run test --filter=@plainworks/boundaries` too, and `bun run sync-layer-map` to regenerate the layer-map docs (`verify` fails until you do).
 
 ## Atom and theme changes
 
 If you touched `packages/elements` or `packages/theme`, also check the vendored atoms and the theme contract they read:
 
 ```bash
-bun run --filter @plainworks/elements registry:validate   # atoms match shadcn.lock.json (CI runs it on every change)
-turbo run test --filter=@plainworks/elements              # lock test + theme-variables contract
+bun run check-registry                       # atoms match shadcn.lock.json (part of verify)
+turbo run test --filter=@plainworks/elements # lock test + theme-variables contract
 ```
 
 A lock failure means a file under `src/shadcn/` changed outside the pipeline. Don't relock by hand: restore the file, or rerun `registry:update <atom>` and move your change down the deviation ladder (see the [Vendored atoms](../../copilot-instructions.md#vendored-atoms) baseline and the [`update-atoms`](../update-atoms/SKILL.md) skill).
@@ -77,13 +57,13 @@ If you touched `turbo/generators/**`, prove the golden template still yields a g
 
 ```bash
 bun run gen package --args scratch "scratch" false && bun install
-turbo run lint typecheck build test --filter=@plainworks/scratch
+bun run verify --filter=@plainworks/scratch
 rm -rf packages/scratch && bun install
 ```
 
 ## Before you hand work off
 
-The minimum passing standard for a self-contained change: `check-versions`, `lint`, `typecheck`, `check-boundaries`, scoped `build` + `test`, and `check-packaging` green (vitest race/shuffle safe), `registry:validate` and the `elements` tests green when `elements` or `theme` changed, plus a Changeset. Escalate to the unscoped `bun run build && bun run test && bun run check-packaging` only for an audit or release.
+The minimum passing standard for a self-contained change is `bun run verify` green over the affected set (`--filter='...[origin/main]'`), Vitest race/shuffle safe, the `elements` tests green when `theme` changed, and a Changeset. Run the unscoped `bun run verify` for an audit or release.
 
 Treat a green run as **necessary but not sufficient**: it does not catch unbounded streams/buffers, missing timeouts/cancellation, module-level singletons, import-time side effects, or a token leaking into a URL. Those are on the reviewer.
 

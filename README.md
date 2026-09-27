@@ -41,6 +41,7 @@ Each package exposes a neutral `.` entry. Packages with React or browser binding
 
 Each package owns one concern and imports only from a **strictly lower layer**.
 
+<!-- layer-map:diagram -->
 ```mermaid
 flowchart TD
   L4["L4 · app · testkit · mocks · devtools"] --> L3["L3 · auth · ui"]
@@ -50,6 +51,7 @@ flowchart TD
 ```
 
 *Arrows show the only allowed `@plainworks/*` import direction.*
+<!-- /layer-map:diagram -->
 
 This structure keeps neutral code free from React, DOM, Node, and framework assumptions. Hosts inject capabilities that vary, including `fetch`, streaming transports, cryptography, and token storage. See [Architecture](./docs/architecture.md) for package placement, runtime rules, and enforced invariants.
 
@@ -67,15 +69,7 @@ Versioned npm exports are the primary distribution surface. `elements` and `ui` 
 
 ```sh
 bun install
-bun run check-versions
-bun run lint
-bun run --filter @plainworks/elements registry:validate
-bun run check-comments
-bun run typecheck
-bun run check-boundaries
-bun run build
-bun run test
-bun run check-packaging
+bun run verify          # every gate, in order (`--list` shows them)
 ```
 
 Use `bun run gen package` to scaffold a package from the golden template. Read [Contributing](./CONTRIBUTING.md) before changing code.

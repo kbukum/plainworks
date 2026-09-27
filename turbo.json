@@ -1,65 +1,48 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
-  // Include the shared tsdown preset source globally: `@plainworks/tsdown-config` has no `build`
-  // task, so `^build` carries no hash for it — without this, editing the preset could restore stale
-  // `dist` from cache.
-  "globalDependencies": ["tsconfig.base.json", "biome.json", "internal/tsdown-config/src/**"],
+  // Files outside a package that every package task reads: the base tsconfig every project extends,
+  // the portability shim each project includes from `types/`, the Biome config, and the shared
+  // tsdown preset (it has no `build` task, so `^build` carries no hash for it).
+  "globalDependencies": [
+    "tsconfig.base.json",
+    "types/**",
+    "biome.json",
+    "internal/tsdown-config/src/**"
+  ],
   "tasks": {
+    // Every task hashes the package's whole tracked tree (`$TURBO_DEFAULT$`) and drops only what
+    // cannot change its result, so a new config file, script, lock, or fixture busts the cache
+    // without anyone listing it.
     "build": {
       "dependsOn": ["^build"],
-      // tsdown's dts generator reads `tsconfig.src.json` when a package splits its projects and
-      // falls back to `tsconfig.json` otherwise, so both must bust the build cache.
-      "inputs": [
-        "src/**",
-        "tsconfig.json",
-        "tsconfig.src.json",
-        "tsconfig.shadcn.json",
-        "tsconfig.client.json",
-        "tsdown.config.ts",
-        "package.json"
-      ],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
       "outputs": ["dist/**"]
     },
     "typecheck": {
       "dependsOn": ["^build"],
-      "inputs": [
-        "src/**",
-        "tsconfig.json",
-        "tsconfig.src.json",
-        "tsconfig.client.json",
-        "tsconfig.shadcn.json",
-        "tsconfig.test.json"
-      ],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
       "outputs": []
     },
     "check-packaging": {
       // publint + attw validate the *built* tarball (exports/types/files resolution), so depend on
-      // this package's own `build` and read `dist` + the manifest that drives packing.
+      // this package's own `build` and read `dist` plus the tracked files that are packed with it.
       "dependsOn": ["build"],
-      "inputs": ["dist/**", "package.json"],
+      "inputs": ["$TURBO_DEFAULT$", "dist/**"],
       "outputs": []
     },
     "check-production": {
       // Runs the host's own source-mapped analysis build, so it needs only built dependencies.
       "dependsOn": ["^build"],
-      "inputs": [
-        "$TURBO_ROOT$/internal/bundle-exclusion/*.ts",
-        "devtools-exclusion.json",
-        "package.json"
-      ],
       "outputs": [],
       "cache": false
     },
     "test": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "vitest.config.ts", "tsconfig.json"],
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
       "outputs": ["coverage/**"]
     },
     "lint": {
-      // `biome check .` reads every file in the package, so use Turbo's default package inputs
-      // (all tracked files) rather than a narrow `src/**` key that would reuse a stale result after
-      // editing package.json, tsdown.config.ts, or vitest.config.ts.
       "outputs": []
     }
   }

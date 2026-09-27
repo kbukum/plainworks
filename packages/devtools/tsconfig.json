@@ -5,5 +5,9 @@
   // so each source file is checked by the project that includes it. The CLI runs each referenced
   // project directly (`tsc -p ...`), so this file is never passed to `tsc`.
   "files": [],
-  "references": [{ "path": "./tsconfig.src.json" }, { "path": "./tsconfig.client.json" }]
+  "references": [
+    { "path": "./tsconfig.src.json" },
+    { "path": "./tsconfig.client.json" },
+    { "path": "./tsconfig.scripts.json" }
+  ]
 }

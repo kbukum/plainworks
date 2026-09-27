@@ -4,7 +4,10 @@ updates:
   # Keeps `uses:` pins current. Every action is SHA-pinned (with a version
   # comment); Dependabot bumps the SHA and the comment together.
   - package-ecosystem: "github-actions"
-    directory: "/"
+    # The workflows plus the local composite actions, which carry their own SHA pins.
+    directories:
+      - "/"
+      - "/.github/actions/*"
     schedule:
       interval: "weekly"
       day: "friday"

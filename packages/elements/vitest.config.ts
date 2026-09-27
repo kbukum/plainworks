@@ -18,17 +18,17 @@ export default defineConfig({
     // DOM tests that run axe and user-event can pass 5 s on a busy CI runner. The tests are
     // deterministic, so the longer limit only guards against a hang; it never hides a failure.
     testTimeout: 15_000,
-    // The registry ingestion pipeline is dev-only `.mjs` tooling under `scripts/`; its tests live
-    // beside it rather than in the shipped `src/` graph.
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "scripts/**/*.test.mjs"],
+    // The registry ingestion pipeline is dev-only TypeScript tooling under `scripts/`, run with
+    // bun; its tests live beside it rather than in the shipped `src/` graph.
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "scripts/**/*.test.ts"],
     coverage: {
       provider: "v8",
-      // The `.mjs` ingestion pipeline under `scripts/` is the code this package authors, so it is
+      // The ingestion pipeline under `scripts/` is the code this package authors, so it is
       // measured alongside `src/` — not left to run tested-but-unmeasured.
-      include: ["src/**/*.{ts,tsx}", "scripts/**/*.mjs"],
+      include: ["src/**/*.{ts,tsx}", "scripts/**/*.ts"],
       // Re-export-only barrels carry no logic to unit-test. Vendored shadcn atoms under `shadcn/`
       // are upstream code verified by the accessibility gallery and the declaration-emit
-      // typecheck, not by per-line unit coverage. `shadcn.mjs` is the
+      // typecheck, not by per-line unit coverage. `shadcn.ts` is the
       // network-bound ingestion seam (maintainer-run); the pipeline tests inject a fake `pull` so
       // they stay offline, so its spawn path is not unit-measured — like a barrel. All are excluded
       // so coverage measures only the offline logic this package authors.
@@ -36,9 +36,9 @@ export default defineConfig({
         "src/**/*.test.{ts,tsx}",
         "src/**/index.ts",
         "src/shadcn/**",
-        "scripts/**/*.test.mjs",
-        "scripts/registry/shadcn.mjs",
-        "scripts/registry/cli.mjs",
+        "scripts/**/*.test.ts",
+        "scripts/registry/shadcn.ts",
+        "scripts/registry/cli.ts",
       ],
       thresholds: {
         lines: 80,

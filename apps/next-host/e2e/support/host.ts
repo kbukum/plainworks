@@ -1,4 +1,4 @@
-import type { VisualCapture } from "@plainworks/testkit/browser"
+import { BROWSER_GATE_NOW, type VisualCapture } from "@plainworks/testkit/browser"
 import { expect, type Locator, type Page } from "@playwright/test"
 
 /**
@@ -76,4 +76,28 @@ export async function openRoute(page: Page, route: HostRoute): Promise<void> {
   await expect(page.getByRole("heading", { level: 1, name: route.heading })).toBeVisible()
   await expect(route.ready(page)).toBeVisible()
   await pauseLiveActivity(page)
+}
+
+/**
+ * Open `route` for a screenshot and hold it still. Pausing the feed stops only the page's list: the
+ * demo stream keeps delivering frames on a real timer, and the devtools rail and inspector count
+ * each one. So once the feed is paused the page's timers stop too, and `open` brings up any overlay
+ * on the held clock. A frame that landed first shows on the rail, and the page is reloaded until
+ * the capture starts before the stream's first frame. Pair it with a surface that sets
+ * `holdsClock`, so the run resumes the clock for the axe scan.
+ */
+export async function openStillRoute(
+  page: Page,
+  route: HostRoute,
+  open?: (page: Page) => Promise<void>,
+): Promise<void> {
+  // Read by attribute, not role: a modal overlay hides the rail from the accessibility tree.
+  const liveTasks = page.locator('[data-plainworks-devtools] button[aria-label^="Live tasks:"]')
+  await expect(async () => {
+    await page.clock.resume()
+    await openRoute(page, route)
+    await page.clock.pauseAt(new Date(BROWSER_GATE_NOW))
+    await open?.(page)
+    await expect(liveTasks).toHaveAttribute("aria-label", "Live tasks: open", { timeout: 1_000 })
+  }).toPass({ timeout: 60_000 })
 }

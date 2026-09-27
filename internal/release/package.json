@@ -1,0 +1,20 @@
+{
+  "name": "@plainworks/release",
+  "version": "0.0.0",
+  "description": "Release tooling: derives the npm publish order from the workspace graph and checks that package versions match the Changesets pre-release line.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "plainworks-release": "./src/cli.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

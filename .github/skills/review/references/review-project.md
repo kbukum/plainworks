@@ -12,7 +12,7 @@ The whole repo, or a named package/layer. Enumerate the surface first:
 
 ```bash
 ls packages/*/package.json apps/*/package.json internal/*/package.json
-cat internal/boundaries/.dependency-cruiser.cjs      # the LAYERS map — the layering invariant
+cat internal/boundaries/layers.json                  # the layer map — the layering invariant
 ```
 
 Sweep each package's `src/`, its `package.json` (`exports`/`files`/`type`/peers), and its dependency edges. The placement, acyclicity, composition, and security invariants below are properties of the whole kit, not just a diff.
@@ -21,7 +21,7 @@ Sweep each package's `src/`, its `package.json` (`exports`/`files`/`type`/peers)
 
 Run the focused files in order, each in its **Project mode** (pass `08` only for packages that ship interactive UI):
 
-1. [`00-structure-placement.md`](./00-structure-placement.md) — every package in the right root/layer; the `LAYERS` map matches README + `docs/architecture.md`; no upward/sideways import or cycle anywhere; every package generator-shaped.
+1. [`00-structure-placement.md`](./00-structure-placement.md) — every package in the right root/layer; `layers.json` is current and `check-layer-map` is green; no upward/sideways import or cycle anywhere; every package generator-shaped.
 2. [`01-canonical-reuse.md`](./01-canonical-reuse.md) — sweep for concerns reimplemented instead of reusing `std`/the platform; long-lived internal forks are exactly what this surfaces.
 3. [`02-principles.md`](./02-principles.md) — the typed-API, resilience, async, and composition invariants across the whole surface.
 4. [`03-security-privacy.md`](./03-security-privacy.md) — audit every external-facing surface (auth, connection transports, any fetch/stream) for the boundary/crypto/custody invariants.
@@ -36,10 +36,7 @@ Run the focused files in order, each in its **Project mode** (pass `08` only for
 Unlike a change review, a project audit may run the unscoped gates:
 
 ```bash
-bun run check-versions && bun run lint \
-  && bun run --filter @plainworks/elements registry:validate && bun run typecheck \
-  && bun run check-boundaries && bun run build && bun run test \
-  && bun run check-packaging
+bun run verify
 ```
 
 Plus, if the generator or template is in scope, regenerate both variants and gate them (see the `validate` skill). Record each finding with the standard severity format; a project audit typically produces a prioritized list rather than a merge/no-merge verdict.

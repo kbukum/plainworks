@@ -1,0 +1,20 @@
+{
+  "name": "@plainworks/verify",
+  "version": "0.0.0",
+  "description": "The ordered Definition-of-Done gate list and its runner, behind `bun run verify`.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "plainworks-verify": "./src/cli.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

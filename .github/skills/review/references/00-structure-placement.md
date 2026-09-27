@@ -14,19 +14,15 @@ Dependency direction is explicit and acyclic; a package in `Ln` imports `@plainw
 |------|------|------|
 | packages | `packages/<name>/` | the published `@plainworks/*` kit packages |
 | apps | `apps/<name>/` | examples/showcase and consuming apps (route tree stays app-local) |
-| internal | `internal/<name>/` | dev-only tooling, never published (`boundaries`, `tsdown-config`) |
+| internal | `internal/<name>/` | dev-only tooling, never published (`boundaries`, `verify`, `release`, `tsdown-config`) |
 
-The layer map (single source: the `LAYERS` table in `internal/boundaries/.dependency-cruiser.cjs`):
-
-```
-L0 std · L1 state·http·theme·observability · L2 channel·connect·query·elements · L3 auth·ui · L4 app·testkit·mocks
-```
+The layer map lives in [`docs/architecture.md`](../../../../docs/architecture.md#layer-map), generated from its single source, `internal/boundaries/layers.json`.
 
 ## Checks
 
 - **Package placement.** A published capability → `packages/<name>/`. A dev/test-only tool → `internal/<name>/`. An app/example → `apps/<name>/`. A publishable concern living under `internal/`, or dev tooling published as a package, is a structure violation (blocker).
 - **Acyclic, downward-only edges.** No package imports a same- or higher-layer `@plainworks` package; no cycle. Gated by `bun run check-boundaries` — run it. `std` imports no other `@plainworks` package at all.
-- **In the `LAYERS` map.** Every package must be in the map. A package absent from it may import no other `@plainworks` package (the gate fails **closed**). A new package added to `packages/` but not to `LAYERS` (and mirrored in README + `docs/architecture.md`) is a should-fix.
+- **In the layer map.** Every package must be in `internal/boundaries/layers.json`. A package absent from it may import no other `@plainworks` package (the gate fails **closed**). A new package added to `packages/` but not to `layers.json` is a should-fix; `check-layer-map` fails if the generated doc copies were not resynced.
 - **Seam-defined-low.** A cross-layer need is satisfied by a seam **defined in the lower package** (`std` owns shared contracts / event shapes / the auth-header seam) and **implemented higher** — never by an upward import or a duplicated seam copy that can drift. A seam re-declared in two packages is a blocker.
 - **Server/client split.** Each package ships a server-safe `.` entry (no React/DOM/host global) and, when interactive, a `./client` entry with per-module `"use client"`. A React/DOM import in the `.` entry, or token-custody (`auth` server) code reachable from a `"use client"` module, is a blocker (also pass 03).
 - **Generator-born.** New packages are stamped by `bun run gen package`, not hand-written — so `package.json`/`exports`/`tsconfig`/`tsdown`/`vitest` match the golden shape. A hand-rolled package with a divergent `exports`/`files`/`type` or a missing `dist` build is a should-fix; regenerate from the template.
@@ -48,4 +44,4 @@ rg "from ['\"]react|document\.|window\." packages/*/src/index.ts
 rg -n "." packages/*/src/index.ts | rg -v "export|import|^\s*//|^\s*$"
 ```
 
-Then run `bun run check-boundaries` for the placement/acyclicity guard, `bun run --filter @plainworks/elements registry:validate` when `elements` is touched, and `turbo run test --filter=@plainworks/boundaries` if the `LAYERS` map changed.
+Then run `bun run check-boundaries` for the placement/acyclicity guard, `bun run check-registry` when `elements` is touched, and `turbo run test --filter=@plainworks/boundaries` plus `bun run check-layer-map` if `layers.json` changed.

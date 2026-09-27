@@ -13,7 +13,7 @@
     "test": "vitest run",
     "e2e": "playwright test",
     "e2e:update": "playwright test --update-snapshots=changed",
-    "e2e:update:linux": "node ../../scripts/e2e-linux.mjs next-host"
+    "e2e:update:linux": "bun ../../internal/visual-baselines/src/cli.ts next-host"
   },
   "dependencies": {
     "@plainworks/app": "workspace:*",

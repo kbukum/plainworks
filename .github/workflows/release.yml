@@ -40,65 +40,35 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
-        with:
-          bun-version: "1.3.6"
-
-      - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - name: Setup
+        uses: ./.github/actions/setup
         with:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
-
-      - name: Install
-        run: bun install --frozen-lockfile
 
       # Provenance and OIDC trusted publishing require npm >= 11.5.1. Pin an exact, reviewed version
       # rather than `@latest`, so the release path can't pick up an unvetted npm at dispatch time.
       - name: Ensure npm supports provenance
         run: npm install --global npm@11.5.1
 
-      # Run the full Definition-of-Done gate sequence before publishing, in the order the `release`
-      # skill documents. A manual dispatch could target a `main` commit that never passed CI, so the
-      # publish path re-proves every gate itself rather than trusting an earlier run.
-      - name: Check versions
-        run: bun run check-versions
-
-      - name: Lint
-        run: bun run lint
-
-      - name: Atom registry + shadcn lock (registry:validate)
-        run: bun run --filter @plainworks/elements registry:validate
-
-      - name: Comments (over-width)
-        run: bun run check-comments
-
-      - name: Typecheck
-        run: bun run typecheck
-
-      - name: Check boundaries
-        run: bun run check-boundaries
-
-      - name: Build
-        run: bun run build
-
-      - name: Test
-        run: bun run test
-
-      - name: Verify packaging before publish
-        run: bun run check-packaging
+      # Re-prove every Definition-of-Done gate before publishing. A manual dispatch could target a
+      # `main` commit that never passed CI, so the publish path runs `verify` itself instead of
+      # trusting an earlier run. `verify` includes the release-line check, so a prerelease version
+      # can never be published while Changesets pre mode is off.
+      - name: Verify (every Definition-of-Done gate)
+        run: bun run verify
 
       # Prove the derived publish set matches the publishable workspaces before touching the
       # registry, so a bug in the derivation fails the run instead of silently publishing the wrong
       # set. This is the guard against the fixed-list regression returning.
       - name: Verify publish set derivation
-        run: node scripts/release-publish-set.mjs --check
+        run: bunx plainworks-release publish-set --check
 
-      # Publish in dependency order derived from the workspace graph (scripts/release-publish-set.mjs)
-      # — never a hand-maintained list, so a newly added package is published with no workflow edit.
-      # Each package is packed by Bun (resolving `catalog:` / `workspace:*`) then published by npm
-      # with provenance. Versions already on the registry are skipped so re-runs are idempotent.
+      # Publish in dependency order derived from the workspace graph (`plainworks-release
+      # publish-set`), never a hand-maintained list, so a new package is published with no workflow
+      # edit. Each package is packed by Bun (resolving `catalog:` / `workspace:*`) then published by
+      # npm with provenance. Versions already on the registry are skipped so re-runs are idempotent,
+      # and a prerelease version never goes out under the `latest` tag.
       - name: Publish with provenance
         env:
           DIST_TAG: ${{ inputs.dist-tag }}
@@ -108,6 +78,10 @@ jobs:
             [ -n "$dir" ] || continue
             name="$(node -p "require('./$dir/package.json').name")"
             version="$(node -p "require('./$dir/package.json').version")"
+            if [[ "$version" == *-* && "$DIST_TAG" == "latest" ]]; then
+              echo "::error::$name@$version is a prerelease; publish it under a prerelease tag."
+              exit 1
+            fi
             if npm view "$name@$version" version >/dev/null 2>&1; then
               echo "Skipping $name@$version — already published."
               continue
@@ -115,4 +89,4 @@ jobs:
             echo "Publishing $name@$version…"
             tarball="$(cd "$dir" && bun pm pack --quiet | tail -n1)"
             npm publish "$dir/$tarball" --provenance --access public --tag "$DIST_TAG"
-          done < <(node scripts/release-publish-set.mjs)
+          done < <(bunx plainworks-release publish-set)

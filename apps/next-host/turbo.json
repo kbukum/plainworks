@@ -3,29 +3,8 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "inputs": ["src/**", "next.config.ts", "postcss.config.mjs", "tsconfig.json", "package.json"],
       "outputs": [".next/**", "!.next/cache/**"],
       "env": ["NEXT_TELEMETRY_DISABLED", "APP_ORIGIN", "AUTH_REDIRECT_ORIGIN"]
-    },
-    "typecheck": {
-      "dependsOn": ["^build"],
-      "inputs": [
-        "src/**",
-        "test/**",
-        "next.config.ts",
-        "vitest.config.ts",
-        "playwright.config.ts",
-        "e2e/**",
-        "tsconfig.json",
-        "next-env.d.ts"
-      ],
-      "outputs": []
-    },
-    "test": {
-      "dependsOn": ["^build"],
-      "inputs": ["src/**", "test/**", "vitest.config.ts", "tsconfig.json"],
-      "outputs": []
     }
   }
 }

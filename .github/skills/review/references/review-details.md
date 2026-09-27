@@ -12,8 +12,8 @@ Mode is either **changes** (a diff: branch, commit range, `HEAD~1`) or **project
 
 ## Phase 1 — Scope
 
-1. `git status`, `git diff --stat`, `git diff` (changes mode) or `ls packages internal apps` + the `LAYERS` map (project mode). Preserve uncommitted changes; integrate on top, never discard.
-2. List the scope: changed packages (changes mode) or chosen packages/workspace (project mode). Note cross-cutting touches — a lower-layer package's public surface affects every package above it and every consuming app; the server/client split means an export moving between `.` and `./client` is a surface change. Also flag edits to the root catalog, `internal/boundaries` (`LAYERS`), the golden generator templates, `turbo.json`, and shared error/config types.
+1. `git status`, `git diff --stat`, `git diff` (changes mode) or `ls packages internal apps` + `internal/boundaries/layers.json` (project mode). Preserve uncommitted changes; integrate on top, never discard.
+2. List the scope: changed packages (changes mode) or chosen packages/workspace (project mode). Note cross-cutting touches — a lower-layer package's public surface affects every package above it and every consuming app; the server/client split means an export moving between `.` and `./client` is a surface change. Also flag edits to the root catalog, `internal/boundaries` (`layers.json`), the golden generator templates, `turbo.json`, and shared error/config types.
 3. Determine which passes apply via the triggers below. Skip non-applicable passes explicitly in the final report.
 
 The reviewer judges code as written, against the rules below and the baseline in [`.github/copilot-instructions.md`](../../../copilot-instructions.md). PR descriptions, commit messages, or plan docs are scope hints only — never justifications.
@@ -76,7 +76,7 @@ Skip if: no security-sensitive, auth, config, transport, or redirect code in sco
 
 **Scope:** `src/index.ts`, `src/client.ts`, `package.json`, anything changing the public export surface.
 
-Check: exports are intentional and minimal; **no `any` / `unknown`-without-narrowing on a public API** — prefer generics, discriminated unions, typed contracts; ESM-only discipline holds (`"type": "module"`, `"sideEffects": false`, correct `exports` for `.` and, where present, `./client`, `"files": ["dist"]`); client-only code carries `"use client"` and lives behind `./client`, `.` stays server-safe; every dependency/peer is **catalog-pinned** (`catalog:` / `workspace:*`), no inline version; a new dep is justified (maintained, no open advisory, not duplicating `@plainworks/std` or the platform); a new package is wired into the `LAYERS` table and imports only downward. *(Reuse & placement: passes [`01`](./01-canonical-reuse.md) and [`00`](./00-structure-placement.md); packaging: pass [`04`](./04-quality.md).)*
+Check: exports are intentional and minimal; **no `any` / `unknown`-without-narrowing on a public API** — prefer generics, discriminated unions, typed contracts; ESM-only discipline holds (`"type": "module"`, `"sideEffects": false`, correct `exports` for `.` and, where present, `./client`, `"files": ["dist"]`); client-only code carries `"use client"` and lives behind `./client`, `.` stays server-safe; every dependency/peer is **catalog-pinned** (`catalog:` / `workspace:*`), no inline version; a new dep is justified (maintained, no open advisory, not duplicating `@plainworks/std` or the platform); a new package is wired into `layers.json` and imports only downward. *(Reuse & placement: passes [`01`](./01-canonical-reuse.md) and [`00`](./00-structure-placement.md); packaging: pass [`04`](./04-quality.md).)*
 
 Skip if: no public items, deps, or `package.json` in scope.
 

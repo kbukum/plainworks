@@ -1,11 +1,13 @@
 {
   "name": "@plainworks/boundaries",
   "version": "0.0.0",
-  "description": "Layer-boundary + cycle gate (dependency-cruiser). Isolates the TS-AST toolchain so a future TypeScript 7 migration aliases `typescript` here only.",
+  "description": "Layer-boundary + cycle gate (dependency-cruiser) and the layer map it enforces (`layers.json`), rendered into the docs. Isolates the TS-AST toolchain so a future TypeScript 7 migration aliases `typescript` here only.",
   "private": true,
   "type": "module",
   "scripts": {
     "check": "dependency-cruiser --config .dependency-cruiser.cjs ../../packages ../../apps ../../internal",
+    "layer-map:check": "bun src/layer-map/cli.ts --check",
+    "layer-map:write": "bun src/layer-map/cli.ts --write",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

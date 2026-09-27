@@ -5,6 +5,15 @@
 // entry stays free of this graph. Importing this entry performs no work: mounting is explicit
 // (`mountDevtools` or `DevtoolsShell`), always behind the host's build-time development gate.
 export {
+  createDevtoolsLayoutSource,
+  DEVTOOLS_DOCK_SIDES,
+  DEVTOOLS_LAYOUT_KEY,
+  type DevtoolsDockSide,
+  type DevtoolsLayout,
+  type DevtoolsLayoutSourceOptions,
+  isDevtoolsLayout,
+} from "./client/dock"
+export {
   CommandSection,
   type CommandSectionProps,
   DetailPanel,
@@ -37,7 +46,6 @@ export {
 } from "./client/rail"
 export {
   type DevtoolsConnection,
-  type DevtoolsDock,
   DevtoolsShell,
   type DevtoolsShellProps,
   useDevtoolsConnection,

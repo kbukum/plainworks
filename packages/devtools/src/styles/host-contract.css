@@ -1,63 +1,72 @@
 /*
  * The host contract: how the docked devtools chrome claims its space on the host page. The shell
- * sets attributes on `<html>`; these rules turn them into published custom properties and, by
- * default, into padding and scroll padding on the document root, so the chrome sits beside host
- * content and a focused control is never hidden behind it. The reservation adds to the host's own
- * root padding, which the shell captures into `--plainworks-devtools-host-*` first. A host with its own full-height layout
- * passes `reserveSpace={false}` and lays out around the `--plainworks-devtools-inset-*` values.
- * This file ships unscoped, appended after the scoped inspector styles.
+ * marks `<html>` with the docked side and whether the panel is open, and sets the panel size as
+ * `--plainworks-devtools-panel-size`; these rules turn that into the published
+ * `--plainworks-devtools-inset-*` properties and, by default, into padding and scroll padding on the
+ * document root, so the chrome sits beside host content and a focused control is never hidden
+ * behind it. Sides are physical: the dock is placed against a viewport edge, whatever the host's
+ * writing direction. The reservation adds to the host's own root padding, which the shell captures
+ * into `--plainworks-devtools-host-*` first. A host with its own full-height layout passes
+ * `reserveSpace={false}` and lays out around the inset values. This file ships unscoped, appended
+ * after the scoped inspector styles.
  */
 :root {
   --plainworks-devtools-bar-size: 2.75rem;
-  --plainworks-devtools-panel-inline-size: clamp(20rem, 36vw, 44rem);
-  --plainworks-devtools-panel-block-size: min(55dvh, 36rem);
-  --plainworks-devtools-inset-block-end: 0px;
-  --plainworks-devtools-inset-inline-end: 0px;
+  --plainworks-devtools-panel-size: 0px;
+  --plainworks-devtools-inset-bottom: 0px;
+  --plainworks-devtools-inset-left: 0px;
+  --plainworks-devtools-inset-right: 0px;
 }
 
-:root[data-plainworks-devtools-docked] {
-  --plainworks-devtools-inset-block-end: var(--plainworks-devtools-bar-size);
+:root[data-plainworks-devtools-docked="bottom"] {
+  --plainworks-devtools-inset-bottom: var(--plainworks-devtools-bar-size);
 }
 
-:root[data-plainworks-devtools-docked][data-plainworks-devtools-panel="right"] {
-  --plainworks-devtools-inset-inline-end: var(--plainworks-devtools-panel-inline-size);
+:root[data-plainworks-devtools-docked="left"] {
+  --plainworks-devtools-inset-left: var(--plainworks-devtools-bar-size);
 }
 
-:root[data-plainworks-devtools-docked][data-plainworks-devtools-panel="bottom"] {
-  --plainworks-devtools-inset-block-end: calc(
-    var(--plainworks-devtools-bar-size) + var(--plainworks-devtools-panel-block-size)
+:root[data-plainworks-devtools-docked="right"] {
+  --plainworks-devtools-inset-right: var(--plainworks-devtools-bar-size);
+}
+
+:root[data-plainworks-devtools-docked="bottom"][data-plainworks-devtools-panel] {
+  --plainworks-devtools-inset-bottom: calc(
+    var(--plainworks-devtools-bar-size) + var(--plainworks-devtools-panel-size)
   );
 }
 
-@media (width < 48rem) {
-  :root[data-plainworks-devtools-docked][data-plainworks-devtools-panel="auto"] {
-    --plainworks-devtools-inset-block-end: calc(
-      var(--plainworks-devtools-bar-size) + var(--plainworks-devtools-panel-block-size)
-    );
-  }
+:root[data-plainworks-devtools-docked="left"][data-plainworks-devtools-panel] {
+  --plainworks-devtools-inset-left: calc(
+    var(--plainworks-devtools-bar-size) + var(--plainworks-devtools-panel-size)
+  );
 }
 
-@media (width >= 48rem) {
-  :root[data-plainworks-devtools-docked][data-plainworks-devtools-panel="auto"] {
-    --plainworks-devtools-inset-inline-end: var(--plainworks-devtools-panel-inline-size);
-  }
+:root[data-plainworks-devtools-docked="right"][data-plainworks-devtools-panel] {
+  --plainworks-devtools-inset-right: calc(
+    var(--plainworks-devtools-bar-size) + var(--plainworks-devtools-panel-size)
+  );
 }
 
 :root[data-plainworks-devtools-reserve] {
-  padding-block-end: calc(
-    var(--plainworks-devtools-host-padding-block-end, 0px) +
-    var(--plainworks-devtools-inset-block-end)
+  padding-bottom: calc(
+    var(--plainworks-devtools-host-padding-bottom, 0px) + var(--plainworks-devtools-inset-bottom)
   );
-  padding-inline-end: calc(
-    var(--plainworks-devtools-host-padding-inline-end, 0px) +
-    var(--plainworks-devtools-inset-inline-end)
+  padding-left: calc(
+    var(--plainworks-devtools-host-padding-left, 0px) + var(--plainworks-devtools-inset-left)
   );
-  scroll-padding-block-end: calc(
-    var(--plainworks-devtools-host-scroll-padding-block-end, 0px) +
-    var(--plainworks-devtools-inset-block-end)
+  padding-right: calc(
+    var(--plainworks-devtools-host-padding-right, 0px) + var(--plainworks-devtools-inset-right)
   );
-  scroll-padding-inline-end: calc(
-    var(--plainworks-devtools-host-scroll-padding-inline-end, 0px) +
-    var(--plainworks-devtools-inset-inline-end)
+  scroll-padding-bottom: calc(
+    var(--plainworks-devtools-host-scroll-padding-bottom, 0px) +
+    var(--plainworks-devtools-inset-bottom)
+  );
+  scroll-padding-left: calc(
+    var(--plainworks-devtools-host-scroll-padding-left, 0px) + var(--plainworks-devtools-inset-left)
+  );
+  scroll-padding-right: calc(
+    var(--plainworks-devtools-host-scroll-padding-right, 0px) +
+    var(--plainworks-devtools-inset-right)
   );
 }

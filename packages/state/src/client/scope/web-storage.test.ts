@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Client tests opt into jsdom per file; the package default stays `node` so the server-safe `.`
 // entry can never lean on DOM globals unnoticed.
-import { describe, expect, test } from "vitest"
+import { afterEach, describe, expect, test, vi } from "vitest"
 import { StateSourceError } from "../../errors"
 import { jsonSerializer } from "../../scope/serializer"
 import {
@@ -135,5 +135,44 @@ describe("web storage scope backend", () => {
     })
     window.dispatchEvent(new StorageEvent("storage", { key: "theme" }))
     expect(changes).toBe(0)
+  })
+})
+
+describe("web storage scope with blocked host storage", () => {
+  // Browsers throw a `SecurityError` from the `localStorage` getter when storage is blocked
+  // (privacy settings, a sandboxed frame).
+  const blockHostStorage = () =>
+    vi.spyOn(window, "localStorage", "get").mockImplementation(() => {
+      throw new DOMException("The operation is insecure.", "SecurityError")
+    })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  test("subscribing does not touch host storage; the read reports a typed error", async () => {
+    blockHostStorage()
+    const source = persistentScope.createSource(spec())
+    const subscription = source.subscribe(() => {})
+    await expect(source.get()).rejects.toBeInstanceOf(StateSourceError)
+    subscription.unsubscribe()
+  })
+
+  test("an injected storage keeps working and still observes its key's events", async () => {
+    blockHostStorage()
+    const storage = mapStorage()
+    const source = createWebStorageScope({ kind: "persistent", storage }).createSource(spec())
+    let changes = 0
+    const subscription = source.subscribe(() => {
+      changes += 1
+    })
+    await source.set({ mode: "dark" })
+    expect(await source.get()).toEqual({ mode: "dark" })
+    // The host area cannot be resolved to rule the event out, so it is passed on as a change.
+    window.dispatchEvent(
+      new StorageEvent("storage", { key: "theme", storageArea: window.sessionStorage }),
+    )
+    expect(changes).toBe(2)
+    subscription.unsubscribe()
   })
 })

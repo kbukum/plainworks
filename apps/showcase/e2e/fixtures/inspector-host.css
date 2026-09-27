@@ -1,3 +1,8 @@
+/* Browser-default host styling, in the user's color scheme. */
+:root {
+  color-scheme: light dark;
+}
+
 main button {
   min-block-size: 2.75rem;
   margin: 0.5rem;

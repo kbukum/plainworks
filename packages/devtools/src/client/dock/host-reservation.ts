@@ -1,14 +1,12 @@
 "use client"
 
 import { type RefObject, useLayoutEffect } from "react"
-
-/** Where the inspector docks: pinned to one edge, or `auto` (bottom on narrow viewports). */
-export type DevtoolsDock = "auto" | "right" | "bottom"
+import type { ResolvedDock } from "./layout"
 
 /** What the shell currently occupies, as published to the host. */
 export interface HostReservation {
-  /** The inspector's dock preference. */
-  readonly dock: DevtoolsDock
+  /** Where the dock sits now and how big its panel is. */
+  readonly dock: ResolvedDock
   /** Whether the inspector panel is open. */
   readonly open: boolean
   /** Whether the package stylesheet should reserve the space for the host. */
@@ -25,21 +23,23 @@ export const HOST_ATTRIBUTES = {
   reserve: "data-plainworks-devtools-reserve",
 } as const
 
+/** The root custom property carrying the open panel's size, which the chrome and insets read. */
+export const PANEL_SIZE_PROPERTY = "--plainworks-devtools-panel-size"
+
 // The host's own root padding, captured before the reservation applies so the package stylesheet
-// adds the devtools inset on top of it instead of replacing it.
-const HOST_BASE = [
-  ["padding-block-end", "--plainworks-devtools-host-padding-block-end"],
-  ["padding-inline-end", "--plainworks-devtools-host-padding-inline-end"],
-  ["scroll-padding-block-end", "--plainworks-devtools-host-scroll-padding-block-end"],
-  ["scroll-padding-inline-end", "--plainworks-devtools-host-scroll-padding-inline-end"],
-] as const
+// adds the devtools inset on top of it instead of replacing it. Sides are physical, like the dock.
+const HOST_BASE = ["bottom", "left", "right"].flatMap((side): (readonly [string, string])[] => [
+  [`padding-${side}`, `--plainworks-devtools-host-padding-${side}`],
+  [`scroll-padding-${side}`, `--plainworks-devtools-host-scroll-padding-${side}`],
+])
 
 /**
- * Publish the space the shell's docked chrome occupies on the document root that owns `scope`,
- * and clear it on unmount. The sizes live in the package stylesheet, so the chrome and the
- * reservation can never disagree and no layout is measured. With `reserve`, the host's own root
- * padding is captured into custom properties first, so the reservation adds to it. It runs as a
- * layout effect so the host reflows in the same frame the chrome appears.
+ * Publish the space the docked chrome occupies on the document root that owns `scope`, and clear
+ * it on unmount. The root carries the side and open state as attributes and the panel size as
+ * {@link PANEL_SIZE_PROPERTY}; the package stylesheet derives the insets from them, so the chrome
+ * and the reservation read one value and can never disagree. With `reserve`, the host's own root
+ * padding is captured first, so the reservation adds to it. Layout effects let the host reflow in
+ * the same frame the chrome moves.
  *
  * The root is shared, so one shell per document owns the contract.
  */
@@ -47,6 +47,8 @@ export function useHostReservation(
   scope: RefObject<HTMLElement | null>,
   { dock, open, reserve }: HostReservation,
 ): void {
+  const { side, size } = dock
+
   useLayoutEffect(() => {
     const root = scope.current?.ownerDocument.documentElement
     if (root === undefined) return
@@ -58,13 +60,31 @@ export function useHostReservation(
       }
       root.setAttribute(HOST_ATTRIBUTES.reserve, "")
     }
-    root.setAttribute(HOST_ATTRIBUTES.docked, "")
-    if (open) root.setAttribute(HOST_ATTRIBUTES.panel, dock)
+    root.setAttribute(HOST_ATTRIBUTES.docked, side)
+    if (open) root.setAttribute(HOST_ATTRIBUTES.panel, "")
     return () => {
       for (const name of Object.values(HOST_ATTRIBUTES)) root.removeAttribute(name)
       for (const [, name] of HOST_BASE) root.style.removeProperty(name)
     }
-  }, [scope, dock, open, reserve])
+  }, [scope, side, open, reserve])
+
+  // Resizing only moves the size, so it never re-captures the host's padding.
+  useLayoutEffect(() => {
+    const root = scope.current?.ownerDocument.documentElement
+    if (root === undefined) return
+    previewPanelSize(root, size)
+    return () => {
+      root.style.removeProperty(PANEL_SIZE_PROPERTY)
+    }
+  }, [scope, size])
+}
+
+/**
+ * Show a panel size on `root` without a React render, for the frames of a drag. The committed size
+ * replaces it on the next render.
+ */
+export function previewPanelSize(root: HTMLElement, size: number): void {
+  root.style.setProperty(PANEL_SIZE_PROPERTY, `${size}px`)
 }
 
 // `scroll-padding` computes to `auto` when unset; for the root it behaves as zero.

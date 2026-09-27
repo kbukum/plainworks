@@ -12,6 +12,7 @@ import {
   CommandShortcut,
 } from "@plainworks/elements/command"
 import { Kbd, KbdGroup } from "@plainworks/elements/kbd"
+import { AbortError } from "@plainworks/std"
 import { cn } from "@plainworks/theme"
 import { useTheme } from "@plainworks/theme/client"
 import { Moon, Search, Sun } from "lucide-react"
@@ -56,7 +57,10 @@ export function CommandMenu(): ReactElement {
     setOpen(false)
     void setTheme({ ...theme, mode: nextMode }).then(
       () => toast.info(`Switched to ${nextMode} mode`),
-      () => toast.error(`Could not switch to ${nextMode} mode`),
+      (error: unknown) => {
+        // A newer switch replaced this one before it saved; that one reports its own outcome.
+        if (!(error instanceof AbortError)) toast.error(`Could not switch to ${nextMode} mode`)
+      },
     )
   }
 

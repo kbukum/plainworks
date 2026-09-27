@@ -68,10 +68,21 @@ describe("DevtoolsInspector", () => {
 
   it("docks by the requested side", () => {
     const harness = setup(fakeSource(http))
-    renderInspector(harness, { dock: "bottom" })
+    renderInspector(harness, { side: "left" })
     expect(
       screen.getByRole("region", { name: "Plainworks inspector" }).getAttribute("data-dock"),
-    ).toBe("bottom")
+    ).toBe("left")
+  })
+
+  it("renders injected header actions and resize handle inside the panel", () => {
+    const harness = setup(fakeSource(http))
+    renderInspector(harness, {
+      actions: <button type="button">Panel action</button>,
+      resizeHandle: <button type="button">Panel handle</button>,
+    })
+    const region = screen.getByRole("region", { name: "Plainworks inspector" })
+    expect(region.contains(screen.getByRole("button", { name: "Panel action" }))).toBe(true)
+    expect(region.contains(screen.getByRole("button", { name: "Panel handle" }))).toBe(true)
   })
 
   it("offers overview, timeline, and one tab per source kind", async () => {

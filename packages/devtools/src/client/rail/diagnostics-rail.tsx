@@ -49,8 +49,9 @@ const DOT_STYLES: Readonly<Record<Severity, string>> = {
  * The compact ambient rail: a prioritized, glanceable list of the same session signals the full
  * inspector renders — never a second telemetry path. It leads with failures and abnormal values,
  * fades stale ones, collapses overflow behind an explicit count, and renders nothing when there is
- * nothing to say. Every entry is a button that opens the relevant inspector view. It lays out
- * inline, so the shell's docked bar decides where it sits.
+ * nothing to say. Every entry is a button that opens the relevant inspector view. It lays out along
+ * the inline axis, so it follows the writing mode of the bar it sits in: horizontal on a bottom
+ * dock, vertical on a side dock.
  */
 export function DiagnosticsRail({
   sources,
@@ -77,10 +78,10 @@ export function DiagnosticsRail({
   if (entries.length === 0) return null
 
   return (
-    <div className="@container/rail flex min-w-0 flex-1 items-center gap-1">
+    <div className="@container/rail flex min-h-0 min-w-0 flex-1 items-center gap-1">
       <ul
         aria-label="Diagnostics"
-        className="no-scrollbar flex min-w-0 items-center gap-1 overflow-x-auto"
+        className="no-scrollbar flex min-h-0 min-w-0 items-center gap-1 overflow-auto"
       >
         {visible.map((entry) => (
           <li key={entry.key} className="shrink-0">
@@ -95,7 +96,7 @@ export function DiagnosticsRail({
               }
               onClick={() => onOpen(entry.target)}
               className={cn(
-                "inline-flex min-h-7 items-center gap-1.5 rounded-md px-2 text-xs",
+                "inline-flex min-h-7 min-w-7 items-center gap-1.5 rounded-md px-2 text-xs",
                 "hover:bg-muted @max-md/rail:gap-1 @max-md/rail:px-1.5",
                 SEVERITY_STYLES[entry.severity],
               )}
@@ -121,7 +122,7 @@ export function DiagnosticsRail({
         <button
           type="button"
           onClick={() => onOpen(undefined)}
-          className="inline-flex min-h-7 shrink-0 items-center rounded-md px-2 text-muted-foreground text-xs hover:bg-muted"
+          className="inline-flex min-h-7 min-w-7 shrink-0 items-center rounded-md px-2 text-muted-foreground text-xs hover:bg-muted"
         >
           {`Show ${overflowCount} more diagnostic${overflowCount === 1 ? "" : "s"}`}
         </button>

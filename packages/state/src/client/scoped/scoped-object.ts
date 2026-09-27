@@ -1,7 +1,12 @@
 "use client"
 
-import type { StandardSchemaV1, StateSerializer, StateSource } from "@plainworks/std"
-import { createSourceReconciler } from "@plainworks/std"
+import type {
+  StandardSchemaV1,
+  StateReconciler,
+  StateSerializer,
+  StateSource,
+} from "@plainworks/std"
+import { AbortError, createSourceReconciler } from "@plainworks/std"
 import type { ReactNode } from "react"
 import { type StateFieldFailure, StateSourceError } from "../../errors"
 import type { PersistedVersioning, Scope } from "../../scope/seam"
@@ -125,7 +130,8 @@ function reportFieldFailures(writes: readonly FieldWrite[], report: Report, acti
   void Promise.allSettled(writes.map((write) => write.op)).then((results) => {
     const failures: StateFieldFailure[] = []
     results.forEach((result, index) => {
-      if (result.status === "rejected") {
+      // A write replaced by a newer one, or cancelled by teardown, is not a failure.
+      if (result.status === "rejected" && !(result.reason instanceof AbortError)) {
         const write = writes[index]
         if (write !== undefined) {
           failures.push({ key: write.key, cause: result.reason })
@@ -187,7 +193,7 @@ export function createScopedObject<
     report: Report,
   ): ScopedInstance<Values, Handle> => {
     const sources = new Map<string, StateSource<unknown>>()
-    const reconcilers = new Map<string, ReturnType<typeof createSourceReconciler>>()
+    const reconcilers = new Map<string, StateReconciler<unknown>>()
     const seeded = { ...initials, ...(seed ?? {}) } as Values
     const store = createStore<Values>(() => seeded)
     for (const spec of specs) {
@@ -239,26 +245,21 @@ export function createScopedObject<
           )
           return
         }
-        // Mark each touched field's write first (latest-wins vs an in-flight read), then optimistic
-        // whole-mirror merge, then fan each named field to its own scope's backend.
-        for (const key of keys) {
-          reconcilers.get(key)?.markLocalWrite()
-        }
+        // Optimistic whole-mirror merge, then fan each named field to its own scope's backend
+        // through that field's reconciler, which orders it against in-flight reads and writes.
         store.setState({ ...previous, ...next } as Values, true)
         const writes = keys.map((key) => ({
           key,
-          op: sources.get(key)?.set((next as Record<string, unknown>)[key]) ?? Promise.resolve(),
+          op:
+            reconcilers.get(key)?.set((next as Record<string, unknown>)[key]) ?? Promise.resolve(),
         }))
         reportFieldFailures(writes, report, "persist")
       },
       remove: () => {
-        for (const spec of specs) {
-          reconcilers.get(spec.name)?.markLocalWrite()
-        }
         store.setState({ ...initials } as Values, true)
         const writes = specs.map((spec) => ({
           key: spec.name,
-          op: sources.get(spec.name)?.remove() ?? Promise.resolve(),
+          op: reconcilers.get(spec.name)?.remove() ?? Promise.resolve(),
         }))
         reportFieldFailures(writes, report, "remove")
       },

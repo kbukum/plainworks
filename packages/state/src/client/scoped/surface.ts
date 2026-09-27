@@ -1,5 +1,6 @@
 "use client"
 
+import { AbortError } from "@plainworks/std"
 import { createContext, createElement, type ReactNode, useContext, useEffect, useRef } from "react"
 import { StateError } from "../../errors"
 import type { Store } from "../../store"
@@ -11,6 +12,16 @@ import { createBinding } from "../binding"
  * the host can see it, never swallowed.
  */
 export type Report = (error: unknown) => void
+
+/**
+ * Route a failed write to `report`, except a cancelled one — replaced by a newer write before it
+ * ran, or stopped by teardown. Neither is a failure.
+ */
+export function reportUnlessAborted(report: Report): Report {
+  return (error) => {
+    if (!(error instanceof AbortError)) report(error)
+  }
+}
 
 /**
  * The default report: surface the failure out of band as a rejected promise so it reaches the

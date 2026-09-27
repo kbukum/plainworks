@@ -8,6 +8,7 @@ import { XIcon } from "lucide-react"
 import {
   type KeyboardEvent,
   type ReactElement,
+  type ReactNode,
   useId,
   useLayoutEffect,
   useMemo,
@@ -17,7 +18,7 @@ import {
 import { sourceKey } from "../../protocol"
 import type { DevtoolsClientPort } from "../../session"
 import type { DevtoolsStore, DevtoolsStoreState } from "../../store"
-import type { DevtoolsDock } from "../shell/host-reservation"
+import type { DevtoolsDockSide } from "../dock/layout"
 import { OverviewView } from "./overview-view"
 import {
   GenericSourcePanel,
@@ -33,8 +34,12 @@ export interface DevtoolsInspectorProps {
   readonly open: boolean
   /** Called when the user asks to close (Escape inside the panel or the close button). */
   readonly onOpenChange: (open: boolean) => void
-  /** Edge the inspector docks to. Defaults to `auto`: right on wide viewports, else bottom. */
-  readonly dock?: DevtoolsDock
+  /** Viewport edge the panel docks to, beside the bar. Defaults to `bottom`. */
+  readonly side?: DevtoolsDockSide
+  /** Controls placed in the header before the close button, such as the dock side picker. */
+  readonly actions?: ReactNode
+  /** A resize handle, placed on the panel's edge that faces the host. */
+  readonly resizeHandle?: ReactNode
   /** Current store state. */
   readonly state: DevtoolsStoreState
   /** The store, for timeline presentation policies. */
@@ -49,18 +54,15 @@ export interface DevtoolsInspectorProps {
   readonly id?: string
 }
 
-// Sizes come from the package stylesheet's custom properties, the same ones that reserve host
-// space, so the panel and the host's padding always agree. `auto` switches at Tailwind's `md`
-// breakpoint (48rem), the width the stylesheet's reservation uses.
-const DOCK_LAYOUT: Readonly<Record<DevtoolsDock, string>> = {
-  right:
-    "top-0 end-0 bottom-(--plainworks-devtools-bar-size) w-(--plainworks-devtools-panel-inline-size) max-w-full border-s",
+// The panel sits beside the bar on the docked edge, sized by the root's panel-size property — the
+// value the host reservation reads too, so the panel and the host's padding always agree. Its
+// resize handle comes first, so the flex direction puts it on the edge that faces the host.
+const SIDE_LAYOUT: Readonly<Record<DevtoolsDockSide, string>> = {
   bottom:
-    "inset-x-0 bottom-(--plainworks-devtools-bar-size) h-(--plainworks-devtools-panel-block-size) border-t",
-  auto: cn(
-    "inset-x-0 bottom-(--plainworks-devtools-bar-size) h-(--plainworks-devtools-panel-block-size) border-t",
-    "md:inset-x-auto md:top-0 md:end-0 md:h-auto md:w-(--plainworks-devtools-panel-inline-size) md:border-t-0 md:border-s",
-  ),
+    "right-0 bottom-(--plainworks-devtools-bar-size) left-0 h-(--plainworks-devtools-panel-size) max-h-full flex-col border-t",
+  left: "top-0 bottom-0 left-(--plainworks-devtools-bar-size) w-(--plainworks-devtools-panel-size) max-w-full flex-row-reverse border-r",
+  right:
+    "top-0 right-(--plainworks-devtools-bar-size) bottom-0 w-(--plainworks-devtools-panel-size) max-w-full flex-row border-l",
 }
 
 /**
@@ -93,7 +95,9 @@ interface InspectorPanelProps extends Omit<DevtoolsInspectorProps, "open" | "tar
 
 function InspectorPanel({
   onOpenChange,
-  dock = "auto",
+  side = "bottom",
+  actions,
+  resizeHandle,
   state,
   store,
   port,
@@ -142,64 +146,68 @@ function InspectorPanel({
       id={panelId}
       aria-labelledby={titleId}
       tabIndex={-1}
-      data-dock={dock}
+      data-dock={side}
       onKeyDown={handleKeyDown}
       className={cn(
-        "@container/inspector fixed z-overlay flex flex-col bg-popover text-popover-foreground shadow-overlay",
-        DOCK_LAYOUT[dock],
+        "fixed z-overlay flex bg-popover text-popover-foreground shadow-overlay",
+        SIDE_LAYOUT[side],
       )}
     >
-      <header className="flex items-start gap-2 border-b px-4 py-2.5">
-        <div className="grid min-w-0 flex-1 gap-0.5">
-          <h2 id={titleId} className="font-medium text-sm">
-            Plainworks inspector
-          </h2>
-          <p className="text-muted-foreground text-xs">
-            Observation is read-only. Commands are marked by risk.
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon-sm"
-          aria-label="Close inspector"
-          onClick={() => onOpenChange(false)}
-        >
-          <XIcon aria-hidden />
-        </Button>
-      </header>
-      <Tabs value={activeTab} onValueChange={onTabChange} className="min-h-0 flex-1 gap-0">
-        <TabsList
-          variant="line"
-          aria-label="Inspector views"
-          className="no-scrollbar w-full shrink-0 justify-start overflow-x-auto border-b px-2"
-        >
-          <TabsTrigger value="overview" className="flex-none">
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="timeline" className="flex-none">
-            Timeline
-          </TabsTrigger>
-          {kinds.map((kind) => (
-            <TabsTrigger key={kind} value={kind} className="flex-none">
-              {kind}
+      {resizeHandle}
+      <div className="@container/inspector flex min-h-0 min-w-0 flex-1 flex-col">
+        <header className="flex flex-wrap items-start gap-2 border-b px-4 py-2.5">
+          <div className="grid min-w-0 flex-1 gap-0.5">
+            <h2 id={titleId} className="font-medium text-sm">
+              Plainworks inspector
+            </h2>
+            <p className="text-muted-foreground text-xs">
+              Observation is read-only. Commands are marked by risk.
+            </p>
+          </div>
+          {actions}
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Close inspector"
+            onClick={() => onOpenChange(false)}
+          >
+            <XIcon aria-hidden />
+          </Button>
+        </header>
+        <Tabs value={activeTab} onValueChange={onTabChange} className="min-h-0 flex-1 gap-0">
+          <TabsList
+            variant="line"
+            aria-label="Inspector views"
+            className="no-scrollbar w-full shrink-0 justify-start overflow-x-auto border-b px-2"
+          >
+            <TabsTrigger value="overview" className="flex-none">
+              Overview
             </TabsTrigger>
-          ))}
-        </TabsList>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
-          <TabsContent value="overview">
-            <OverviewView state={state} />
-          </TabsContent>
-          <TabsContent value="timeline">
-            <TimelineView state={state} store={store} port={port} />
-          </TabsContent>
-          {kinds.map((kind) => (
-            <TabsContent key={kind} value={kind}>
-              <KindPanel kind={kind} state={state} port={port} renderers={renderers} />
+            <TabsTrigger value="timeline" className="flex-none">
+              Timeline
+            </TabsTrigger>
+            {kinds.map((kind) => (
+              <TabsTrigger key={kind} value={kind} className="flex-none">
+                {kind}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+            <TabsContent value="overview">
+              <OverviewView state={state} />
             </TabsContent>
-          ))}
-        </div>
-      </Tabs>
+            <TabsContent value="timeline">
+              <TimelineView state={state} store={store} port={port} />
+            </TabsContent>
+            {kinds.map((kind) => (
+              <TabsContent key={kind} value={kind}>
+                <KindPanel kind={kind} state={state} port={port} renderers={renderers} />
+              </TabsContent>
+            ))}
+          </div>
+        </Tabs>
+      </div>
     </section>
   )
 }

@@ -7,7 +7,13 @@ import type { PersistedVersioning, Scope } from "../../scope/seam"
 import { assertScopeAllowsSensitivity, type Sensitivity } from "../../scope/sensitivity"
 import { jsonSerializer } from "../../scope/serializer"
 import { createStore } from "../../store"
-import { createScopedSurface, mergeActions, type Report, type ScopedInstance } from "./surface"
+import {
+  createScopedSurface,
+  mergeActions,
+  type Report,
+  reportUnlessAborted,
+  type ScopedInstance,
+} from "./surface"
 
 /**
  * How a value's next state is expressed on {@link ScopedStateApi.set} — a value or an updater.
@@ -146,15 +152,14 @@ export function createScopedState<Value, Actions extends object = Record<never, 
       set: (next) => {
         const value =
           typeof next === "function" ? (next as (previous: Value) => Value)(store.getState()) : next
-        // Mark the local write first so a read already in flight cannot regress it (latest-wins).
-        reconciler.markLocalWrite()
+        // Optimistic: apply now, then persist through the reconciler, which orders the write
+        // against in-flight reads and other writes (latest-wins).
         store.setState(value, true)
-        source.set(value).catch(report)
+        reconciler.set(value).catch(reportUnlessAborted(report))
       },
       remove: () => {
-        reconciler.markLocalWrite()
         store.setState(initial, true)
-        source.remove().catch(report)
+        reconciler.remove().catch(reportUnlessAborted(report))
       },
       subscribe: (onChange) => store.subscribe(() => onChange()),
     }

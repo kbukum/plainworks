@@ -6,6 +6,7 @@ import {
   pressWithKeyboard,
   runVisualTest,
   VISUAL_TAG,
+  type VisualMatrix,
   type VisualSurface,
 } from "@plainworks/testkit/browser"
 import type { Page } from "@playwright/test"
@@ -35,6 +36,21 @@ async function openInspectorTab(page: Page, tab: string): Promise<void> {
   await expect(trigger).toHaveAttribute("aria-selected", "true")
 }
 
+// Side docks at the widest layout and at the 768 px edge where a side dock still fits. Below it
+// every side falls back to the bottom, which the bottom baselines and the functional gate cover.
+const SIDE_DOCK_MATRIX: VisualMatrix = {
+  modes: ["light", "dark"],
+  viewports: ["desktop", "tablet"],
+}
+
+// The user's persisted dock side, set before the page loads, as a returning user would have it.
+async function dockTo(page: Page, side: "left" | "right"): Promise<void> {
+  await page.addInitScript(([key, value]) => localStorage.setItem(key, value), [
+    "plainworks-devtools-layout",
+    JSON.stringify({ side }),
+  ] as const)
+}
+
 // The showcase has no channel source; the Next host's inspector covers the channel panel.
 const INSPECTOR_TABS = ["Overview", "Timeline", "mock", "http", "query"] as const
 
@@ -43,6 +59,14 @@ const showcase: readonly VisualSurface[] = [
     name: `inspector-${tab.toLowerCase()}`,
     matrix: tab === "Overview" || tab === "mock" ? FULL_MATRIX : COMPACT_MATRIX,
     arrange: (page: Page) => openInspectorTab(page, tab),
+  })),
+  ...(["left", "right"] as const).map((side) => ({
+    name: `inspector-dock-${side}`,
+    matrix: SIDE_DOCK_MATRIX,
+    arrange: async (page: Page) => {
+      await dockTo(page, side)
+      await openInspector(page)
+    },
   })),
   {
     name: "inspector-mock-errors-on",
@@ -86,6 +110,14 @@ const rail = (page: Page) => page.getByRole("region", { name: "Plainworks devtoo
 
 const fixture: readonly VisualSurface[] = [
   { name: "fixture-rail", matrix: COMPACT_MATRIX, arrange: openFixture },
+  ...(["left", "right"] as const).map((side) => ({
+    name: `fixture-rail-${side}`,
+    matrix: SIDE_DOCK_MATRIX,
+    arrange: async (page: Page) => {
+      await dockTo(page, side)
+      await openFixture(page)
+    },
+  })),
   {
     name: "fixture-discovery",
     matrix: COMPACT_MATRIX,

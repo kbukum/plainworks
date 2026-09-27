@@ -1,6 +1,6 @@
 "use client"
 
-import { createSourceReconciler, ensureError, type StateSource } from "@plainworks/std"
+import { AbortError, createSourceReconciler, ensureError, type StateSource } from "@plainworks/std"
 import {
   createContext,
   type ReactElement,
@@ -19,6 +19,11 @@ export interface ThemeContextValue {
   /** The mode actually applied to the document — `system` resolved against the OS preference. */
   readonly resolvedMode: "light" | "dark"
   readonly theme: ThemePreference
+  /**
+   * Save and apply a preference. Rejects with the save error, or with `@plainworks/std`'s
+   * `AbortError` when a newer `setTheme` replaced this one before it saved (or the provider
+   * unmounted) — that one is not a failure.
+   */
   readonly setTheme: (theme: ThemePreference) => Promise<void>
 }
 
@@ -90,16 +95,17 @@ export function ThemeProvider({
   const resolvedMode = resolveTheme(theme, systemPrefersDark).colorScheme
 
   const setTheme = async (next: ThemePreference): Promise<void> => {
-    // Mark the write before persisting so a read already in flight is discarded rather than
-    // clobbering this fresher value when it resolves.
-    reconciler.markLocalWrite()
+    // Persist through the reconciler, which discards a read already in flight and orders this write
+    // after any earlier one, so the stored theme always ends on the latest choice.
     try {
-      await source.set(next)
+      await reconciler.set(next)
       setThemeValue(next)
       setError(undefined)
     } catch (cause) {
       const nextError = ensureError(cause)
-      setError(nextError)
+      // A write replaced by a newer one, or cancelled by unmount, is not a theme failure; the
+      // caller still learns it did not apply.
+      if (!(nextError instanceof AbortError)) setError(nextError)
       throw nextError
     }
   }

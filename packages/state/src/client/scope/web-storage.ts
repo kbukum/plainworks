@@ -75,20 +75,31 @@ function defaultStorageEvents(
     return undefined
   }
   return (key, onChange) => {
-    const area = globalThis.localStorage
     const handler = (event: StorageEvent): void => {
-      // A `storage` event fires for every area of the origin, so match `storageArea` as well as the
-      // key — otherwise a same-key `sessionStorage` change would wrongly re-read this local slot. A
-      // `storage.clear()` surfaces as `key === null`; scope it to this store's area too.
-      if (event.storageArea !== null && event.storageArea !== area) {
+      // A `storage.clear()` surfaces as `key === null`, so it is observed along with this key.
+      if (event.key !== key && event.key !== null) {
         return
       }
-      if (event.key === key || event.key === null) {
-        onChange()
+      // A `storage` event fires for every area of the origin, so match `storageArea` as well as the
+      // key — otherwise a same-key `sessionStorage` change would wrongly re-read this local slot.
+      if (event.storageArea !== null && !isHostLocalStorage(event.storageArea)) {
+        return
       }
+      onChange()
     }
     window.addEventListener("storage", handler)
     return () => window.removeEventListener("storage", handler)
+  }
+}
+
+// Resolved per event, never at subscription: the `localStorage` getter throws a `SecurityError`
+// when storage is blocked, and subscribing must not. An area that cannot be ruled out is treated as
+// this one, so the re-read runs and reports the failure through the source's typed read path.
+function isHostLocalStorage(area: Storage): boolean {
+  try {
+    return area === globalThis.localStorage
+  } catch {
+    return true
   }
 }
 

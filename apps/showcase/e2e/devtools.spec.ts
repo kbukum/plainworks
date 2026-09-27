@@ -160,6 +160,15 @@ test("rail, inspector, and custom commands are accessible and responsive", async
   ).toBeLessThanOrEqual(320)
 })
 
+const SIDES = ["bottom", "left", "right"] as const
+
+async function dockTo(page: Page, side: (typeof SIDES)[number]): Promise<void> {
+  const option = inspector(page).getByRole("button", { name: `Dock to ${side}` })
+  await option.click()
+  await expect(option).toHaveAttribute("aria-pressed", "true")
+  await expect(page.locator("html")).toHaveAttribute("data-plainworks-devtools-docked", side)
+}
+
 test("the docked inspector sits beside the host and never blocks it", async ({ page }) => {
   await openFixture(page)
   const bar = page.getByRole("region", { name: "Plainworks devtools" })
@@ -175,38 +184,148 @@ test("the docked inspector sits beside the host and never blocks it", async ({ p
     await launcher(page).click()
     const panel = inspector(page)
     await expect(panel).toBeVisible()
-    // Non-modal: the host stays interactive and reachable while the inspector is open.
-    await last.focus()
-    await expect(last).toBeFocused()
-    await last.scrollIntoViewIfNeeded()
-    const host = await box(last)
-    expect(overlaps(host, await box(bar)), `bar covers host at ${viewport.width}px`).toBe(false)
-    expect(overlaps(host, await box(panel)), `panel covers host at ${viewport.width}px`).toBe(false)
-    await last.click()
-    await expect(panel).toBeVisible()
+    // Side docks need a 48rem viewport; below it the devtools stay at the bottom.
+    const sides = viewport.width >= 768 ? SIDES : (["bottom"] as const)
+    if (viewport.width < 768) {
+      await expect(panel.getByRole("group", { name: "Dock side" })).toHaveCount(0)
+    }
+    for (const side of sides) {
+      if (viewport.width >= 768) await dockTo(page, side)
+      // Non-modal: the host stays interactive and reachable while the inspector is open.
+      await last.focus()
+      await expect(last).toBeFocused()
+      await last.scrollIntoViewIfNeeded()
+      const host = await box(last)
+      const where = `${side} at ${viewport.width}px`
+      expect(overlaps(host, await box(bar)), `bar covers host, ${where}`).toBe(false)
+      expect(overlaps(host, await box(panel)), `panel covers host, ${where}`).toBe(false)
+      await last.click()
+      await expect(panel).toBeVisible()
+    }
+    if (viewport.width >= 768) await dockTo(page, "bottom")
     await panel.getByRole("button", { name: "Close inspector" }).click()
     await expect(panel).toHaveCount(0)
   }
 })
 
-test("the reservation adds to the host's own root padding", async ({ page }) => {
+test("the reservation follows the dock side and adds to the host's own padding", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1280, height: 800 })
   await openFixture(page)
-  await page.addStyleTag({ content: "html { padding-inline-end: 32px; padding-block-end: 16px }" })
+  await page.addStyleTag({
+    content: "html { padding: 0 32px 16px 24px; scroll-padding: 0 8px 4px 2px }",
+  })
   // Opening re-publishes the reservation, capturing the host padding now in effect.
   await launcher(page).click()
   const panel = inspector(page)
   await expect(panel).toBeVisible()
   const bar = page.getByRole("region", { name: "Plainworks devtools" })
-  const padding = await page.evaluate(() => {
-    const style = getComputedStyle(document.documentElement)
-    return {
-      inline: Number.parseFloat(style.paddingInlineEnd),
-      block: Number.parseFloat(style.paddingBlockEnd),
+  const reserved = () =>
+    page.evaluate(() => {
+      const style = getComputedStyle(document.documentElement)
+      return {
+        bottom: Number.parseFloat(style.paddingBottom),
+        left: Number.parseFloat(style.paddingLeft),
+        right: Number.parseFloat(style.paddingRight),
+        scrollRight: Number.parseFloat(style.scrollPaddingRight),
+      }
+    })
+
+  let padding = await reserved()
+  expect(padding.bottom).toBeCloseTo(16 + (await box(bar)).height + (await box(panel)).height, 0)
+  expect(padding).toMatchObject({ left: 24, right: 32, scrollRight: 8 })
+
+  await dockTo(page, "right")
+  padding = await reserved()
+  expect(padding.right).toBeCloseTo(32 + (await box(bar)).width + (await box(panel)).width, 0)
+  expect(padding.scrollRight).toBeCloseTo(8 + (await box(bar)).width + (await box(panel)).width, 0)
+  expect(padding).toMatchObject({ bottom: 16, left: 24 })
+
+  await dockTo(page, "left")
+  padding = await reserved()
+  expect(padding.left).toBeCloseTo(24 + (await box(bar)).width + (await box(panel)).width, 0)
+  expect(padding).toMatchObject({ bottom: 16, right: 32 })
+
+  // Closing keeps only the bar's strip.
+  await panel.getByRole("button", { name: "Close inspector" }).click()
+  padding = await reserved()
+  expect(padding.left).toBeCloseTo(24 + (await box(bar)).width, 0)
+})
+
+test("the user moves and resizes the devtools, and the layout survives a reload", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await openFixture(page)
+  await launcher(page).click()
+  const panel = inspector(page)
+  const handle = panel.getByRole("separator", { name: "Resize inspector" })
+
+  // Keyboard: the splitter follows the WAI-ARIA window splitter pattern.
+  await dockTo(page, "right")
+  await expect(panel.getByRole("button", { name: "Dock to right" })).toBeFocused()
+  await expect(handle).toHaveAttribute("aria-orientation", "vertical")
+  const start = Number(await handle.getAttribute("aria-valuenow"))
+  await handle.focus()
+  await page.keyboard.press("ArrowLeft")
+  await expect(handle).toHaveAttribute("aria-valuenow", String(start + 16))
+  await expect.poll(async () => (await box(panel)).width).toBeCloseTo(start + 16, 0)
+  await page.keyboard.press("Home")
+  await expect(handle).toHaveAttribute("aria-valuenow", "320")
+  await expect(handle).toBeFocused()
+
+  // Pointer: dragging the handle toward the host grows the panel, committed on release.
+  const grip = await box(handle)
+  await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(grip.x + grip.width / 2 - 120, grip.y + grip.height / 2, { steps: 6 })
+  await page.mouse.up()
+  await expect(handle).toHaveAttribute("aria-valuenow", "440")
+  expect((await box(panel)).width).toBeCloseTo(440, 0)
+
+  await page.reload()
+  await expect(launcher(page)).toBeVisible()
+  await expect(page.locator("html")).toHaveAttribute("data-plainworks-devtools-docked", "right")
+  await launcher(page).click()
+  await expect(handle).toHaveAttribute("aria-valuenow", "440")
+  expect((await box(panel)).width).toBeCloseTo(440, 0)
+})
+
+test("every dock side is accessible and keeps the page reflowable", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await openFixture(page)
+  await launcher(page).click()
+  const panel = inspector(page)
+  for (const colorScheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme, reducedMotion: "reduce" })
+    await page.locator("html").evaluate((element, dark) => {
+      element.classList.toggle("dark", dark)
+    }, colorScheme === "dark")
+    for (const side of SIDES) {
+      await dockTo(page, side)
+      await expectNoBrowserAxeViolations(page)
+      // Each dock control keeps a target of at least 24×24 CSS px.
+      for (const control of [
+        panel.getByRole("button", { name: `Dock to ${side}` }),
+        panel.getByRole("separator", { name: "Resize inspector" }),
+        launcher(page),
+      ]) {
+        const rect = await box(control)
+        expect(Math.min(rect.width, rect.height), `${side} ${colorScheme}`).toBeGreaterThanOrEqual(
+          24,
+        )
+      }
     }
-  })
-  expect(padding.inline).toBeCloseTo(32 + (await box(panel)).width, 0)
-  expect(padding.block).toBeCloseTo(16 + (await box(bar)).height, 0)
+  }
+  await dockTo(page, "right")
+  // Reflow: a narrow viewport drops the side dock to the bottom, once its resize is handled, and
+  // then the page has no horizontal scroll.
+  await page.setViewportSize({ width: 320, height: 568 })
+  await expect(page.locator("html")).toHaveAttribute("data-plainworks-devtools-docked", "bottom")
+  await expectReflowAtNarrowViewport(page)
+  await expect(panel).toBeVisible()
+  expect((await box(panel)).width).toBeLessThanOrEqual(320)
 })
 
 test("the inspector keeps a stable layout under production-sized data", async ({ page }) => {

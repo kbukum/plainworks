@@ -79,11 +79,14 @@ flowchart LR
 
 `mountDevtools` creates an isolated React root. Reach for `DevtoolsShell` instead when the inspector must render inside an existing React tree; it takes a session you own and never disposes it, which is also the path for sharing one session across several views.
 
-The shell is a **docked bar** at the bottom of the viewport — the diagnostics rail plus an **Inspect** button — and a **non-modal inspector** beside your app. The page stays usable while it is open: nothing is dimmed, blurred, or made inert. Escape or the close button hands focus back to the button, and **⌘/Ctrl+Shift+D** toggles it (`shortcut: null` disables that binding).
+The shell is a **docked bar** along one edge of the viewport — the diagnostics rail plus an **Inspect** button — and a **non-modal inspector** beside your app. The page stays usable while it is open: nothing is dimmed, blurred, or made inert. Escape or the close button hands focus back to the button, and **⌘/Ctrl+Shift+D** toggles it (`shortcut: null` disables that binding).
+
+**You choose where it sits.** The inspector header has **Dock to bottom / left / right** buttons, and the panel edge facing your app is a resize handle — drag it, or focus it and use the arrow keys (Shift for bigger steps, Home/End for the limits). The layout is remembered per browser. Below a `48rem` viewport the devtools always dock to the bottom.
 
 | Option | Default | Effect |
 | --- | --- | --- |
-| `dock` | `"auto"` | `"right"`, `"bottom"`, or `"auto"` — right from `48rem` wide, bottom below. |
+| `defaultDock` | `"bottom"` | Starting side: `"bottom"`, `"left"`, or `"right"`. Once the user picks a side, their choice wins. |
+| `layoutSource` | `localStorage` | Where the dock side and panel sizes persist (key `plainworks-devtools-layout`). Pass any `StateSource<DevtoolsLayout>` to keep it elsewhere. |
 | `reserveSpace` | `true` | Pads `<html>` so the chrome never covers your content or a focused control. |
 | `renderers` | — | Kind-keyed custom panels. They render in a slot the package CSS leaves to your own styles. |
 
@@ -93,8 +96,11 @@ The shell claims its space through attributes on `<html>` and publishes the resu
 
 | Property | Meaning |
 | --- | --- |
-| `--plainworks-devtools-inset-block-end` | Space taken at the bottom: the bar, plus a bottom-docked panel. |
-| `--plainworks-devtools-inset-inline-end` | Space taken at the inline end by a side-docked panel. |
+| `--plainworks-devtools-inset-bottom` | Space taken at the bottom edge: the bar, plus the open panel, when docked there. |
+| `--plainworks-devtools-inset-left` | The same for the left edge. |
+| `--plainworks-devtools-inset-right` | The same for the right edge. |
+
+Sides are physical — a left dock is on the left in right-to-left pages too.
 
 With `reserveSpace` on, these are added to your own `padding` and `scroll-padding` on `<html>`, which suits document-scrolling pages. If your layout is a fixed-height shell (for example `h-dvh` with its own scroller), pass `reserveSpace={false}` and apply the properties where your layout needs them. Mount one shell per document.
 

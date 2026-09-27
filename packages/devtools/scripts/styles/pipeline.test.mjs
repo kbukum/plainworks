@@ -76,6 +76,9 @@ describe("buildStylesheet", () => {
 
   it("appends the host contract that reserves the docked chrome's space", () => {
     expect(css).toContain(":root[data-plainworks-devtools-reserve]")
-    expect(css).toContain("--plainworks-devtools-inset-block-end")
+    for (const side of ["bottom", "left", "right"]) {
+      expect(css).toContain(`:root[data-plainworks-devtools-docked=${side}]`)
+      expect(css).toContain(`--plainworks-devtools-inset-${side}`)
+    }
   })
 })

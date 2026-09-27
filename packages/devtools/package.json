@@ -71,6 +71,7 @@
   },
   "dependencies": {
     "@plainworks/elements": "workspace:*",
+    "@plainworks/state": "workspace:*",
     "@plainworks/std": "workspace:*",
     "@plainworks/theme": "workspace:*",
     "@plainworks/ui": "workspace:*",
@@ -82,7 +83,6 @@
     "@plainworks/connect": "workspace:*",
     "@plainworks/http": "workspace:*",
     "@plainworks/observability": "workspace:*",
-    "@plainworks/state": "workspace:*",
     "@tanstack/query-core": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
@@ -98,9 +98,6 @@
       "optional": true
     },
     "@plainworks/observability": {
-      "optional": true
-    },
-    "@plainworks/state": {
       "optional": true
     },
     "@connectrpc/connect": {
@@ -120,7 +117,6 @@
     "@plainworks/connect": "workspace:*",
     "@plainworks/http": "workspace:*",
     "@plainworks/observability": "workspace:*",
-    "@plainworks/state": "workspace:*",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
     "@tailwindcss/oxide": "catalog:",

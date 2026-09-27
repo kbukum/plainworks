@@ -9,6 +9,7 @@
     "paths": {
       "@plainworks/testkit": ["../testkit/src"],
       "@plainworks/testkit/client": ["../testkit/src/client/index.ts"],
+      "@plainworks/state/client/scope": ["../state/src/client/scope/index.ts"],
       "@plainworks/theme": ["../theme/src"],
       "@plainworks/ui": ["../ui/src"],
       "@plainworks/ui/hooks": ["../ui/src/client/hooks/index.ts"],

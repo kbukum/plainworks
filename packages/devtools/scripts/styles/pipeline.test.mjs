@@ -40,9 +40,9 @@ describe("buildStylesheet", () => {
     postcss.parse(css).walkRules((rule) => {
       if (rule.parent?.type === "atrule" && /keyframes$/.test(rule.parent.name)) return
       for (const selector of rule.selectors) {
-        const hostRule = selector.startsWith(":root")
-        if (!selector.includes(SCOPE) && !hostRule) unscoped.push(selector)
-        if (hostRule && !/^:root(\[data-plainworks-devtools-[\w-]+(="?\w+"?)?\])*$/.test(selector)) {
+        if (selector.includes(SCOPE)) continue
+        // Unscoped, only the host contract's own document-root rules may remain.
+        if (!/^:root(\[data-plainworks-devtools-[\w-]+(="?\w+"?)?\])*$/.test(selector)) {
           unscoped.push(selector)
         }
       }
@@ -60,6 +60,18 @@ describe("buildStylesheet", () => {
       true,
     )
     expect(css).not.toMatch(/\.dark:not\(:where/)
+  })
+
+  it("follows the OS preference when the host root is in system mode", () => {
+    const rules = []
+    postcss.parse(css).walkRules((rule) => {
+      const inDarkMedia =
+        rule.parent?.type === "atrule" && /prefers-color-scheme:\s*dark/.test(rule.parent.params)
+      if (inDarkMedia && rule.selectors.includes(`:root:not(.light) ${SCOPE}`)) {
+        rules.push(rule.toString())
+      }
+    })
+    expect(rules.some((rule) => rule.includes("--pw-background:"))).toBe(true)
   })
 
   it("registers no custom property under a name the host may use", () => {

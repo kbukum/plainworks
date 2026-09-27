@@ -145,11 +145,10 @@ describe("server render", () => {
 
   it("writes the persisted explicit theme class onto <html> from the theme cookie", async () => {
     const dark = await render("/tasks", `${themeCookie("dark", "violet")}; ${sessionCookie}`)
-    // `resolveTheme({ mode: "dark", colorScheme: "violet" })` → `dark theme-violet`.
     expect(dark.html).toContain('<html lang="en" class="dark theme-violet">')
 
     const light = await render("/tasks", `${themeCookie("light", "emerald")}; ${sessionCookie}`)
-    expect(light.html).toContain('<html lang="en" class="theme-emerald">')
+    expect(light.html).toContain('<html lang="en" class="light theme-emerald">')
   })
 
   it("loads the compiled stylesheet before the first body paint", async () => {
@@ -163,7 +162,8 @@ describe("server render", () => {
 
   it("falls back to the default theme when no theme cookie is present", async () => {
     const { html } = await render("/tasks", sessionCookie)
-    // Default is `{ mode: "system", colorScheme: "indigo" }`; system resolves light server-side.
+    // The default `{ mode: "system", colorScheme: "indigo" }` has no mode class: CSS follows the
+    // OS.
     expect(html).toContain('<html lang="en" class="theme-indigo">')
   })
 

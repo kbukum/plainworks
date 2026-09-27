@@ -15,6 +15,9 @@ export default defineConfig({
     // Always `node`: the server-safe `.` manifest must prove it needs no DOM. Client tests opt into
     // jsdom per file via a `// @vitest-environment jsdom` docblock.
     environment: "node",
+    // DOM tests that run axe and user-event can pass 5 s on a busy CI runner. The tests are
+    // deterministic, so the longer limit only guards against a hang; it never hides a failure.
+    testTimeout: 15_000,
     // The registry ingestion pipeline is dev-only `.mjs` tooling under `scripts/`; its tests live
     // beside it rather than in the shipped `src/` graph.
     include: ["src/**/*.test.ts", "src/**/*.test.tsx", "scripts/**/*.test.mjs"],

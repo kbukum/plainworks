@@ -335,6 +335,41 @@ describe("tasks section", () => {
     expect(await screen.findByRole("table")).toBeDefined()
   })
 
+  it("keeps the failure in view when a live upsert arrives for a list that never loaded", async () => {
+    let requests = 0
+    handle.server.use(
+      http.get("*/api/tasks", () => {
+        requests += 1
+        return new HttpResponse(null, { status: 500 })
+      }),
+    )
+    const stream = fakeStreamTransport()
+    await renderTasks({ stream, prefetch: false })
+    await screen.findByText("Tasks are unavailable")
+    await waitFor(() => expect(stream.current).toBeDefined())
+
+    act(() => {
+      stream.current?.open()
+      stream.current?.frame({
+        type: "task.upserted",
+        data: JSON.stringify({
+          id: "live-after-failure",
+          title: "Streamed after failure",
+          status: "todo",
+          priority: "low",
+          createdAt: "2024-01-01T00:00:00.000Z",
+          updatedAt: "2024-01-01T00:00:00.000Z",
+        }),
+      })
+    })
+    // Let any refetch the frame provoked reach the table and the mock backend.
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+
+    expect(screen.getByText("Tasks are unavailable")).toBeDefined()
+    expect(screen.queryByRole("status", { name: /^Loading/ })).toBeNull()
+    expect(requests).toBe(1)
+  })
+
   it("carries no axe violations with open dialog", async () => {
     const user = userEvent.setup()
     const { container } = await renderTasks()

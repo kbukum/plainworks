@@ -21,6 +21,7 @@ export {
   FIXED_NOW_ENV,
 } from "./gate"
 export type { BrowserGateHost } from "./host"
+export { expectHydrated } from "./hydration"
 export {
   expectNoHorizontalOverflow,
   expectOverlaysInViewport,

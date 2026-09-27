@@ -154,7 +154,7 @@ import { useClipboard } from "@plainworks/ui/hooks"
 
 ## Theme
 
-Use `parseThemeCookie` and `resolveTheme` from the neutral `@plainworks/ui` entry (re-exported from `@plainworks/theme`) during SSR, then apply the returned `htmlClass` and `colorScheme` to `<html>` before hydration. On the client, pass a caller-owned `StateSource<ThemePreference>` to `ThemeProvider`; a cookie scope from `@plainworks/state/client/scope` keeps the value server-readable without creating a singleton or using browser storage directly.
+Use `parseThemeCookie` and `resolveTheme` from the neutral `@plainworks/ui` entry (re-exported from `@plainworks/theme`) during SSR, then render the returned `htmlClass` on `<html>`. System mode adds no mode class, so the stylesheet follows the OS preference on the first paint. On the client, pass a caller-owned `StateSource<ThemePreference>` to `ThemeProvider`; a cookie scope from `@plainworks/state/client/scope` keeps the value server-readable without creating a singleton or using browser storage directly.
 
 Two controls set the color mode. `ThemeModeMenu` is a compact header menu; `ThemeModeGroup` is an inline Light / Dark / System button group for a settings page. Both take optional `icons` and `labels`, so the kit ships no icon set and no fixed copy.
 

@@ -169,14 +169,7 @@ function InspectorConsumer() {
   )
 }
 
-// Like a host whose theme follows the system, mark `<html>` with `.dark` for the devtools styles.
-const darkScheme = window.matchMedia("(prefers-color-scheme: dark)")
-const applyScheme = (): void => {
-  document.documentElement.classList.toggle("dark", darkScheme.matches)
-}
-applyScheme()
-darkScheme.addEventListener("change", applyScheme)
-
+// A host in system mode: no mode class on `<html>`, so the devtools styles follow the OS themselves.
 const root = document.getElementById("fixture")
 if (root === null) throw new Error("Missing consumer fixture root")
 createRoot(root).render(<InspectorConsumer />)

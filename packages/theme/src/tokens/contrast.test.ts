@@ -32,7 +32,12 @@ const rules = parseRules(readStylesheet("tokens.css"))
 
 const conditions = COLOR_SCHEMES.flatMap((scheme) =>
   [false, true].flatMap((dark) =>
-    [[], ["@media (prefers-contrast: more)"]].map((media) => ({ scheme, dark, media })),
+    [[], ["@media (prefers-contrast: more)"]].map((media) => ({
+      scheme,
+      dark,
+      mode: dark ? ("dark" as const) : ("light" as const),
+      media,
+    })),
   ),
 )
 

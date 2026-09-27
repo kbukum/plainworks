@@ -47,21 +47,22 @@ export const browserGateUse: {
 /**
  * Screenshot comparison defaults for the Playwright config's `expect.toHaveScreenshot`. Animations
  * and the caret are frozen, `scale: "css"` keeps one baseline per CSS pixel whatever the device
- * scale, `threshold` absorbs per-pixel anti-aliasing, and `maxDiffPixelRatio` allows at most 1% of
- * the image to differ, which is below any real layout, color, or content change.
+ * scale, and `threshold` absorbs per-pixel anti-aliasing. `maxDiffPixels` is a fixed count, not a
+ * share of the image, and stays below one 24×24 target, so a missing control fails on any capture
+ * size. A ratio would not: 1% of a mostly blank screen hides a whole row of dialog actions.
  */
 export const browserGateScreenshot: {
   readonly animations: "disabled"
   readonly caret: "hide"
   readonly scale: "css"
   readonly threshold: number
-  readonly maxDiffPixelRatio: number
+  readonly maxDiffPixels: number
 } = {
   animations: "disabled",
   caret: "hide",
   scale: "css",
   threshold: 0.2,
-  maxDiffPixelRatio: 0.01,
+  maxDiffPixels: 100,
 }
 
 /** The fixtures the gate adds to every test. */

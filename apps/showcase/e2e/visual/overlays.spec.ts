@@ -173,6 +173,8 @@ const overlays: readonly VisualSurface[] = [
         .first()
         .click()
       await expect(page.getByText("Marked as read")).toBeVisible()
+      // Hovering pauses the toast's dismissal timer, so it stays through the checks and capture.
+      await page.getByRole("listitem").filter({ hasText: "Marked as read" }).hover()
     },
   },
 ]

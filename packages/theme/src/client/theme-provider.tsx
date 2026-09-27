@@ -35,14 +35,13 @@ export interface ThemeProviderProps {
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
 
-function applyTheme(theme: ThemePreference, systemPrefersDark: boolean): void {
-  const resolved = resolveTheme(theme, systemPrefersDark)
-  const themeClasses = Array.from(document.documentElement.classList).filter((name) =>
-    name.startsWith("theme-"),
-  )
-  document.documentElement.classList.remove("dark", ...themeClasses)
-  document.documentElement.classList.add(...resolved.htmlClass.split(" ").filter(Boolean))
-  document.documentElement.style.colorScheme = resolved.colorScheme
+// Mode classes are explicit choices; system mode carries none and lets the stylesheet follow the
+// OS, so the class the server rendered never flips after hydration.
+function applyTheme(theme: ThemePreference): void {
+  const root = document.documentElement
+  const themeClasses = Array.from(root.classList).filter((name) => name.startsWith("theme-"))
+  root.classList.remove("light", "dark", ...themeClasses)
+  root.classList.add(...resolveTheme(theme).htmlClass.split(" ").filter(Boolean))
 }
 
 /** Own a theme source for one mounted application and keep system preference subscriptions bounded. */
@@ -53,7 +52,8 @@ export function ThemeProvider({
 }: ThemeProviderProps): ReactElement {
   const [theme, setThemeValue] = useState(initialTheme)
   const [error, setError] = useState<Error>()
-  // Start light so server and first client render agree; the effect reconciles the OS preference.
+  // Only `resolvedMode` reads this, never the root class. It starts light so server and first
+  // client render agree, and the effect reconciles the OS preference.
   const [systemPrefersDark, setSystemPrefersDark] = useState(false)
 
   // Reset targets the *current* initial without rebuilding the reconciler when only the prop moves.
@@ -89,10 +89,10 @@ export function ThemeProvider({
   }, [])
 
   useEffect(() => {
-    applyTheme(theme, systemPrefersDark)
-  }, [theme, systemPrefersDark])
+    applyTheme(theme)
+  }, [theme])
 
-  const resolvedMode = resolveTheme(theme, systemPrefersDark).colorScheme
+  const resolvedMode = theme.mode === "system" ? (systemPrefersDark ? "dark" : "light") : theme.mode
 
   const setTheme = async (next: ThemePreference): Promise<void> => {
     // Persist through the reconciler, which discards a read already in flight and orders this write

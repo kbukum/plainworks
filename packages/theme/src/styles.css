@@ -5,13 +5,27 @@
 @source "./**/*.js";
 
 /*
+ * `dark:` matches inside a `dark` class and, in system mode (no `light` or `dark` root class), on a
+ * dark OS, the same conditions tokens.css switches the tokens on. `:where(:root)` keeps both branches
+ * at the same specificity, so a `dark:` rule weighs the same in either dark mode.
+ */
+@custom-variant dark {
+  &:is(.dark *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:is(:where(:root):not(.light) *) {
+      @slot;
+    }
+  }
+}
+
+/*
  * Base UI state variants used by the vendored primitives. Inlined here (rather than importing the
  * `shadcn` CLI package's stylesheet) so the shipped stylesheet stays self-contained, CSP-safe, and
  * carries no build-tool runtime dependency. A primitive styling `data-open:bg-accent` needs the
  * matching custom variant to exist, or Tailwind drops the rule.
  */
-@custom-variant dark (&:is(.dark *));
-
 @custom-variant data-open {
   &:where([data-state="open"]),
   &:where([data-open]:not([data-open="false"])) {

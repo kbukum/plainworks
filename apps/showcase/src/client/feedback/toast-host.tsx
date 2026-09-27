@@ -2,7 +2,7 @@
 
 import { Toaster } from "@plainworks/elements/sonner"
 import { createContext, type ReactElement, type ReactNode, useContext, useId, useMemo } from "react"
-import { toast } from "sonner"
+import { type ToasterProps, toast } from "sonner"
 
 /** A raised message: a short title plus optional supporting body. */
 export interface ToastMessage {
@@ -18,6 +18,17 @@ export interface ToastApi {
 }
 
 type ToastKind = "success" | "error" | "info"
+
+// Sonner's own edge offsets, pushed past the app's overlay insets: the space fixed development
+// chrome claims on each edge. The insets are unset, so 0px, unless the dev-only module maps them.
+function clearOfOverlayInsets(base: string): NonNullable<ToasterProps["offset"]> {
+  const inset = (edge: "bottom" | "left" | "right"): string =>
+    `calc(${base} + var(--showcase-overlay-inset-${edge}, 0px))`
+  return { top: base, bottom: inset("bottom"), left: inset("left"), right: inset("right") }
+}
+
+const TOAST_OFFSET = clearOfOverlayInsets("24px")
+const TOAST_MOBILE_OFFSET = clearOfOverlayInsets("16px")
 
 const ToastContext = createContext<ToastApi | null>(null)
 
@@ -51,7 +62,7 @@ export function ToastProvider({ children }: ToastProviderProps): ReactElement {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <Toaster id={toasterId} />
+      <Toaster id={toasterId} offset={TOAST_OFFSET} mobileOffset={TOAST_MOBILE_OFFSET} />
     </ToastContext.Provider>
   )
 }

@@ -41,7 +41,8 @@ export function ActivityFeed(): ReactElement {
   return (
     <ul aria-label="Recent activity" className="grid gap-3">
       {tasks.map((task) => (
-        <li key={task.id} className="flex items-center justify-between gap-3">
+        // Wrapping moves the status and date under the title when both don't fit on one line.
+        <li key={task.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
           {renderLink({
             href: "/tasks",
             className:

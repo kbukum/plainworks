@@ -1,6 +1,7 @@
 "use client"
 
 import "@plainworks/devtools/styles.css"
+import "./overlay-inset.css"
 
 import { mountDevtools, type SourceRendererMap } from "@plainworks/devtools/client"
 import { createQuerySource } from "@plainworks/devtools/query"
@@ -25,12 +26,12 @@ const RENDERERS: SourceRendererMap = { mock: MockPanel }
 
 /**
  * Observe the live runtime and render the shell; return teardown. This is the only module that
- * pulls the devtools CSS and DOM, so the host loads it after hydration and only inside its
- * development gate. The custom `mock` panel proves the package's extension path — a source and
- * renderer the app owns.
+ * pulls the devtools CSS and DOM (and maps the devtools insets onto the app's overlay insets), so
+ * the host loads it after hydration and only inside its development gate. The custom `mock` panel
+ * proves the package's extension path — a source and renderer the app owns.
  *
- * The mock source reads the control plane through its own client, not the observed one: its
- * polling is inspector plumbing and must not crowd real `/api` traffic out of the HTTP timeline.
+ * The mock source reads the control plane through its own client, not the observed one: its polling
+ * is inspector plumbing and must not crowd real `/api` traffic out of the HTTP timeline.
  */
 export function mountShowcaseDevtools({
   seams,

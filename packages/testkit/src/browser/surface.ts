@@ -2,6 +2,7 @@ import { expect, type Locator, type Page } from "@playwright/test"
 import { type BrowserAxeOptions, expectNoBrowserAxeViolations } from "./axe"
 import { captureOptions, type VisualCapture, withCaptureFrame } from "./capture"
 import { expectFocusVisible } from "./focus"
+import { expectHydrated } from "./hydration"
 import { expectNoHorizontalOverflow, expectOverlaysInViewport } from "./layout"
 import { expandMatrix, type VisualMatrix, type VisualVariant } from "./matrix"
 import type { RuntimeErrorWatch } from "./runtime-errors"
@@ -17,6 +18,11 @@ export interface VisualChecks {
   readonly overflow?: boolean
   /** The focused control shows a visible, uncovered indicator. Defaults to `false`. */
   readonly focus?: boolean
+  /**
+   * Wait for React to hydrate the `main` landmark before any check or capture. Defaults to `true`;
+   * turn it off only for a surface that blocks the client bundle to capture server markup.
+   */
+  readonly hydration?: boolean
 }
 
 /** One user-visible surface in one state, captured across a matrix of modes and viewports. */
@@ -102,6 +108,7 @@ export async function runVisualTest(
   await page.setViewportSize(variant.size)
   await page.emulateMedia({ colorScheme: variant.mode })
   await surface.arrange(page, variant)
+  if (surface.checks?.hydration !== false) await expectHydrated(page)
   await page.evaluate(() => document.fonts.ready)
   const label = `${surface.name} ${variant.id}`
   if (surface.checks?.overflow !== false) {

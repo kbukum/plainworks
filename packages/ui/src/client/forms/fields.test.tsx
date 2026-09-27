@@ -100,4 +100,15 @@ describe("SwitchField", () => {
     expect(screen.getByRole("switch", { name: "Notifications" })).toBeDefined()
     await expectNoAxeViolations(container)
   })
+
+  it("reads its description with the label, before the switch", () => {
+    render(<SwitchField name="sms" label="SMS" description="Alerts by text message." />)
+    const control = screen.getByRole("switch", { name: "SMS" })
+    const description = screen.getByText("Alerts by text message.")
+    expect(control.getAttribute("aria-describedby")).toBe(description.id)
+    // DOCUMENT_POSITION_FOLLOWING: the switch comes after the text that explains it.
+    expect(description.compareDocumentPosition(control) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    )
+  })
 })

@@ -48,7 +48,12 @@ export function TaskForm({
   error,
 }: TaskFormProps): ReactElement {
   return (
-    <Form schema={taskFormSchema()} onSubmit={onSubmit} className="@container grid gap-4">
+    <Form
+      schema={taskFormSchema()}
+      onSubmit={onSubmit}
+      // A focused field scrolls clear of the sticky actions instead of under them (WCAG 2.4.11).
+      className="@container grid gap-4 [&_:is(input,textarea,select,button)]:scroll-mb-20"
+    >
       {error !== undefined ? (
         <Callout tone="danger" title="That change could not be saved">
           Check your connection and try again.
@@ -82,7 +87,9 @@ export function TaskForm({
         />
       </div>
       <DateField name="dueDate" label="Due date" defaultValue={dateInputValue(task?.dueDate)} />
-      <div className="mt-2 flex justify-end gap-2">
+      {/* Sticky, so the actions stay in view while the dialog body scrolls on a short screen. The
+          negative offset cancels the body's bottom padding, so no field peeks out below them. */}
+      <div className="sticky -bottom-1 -mx-4 mt-2 flex justify-end gap-2 border-t bg-popover px-4 py-3">
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancel
         </Button>

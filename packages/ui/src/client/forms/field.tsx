@@ -1,6 +1,7 @@
 "use client"
 
 import {
+  FieldContent,
   FieldDescription,
   FieldError,
   FieldLabel,
@@ -86,21 +87,44 @@ export function Field({
     required: required || undefined,
   }
 
+  const labelNode = (
+    <FieldLabel htmlFor={controlId}>
+      {label}
+      {required ? (
+        <span aria-hidden="true" className="text-destructive">
+          *
+        </span>
+      ) : null}
+    </FieldLabel>
+  )
+  const descriptionNode =
+    description === undefined ? null : (
+      <FieldDescription id={descriptionId}>{description}</FieldDescription>
+    )
+  const errorNode = invalid ? (
+    <FieldError id={errorId} errors={errors.map((message) => ({ message }))} />
+  ) : null
+
   return (
     <FieldRoot orientation={orientation} data-invalid={invalid || undefined} className={className}>
-      <FieldLabel htmlFor={controlId}>
-        {label}
-        {required ? (
-          <span aria-hidden="true" className="text-destructive">
-            *
-          </span>
-        ) : null}
-      </FieldLabel>
-      {children(control)}
-      {description === undefined ? null : (
-        <FieldDescription id={descriptionId}>{description}</FieldDescription>
+      {orientation === "horizontal" ? (
+        // An inline toggle keeps its label, description, and error together, ahead of the control.
+        <>
+          <FieldContent>
+            {labelNode}
+            {descriptionNode}
+            {errorNode}
+          </FieldContent>
+          {children(control)}
+        </>
+      ) : (
+        <>
+          {labelNode}
+          {children(control)}
+          {descriptionNode}
+          {errorNode}
+        </>
       )}
-      {invalid ? <FieldError id={errorId} errors={errors.map((message) => ({ message }))} /> : null}
     </FieldRoot>
   )
 }

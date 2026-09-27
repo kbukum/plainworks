@@ -5,6 +5,9 @@ export default defineConfig({
     // Always `node`: the server-safe `.` entry must prove it needs no DOM. Client tests opt into
     // jsdom per file via a `// @vitest-environment jsdom` docblock.
     environment: "node",
+    // DOM tests that run axe and user-event can pass 5 s on a busy CI runner. The tests are
+    // deterministic, so the longer limit only guards against a hang; it never hides a failure.
+    testTimeout: 15_000,
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     coverage: {
       provider: "v8",

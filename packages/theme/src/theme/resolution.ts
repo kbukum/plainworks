@@ -21,8 +21,8 @@ export interface ThemePreference {
 }
 
 export interface ResolvedTheme {
+  /** The class list for `<html>`: the explicit mode class, if any, and the color scheme class. */
   readonly htmlClass: string
-  readonly colorScheme: "light" | "dark"
 }
 
 export const DEFAULT_THEME: ThemePreference = {
@@ -78,15 +78,12 @@ export function parseThemeCookie(
   }
 }
 
-/** Resolve the exact attributes a host applies to `<html>` before hydration. */
-export function resolveTheme(
-  preference: ThemePreference,
-  systemPrefersDark: boolean,
-): ResolvedTheme {
-  const colorScheme =
-    preference.mode === "system" ? (systemPrefersDark ? "dark" : "light") : preference.mode
-  return {
-    htmlClass: `${colorScheme === "dark" ? "dark " : ""}theme-${preference.colorScheme}`,
-    colorScheme,
-  }
+/**
+ * Resolve the `<html>` class a host applies before hydration. An explicit mode adds its `light` or
+ * `dark` class. System mode adds none: the stylesheet follows `prefers-color-scheme` itself, so a
+ * server that cannot see the OS preference still paints the right mode, with no inline script.
+ */
+export function resolveTheme(preference: ThemePreference): ResolvedTheme {
+  const modeClass = preference.mode === "system" ? "" : `${preference.mode} `
+  return { htmlClass: `${modeClass}theme-${preference.colorScheme}` }
 }

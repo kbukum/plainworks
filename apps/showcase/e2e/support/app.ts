@@ -1,4 +1,4 @@
-import type { VisualCapture } from "@plainworks/testkit/browser"
+import { expectHydrated, type VisualCapture } from "@plainworks/testkit/browser"
 import { expect, type Locator, type Page } from "@playwright/test"
 
 /**
@@ -103,12 +103,13 @@ export function appRoute(slug: string): AppRoute {
   return route
 }
 
-/** Load `route` from the server and wait until its content has rendered. */
+/** Load `route` from the server and wait until its content has rendered and hydrated. */
 export async function openRoute(page: Page, route: AppRoute): Promise<void> {
   await page.goto(route.path)
   await expect(page.getByRole("heading", { level: 1, name: route.heading })).toBeVisible()
   await expect(route.ready(page)).toBeVisible()
   await page.waitForLoadState("networkidle")
+  await expectHydrated(page)
 }
 
 /**

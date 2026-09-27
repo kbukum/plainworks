@@ -50,7 +50,8 @@ export interface LiveTaskFoldProps {
 /**
  * Fold each streamed `task.upserted` into the active list cache. Safe page-one inserts and existing
  * rows update immediately; uncertain filter, sort, or pagination changes also invalidate the query
- * for a server-authoritative refresh. When paused, events are ignored and live regions stay quiet.
+ * for a server-authoritative refresh. Events are ignored while paused and while the list has no
+ * loaded page, so a failed list keeps its error until the user retries.
  */
 export function LiveTaskFold({
   queryKey,
@@ -68,10 +69,9 @@ export function LiveTaskFold({
     if (task === undefined) {
       return
     }
-    const page = queryClient.getQueryData<PaginatedResult<Task>>(queryKey)
-    if (page === undefined) {
-      void queryClient.invalidateQueries({ queryKey })
-      setLatest(task.title)
+    // With no page yet, the pending fetch already brings the task, and a failed list stays failed
+    // until the user retries: refetching here would swap the error for a loading skeleton.
+    if (queryClient.getQueryData<PaginatedResult<Task>>(queryKey) === undefined) {
       return
     }
     let requiresRefetch = false

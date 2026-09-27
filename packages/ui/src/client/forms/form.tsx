@@ -8,6 +8,8 @@ import {
   type ReactElement,
   type ReactNode,
   type Ref,
+  useEffect,
+  useRef,
   useState,
   useTransition,
 } from "react"
@@ -64,11 +66,11 @@ export type FormProps<Output = FormValues> = SchemaFormProps<Output> | Schemales
  * the native `action` reset path): the native `FormData` is decoded to plain values, validated
  * against `schema`, and — only when valid — handed to `onSubmit`. Validation issues are grouped by
  * field `name` and exposed through context so each `Field` renders its own message; issues without
- * a path surface in a form-level alert. Because submission never routes through React's automatic
- * form reset, a validation failure keeps every entered value instead of clearing the form.
- * Record and field values stay caller-controlled (uncontrolled inputs submit through `FormData`);
- * the form owns only its per-submission validation errors, and no module-level state, so two forms
- * never share validation.
+ * a path surface in a form-level alert. A failed submission moves focus to the first invalid field.
+ * Because submission never routes through React's automatic form reset, a validation failure keeps
+ * every entered value instead of clearing the form. Record and field values stay caller-controlled
+ * (uncontrolled inputs submit through `FormData`); the form owns only its per-submission validation
+ * errors, and no module-level state, so two forms never share validation.
  */
 export function Form<Output = FormValues>(props: FormProps<Output>): ReactElement {
   const { labels: labelOverrides, children, className, ref } = props
@@ -76,6 +78,17 @@ export function Form<Output = FormValues>(props: FormProps<Output>): ReactElemen
 
   const [errors, setErrors] = useState<FieldErrors>({})
   const [pending, startTransition] = useTransition()
+  // The form whose failed submission still owes focus to its first invalid field.
+  const focusOwed = useRef<HTMLFormElement | null>(null)
+
+  // Fields and the submit button are disabled while pending, which drops focus from the button a
+  // keyboard user pressed. Once the failure settles, hand focus to the first field to fix.
+  useEffect(() => {
+    const form = focusOwed.current
+    if (pending || form === null || Object.keys(errors).length === 0) return
+    focusOwed.current = null
+    form.querySelector<HTMLElement>("[aria-invalid='true']")?.focus()
+  }, [errors, pending])
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
     // Own the submission instead of passing `action` to the form: React resets an uncontrolled form
@@ -83,7 +96,8 @@ export function Form<Output = FormValues>(props: FormProps<Output>): ReactElemen
     // user's input. `preventDefault` + a transition keeps the entered values; the transition's
     // pending flows through `FormContext` so `FormSubmit` and fields stay pending-aware.
     event.preventDefault()
-    const formData = new FormData(event.currentTarget)
+    const form = event.currentTarget
+    const formData = new FormData(form)
     startTransition(async () => {
       const values = formDataToObject(formData)
       if (props.schema === undefined) {
@@ -97,6 +111,7 @@ export function Form<Output = FormValues>(props: FormProps<Output>): ReactElemen
         setErrors({})
         return
       }
+      focusOwed.current = form
       setErrors(groupIssues(result.error))
     })
   }

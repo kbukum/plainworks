@@ -7,6 +7,7 @@
 // persisted color mode on first paint, and ships no client JavaScript. React escapes every value,
 // so a return target lifted from the query string cannot break out of the markup.
 
+import { Alert, AlertDescription, AlertTitle } from "@plainworks/elements/alert"
 import { Button } from "@plainworks/elements/button"
 import {
   Card,
@@ -29,9 +30,16 @@ export interface LoginPageInput {
   readonly cookieHeader: string
   /** Stylesheet URLs, the same ones the app document loads. */
   readonly stylesheets: readonly string[]
+  /** The previous sign-in could not finish, so the page explains why it is back. */
+  readonly interrupted?: boolean
 }
 
-function LoginDocument({ returnTo, cookieHeader, stylesheets }: LoginPageInput): ReactElement {
+function LoginDocument({
+  returnTo,
+  cookieHeader,
+  stylesheets,
+  interrupted = false,
+}: LoginPageInput): ReactElement {
   const htmlClass = resolveHtmlClass(parseThemeCookie(cookieHeader, THEME_COOKIE, DEFAULT_THEME))
   return (
     <html lang="en" className={htmlClass}>
@@ -52,7 +60,15 @@ function LoginDocument({ returnTo, cookieHeader, stylesheets }: LoginPageInput):
               </CardTitle>
               <CardDescription>You are signed out. Sign in to open the showcase.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="grid gap-4">
+              {interrupted ? (
+                <Alert variant="destructive">
+                  <AlertTitle>Sign-in didn't finish</AlertTitle>
+                  <AlertDescription>
+                    It expired or was started from a different address. Sign in again.
+                  </AlertDescription>
+                </Alert>
+              ) : null}
               <form method="post" action={LOGIN_PATH}>
                 <input type="hidden" name="returnTo" value={returnTo} />
                 <Button type="submit" size="lg" className="w-full">

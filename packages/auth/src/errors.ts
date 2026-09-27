@@ -17,6 +17,12 @@ export type AuthErrorCode =
   /** An adapter could not resolve, verify, or complete an authentication step. */
   | "auth/adapter"
   /**
+   * A login callback arrived without a valid login transaction: its cookie is missing, expired, or
+   * forged, so the sign-in must start over. Distinct from `auth/adapter` so a host can recover
+   * without mistaking a stale or interrupted sign-in for a provider fault.
+   */
+  | "auth/login-transaction"
+  /**
    * A presented token is itself invalid — bad signature, wrong claims, or expired — so the caller
    * is unauthenticated. Distinct from an infrastructure fault (`auth/adapter`) so a key-service
    * outage is never mistaken for a bad credential.
@@ -46,3 +52,12 @@ export type AuthErrorCode =
  * string; throw (or reject with) an `AuthError`.
  */
 export class AuthError extends PlainError<AuthErrorCode> {}
+
+/**
+ * Whether `error` is an auth error of `kind`. It checks the `kind` discriminant rather than the
+ * class, because a bundler can load this package more than once (Next.js builds each server route
+ * separately), and an error thrown by one copy fails `instanceof` against another.
+ */
+export function isAuthErrorKind(error: unknown, kind: AuthErrorCode): error is AuthError {
+  return error instanceof Error && "kind" in error && error.kind === kind
+}

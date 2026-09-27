@@ -1,6 +1,8 @@
 import { createMockIdp } from "@plainworks/testkit"
 import { beforeAll, describe, expect, it } from "vitest"
+import { SIGN_IN_INTERRUPTED_PATH } from "../neutral/constants"
 import { createNextAuth, type NextAuth } from "./auth"
+import { completeCallback } from "./auth-callback"
 
 // The host authenticates through `@plainworks/auth`'s own `createServerSession`, never a
 // hand-assembled cookie/signer flow. An in-process mock IdP mints a real signed session across a
@@ -87,5 +89,38 @@ describe("session read", () => {
       subject: null,
       name: null,
     })
+  })
+})
+
+describe("login callback", () => {
+  it("returns to the captured target once the round trip completes", async () => {
+    const inbound = new Map<string, string>()
+    const outbound: string[] = []
+    const begin = await auth.session.beginLogin(jarOver(inbound, outbound), { returnTo: "/tasks" })
+    applyCookies(outbound.splice(0), inbound)
+    const { callbackUrl } = idp.authorize(begin.authorizationUrl)
+    const params = Object.fromEntries(new URL(callbackUrl).searchParams)
+    expect(await completeCallback(auth.session, jarOver(inbound, outbound), params)).toBe("/tasks")
+  })
+
+  it("sends an interrupted sign-in to the recovery page instead of failing", async () => {
+    // No transaction cookie arrives when sign-in began on another origin or the cookie expired.
+    const location = await completeCallback(auth.session, jarOver(new Map(), []), {
+      code: "code",
+      state: "state",
+    })
+    expect(location).toBe(SIGN_IN_INTERRUPTED_PATH)
+  })
+
+  it("clears a forged transaction cookie on the way to the recovery page", async () => {
+    const inbound = new Map([["__Host-login_tx", "forged.value"]])
+    const outbound: string[] = []
+    const location = await completeCallback(auth.session, jarOver(inbound, outbound), {
+      code: "code",
+      state: "state",
+    })
+    expect(location).toBe(SIGN_IN_INTERRUPTED_PATH)
+    applyCookies(outbound, inbound)
+    expect(inbound.has("__Host-login_tx")).toBe(false)
   })
 })

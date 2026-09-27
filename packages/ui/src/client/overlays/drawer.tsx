@@ -9,7 +9,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@plainworks/elements/sheet"
-import { isValidElement, type ReactElement, type ReactNode } from "react"
+import { isValidElement, type ReactElement, type ReactNode, useId } from "react"
+import { OverlayBody } from "./body"
 
 /** Which edge the drawer slides in from. */
 export type DrawerSide = "top" | "right" | "bottom" | "left"
@@ -56,6 +57,7 @@ export function Drawer({
   defaultOpen,
   onOpenChange,
 }: DrawerProps): ReactElement {
+  const titleId = useId()
   return (
     <Sheet open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange}>
       {trigger === undefined ? null : isValidElement(trigger) ? (
@@ -66,13 +68,17 @@ export function Drawer({
       {/* The atom sizes top/bottom sheets to their content; the bound lets the body scroll. */}
       <SheetContent side={side} className="max-h-dvh">
         <SheetHeader>
-          <SheetTitle>{title}</SheetTitle>
+          <SheetTitle id={titleId}>{title}</SheetTitle>
           {description === undefined ? null : <SheetDescription>{description}</SheetDescription>}
         </SheetHeader>
         {children === undefined ? null : (
-          <div data-slot="drawer-body" className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+          <OverlayBody
+            slot="drawer-body"
+            labelledBy={titleId}
+            className="min-h-0 flex-1 overflow-y-auto px-4 pb-4"
+          >
             {children}
-          </div>
+          </OverlayBody>
         )}
         {footer === undefined ? null : <SheetFooter>{footer}</SheetFooter>}
       </SheetContent>

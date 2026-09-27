@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { contrastRatio } from "../testing/contrast"
+import { contrastRatio, type Tint } from "../testing/contrast"
 import { parseRules, readStylesheet, resolveTokens } from "../testing/stylesheet"
 import { COLOR_SCHEMES } from "../theme/resolution"
 import { STATUS_TONES } from "./index"
@@ -16,6 +16,17 @@ const FOCUS_SURFACES = ["background", "card", "popover", "muted"] as const
 // Translucent text the atoms paint, as [role, alpha, surface]: inactive tabs use
 // `text-foreground/60` on the muted tab list.
 const TRANSLUCENT_TEXT = [["foreground", 0.6, "muted"]] as const
+// In dark mode an outline button fills with `input/30` and inherits its text color, so inside a
+// destructive alert it paints destructive text on that fill.
+const OUTLINE_FILL_ALPHA = 0.3
+// A destructive button paints destructive text on its own `destructive/…` tint: 10% at rest and
+// 20% on hover in light mode, 20% and 30% in dark mode. It sits on a page, a card, a popover, or a
+// dialog footer (`muted/50` over the popover).
+const DESTRUCTIVE_TINT_ALPHAS = { light: [0.1, 0.2], dark: [0.2, 0.3] } as const
+const MUTED_FOOTER_ALPHA = 0.5
+// A default button keeps `primary-foreground` text but fades its fill to `primary/80` on hover,
+// over the same surfaces.
+const PRIMARY_HOVER_ALPHA = 0.8
 
 const rules = parseRules(readStylesheet("tokens.css"))
 
@@ -25,13 +36,14 @@ const conditions = COLOR_SCHEMES.flatMap((scheme) =>
   ),
 )
 
-function failures(tokens: Map<string, string>): string[] {
+function failures(tokens: Map<string, string>, dark = false): string[] {
   const color = (role: string): string => {
     const value = tokens.get(`--pw-${role}`)
     if (value === undefined) throw new Error(`Missing --pw-${role}`)
     return value
   }
-  const pairs: [string, string | { role: string; tint: string }, number][] = [
+  type Backdrop = string | { role: string; tint: string; alpha?: number }
+  const pairs: [string, Backdrop, number][] = [
     ["foreground", "background", TEXT],
     ["card-foreground", "card", TEXT],
     ["popover-foreground", "popover", TEXT],
@@ -49,12 +61,20 @@ function failures(tokens: Map<string, string>): string[] {
     ["destructive", "card", NON_TEXT],
     ["input", "background", NON_TEXT],
     ["input", "card", NON_TEXT],
-    ...STATUS_TONES.flatMap((tone): [string, string | { role: string; tint: string }, number][] => [
+    ...STATUS_TONES.flatMap((tone): [string, Backdrop, number][] => [
       [`${tone}-foreground`, tone, TEXT],
       [tone, "background", TEXT],
       [tone, "card", TEXT],
       [tone, { role: tone, tint: "card" }, TEXT],
     ]),
+    ...(dark ? (["foreground", "destructive"] as const) : []).flatMap(
+      (role): [string, Backdrop, number][] =>
+        (["background", "card"] as const).map((surface) => [
+          role,
+          { role: "input", tint: surface, alpha: OUTLINE_FILL_ALPHA },
+          TEXT,
+        ]),
+    ),
   ]
   const halos = FOCUS_SURFACES.flatMap((surface) => {
     const halo = { color: color("ring"), alpha: FOCUS_HALO_ALPHA, backdrop: color(surface) }
@@ -66,14 +86,48 @@ function failures(tokens: Map<string, string>): string[] {
     const ratio = contrastRatio(text, color(surface))
     return ratio >= TEXT ? [] : [`${role}/${alpha} on ${surface}: ${ratio.toFixed(2)} < ${TEXT}`]
   })
+  const surfaces: Record<string, Tint | string> = {
+    background: color("background"),
+    card: color("card"),
+    popover: color("popover"),
+    "dialog footer": {
+      color: color("muted"),
+      alpha: MUTED_FOOTER_ALPHA,
+      backdrop: color("popover"),
+    },
+  }
+  const destructiveButtons = DESTRUCTIVE_TINT_ALPHAS[dark ? "dark" : "light"].flatMap((alpha) =>
+    Object.entries(surfaces).flatMap(([surface, backdrop]) => {
+      const fill = { color: color("destructive"), alpha, backdrop }
+      const ratio = contrastRatio(color("destructive"), fill)
+      return ratio >= TEXT
+        ? []
+        : [`destructive on destructive/${alpha} over ${surface}: ${ratio.toFixed(2)} < ${TEXT}`]
+    }),
+  )
+  const primaryHovers = Object.entries(surfaces).flatMap(([surface, backdrop]) => {
+    const fill = { color: color("primary"), alpha: PRIMARY_HOVER_ALPHA, backdrop }
+    const ratio = contrastRatio(color("primary-foreground"), fill)
+    return ratio >= TEXT
+      ? []
+      : [
+          `primary-foreground on primary/${PRIMARY_HOVER_ALPHA} over ${surface}: ${ratio.toFixed(2)}`,
+        ]
+  })
   return [
     ...halos,
     ...translucent,
+    ...destructiveButtons,
+    ...primaryHovers,
     ...pairs.flatMap(([front, back, minimum]) => {
       const backdrop =
         typeof back === "string"
           ? color(back)
-          : { color: color(back.role), alpha: STATUS_TINT_ALPHA, backdrop: color(back.tint) }
+          : {
+              color: color(back.role),
+              alpha: back.alpha ?? STATUS_TINT_ALPHA,
+              backdrop: color(back.tint),
+            }
       const ratio = contrastRatio(color(front), backdrop)
       const label = typeof back === "string" ? back : `${back.role} tint on ${back.tint}`
       return ratio >= minimum ? [] : [`${front} on ${label}: ${ratio.toFixed(2)} < ${minimum}`]
@@ -83,7 +137,7 @@ function failures(tokens: Map<string, string>): string[] {
 
 describe("token contrast (WCAG 2.2 AA)", () => {
   it.each(conditions)("$scheme dark=$dark $media meets AA", (condition) => {
-    expect(failures(resolveTokens(rules, condition))).toEqual([])
+    expect(failures(resolveTokens(rules, condition), condition.dark)).toEqual([])
   })
 
   it("reports a focus ring that is too faint as a half-opacity halo", () => {

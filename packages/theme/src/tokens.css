@@ -32,8 +32,8 @@
   --pw-green-400: oklch(0.75 0.15 150);
   --pw-amber-600: oklch(0.49 0.12 65);
   --pw-amber-300: oklch(0.8 0.14 80);
-  --pw-red-600: oklch(0.485 0.22 27);
-  --pw-red-400: oklch(0.7 0.19 22);
+  --pw-red-600: oklch(0.46 0.21 27);
+  --pw-red-200: oklch(0.85 0.1 22);
 }
 
 /* Tier 2: mode-independent scales. */
@@ -139,7 +139,7 @@
   --pw-success-foreground: var(--pw-neutral-950);
   --pw-warning: var(--pw-amber-300);
   --pw-warning-foreground: var(--pw-neutral-950);
-  --pw-destructive: var(--pw-red-400);
+  --pw-destructive: var(--pw-red-200);
   --pw-destructive-foreground: var(--pw-neutral-950);
   --pw-border: var(--pw-neutral-800);
   --pw-input: var(--pw-neutral-500);
@@ -184,6 +184,8 @@
 /*
  * Color schemes reassign only the brand roles, so switching `theme-*` repaints the accent without
  * touching the neutral surface. `neutral` keeps the default brand and only sets `color-scheme`.
+ * Light primaries stay dark enough that the default button's `primary/80` hover fill still meets
+ * AA against `primary-foreground`.
  */
 .theme-neutral {
   color-scheme: light;
@@ -193,7 +195,7 @@
 }
 
 .theme-indigo {
-  --pw-primary: oklch(0.51 0.23 277);
+  --pw-primary: oklch(0.47 0.23 277);
   --pw-primary-foreground: var(--pw-neutral-50);
   --pw-ring: oklch(0.37 0.23 277);
 }
@@ -204,7 +206,7 @@
 }
 
 .theme-violet {
-  --pw-primary: oklch(0.54 0.25 293);
+  --pw-primary: oklch(0.49 0.25 293);
   --pw-primary-foreground: var(--pw-neutral-50);
   --pw-ring: oklch(0.36 0.25 293);
 }
@@ -215,7 +217,7 @@
 }
 
 .theme-blue {
-  --pw-primary: oklch(0.55 0.22 260);
+  --pw-primary: oklch(0.46 0.22 260);
   --pw-primary-foreground: var(--pw-neutral-50);
   --pw-ring: oklch(0.34 0.22 260);
 }
@@ -226,7 +228,7 @@
 }
 
 .theme-emerald {
-  --pw-primary: oklch(0.53 0.12 163);
+  --pw-primary: oklch(0.42 0.12 163);
   --pw-primary-foreground: var(--pw-neutral-50);
   --pw-ring: oklch(0.24 0.12 163);
 }
@@ -237,7 +239,7 @@
 }
 
 .theme-orange {
-  --pw-primary: oklch(0.55 0.17 42);
+  --pw-primary: oklch(0.47 0.17 42);
   --pw-primary-foreground: var(--pw-neutral-50);
   --pw-ring: oklch(0.31 0.17 42);
 }
@@ -248,7 +250,7 @@
 }
 
 .theme-slate {
-  --pw-primary: oklch(0.45 0.03 257);
+  --pw-primary: oklch(0.42 0.03 257);
   --pw-primary-foreground: var(--pw-neutral-50);
   --pw-ring: oklch(0.25 0.03 257);
 }
@@ -259,7 +261,7 @@
 }
 
 .theme-rose {
-  --pw-primary: oklch(0.56 0.22 12);
+  --pw-primary: oklch(0.51 0.22 12);
   --pw-primary-foreground: var(--pw-neutral-50);
   --pw-ring: oklch(0.35 0.22 12);
 }
@@ -270,7 +272,7 @@
 }
 
 .theme-cyan {
-  --pw-primary: oklch(0.53 0.1 220);
+  --pw-primary: oklch(0.42 0.1 220);
   --pw-primary-foreground: var(--pw-neutral-50);
   --pw-ring: oklch(0.25 0.1 220);
 }

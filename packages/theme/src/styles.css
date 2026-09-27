@@ -73,15 +73,49 @@
 }
 
 /*
- * Keyboard stops the shadcn atoms leave without a focus indicator: a tab panel is focusable but
- * `outline-none`, and a slider thumb styles `:focus-visible` while focus lands on its hidden input.
+ * Keyboard stops the shadcn atoms leave without a focus indicator: a tab panel and a menubar
+ * trigger are focusable but `outline-none`/`outline-hidden`, and a slider thumb styles
+ * `:focus-visible` while focus lands on its hidden input.
  * In the utilities layer, these attribute selectors outrank `outline-none`.
  */
 @layer utilities {
   [data-slot="tabs-content"]:focus-visible,
+  [data-slot="menubar-trigger"]:focus-visible,
   [data-slot="slider-thumb"]:has(:focus-visible) {
     outline: var(--pw-focus-width) solid var(--pw-ring);
     outline-offset: var(--pw-focus-offset);
+  }
+
+  /*
+   * Menu and select items mark keyboard focus only with a faint fill, below the 3:1 non-text
+   * contrast a focus state needs. The outline sits inset, inside the popup's clipped list.
+   */
+  [data-slot="dropdown-menu-item"]:focus-visible,
+  [data-slot="dropdown-menu-checkbox-item"]:focus-visible,
+  [data-slot="dropdown-menu-radio-item"]:focus-visible,
+  [data-slot="dropdown-menu-sub-trigger"]:focus-visible,
+  [data-slot="context-menu-item"]:focus-visible,
+  [data-slot="context-menu-checkbox-item"]:focus-visible,
+  [data-slot="context-menu-radio-item"]:focus-visible,
+  [data-slot="context-menu-sub-trigger"]:focus-visible,
+  [data-slot="menubar-item"]:focus-visible,
+  [data-slot="menubar-checkbox-item"]:focus-visible,
+  [data-slot="menubar-radio-item"]:focus-visible,
+  [data-slot="menubar-sub-trigger"]:focus-visible,
+  [data-slot="select-item"]:focus-visible {
+    outline: var(--pw-focus-width) solid var(--pw-ring);
+    outline-offset: calc(-1 * var(--pw-focus-width));
+  }
+
+  /*
+   * The dialog atoms center their popup with no height limit, and the page behind a modal is
+   * scroll-locked, so a dialog taller than the screen would push its title and actions out of
+   * reach. Bound it to the viewport, with the same 1rem margin the atom keeps horizontally, and
+   * let it scroll. `:where` keeps this a default any call-site utility overrides.
+   */
+  :where([data-slot="dialog-content"], [data-slot="alert-dialog-content"]) {
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
   }
 }
 

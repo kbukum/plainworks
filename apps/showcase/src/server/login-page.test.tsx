@@ -44,8 +44,25 @@ describe("renderLoginPage", () => {
     expect(doc.querySelector('button[type="submit"]')?.textContent).toBe("Sign in")
   })
 
-  it("has no detectable accessibility violations", async () => {
+  it("explains an interrupted sign-in above the sign-in action", () => {
+    const doc = parse(
+      renderLoginPage({ returnTo: "/", cookieHeader: "", stylesheets: STYLES, interrupted: true }),
+    )
+
+    const notice = doc.querySelector('[role="alert"]')
+    expect(notice?.textContent).toContain("Sign-in didn't finish")
+    expect(doc.querySelector('button[type="submit"]')?.textContent).toBe("Sign in")
+  })
+
+  it("shows no notice on a normal visit", () => {
     const doc = parse(renderLoginPage({ returnTo: "/", cookieHeader: "", stylesheets: STYLES }))
+    expect(doc.querySelector('[role="alert"]')).toBeNull()
+  })
+
+  it("has no detectable accessibility violations, notice included", async () => {
+    const doc = parse(
+      renderLoginPage({ returnTo: "/", cookieHeader: "", stylesheets: STYLES, interrupted: true }),
+    )
     document.documentElement.lang = doc.documentElement.lang
     document.body.replaceChildren(
       ...Array.from(doc.body.childNodes, (node) => document.adoptNode(node)),

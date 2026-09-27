@@ -1,57 +1,10 @@
-import { expect, type Locator, type Page, test } from "@playwright/test"
-import { expectNoBrowserAxeViolations, expectReflowAtNarrowViewport } from "./axe"
-import { signIn } from "./session"
-
-const panels = [
-  {
-    name: "profile",
-    path: "/settings",
-    ready: (page: Page) => page.getByLabel("Display name"),
-  },
-  {
-    name: "preferences",
-    path: "/settings/preferences",
-    ready: (page: Page) => page.getByLabel("Rows per page"),
-  },
-  {
-    name: "notifications",
-    path: "/settings/notifications",
-    ready: (page: Page) => page.getByRole("switch", { name: "Email" }),
-  },
-  {
-    name: "appearance",
-    path: "/settings/appearance",
-    ready: (page: Page) => page.getByRole("radiogroup", { name: "Motion" }),
-  },
-] as const
-
-const viewports = [
-  { name: "desktop", width: 1280, height: 900 },
-  { name: "mobile", width: 390, height: 844 },
-] as const
+import type { Locator, Page } from "@playwright/test"
+import { expect, test } from "./support/gate"
 
 async function openSettings(page: Page, path: string, ready: Locator): Promise<void> {
-  await signIn(page)
   await page.goto(path)
   await expect(page.getByRole("heading", { level: 1, name: "Settings" })).toBeVisible()
   await expect(ready).toBeVisible()
-}
-
-for (const viewport of viewports) {
-  for (const panel of panels) {
-    test(`${panel.name} panel matches the ${viewport.name} visual`, async ({ page }) => {
-      await page.setViewportSize(viewport)
-      await openSettings(page, panel.path, panel.ready(page))
-
-      await expectNoBrowserAxeViolations(page)
-      if (viewport.name === "mobile") {
-        await expectReflowAtNarrowViewport(page)
-      }
-      await expect(page.locator("#main-content")).toHaveScreenshot(
-        `settings-${panel.name}-${viewport.name}.png`,
-      )
-    })
-  }
 }
 
 test("settings tabs deep-link and support keyboard history navigation", async ({ page }) => {

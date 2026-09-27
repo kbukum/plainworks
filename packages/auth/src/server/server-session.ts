@@ -155,6 +155,9 @@ export interface ServerSession<Schema extends StandardSchemaV1> {
    * Complete login from the provider callback: verify the transaction cookie, exchange the code,
    * mint the signed session cookie and a session-bound CSRF cookie, clear the transaction cookie,
    * and return the captured return target.
+   *
+   * @throws {AuthError} `auth/login-transaction` when the transaction cookie is missing, expired,
+   * or forged, so the host can restart sign-in; a forged cookie is cleared first.
    */
   completeLogin(
     jar: ServerSessionJar,
@@ -395,11 +398,15 @@ export function createServerSession<Schema extends StandardSchemaV1>(
       const adapter = requireInteractive()
       const raw = jar.get(transactionName)
       if (raw === undefined) {
-        throw new AuthError("auth/adapter", "no login transaction cookie is present")
+        throw new AuthError("auth/login-transaction", "no login transaction cookie is present")
       }
       const envelope = await verifyPayload(signer, raw)
       if (!isTransactionEnvelope(envelope)) {
-        throw new AuthError("auth/adapter", "login transaction cookie failed verification")
+        clearCookie(jar, transactionName, transactionAttributes)
+        throw new AuthError(
+          "auth/login-transaction",
+          "login transaction cookie failed verification",
+        )
       }
       const authSession = await adapter.completeLogin?.({
         params: request.params,

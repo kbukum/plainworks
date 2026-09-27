@@ -12,13 +12,28 @@ export interface ManualClock extends Clock {
   set(ms: number): void
 }
 
+// An ISO-8601 instant with an explicit zone. A zone-less timestamp reads as local time, so the same
+// text would name a different instant on each machine.
+const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/
+
+function startTime(start: number | string): number {
+  const ms = typeof start === "number" ? start : ISO_INSTANT.test(start) ? Date.parse(start) : NaN
+  if (!Number.isFinite(ms)) {
+    throw new RangeError(
+      `manualClock requires epoch milliseconds or an ISO-8601 instant with a zone, received: ${start}`,
+    )
+  }
+  return ms
+}
+
 /**
- * Build a {@link ManualClock} starting at `startMs` (default `0`). Time only changes when the test
- * calls {@link ManualClock.advance} or {@link ManualClock.set}, so nothing depends on real elapsed
- * time.
+ * Build a {@link ManualClock} starting at `start`: epoch milliseconds (default `0`) or an ISO-8601
+ * instant with an explicit zone, such as `"2026-01-15T12:00:00.000Z"`. Time only changes when the
+ * test calls {@link ManualClock.advance} or {@link ManualClock.set}, so nothing depends on real
+ * elapsed time. Throws {@link RangeError} for a start that does not name one instant.
  */
-export function manualClock(startMs = 0): ManualClock {
-  let current = startMs
+export function manualClock(start: number | string = 0): ManualClock {
+  let current = startTime(start)
   return {
     now: () => current,
     advance: (ms: number) => {

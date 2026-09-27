@@ -1,67 +1,7 @@
-import { expect, type Locator, type Page, test } from "@playwright/test"
-import { expectNoBrowserAxeViolations } from "./axe"
-import { signIn } from "./session"
-
-const sections = [
-  {
-    name: "Overview",
-    path: "/",
-    ready: (page: Page) => page.getByText("Revenue trend", { exact: true }),
-  },
-  {
-    name: "Tasks",
-    path: "/tasks",
-    ready: (page: Page) => page.getByRole("table", { name: /Tasks/ }),
-  },
-  {
-    name: "Orders",
-    path: "/orders",
-    ready: (page: Page) => page.getByRole("table", { name: /Orders/ }),
-  },
-  {
-    name: "Products",
-    path: "/products",
-    ready: (page: Page) => page.getByRole("list", { name: "Product results" }),
-  },
-  {
-    name: "Users",
-    path: "/users",
-    ready: (page: Page) => page.getByRole("table", { name: /Users/ }),
-  },
-  {
-    name: "Notifications",
-    path: "/notifications",
-    ready: (page: Page) => page.getByRole("list", { name: "Notifications" }),
-  },
-  {
-    name: "Settings",
-    path: "/settings",
-    ready: (page: Page) => page.getByLabel("Display name"),
-  },
-] as const
-
-test.beforeEach(async ({ request }) => {
-  const reset = await request.post("/mock/reset")
-  expect(reset.ok()).toBe(true)
-})
-
-async function openSection(page: Page, name: string, path: string, ready: Locator): Promise<void> {
-  await page.goto(path)
-  await expect(page.getByRole("heading", { level: 1, name })).toBeVisible()
-  await expect(ready).toBeVisible()
-}
-
-test("every product section renders real content and passes browser accessibility", async ({
-  page,
-}) => {
-  test.setTimeout(120_000)
-  await signIn(page)
-
-  for (const section of sections) {
-    await openSection(page, section.name, section.path, section.ready(page))
-    await expectNoBrowserAxeViolations(page)
-  }
-})
+import { expectNoBrowserAxeViolations } from "@plainworks/testkit/browser"
+import { appRoute, openPausedTasks, openRoute } from "./support/app"
+import { expect, test } from "./support/gate"
+import { signIn } from "./support/session"
 
 test("command palette navigates and runs a real theme action", async ({ page }) => {
   await signIn(page)
@@ -84,8 +24,7 @@ test("command palette navigates and runs a real theme action", async ({ page }) 
 })
 
 test("task create and edit reconcile through the live application", async ({ page }) => {
-  await signIn(page)
-  await openSection(page, "Tasks", "/tasks", page.getByRole("table", { name: /Tasks/ }))
+  await openPausedTasks(page)
 
   await page.getByRole("button", { name: "New task" }).click()
   const createDialog = page.getByRole("dialog", { name: "New task" })
@@ -110,8 +49,7 @@ test("task create and edit reconcile through the live application", async ({ pag
 })
 
 test("catalogs filter, sort, paginate, mutate, and open details", async ({ page }) => {
-  await signIn(page)
-  await openSection(page, "Orders", "/orders", page.getByRole("table", { name: /Orders/ }))
+  await openRoute(page, appRoute("orders"))
 
   const customerHeader = page.getByRole("columnheader", { name: /Customer/ })
   await customerHeader.getByRole("button").click()
@@ -140,12 +78,7 @@ test("catalogs filter, sort, paginate, mutate, and open details", async ({ page 
   await expect(status).toBeEnabled()
   await order.getByRole("button", { name: "Close" }).click()
 
-  await openSection(
-    page,
-    "Products",
-    "/products",
-    page.getByRole("list", { name: "Product results" }),
-  )
+  await openRoute(page, appRoute("products"))
   await page.getByRole("checkbox", { name: /Electronics/ }).click()
   const products = page.getByRole("list", { name: "Product results" })
   await expect(products.getByRole("listitem").first().getByText("Electronics")).toBeVisible()
@@ -156,7 +89,7 @@ test("catalogs filter, sort, paginate, mutate, and open details", async ({ page 
   await expect(page.getByRole("dialog").getByText("Stock on hand")).toBeVisible()
   await page.getByRole("dialog").getByRole("button", { name: "Close" }).click()
 
-  await openSection(page, "Users", "/users", page.getByRole("table", { name: /Users/ }))
+  await openRoute(page, appRoute("users"))
   await page.getByRole("checkbox", { name: /Active/ }).click()
   await page
     .getByRole("button", { name: /^View profile/ })
@@ -168,13 +101,7 @@ test("catalogs filter, sort, paginate, mutate, and open details", async ({ page 
 })
 
 test("notification actions update the feed and unread indicator", async ({ page }) => {
-  await signIn(page)
-  await openSection(
-    page,
-    "Notifications",
-    "/notifications",
-    page.getByRole("list", { name: "Notifications" }),
-  )
+  await openRoute(page, appRoute("notifications"))
 
   const markRead = page.getByRole("button", { name: /^Mark read/ })
   // The feed is a lazily loaded, client-fetched section, so wait for the first unread row to

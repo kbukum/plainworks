@@ -7,7 +7,10 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { Drawer } from "./drawer"
 import { Modal } from "./modal"
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.restoreAllMocks()
+})
 
 describe("Modal", () => {
   it("opens from its trigger with an accessible name and description", async () => {
@@ -98,6 +101,99 @@ describe("Modal", () => {
 
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
   })
+
+  it("scrolls a tall body inside the dialog while the title and actions stay pinned", async () => {
+    const user = userEvent.setup()
+    render(
+      <Modal trigger="Open" title="Titled" footer={<button type="button">Save</button>}>
+        <p>modal body</p>
+      </Modal>,
+    )
+    await user.click(screen.getByRole("button", { name: "Open" }))
+    const dialog = screen.getByRole("dialog", { name: "Titled" })
+    const body = screen.getByText("modal body").closest("[data-slot='modal-body']")
+    expect(dialog.className).toContain("overflow-hidden")
+    expect(body?.className).toContain("overflow-y-auto")
+    expect(body?.contains(screen.getByRole("heading", { name: "Titled" }))).toBe(false)
+    expect(body?.contains(screen.getByRole("button", { name: "Save" }))).toBe(false)
+  })
+
+  it("lets the keyboard reach a body that overflows, as a region named by the title", async () => {
+    // jsdom lays nothing out, so the overflow is stubbed: content taller than the capped body.
+    vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(900)
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(300)
+    const user = userEvent.setup()
+    render(
+      <Modal trigger="Open" title="Titled">
+        <p>modal body</p>
+      </Modal>,
+    )
+    await user.click(screen.getByRole("button", { name: "Open" }))
+    const region = await screen.findByRole("region", { name: "Titled" })
+    expect(region.tabIndex).toBe(0)
+    expect(region.textContent).toBe("modal body")
+    await expectNoAxeViolations(document.body)
+  })
+
+  it("keeps initial focus on the first control of an overflowing body", async () => {
+    // A body holding controls is already keyboard-scrollable by moving focus through them.
+    vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(900)
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(300)
+    const user = userEvent.setup()
+    render(
+      <Modal trigger="Open" title="Titled">
+        <input aria-label="Name" />
+      </Modal>,
+    )
+    await user.click(screen.getByRole("button", { name: "Open" }))
+    await waitFor(() =>
+      expect(screen.getByRole("textbox", { name: "Name" })).toBe(document.activeElement),
+    )
+    expect(screen.queryByRole("region")).toBeNull()
+  })
+
+  it("drops the body tab stop once a control arrives without a resize", async () => {
+    vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(900)
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(300)
+    const user = userEvent.setup()
+    const { rerender } = render(
+      <Modal trigger="Open" title="Titled">
+        <p>Loading</p>
+      </Modal>,
+    )
+    await user.click(screen.getByRole("button", { name: "Open" }))
+    await screen.findByRole("region", { name: "Titled" })
+
+    rerender(
+      <Modal trigger="Open" title="Titled">
+        <input aria-label="Name" />
+      </Modal>,
+    )
+
+    await waitFor(() => expect(screen.queryByRole("region")).toBeNull())
+  })
+
+  it("adds no tab stop to a body that fits", async () => {
+    const user = userEvent.setup()
+    render(
+      <Modal trigger="Open" title="Titled">
+        <p>modal body</p>
+      </Modal>,
+    )
+    await user.click(screen.getByRole("button", { name: "Open" }))
+    const body = screen.getByText("modal body").closest("[data-slot='modal-body']")
+    expect(body?.hasAttribute("tabindex")).toBe(false)
+    expect(screen.queryByRole("region")).toBeNull()
+  })
+
+  it("renders no body region when it has no content", async () => {
+    const user = userEvent.setup()
+    render(<Modal trigger="Open" title="Titled" />)
+    await user.click(screen.getByRole("button", { name: "Open" }))
+    expect(
+      screen.getByRole("dialog", { name: "Titled" }).querySelector("[data-slot='modal-body']"),
+    ).toBeNull()
+  })
 })
 
 describe("Drawer", () => {
@@ -132,6 +228,20 @@ describe("Drawer", () => {
     const body = screen.getByText("filter body").closest("[data-slot='drawer-body']")
     expect(body?.className).toContain("overflow-y-auto")
     expect(body?.contains(screen.getByRole("heading", { name: "Filters" }))).toBe(false)
+  })
+
+  it("lets the keyboard reach a body that overflows, as a region named by the title", async () => {
+    vi.spyOn(HTMLElement.prototype, "scrollHeight", "get").mockReturnValue(900)
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(300)
+    const user = userEvent.setup()
+    render(
+      <Drawer trigger="Open filters" title="Filters">
+        <p>filter body</p>
+      </Drawer>,
+    )
+    await user.click(screen.getByRole("button", { name: "Open filters" }))
+    const region = await screen.findByRole("region", { name: "Filters" })
+    expect(region.tabIndex).toBe(0)
   })
 
   it.each(["top", "right", "bottom", "left"] as const)(

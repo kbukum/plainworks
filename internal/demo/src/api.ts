@@ -14,6 +14,7 @@
 
 import type { MutationAuthorizer } from "@plainworks/mocks"
 import {
+  createFixtureSources,
   createLatency,
   createMockControl,
   createReloadableFixtureSources,
@@ -125,7 +126,6 @@ export function createMockApi(options: MockApiOptions = {}): MockApi {
   const taskSources = createReloadableFixtureSources(seed, "tasks", clock)
   const notificationSources = createReloadableFixtureSources(seed, "notifications", clock)
   const contentSources = createReloadableFixtureSources(seed, "content", clock)
-  const dashboardSources = createReloadableFixtureSources(seed, "dashboard", clock)
   const domainSources: ReloadableFixtureSources[] = [
     userSources,
     productSources,
@@ -133,7 +133,6 @@ export function createMockApi(options: MockApiOptions = {}): MockApi {
     taskSources,
     notificationSources,
     contentSources,
-    dashboardSources,
   ]
 
   const userFactory = createUserFactory(userSources)
@@ -197,7 +196,10 @@ export function createMockApi(options: MockApiOptions = {}): MockApi {
         clock,
         options.authorizeNotificationMutation,
       ),
-      ...createDashboardHandlers(dashboardSources, latency),
+      ...createDashboardHandlers(
+        (read) => createFixtureSources(seed, `dashboard:${read}`, clock),
+        latency,
+      ),
       ...createSettingsHandlers(
         settings,
         latency,

@@ -10,7 +10,10 @@
     "check-production": "PLAINWORKS_BUNDLE_ANALYSIS=1 next build && bun ../../internal/bundle-exclusion/cli.ts devtools-exclusion.json",
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "e2e:update": "playwright test --update-snapshots=changed",
+    "e2e:update:linux": "node ../../scripts/e2e-linux.mjs next-host"
   },
   "dependencies": {
     "@plainworks/app": "workspace:*",
@@ -34,6 +37,8 @@
     "server-only": "catalog:"
   },
   "devDependencies": {
+    "@axe-core/playwright": "catalog:",
+    "@playwright/test": "catalog:",
     "@tailwindcss/postcss": "catalog:",
     "@testing-library/dom": "catalog:",
     "@testing-library/react": "catalog:",

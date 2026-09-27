@@ -27,22 +27,28 @@ function parseCount(value: string | null, defaultValue: number, max: number): nu
   return parsed
 }
 
-/** Build the `/api/dashboard/*` handlers against this server's fixture sources. */
+/**
+ * Fixture sources for one dashboard read. Each read draws from its own stream keyed by the endpoint
+ * and its parameters, so a repeated read answers identically — whatever was read in between.
+ */
+export type DashboardSources = (read: string) => FixtureSources
+
+/** Build the `/api/dashboard/*` handlers; every read is a pure function of its request. */
 export function createDashboardHandlers(
-  sources: FixtureSources,
+  sourcesFor: DashboardSources,
   latency: LatencyController,
 ): HttpHandler[] {
   return [
     // GET /api/dashboard/stats
     http.get("*/api/dashboard/stats", async ({ request }) => {
       await latency.wait(request.signal)
-      return HttpResponse.json({ data: createDashboardStats(sources) })
+      return HttpResponse.json({ data: createDashboardStats(sourcesFor("stats")) })
     }),
 
     // GET /api/dashboard/overview - returns summary stats for dashboard cards
     http.get("*/api/dashboard/overview", async ({ request }) => {
       await latency.wait(request.signal)
-      return HttpResponse.json(createDashboardStats(sources))
+      return HttpResponse.json(createDashboardStats(sourcesFor("stats")))
     }),
 
     // GET /api/dashboard/daily-sales - returns daily sales data for charts
@@ -55,7 +61,7 @@ export function createDashboardHandlers(
           { status: 400 },
         )
       }
-      return HttpResponse.json(generateDailySales(sources, days))
+      return HttpResponse.json(generateDailySales(sourcesFor(`daily-sales:${days}`), days))
     }),
 
     // GET /api/dashboard/monthly-revenue - returns monthly revenue data for charts
@@ -68,7 +74,9 @@ export function createDashboardHandlers(
           { status: 400 },
         )
       }
-      return HttpResponse.json(generateMonthlyRevenue(sources, months))
+      return HttpResponse.json(
+        generateMonthlyRevenue(sourcesFor(`monthly-revenue:${months}`), months),
+      )
     }),
 
     // GET /api/dashboard/top-products - returns top selling products
@@ -81,7 +89,7 @@ export function createDashboardHandlers(
           { status: 400 },
         )
       }
-      return HttpResponse.json(generateProductSales(sources, limit))
+      return HttpResponse.json(generateProductSales(sourcesFor(`top-products:${limit}`), limit))
     }),
 
     // GET /api/dashboard/revenue
@@ -94,7 +102,9 @@ export function createDashboardHandlers(
           { status: 400 },
         )
       }
-      return HttpResponse.json({ data: createRevenueChartData(sources, days) })
+      return HttpResponse.json({
+        data: createRevenueChartData(sourcesFor(`revenue:${days}`), days),
+      })
     }),
 
     // GET /api/dashboard/user-growth
@@ -107,7 +117,9 @@ export function createDashboardHandlers(
           { status: 400 },
         )
       }
-      return HttpResponse.json({ data: createUserGrowthChartData(sources, days) })
+      return HttpResponse.json({
+        data: createUserGrowthChartData(sourcesFor(`user-growth:${days}`), days),
+      })
     }),
   ]
 }

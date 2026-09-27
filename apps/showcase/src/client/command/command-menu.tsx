@@ -79,7 +79,10 @@ export function CommandMenu(): ReactElement {
         </KbdGroup>
       </button>
 
+      {/* The atom pins the palette a third of the way down; bounding it to the rest of the screen
+          lets the list scroll instead of running off a short landscape screen. */}
       <CommandDialog
+        className="flex max-h-[calc(200dvh/3-1rem)] flex-col"
         open={open}
         onOpenChange={setOpen}
         title="Command menu"
@@ -87,8 +90,10 @@ export function CommandMenu(): ReactElement {
       >
         <Command label="Command menu">
           <CommandInput placeholder="Search sections and actions..." />
-          <CommandList>
-            <CommandEmpty>No matching commands.</CommandEmpty>
+          {/* The empty message sits outside the list, and an empty list hides: a listbox with no
+              options is invalid ARIA, and cmdk keeps it mounted when nothing matches. */}
+          <CommandEmpty>No matching commands.</CommandEmpty>
+          <CommandList className="[&:not(:has([cmdk-item]))]:hidden">
             <CommandGroup heading="Go to">
               {SECTIONS.map((section) => {
                 const Icon = section.icon

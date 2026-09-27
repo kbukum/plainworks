@@ -84,6 +84,64 @@ expect(fake.calls[0]?.header.get("authorization")).toBe("Bearer …")
 
 The proto is the source of truth; regenerate the checked-in `*_pb.ts` with `bun run gen:proto` (dev-only buf + `protoc-gen-es` — build, typecheck, and test never need buf).
 
+## Browser gate — `@plainworks/testkit/browser`
+
+The shared Playwright gate the reference hosts run. A test written with it starts from a fixed "now", fails on any runtime error, hydration error, or off-origin request, and can check axe, reflow, focus, and a screenshot baseline in one call. `@playwright/test` and `@axe-core/playwright` are **optional peers**, loaded only by this subpath.
+
+```ts
+// playwright.config.ts: a fixed locale, time zone, and motion, plus strict screenshot defaults.
+import { browserGateScreenshot, browserGateUse } from "@plainworks/testkit/browser"
+
+export default defineConfig({
+  fullyParallel: true,
+  updateSnapshots: "none",
+  expect: { toHaveScreenshot: browserGateScreenshot },
+  use: { ...browserGateUse },
+})
+```
+
+```ts
+// A spec: each worker starts its own host and signs in once; then one test per surface variant.
+import { BROWSER_GATE_NOW, createBrowserGate, FIXED_NOW_ENV, FULL_MATRIX, planVisualTests, runVisualTest, VISUAL_TAG } from "@plainworks/testkit/browser"
+
+const test = createBrowserGate({
+  host: {
+    command: ["bun", "run", "server.ts"],
+    basePort: 5199,
+    readyPath: "/health",
+    env: () => ({ [FIXED_NOW_ENV]: BROWSER_GATE_NOW, TZ: "UTC" }),
+  },
+  signIn: async (page) => {
+    await page.goto("/login")
+  },
+  resetHost: async (request) => {
+    await request.post("/mock/reset")
+  },
+})
+
+const surfaces = [{ name: "tasks", matrix: FULL_MATRIX, arrange: (page) => page.goto("/tasks") }]
+
+for (const planned of planVisualTests(surfaces)) {
+  test(planned.title, { tag: VISUAL_TAG }, ({ page, runtimeErrors }) =>
+    runVisualTest({ page, runtimeErrors }, planned),
+  )
+}
+```
+
+| Export | What it gives you |
+|---|---|
+| `createBrowserGate` | The gated `test`: starts one host per worker (on `basePort + n`) and signs in once, then resets the host, pins `Date`, and fails on runtime errors. `runtimeErrors.allow(pattern)` accepts a failure the test provokes. |
+| `planVisualTests` / `runVisualTest` | One test per surface × color mode × viewport. Each runs its checks, then compares one baseline named `<surface>-<mode>-<viewport>.png`. |
+| `VisualCapture` | Frames a screenshot: the `viewport`, or the `full-page` with the `position: fixed` chrome it names hidden, since Chromium would paint it mid-image. |
+| `FULL_MATRIX` / `COMPACT_MATRIX` / `DIALOG_MATRIX` | Light and dark at desktop, tablet, mobile, and 320 px reflow; at desktop and mobile only; or at desktop, mobile, and a short 844×390 landscape phone for dialogs. |
+| `expectNoBrowserAxeViolations` | WCAG 2.2 AA axe scan with rule-level failure messages. |
+| `expectReflowAtNarrowViewport` / `expectNoHorizontalOverflow` | No horizontal scrolling at 320 CSS px (WCAG 1.4.10). |
+| `expectOverlaysInViewport` | Every open dialog, alert dialog, and menu fits the viewport, so none of it is cut off. Visual tests run it with the overflow check. |
+| `expectFocusVisible` | The focused control shows a 2 px indicator and is not covered (WCAG 2.4.7, 2.4.11). |
+| `pressWithKeyboard` | Opens a control from the keyboard, so the overlay it opens shows focus as a keyboard user sees it. |
+
+Declare tests in the spec file, as above, so reports and file filters point at the spec. The host reads `PLAINWORKS_FIXED_NOW` to pin its own clock, so server-rendered and browser-rendered dates agree.
+
 ## Streaming transport double — `fakeStreamTransport`
 
 A scripted `StreamTransportFactory` for testing anything built on the `@plainworks/std` stream seam — a channel, an app's live view, or an integration flow — without SSE or WebSocket sockets. You drive each connection attempt by hand: open it, push frames, then end it cleanly or with an error. It honors the abort seam like a real transport, so reconnect, resume-from-cursor, and teardown all exercise the same double.

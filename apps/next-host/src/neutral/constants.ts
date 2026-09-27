@@ -40,6 +40,9 @@ export const LOGIN_PATH = "/login"
 /** BFF route the provider calls back with the authorization code. */
 export const AUTH_CALLBACK_PATH = "/auth/callback"
 
+/** Recovery page for a sign-in that could not finish, such as one begun on another origin. */
+export const SIGN_IN_INTERRUPTED_PATH = "/auth/interrupted"
+
 /** BFF route that clears the session cookie. */
 export const LOGOUT_PATH = "/logout"
 

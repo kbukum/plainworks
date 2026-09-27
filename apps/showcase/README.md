@@ -40,7 +40,7 @@ flowchart LR
 |---|---|
 | Composition | `createApp` resolves request-scoped capabilities; `AppProvider` rebuilds the client provider tree from the serialized snapshot. |
 | Query | The active section is prefetched on the server and hydrated without an initial loading flash. Reads and optimistic writes use one request-scoped HTTP client and query cache. |
-| Auth | A BFF session gate keeps tokens on the server. Login, logout, CSRF validation, and authorization run through published auth seams. |
+| Auth | A BFF session gate keeps tokens on the server. Login, logout, CSRF validation, and authorization run through published auth seams. A sign-in that can't finish returns to the login page with a notice. |
 | Theme and state | Mode and accent are resolved before paint, then persisted through injected state sources. Device-local motion preferences use a versioned browser scope. |
 | UI | Published elements and composites provide navigation, overlays, forms, tables, pagination, feedback, and display formatting. Route sections load lazily behind a shared shell. |
 | Channel | Task events are validated and reconciled into the active query page, with explicit pause and teardown behavior. |
@@ -65,11 +65,13 @@ Control routes under `/mock/*` drive the development inspector. They never carry
 bun run --filter @plainworks/showcase test
 bunx playwright install chromium
 bun run --filter @plainworks/showcase e2e
+bun run --filter @plainworks/showcase e2e:update         # local macOS baselines (not committed)
+bun run --filter @plainworks/showcase e2e:update:linux   # the committed Linux baselines CI compares
 bun run --filter @plainworks/showcase build
 bun run check-production --filter=@plainworks/showcase
 ```
 
-Vitest covers server rendering, hydration, query behavior, mutations, keyboard interactions, and the deterministic DOM accessibility floor. Playwright drives the authenticated application in Chromium, checks real-layout accessibility and responsive reflow, and retains a trace on failure. The workspace-wide CI gates also run type checking, linting, comment formatting, boundary checks, and version checks.
+Vitest covers server rendering, hydration, query behavior, mutations, keyboard interactions, and the deterministic DOM accessibility floor. Playwright runs the [browser gate](../../docs/browser-gate.md): every page, overlay, and loading, error, or empty state in light and dark at each viewport, plus a component gallery, with axe, reflow, focus, and screenshot checks. Baselines change only through the `e2e:update` scripts. The workspace-wide CI gates also run type checking, linting, comment formatting, boundary checks, and version checks.
 
 ## Project map
 
@@ -78,7 +80,7 @@ Vitest covers server rendering, hydration, query behavior, mutations, keyboard i
 | `src/app` | Host-neutral navigation, validated reads and writes, authorization, cache reconciliation, and theme resolution. |
 | `src/server` | Streaming server rendering, the HTML document, and request-boundary handling. |
 | `src/client` | The shared React tree, capabilities, sections, router, development inspector, and composed styles. |
-| `e2e` | Authenticated Playwright flows, browser accessibility, responsive layout, and visual checks. |
+| `e2e` | The browser gate: functional specs at the top level, screenshot surfaces in `visual/`, shared helpers in `support/`, and test-only pages in `fixtures/`. |
 | `server.ts` | Development composition for authentication, SSR, Vite, and isolated demo mock graphs. |
 
 The route tree stays app-local, the app consumes the published kit exports plus the private in-repo `@plainworks/demo` backend, and no package imports the showcase.

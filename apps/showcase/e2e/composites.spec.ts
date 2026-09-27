@@ -1,14 +1,13 @@
-import { expect, type Page, test } from "@playwright/test"
-import { expectNoBrowserAxeViolations, expectReflowAtNarrowViewport } from "./axe"
+import {
+  expectNoBrowserAxeViolations,
+  expectReflowAtNarrowViewport,
+} from "@plainworks/testkit/browser"
+import type { Page } from "@playwright/test"
+import { openFixturePage } from "./support/fixture-page"
+import { expect, test } from "./support/gate"
 
 async function openGallery(page: Page): Promise<void> {
-  await page.route("**/composites-fixture", (route) =>
-    route.fulfill({
-      contentType: "text/html",
-      body: '<!doctype html><html lang="en"><head><title>Composite gallery</title></head><body><div id="fixture"></div><script type="module" src="/e2e/fixtures/composites.tsx"></script></body></html>',
-    }),
-  )
-  await page.goto("/composites-fixture")
+  await openFixturePage(page, "composites")
   await expect(page.getByRole("heading", { level: 1, name: "Composite gallery" })).toBeVisible({
     timeout: 30_000,
   })

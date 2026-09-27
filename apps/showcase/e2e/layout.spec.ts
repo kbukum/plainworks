@@ -1,23 +1,15 @@
-import { expect, test } from "@playwright/test"
-import { signIn } from "./session"
-
-const sections = [
-  ["overview", "/"],
-  ["tasks", "/tasks"],
-  ["orders", "/orders"],
-  ["products", "/products"],
-  ["users", "/users"],
-  ["notifications", "/notifications"],
-  ["settings", "/settings"],
-] as const
+import { APP_ROUTES, appRoute, openPausedTasks, openRoute } from "./support/app"
+import { expect, test } from "./support/gate"
+import { signIn } from "./support/session"
 
 const viewports = [
-  ["desktop", 1440, 1000],
-  ["tablet", 900, 900],
+  ["desktop", 1440, 900],
+  ["tablet", 768, 1024],
   ["mobile", 390, 844],
 ] as const
 
-test("server markup is styled before client hydration", async ({ page }) => {
+test("server markup is styled before client hydration", async ({ page, runtimeErrors }) => {
+  runtimeErrors.allow(/Failed to load resource: net::ERR_FAILED/)
   await signIn(page)
   await page.route("**/src/client/entry-client.tsx", (route) => route.abort())
 
@@ -30,9 +22,7 @@ test("server markup is styled before client hydration", async ({ page }) => {
 
 test("sticky header does not obscure keyboard-focused controls", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 400 })
-  await signIn(page)
-  await page.goto("/users")
-  await page.waitForLoadState("networkidle")
+  await openRoute(page, appRoute("users"))
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
 
   const search = page.getByRole("searchbox", { name: "Search users" })
@@ -45,9 +35,7 @@ test("sticky header does not obscure keyboard-focused controls", async ({ page }
 })
 
 test("low-priority table columns adapt visibility to container presentation", async ({ page }) => {
-  await signIn(page)
-  await page.goto("/tasks")
-  await page.waitForLoadState("networkidle")
+  await openPausedTasks(page)
 
   await page.setViewportSize({ width: 390, height: 844 })
   await expect(page.getByRole("columnheader", { name: "Priority" })).toBeHidden()
@@ -68,11 +56,9 @@ test("every showcase section reflows without clipping", async ({ page }) => {
   test.setTimeout(120_000)
   for (const [viewport, width, height] of viewports) {
     await page.setViewportSize({ width, height })
-    await signIn(page)
-
-    for (const [section, path] of sections) {
-      await page.goto(path)
-      await page.waitForLoadState("networkidle")
+    for (const route of APP_ROUTES) {
+      const section = route.slug
+      await openRoute(page, route)
 
       const overflow = await page.evaluate(() => ({
         documentWidth: document.documentElement.scrollWidth,
@@ -86,7 +72,13 @@ test("every showcase section reflows without clipping", async ({ page }) => {
         .locator('[data-slot="table-container"], fieldset > div, nav[aria-label="Pagination"]')
         .evaluateAll((elements) =>
           elements
-            .filter((element) => element.scrollWidth > element.clientWidth + 1)
+            // Only a box that clips or scrolls hides content; visible overflow (a switch's
+            // enlarged hit area) shows up in the document width instead.
+            .filter(
+              (element) =>
+                getComputedStyle(element).overflowX !== "visible" &&
+                element.scrollWidth > element.clientWidth + 1,
+            )
             .map((element) => ({
               slot: element.getAttribute("data-slot"),
               text: element.textContent?.trim().slice(0, 80),

@@ -3,8 +3,9 @@ import { createMockApi } from "../api"
 import { createMockServer } from "../server"
 import { taskPriorityRank, type UserSettings } from "../types"
 
-// Fresh, isolated mock graph per suite; latency stays disabled (0 ms) so no real timers run.
-const api = createMockApi()
+// Fresh, isolated mock graph per suite; latency stays disabled (0 ms) so no real timers run, and a
+// fixed clock keeps every generated timestamp independent of when the suite runs.
+const api = createMockApi({ clock: { now: () => Date.parse("2026-01-15T12:00:00.000Z") } })
 const server = createMockServer(api)
 const base = "http://localhost"
 
@@ -528,6 +529,23 @@ describe("dashboard handlers", () => {
     expect(res.status).toBe(200)
     expect(body).toHaveLength(24)
     expect(body.every((point) => /^\w{3} \d{4}$/.test(point.month))).toBe(true)
+  })
+
+  it("answers a repeated read identically, whatever was read in between", async () => {
+    const paths = [
+      "/api/dashboard/stats",
+      "/api/dashboard/daily-sales?days=7",
+      "/api/dashboard/monthly-revenue?months=6",
+      "/api/dashboard/top-products?limit=5",
+      "/api/dashboard/revenue?days=30",
+      "/api/dashboard/user-growth?days=30",
+    ]
+    const read = async (path: string): Promise<string> => (await fetch(`${base}${path}`)).text()
+    const first = await Promise.all(paths.map(read))
+    await read("/api/dashboard/overview")
+    await read("/api/dashboard/daily-sales?days=90")
+    const second = await Promise.all([...paths].reverse().map(read))
+    expect(second.reverse()).toEqual(first)
   })
 
   it("replays identical stats after reset", async () => {

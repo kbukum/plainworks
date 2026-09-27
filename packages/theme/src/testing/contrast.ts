@@ -93,17 +93,20 @@ function luminance([r, g, b]: Rgb): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
-/** A color painted at `alpha` over `backdrop`, composited in encoded sRGB like a browser. */
+/**
+ * A color painted at `alpha` over `backdrop`, composited in encoded sRGB like a browser. A backdrop
+ * that is itself a tint models stacked translucent layers.
+ */
 export interface Tint {
   readonly color: string
   readonly alpha: number
-  readonly backdrop: string
+  readonly backdrop: string | Tint
 }
 
 function linearRgb(color: string | Tint): Rgb {
   if (typeof color === "string") return gamutMap(color)
   const top = gamutMap(color.color)
-  const bottom = gamutMap(color.backdrop)
+  const bottom = linearRgb(color.backdrop)
   const blend = (channel: 0 | 1 | 2): number =>
     decode(encode(top[channel]) * color.alpha + encode(bottom[channel]) * (1 - color.alpha))
   return [blend(0), blend(1), blend(2)]

@@ -1,0 +1,7 @@
+{
+  // Editor-routing config only, like `src/client/tsconfig.json`: it points an editor at the real
+  // browser-gate project so Playwright and in-page DOM types resolve. The `typecheck` gate runs
+  // `../../tsconfig.browser.json`.
+  "extends": "../../tsconfig.browser.json",
+  "include": ["."]
+}

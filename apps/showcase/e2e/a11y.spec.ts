@@ -1,21 +1,9 @@
-import { expect, type Page, test } from "@playwright/test"
-import { expectNoBrowserAxeViolations, expectReflowAtNarrowViewport } from "./axe"
-import { signIn } from "./session"
+import { expectNoBrowserAxeViolations } from "@plainworks/testkit/browser"
+import { expect, test } from "./support/gate"
+import { signIn } from "./support/session"
 
-// A browser accessibility gate over the showcase's real authenticated flow: the session
-// gate lands the user on the overview, then client-side navigation reaches the query-driven task
-// view. Each rendered state is scanned with axe-core for the layout-dependent rules jsdom cannot
-// measure (color contrast, 24x24 target size), and the flow is re-checked under dark mode and
-// reduced motion so those preferences are honored, not just the default paint.
-
-/** Open the query-driven task list through the app's own client-side navigation. */
-async function openTasks(page: Page): Promise<void> {
-  await page
-    .getByRole("navigation", { name: "Primary" })
-    .getByRole("link", { name: "Tasks" })
-    .click()
-  await expect(page.getByRole("heading", { level: 1, name: "Tasks" })).toBeVisible()
-}
+// Accessibility behavior the per-surface visual gate cannot see from a still page: skip link
+// target, forced-colors focus, logout, and the auth routes' HTTP contract.
 
 test("skip link bypasses persistent navigation to main landmark", async ({ page }) => {
   await signIn(page)
@@ -24,14 +12,6 @@ test("skip link bypasses persistent navigation to main landmark", async ({ page 
   await expect(skipLink).toBeFocused()
   await page.keyboard.press("Enter")
   await expect(page.locator("#main-content")).toBeFocused()
-})
-
-test("authenticated flow has no contrast or target-size violations", async ({ page }) => {
-  await signIn(page)
-  await expectNoBrowserAxeViolations(page)
-
-  await openTasks(page)
-  await expectNoBrowserAxeViolations(page)
 })
 
 test("keyboard focus remains visible in forced-colors mode", async ({ page }) => {
@@ -44,12 +24,6 @@ test("keyboard focus remains visible in forced-colors mode", async ({ page }) =>
   await expect(search).toHaveCSS("outline-width", "2px")
 })
 
-test("task view reflows at a 320px viewport without horizontal scrolling", async ({ page }) => {
-  await signIn(page)
-  await openTasks(page)
-  await expectReflowAtNarrowViewport(page)
-})
-
 test("logging out returns to the signed-out login page", async ({ page }) => {
   await signIn(page)
 
@@ -60,6 +34,16 @@ test("logging out returns to the signed-out login page", async ({ page }) => {
   // logging out lands on the signed-out page and stays there until an explicit sign-in.
   await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible()
   await expectNoBrowserAxeViolations(page)
+})
+
+test("a callback without its login cookie explains itself and signs in again", async ({ page }) => {
+  await page.context().clearCookies()
+  // Sign-in begun on another origin, or left open past the cookie's lifetime, arrives like this.
+  await page.goto("/auth/callback?code=stale&state=stale")
+  await expect(page.getByRole("alert")).toContainText("Sign-in didn't finish")
+  await expectNoBrowserAxeViolations(page)
+  await page.getByRole("button", { name: "Sign in" }).click()
+  await expect(page.getByRole("button", { name: /Signed in as/ })).toBeVisible()
 })
 
 test("authentication routes reject unsupported methods", async ({ request }) => {
@@ -79,15 +63,4 @@ test("authentication routes reject unsupported methods", async ({ request }) => 
   const head = await request.head("/login")
   expect(head.status()).toBe(200)
   expect(await head.text()).toBe("")
-})
-
-test("flow stays accessible under dark mode and reduced motion", async ({ page }) => {
-  await page.emulateMedia({ colorScheme: "dark", reducedMotion: "reduce" })
-
-  await signIn(page)
-  await expect(page.locator("html")).toHaveClass(/\bdark\b/)
-  await expectNoBrowserAxeViolations(page)
-
-  await openTasks(page)
-  await expectNoBrowserAxeViolations(page)
 })

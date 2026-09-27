@@ -10,6 +10,7 @@ bun run --filter @plainworks/next-host dev        # next dev (App Router) + in-p
 bun run --filter @plainworks/next-host build      # next build (Turbopack)
 bun run --filter @plainworks/next-host start      # next start (serves the production build)
 bun run --filter @plainworks/next-host test       # vitest (auth flow + dispatch + client/axe)
+bun run --filter @plainworks/next-host e2e        # the browser gate over next dev
 ```
 
 The app starts anonymous on the public overview (`/`). Signing in routes through the in-process mock identity provider, which approves immediately without requiring an external IdP or third-party login page, landing you back authenticated on the gated pages (`/tasks`, `/account`).
@@ -25,7 +26,7 @@ The mock backend is a catch-all Route Handler (`/api/[...path]`) that dispatches
 
 - **The same kit under a different host.** The neutral composition kernel resolves an `AppSnapshot` in the RSC layout; a client `Providers` tree rebuilds the exact provider stack. The *same* surfaces — theme, query, channel, state, ui, auth — render under React Server Components and hydrate in the browser, not one line of the kit forked for Next.
 - **The three-bucket architecture, by path.** `src/neutral` names no host global (constants, theme/task narrowing); `src/client` is `"use client"` (providers, chrome, list); `src/server` is server-only (session, identity provider, backend). The layout threads a serializable snapshot from server to client as a plain prop.
-- **Token custody stays server-side.** Auth runs through `@plainworks/auth`'s `createServerSession` — Authorization Code + PKCE, an HMAC-signed **identity-only** session in a `__Host-` cookie. The BFF routes `/login`, `/auth/callback`, and `/logout` drive the flow; no token ever crosses to the client, and the token-custody modules carry the `server-only` marker so they cannot enter a client bundle.
+- **Token custody stays server-side.** Auth runs through `@plainworks/auth`'s `createServerSession` — Authorization Code + PKCE, an HMAC-signed **identity-only** session in a `__Host-` cookie. The BFF routes `/login`, `/auth/callback`, and `/logout` drive the flow. A callback that arrives without its login cookie lands on `/auth/interrupted` with a "Sign in again" link, not a server error. No token ever crosses to the client, and the token-custody modules carry the `server-only` marker so they cannot enter a client bundle.
 - **Query prefetch survives RSC.** The gated Tasks page prefetches the list into a request-scoped query client and hands the dehydrated cache to a client `HydrationBoundary`, so the browser mounts the list under the identical key with no refetch flash.
 - **The same app frame on a different router.** The host builds its frame from the kit's `AppShell`, `NavList`, `PageHeader`, `ThemeModeMenu`, and `DataTable`, with no showcase code. Every nav and breadcrumb link runs through `router.push` from `next/navigation`, the same link seam the showcase drives with a history router.
 - **Development-only inspection under RSC.** The Plainworks inspector observes the browser's HTTP client, query cache, and live channel. Pure interceptor seams are constructed behind `process.env.NODE_ENV` gates; the DOM shell and CSS load dynamically after mount and dispose on unmount. Run `bun run check-production --filter=@plainworks/next-host` to build and inspect client/server artifacts. There is no operational logging pipeline or standalone store to inspect; server/RSC requests and auth custody are deliberately not exposed.
@@ -46,9 +47,12 @@ The mock backend is a catch-all Route Handler (`/api/[...path]`) that dispatches
 | `src/server` | Server-only request resolution, the auth composition, the mock-backend dispatch, and the BFF cookie plumbing. |
 | `src/client` | The `"use client"` providers, the app frame (`HostShell`), live stream, task list, and session gates. |
 | `src/app` | The App Router tree: RSC layout and pages, the BFF route handlers, and the mock-backend catch-all. |
+| `e2e` | The browser gate: sign-in, prefetch hydration, the live feed, the account menu, and screenshots of every page and overlay. |
 
 The app consumes only published package exports. Nothing in `packages/` imports it, and its route tree stays local.
 
 ## CI
+
+The [browser gate](../../docs/browser-gate.md) runs this app in Chromium over `next dev`, so the development inspector is covered too. It checks sign-in through the BFF, tasks hydrating without a refetch, the live feed, and every page and overlay for axe, reflow, and screenshot changes. `next.config.ts` hides Next's development badge so it never lands in a screenshot. Update the committed Linux baselines with `e2e:update:linux`; `e2e:update` refreshes your local macOS set.
 
 The standard turbo gates (`typecheck`, `build`, `test`, `lint`, `check-comments`, `check-boundaries`, `check-versions`) run over this app as a workspace member in the `verify` job. A dedicated `hosts-smoke` job then **boots** both reference hosts and probes them over HTTP — the Vite showcase's SSR and the Next host's overview, mock backend, and session gate — proving they run, not just compile. Being `"private": true`, the app is excluded from `check-packaging` and the release publish set.

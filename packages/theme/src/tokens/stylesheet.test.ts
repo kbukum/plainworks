@@ -175,6 +175,7 @@ describe("styles.css", () => {
 
   it.each([
     '[data-slot="tabs-content"]:focus-visible',
+    '[data-slot="menubar-trigger"]:focus-visible',
     '[data-slot="slider-thumb"]:has(:focus-visible)',
   ])("draws the focus outline on %s, which the atom leaves unmarked", (selector) => {
     // In the utilities layer, the attribute selector outranks the atom's `outline-none`.
@@ -185,6 +186,43 @@ describe("styles.css", () => {
     )
     expect(rule?.declarations.get("outline")).toBe("var(--pw-focus-width) solid var(--pw-ring)")
     expect(rule?.declarations.get("outline-offset")).toBe("var(--pw-focus-offset)")
+  })
+
+  it.each(
+    ["dropdown-menu", "context-menu", "menubar"]
+      .flatMap((menu) =>
+        ["item", "checkbox-item", "radio-item", "sub-trigger"].map((part) => `${menu}-${part}`),
+      )
+      .concat("select-item")
+      .map((slot) => `[data-slot="${slot}"]:focus-visible`),
+  )(
+    "outlines %s inside its popup, since the atom marks keyboard focus by a faint fill",
+    (selector) => {
+      // The fill alone misses the 3:1 non-text contrast a focus state needs (WCAG 1.4.11); the
+      // negative offset keeps the outline inside the popup's clipped, scrollable list.
+      const rule = styleRules.find(
+        (candidate) =>
+          candidate.selector.split(/,\s*/).includes(selector) &&
+          candidate.context[0] === "@layer utilities",
+      )
+      expect(rule?.declarations.get("outline")).toBe("var(--pw-focus-width) solid var(--pw-ring)")
+      expect(rule?.declarations.get("outline-offset")).toBe("calc(-1 * var(--pw-focus-width))")
+    },
+  )
+
+  it("bounds both dialog atoms to the viewport and scrolls them, as an overridable default", () => {
+    // The atoms center the popup with no height limit and the page behind a modal is
+    // scroll-locked, so a taller dialog would leave its title and actions unreachable (WCAG
+    // 1.4.10). `:where` gives the rule no specificity, so a call-site utility still wins.
+    const rule = styleRules.find(
+      (candidate) =>
+        candidate.selector ===
+          ':where([data-slot="dialog-content"], [data-slot="alert-dialog-content"])' &&
+        candidate.context[0] === "@layer utilities",
+    )
+    // The same 1rem margin the atom keeps on each side horizontally.
+    expect(rule?.declarations.get("max-height")).toBe("calc(100dvh - 2rem)")
+    expect(rule?.declarations.get("overflow-y")).toBe("auto")
   })
 
   it("ships a utility for every stacking layer and motion duration", () => {

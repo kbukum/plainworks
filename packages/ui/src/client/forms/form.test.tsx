@@ -46,6 +46,24 @@ describe("Form", () => {
     expect(screen.getByLabelText("Email").getAttribute("aria-invalid")).toBe("true")
   })
 
+  it("moves focus to the first invalid field when validation fails", async () => {
+    const user = userEvent.setup()
+    render(
+      <Form schema={emailSchema()} onSubmit={vi.fn()}>
+        <TextField name="name" label="Name" />
+        <TextField name="email" label="Email" />
+        <FormSubmit>Save</FormSubmit>
+      </Form>,
+    )
+
+    await user.type(screen.getByLabelText("Name"), "Ada")
+    await user.tab()
+    await user.tab()
+    await user.keyboard("{Enter}")
+
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText("Email")))
+  })
+
   it("keeps entered values when another field fails validation", async () => {
     const user = userEvent.setup()
     render(

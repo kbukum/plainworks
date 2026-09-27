@@ -1,17 +1,14 @@
-import { expect, type Locator, type Page, test } from "@playwright/test"
-import { expectNoBrowserAxeViolations, expectReflowAtNarrowViewport } from "./axe"
-import { signIn } from "./session"
+import {
+  expectNoBrowserAxeViolations,
+  expectReflowAtNarrowViewport,
+} from "@plainworks/testkit/browser"
+import type { Locator, Page } from "@playwright/test"
+import { openFixturePage } from "./support/fixture-page"
+import { expect, test } from "./support/gate"
+import { signIn } from "./support/session"
 
 async function openFixture(page: Page, scenario?: "large"): Promise<void> {
-  await page.route("**/inspector-fixture*", (route) =>
-    route.fulfill({
-      contentType: "text/html",
-      body: '<!doctype html><html lang="en"><head><title>Inspector consumer</title><style>main button{min-block-size:2.75rem;margin:0.5rem}</style></head><body><div id="fixture"></div><script type="module" src="/e2e/fixtures/inspector.tsx"></script></body></html>',
-    }),
-  )
-  await page.goto(
-    scenario === undefined ? "/inspector-fixture" : `/inspector-fixture?scenario=${scenario}`,
-  )
+  await openFixturePage(page, "inspector", scenario === undefined ? "" : `?scenario=${scenario}`)
   await expect(launcher(page)).toBeVisible()
 }
 

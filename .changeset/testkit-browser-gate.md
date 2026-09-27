@@ -1,0 +1,5 @@
+---
+"@plainworks/testkit": patch
+---
+
+Add a `./browser` entry for Playwright browser gates. `createBrowserGate` can start one host per worker and sign in once, so suites run in parallel, and gives each test a fixed clock, locale, and time zone, reduced motion, and a watcher that fails on runtime errors, hydration errors, or off-origin requests. It also ships axe, reflow, and focus checks, a viewport and color-scheme matrix, declarative screenshot surfaces, and `pressWithKeyboard` for opening overlays as a keyboard user does. `manualClock` now accepts an ISO start instant. Every screenshot also fails when an open dialog, drawer, or menu runs past the viewport, and `DIALOG_MATRIX` adds a short landscape phone viewport so tall dialogs are checked where they are most likely to overflow.

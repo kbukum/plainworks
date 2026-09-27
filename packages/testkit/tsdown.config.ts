@@ -5,5 +5,6 @@ export default preset({
     index: "src/index.ts",
     "connect/index": "src/connect/index.ts",
     "client/index": "src/client/index.ts",
+    "browser/index": "src/browser/index.ts",
   },
 })

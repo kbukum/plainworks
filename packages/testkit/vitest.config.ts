@@ -12,8 +12,16 @@ export default defineConfig({
       // Re-export-only barrels carry no logic to unit-test (the `"use client"` directive's survival
       // is proven by the CI dist check, not coverage); excluding them keeps tests from coupling to
       // the entry file just to color a line. Generated protobuf output is excluded as vendored
-      // code.
-      exclude: ["src/**/*.test.{ts,tsx}", "src/**/index.ts", "src/client.ts", "src/connect/gen/**"],
+      // code. The browser modules listed below drive a live Playwright page, which Vitest cannot
+      // host; their pure parts keep unit tests, and both reference hosts' browser suites run them
+      // end to end.
+      exclude: [
+        "src/**/*.test.{ts,tsx}",
+        "src/**/index.ts",
+        "src/client.ts",
+        "src/connect/gen/**",
+        "src/browser/{animation,axe,focus,gate,layout,surface}.ts",
+      ],
       thresholds: {
         lines: 80,
         functions: 80,

@@ -71,6 +71,10 @@
       "dependencies": ["@plainworks/elements"],
       "files": [
         {
+          "path": "src/client/overlays/body.tsx",
+          "type": "registry:ui"
+        },
+        {
           "path": "src/client/overlays/drawer.tsx",
           "type": "registry:ui"
         },
@@ -239,6 +243,10 @@
       "type": "registry:ui",
       "dependencies": ["@plainworks/elements", "@plainworks/theme"],
       "files": [
+        {
+          "path": "src/client/overlays/body.tsx",
+          "type": "registry:ui"
+        },
         {
           "path": "src/client/overlays/drawer.tsx",
           "type": "registry:ui"

@@ -10,7 +10,9 @@
     "check-production": "NODE_ENV=production vite build --sourcemap hidden --outDir .bundle-analysis --emptyOutDir --logLevel warn && bun ../../internal/bundle-exclusion/cli.ts devtools-exclusion.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "e2e:update": "playwright test --update-snapshots=changed",
+    "e2e:update:linux": "node ../../scripts/e2e-linux.mjs showcase"
   },
   "dependencies": {
     "@plainworks/app": "workspace:*",

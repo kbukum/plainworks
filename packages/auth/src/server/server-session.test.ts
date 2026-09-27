@@ -183,21 +183,23 @@ describe("createServerSession teardown and failure paths", () => {
     expect(await session.read(jar)).toBeUndefined()
   })
 
-  test("completeLogin without a transaction cookie is a typed auth/adapter error", async () => {
+  test("completeLogin without a transaction cookie is a typed auth/login-transaction error", async () => {
     const { session } = await buildSession()
-    await expect(
-      session.completeLogin(browserJar(), { params: { code: "x", state: "y" } }),
-    ).rejects.toMatchObject({ kind: "auth/adapter" })
+    const failure = session.completeLogin(browserJar(), { params: { code: "x", state: "y" } })
+    await expect(failure).rejects.toBeInstanceOf(AuthError)
+    await expect(failure).rejects.toMatchObject({ kind: "auth/login-transaction" })
   })
 
-  test("completeLogin rejects a forged transaction cookie", async () => {
+  test("completeLogin rejects a forged transaction cookie and clears it", async () => {
     const { session } = await buildSession()
     const jar = browserJar()
     jar.set("__Host-login_tx=forged.value; Path=/; SameSite=Lax; Max-Age=600; Secure; HttpOnly")
     jar.commit()
     await expect(
       session.completeLogin(jar, { params: { code: "x", state: "y" } }),
-    ).rejects.toBeInstanceOf(AuthError)
+    ).rejects.toMatchObject({ kind: "auth/login-transaction" })
+    jar.commit()
+    expect(jar.get("__Host-login_tx")).toBeUndefined()
   })
 
   test("concurrent users maintain independent sessions and token custody", async () => {

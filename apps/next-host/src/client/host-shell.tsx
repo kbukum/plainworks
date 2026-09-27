@@ -22,6 +22,7 @@ const NAV_ICONS: Record<HostRoute["id"], ReactNode> = {
   overview: <LayoutGrid aria-hidden />,
   tasks: <ListChecks aria-hidden />,
   account: null,
+  "sign-in-interrupted": null,
 }
 
 /** Props for {@link HostShell}. */

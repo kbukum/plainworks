@@ -21,11 +21,15 @@ internal/*/src/**/*.d.ts
 coverage/
 *.lcov
 
-# Playwright browser-test artifacts (the a11y e2e gate); the report/results are regenerated per run.
+# Playwright browser-gate artifacts: reports and results are regenerated per run. Linux screenshot
+# baselines (`*-snapshots/linux/`) are committed, because CI compares them. Other platforms'
+# baselines are a local convenience that `e2e:update` regenerates.
 test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+**/*-snapshots/darwin/
+**/*-snapshots/win32/
 
 # Turbo local task cache
 .turbo/

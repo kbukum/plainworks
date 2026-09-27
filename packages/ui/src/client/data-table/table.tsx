@@ -65,6 +65,10 @@ const NARROW_ONLY_CLASS = "@2xl:hidden"
 // so one long unbroken value (an email, a URL) cannot force the table wider than its container.
 // `hyphens: auto` breaks ordinary words at a hyphenation point first, so text stays readable.
 const WRAPPING_CELL_CLASS = "whitespace-normal wrap-anywhere hyphens-auto"
+// The table atom drops the end padding of a checkbox cell, which leaves the 16px selection
+// checkbox touching the next header's full-width sort button. Restoring it keeps a 24px-wide safe
+// zone around the checkbox (WCAG 2.5.8 target spacing).
+const SELECTION_CELL_CLASS = "whitespace-normal [&:has([role=checkbox])]:pr-2"
 
 /**
  * A compound, controlled-first data table. It owns only ephemeral view state — sort direction, row
@@ -258,7 +262,7 @@ function DataTableHeaderRow(): ReactElement {
   return (
     <TableRow>
       {selectable ? (
-        <TableHead className="w-0 whitespace-normal">
+        <TableHead className={cn("w-0", SELECTION_CELL_CLASS)}>
           <Checkbox
             aria-label={labels.selectAllRows}
             checked={allSelected}
@@ -391,7 +395,7 @@ function DataTableRow({ row }: { readonly row: DataTableRowModel }): ReactElemen
     <Fragment>
       <TableRow data-state={selected ? "selected" : undefined}>
         {selectable ? (
-          <TableCell className="whitespace-normal">
+          <TableCell className={SELECTION_CELL_CLASS}>
             <Checkbox
               aria-label={row.selectAriaLabel}
               checked={selected}

@@ -7,6 +7,9 @@ import { defineConfig } from "vitest/config"
 export default defineConfig({
   test: {
     environment: "node",
+    // DOM tests that run axe and user-event can pass 5 s on a busy CI runner. The tests are
+    // deterministic, so the longer limit only guards against a hang; it never hides a failure.
+    testTimeout: 15_000,
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     // The root gate runs every workspace test task concurrently. Keep this jsdom-heavy suite to
     // one worker so CI does not starve async rendering and axe checks under that shared load.

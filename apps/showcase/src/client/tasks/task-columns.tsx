@@ -53,12 +53,14 @@ export function taskColumns({ onEdit }: TaskColumnsOptions = {}): DataTableColum
       id: "assignee",
       header: "Assignee",
       priority: "low",
+      nowrap: true,
       cell: (task) => task.assigneeName ?? "Unassigned",
     },
     {
       id: "dueDate",
       header: "Due",
       priority: "low",
+      nowrap: true,
       cell: (task) =>
         task.dueDate === undefined ? (
           "—"

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { parseRules, readStylesheet, resolveTokens } from "../testing/stylesheet"
+import { parseRules, readStylesheet, resolveTokens, SYSTEM_ROOT } from "../testing/stylesheet"
 import { COLOR_SCHEMES } from "../theme/resolution"
 import {
   BRAND_COLOR_ROLES,
@@ -57,6 +57,32 @@ describe("tokens.css", () => {
     for (const token of MODE_DEPENDENT) {
       expect(dark.has(`--pw-${token}`), token).toBe(true)
     }
+  })
+
+  it("follows the OS preference in system mode, matching the explicit mode exactly", () => {
+    const osDark = "@media (prefers-color-scheme: dark)"
+    for (const scheme of COLOR_SCHEMES) {
+      for (const contrast of [[], ["@media (prefers-contrast: more)"]]) {
+        const label = `${scheme} ${contrast.join(" ")}`
+        expect(resolveTokens(tokenRules, { scheme, media: [osDark, ...contrast] }), label).toEqual(
+          resolveTokens(tokenRules, { mode: "dark", scheme, media: contrast }),
+        )
+        expect(resolveTokens(tokenRules, { scheme, media: contrast }), label).toEqual(
+          resolveTokens(tokenRules, { mode: "light", scheme, media: contrast }),
+        )
+        // An explicit light choice wins over a dark OS.
+        expect(
+          resolveTokens(tokenRules, { mode: "light", scheme, media: [osDark, ...contrast] }),
+          label,
+        ).toEqual(resolveTokens(tokenRules, { mode: "light", scheme, media: contrast }))
+      }
+    }
+  })
+
+  it("sets a dark color-scheme for system mode on a dark OS", () => {
+    expect(declared(SYSTEM_ROOT, ["@media (prefers-color-scheme: dark)"]).get("color-scheme")).toBe(
+      "dark",
+    )
   })
 
   it("swaps only the brand roles per color scheme", () => {
@@ -130,7 +156,7 @@ describe("tokens.css", () => {
 
   it("aliases the shadcn variable names onto the tokens in both modes", () => {
     for (const dark of [false, true]) {
-      const tokens = resolveTokens(tokenRules, { dark })
+      const tokens = resolveTokens(tokenRules, { mode: dark ? "dark" : "light" })
       for (const name of ["radius", "foreground", "secondary"]) {
         expect(tokens.get(`--${name}`)).toBe(tokens.get(`--pw-${name}`))
       }

@@ -1,9 +1,8 @@
-import { Badge } from "@plainworks/elements/badge"
 import { Button } from "@plainworks/elements/button"
 import { Input } from "@plainworks/elements/input"
 import type { ListFilter, StandardSchemaV1 } from "@plainworks/std"
 import { DataTable, type DataTableColumn } from "@plainworks/ui/data-table"
-import { DateValue, NumberValue } from "@plainworks/ui/display"
+import { DateValue, NumberValue, StatusBadge, type StatusTone } from "@plainworks/ui/display"
 import { Callout, EmptyState, ErrorState, LoadingState, Spinner } from "@plainworks/ui/feedback"
 import {
   CheckboxField,
@@ -34,6 +33,12 @@ interface Order {
   readonly total: number
 }
 
+const STATUS_TONE: Record<Order["status"], StatusTone> = {
+  paid: "success",
+  pending: "neutral",
+  refunded: "danger",
+}
+
 const ORDERS: readonly Order[] = [
   { id: "ORD-1001", customer: "Ada Lovelace", note: "Gift wrap", status: "paid", total: 129.5 },
   { id: "ORD-1002", customer: "Alan Turing", note: "—", status: "pending", total: 42 },
@@ -58,9 +63,7 @@ const ORDER_COLUMNS: readonly DataTableColumn<Order>[] = [
   {
     id: "status",
     header: "Status",
-    cell: (row) => (
-      <Badge variant={row.status === "refunded" ? "destructive" : "secondary"}>{row.status}</Badge>
-    ),
+    cell: (row) => <StatusBadge tone={STATUS_TONE[row.status]}>{row.status}</StatusBadge>,
   },
   {
     id: "total",

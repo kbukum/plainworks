@@ -61,7 +61,7 @@ if (import.meta.env.DEV) {
 }
 ```
 
-`styles.css` is **plain, precompiled CSS** — the host needs no Tailwind build. Every inspector rule and keyframe is scoped to the shell's `[data-plainworks-devtools]` root, so it never restyles your page. The inspector lives in your document, not a shadow root, so a page rule that targets it directly (for example a later, more specific, or `!important` rule) can still apply. Your `.dark`, theme, and density classes on `<html>` still apply. Production must remove the whole development module, not just hide its UI.
+`styles.css` is **plain, precompiled CSS** — the host needs no Tailwind build. Every inspector rule and keyframe is scoped to the shell's `[data-plainworks-devtools]` root, so it never restyles your page. The inspector lives in your document, not a shadow root, so a page rule that targets it directly (for example a later, more specific, or `!important` rule) can still apply. Your mode (`light`, `dark`, or none to follow the OS), theme, and density classes on `<html>` still apply. Production must remove the whole development module, not just hide its UI.
 
 ## One session, two views
 

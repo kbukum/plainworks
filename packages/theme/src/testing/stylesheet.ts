@@ -85,23 +85,32 @@ export function parseRules(css: string): CssRule[] {
   return rules
 }
 
-/** The rendering conditions a token lookup resolves against. */
+/**
+ * The rendering conditions a token lookup resolves against: the mode class on the root (`dark`,
+ * `light`, or none for system mode), the color scheme, and the matching media queries.
+ */
 export interface TokenConditions {
-  readonly dark?: boolean
+  readonly mode?: "light" | "dark" | "system"
   readonly scheme?: string
   readonly media?: readonly string[]
 }
 
+/** The root selector system mode's dark rules use: no explicit `light` class. */
+export const SYSTEM_ROOT = ":root:not(.light)"
+
+// Counts class, pseudo-class, and attribute parts; `:not(x)` counts as its argument only.
 function specificity(selector: string): number {
-  return (selector.match(/[.:[]/g) ?? []).length
+  return (selector.replace(/:not\(/g, "(").match(/[.:[]/g) ?? []).length
 }
 
-function matchingSelectors({ dark = false, scheme }: TokenConditions): Set<string> {
-  const selectors = new Set([":root"])
-  if (scheme !== undefined) selectors.add(`.theme-${scheme}`)
-  if (dark) {
-    selectors.add(".dark")
-    if (scheme !== undefined) selectors.add(`.dark.theme-${scheme}`)
+function matchingSelectors({ mode = "system", scheme }: TokenConditions): Set<string> {
+  const roots = [":root"]
+  if (mode === "dark") roots.push(".dark")
+  if (mode !== "light") roots.push(SYSTEM_ROOT)
+  const selectors = new Set(roots)
+  if (scheme !== undefined) {
+    selectors.add(`.theme-${scheme}`)
+    for (const root of roots.slice(1)) selectors.add(`${root}.theme-${scheme}`)
   }
   return selectors
 }

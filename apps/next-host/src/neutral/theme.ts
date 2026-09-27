@@ -7,10 +7,9 @@
 import { resolveTheme, themePreferenceOf } from "@plainworks/theme"
 
 /**
- * Resolve the `<html>` class for a snapshot slice. The server has no `prefers-color-scheme` signal,
- * so a `"system"` preference resolves to light for the first paint; the client provider re-resolves
- * against the real media query after hydration, and light-first is the standard no-JS default.
+ * Resolve the `<html>` class for a snapshot slice. A `"system"` preference gets no mode class, so
+ * the stylesheet follows the OS preference on the first paint, which the server cannot see.
  */
 export function resolveHtmlClass(resolved: unknown): string {
-  return resolveTheme(themePreferenceOf(resolved), false).htmlClass
+  return resolveTheme(themePreferenceOf(resolved)).htmlClass
 }

@@ -2,7 +2,7 @@
 
 import { deferredStateSource, fakeStateSource } from "@plainworks/testkit"
 import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/client"
-import { cleanup, render, renderHook, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, render, renderHook, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ReactElement, ReactNode } from "react"
 import { afterEach, describe, expect, it } from "vitest"
@@ -170,5 +170,44 @@ describe("ThemeProvider", () => {
       ),
     })
     await waitFor(() => expect(result.current.resolvedMode).toBe("dark"))
+  })
+
+  it("keeps the server's system-mode class on a dark OS, with no mode class flip", async () => {
+    installMatchMedia(true)
+    // The server markup for `{ mode: "system", colorScheme: "indigo" }`.
+    document.documentElement.className = "theme-indigo"
+    const source = fakeStateSource({
+      initial: { mode: "system" as const, colorScheme: "indigo" as const },
+    })
+    const { result } = renderHook(() => useTheme(), {
+      wrapper: ({ children }: { readonly children?: ReactNode }) => (
+        <ThemeProvider source={source} initialTheme={{ mode: "system", colorScheme: "indigo" }}>
+          {children}
+        </ThemeProvider>
+      ),
+    })
+
+    await waitFor(() => expect(result.current.resolvedMode).toBe("dark"))
+    expect(document.documentElement.className).toBe("theme-indigo")
+    expect(document.documentElement.style.colorScheme).toBe("")
+  })
+
+  it("swaps an explicit mode class for another and drops it for system", async () => {
+    installMatchMedia(false)
+    document.documentElement.className = "dark theme-indigo"
+    const source = fakeStateSource({
+      initial: { mode: "dark" as const, colorScheme: "indigo" as const },
+    })
+    const { result } = renderHook(() => useTheme(), {
+      wrapper: ({ children }: { readonly children?: ReactNode }) => (
+        <ThemeProvider source={source}>{children}</ThemeProvider>
+      ),
+    })
+    await waitFor(() => expect(result.current.theme.mode).toBe("dark"))
+
+    await act(() => result.current.setTheme({ mode: "light", colorScheme: "rose" }))
+    expect(document.documentElement.className).toBe("light theme-rose")
+    await act(() => result.current.setTheme({ mode: "system", colorScheme: "rose" }))
+    expect(document.documentElement.className).toBe("theme-rose")
   })
 })

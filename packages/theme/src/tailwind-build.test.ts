@@ -54,6 +54,7 @@ describe("styles.css under a Tailwind v4 build", () => {
       "transition",
       "duration-fast",
       "ease-enter",
+      "dark:bg-muted",
     ])
   })
 
@@ -87,5 +88,12 @@ describe("styles.css under a Tailwind v4 build", () => {
     for (const [className, pattern] of expectations) {
       expect(rule(css, className), className).toMatch(pattern)
     }
+  })
+
+  it("applies the dark variant under an explicit dark class and under system mode on a dark OS", () => {
+    expect(css).toContain(".dark\\:bg-muted:is(.dark *) {")
+    expect(css).toMatch(
+      /@media \(prefers-color-scheme: dark\) \{\s*\.dark\\:bg-muted:is\(:where\(:root\):not\(\.light\) \*\) \{/,
+    )
   })
 })

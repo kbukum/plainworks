@@ -61,6 +61,14 @@ import { Category, FIXED_DATE, Row, Section } from "./frame"
 const BUTTON_VARIANTS = ["default", "destructive", "outline", "secondary", "ghost", "link"] as const
 const BUTTON_SIZES = ["default", "sm", "lg"] as const
 const ICON_SIZES = ["icon", "icon-sm", "icon-lg"] as const
+// `items` maps each value to its label, so the closed trigger shows "Apple", not "apple".
+const FRUITS = [
+  { value: "apple", label: "Apple" },
+  { value: "banana", label: "Banana" },
+  { value: "cherry", label: "Cherry" },
+  { value: "durian", label: "Durian" },
+]
+const SIZES = [{ value: "s", label: "Small" }]
 
 export function FormControlsGroup(): ReactElement {
   const [otp, setOtp] = useState("1234")
@@ -279,29 +287,36 @@ export function FormControlsGroup(): ReactElement {
       </Section>
       <Section name="Select">
         <div data-gallery-trigger="select">
-          <Select defaultValue="apple">
+          <Select defaultValue="apple" items={FRUITS}>
             <SelectTrigger aria-label="Open select" className="w-48">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
                 <SelectLabel>Fruits</SelectLabel>
-                <SelectItem value="apple">Apple</SelectItem>
-                <SelectItem value="banana">Banana</SelectItem>
-                <SelectItem value="cherry">Cherry</SelectItem>
-                <SelectItem value="durian" disabled>
-                  Durian
-                </SelectItem>
+                {FRUITS.map((fruit) => (
+                  <SelectItem
+                    key={fruit.value}
+                    value={fruit.value}
+                    disabled={fruit.value === "durian"}
+                  >
+                    {fruit.label}
+                  </SelectItem>
+                ))}
               </SelectGroup>
             </SelectContent>
           </Select>
         </div>
-        <Select defaultValue="s">
+        <Select defaultValue="s" items={SIZES}>
           <SelectTrigger size="sm" aria-label="Small select trigger" className="w-32">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="s">Small</SelectItem>
+            {SIZES.map((size) => (
+              <SelectItem key={size.value} value={size.value}>
+                {size.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </Section>

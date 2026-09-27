@@ -42,7 +42,7 @@ Set `E2E_BASE_PORT` to move the port range, and pass `--workers` to change the w
 | **Reflow** | No horizontal scrolling, including at 320 CSS px (WCAG 1.4.10). |
 | **Overlay containment** | An open dialog, drawer, or menu stays inside the viewport, so none of it is cut off on a short screen. |
 | **Focus** | Every keyboard stop checked shows at least a 2 px indicator and is not covered. |
-| **Screenshot** | At most 1% of pixels may differ, each within a 0.2 color threshold. Animations and the caret are frozen. |
+| **Screenshot** | At most 100 pixels may differ, each within a 0.2 color threshold. That is less than one 24×24 control, so a missing or moved control always fails. Animations and the caret are frozen. |
 
 Visual tests carry the `@visual` tag. Each captures one surface, such as a page, an overlay, or a loading, error, or empty state, in light and dark at the viewports its matrix declares.
 

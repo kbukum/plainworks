@@ -4,8 +4,8 @@
  * imports it and maps the tokens onto Tailwind utilities.
  *
  * Tier 1 is the raw palette. Tier 2 is the semantic tokens (`--pw-<token>`) that components use.
- * Modes (`.dark`), color schemes (`.theme-*`), and densities (`data-density`) reassign Tier 2
- * with no JS.
+ * Modes (a `light` or `dark` root class, or neither to follow the OS), color schemes (`.theme-*`),
+ * and densities (`data-density`) reassign Tier 2 with no JS.
  */
 
 /* Tier 1: raw, role-free palette. Only Tier 2 references these. */
@@ -282,6 +282,85 @@
   --pw-ring: oklch(0.8 0.13 220);
 }
 
+/*
+ * System mode: with no `light` or `dark` class on the root, a dark OS preference applies the dark
+ * rules above. Each rule repeats its `.dark` twin, and a test keeps the pairs identical.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+    --pw-background: var(--pw-neutral-950);
+    --pw-foreground: var(--pw-neutral-50);
+    --pw-card: var(--pw-neutral-900);
+    --pw-card-foreground: var(--pw-neutral-50);
+    --pw-popover: var(--pw-neutral-900);
+    --pw-popover-foreground: var(--pw-neutral-50);
+    --pw-secondary: var(--pw-neutral-800);
+    --pw-secondary-foreground: var(--pw-neutral-50);
+    --pw-muted: var(--pw-neutral-800);
+    --pw-muted-foreground: var(--pw-neutral-400);
+    --pw-accent: var(--pw-neutral-800);
+    --pw-accent-foreground: var(--pw-neutral-50);
+    --pw-info: var(--pw-blue-400);
+    --pw-info-foreground: var(--pw-neutral-950);
+    --pw-success: var(--pw-green-400);
+    --pw-success-foreground: var(--pw-neutral-950);
+    --pw-warning: var(--pw-amber-300);
+    --pw-warning-foreground: var(--pw-neutral-950);
+    --pw-destructive: var(--pw-red-200);
+    --pw-destructive-foreground: var(--pw-neutral-950);
+    --pw-border: var(--pw-neutral-800);
+    --pw-input: var(--pw-neutral-500);
+
+    --pw-primary: var(--pw-neutral-50);
+    --pw-primary-foreground: var(--pw-neutral-900);
+    --pw-ring: var(--pw-neutral-300);
+
+    --pw-shadow-raised: 0 1px 2px 0 oklch(0 0 0 / 0.4), 0 1px 3px 0 oklch(0 0 0 / 0.5);
+    --pw-shadow-overlay: 0 4px 6px -2px oklch(0 0 0 / 0.4), 0 16px 32px -8px oklch(0 0 0 / 0.6);
+  }
+  :root:not(.light).theme-indigo {
+    --pw-primary: oklch(0.68 0.16 277);
+    --pw-primary-foreground: var(--pw-neutral-950);
+    --pw-ring: oklch(0.81 0.16 277);
+  }
+  :root:not(.light).theme-violet {
+    --pw-primary: oklch(0.7 0.17 293);
+    --pw-primary-foreground: var(--pw-neutral-950);
+    --pw-ring: oklch(0.82 0.17 293);
+  }
+  :root:not(.light).theme-blue {
+    --pw-primary: oklch(0.7 0.15 260);
+    --pw-primary-foreground: var(--pw-neutral-950);
+    --pw-ring: oklch(0.81 0.15 260);
+  }
+  :root:not(.light).theme-emerald {
+    --pw-primary: oklch(0.7 0.15 163);
+    --pw-primary-foreground: var(--pw-neutral-950);
+    --pw-ring: oklch(0.79 0.15 163);
+  }
+  :root:not(.light).theme-orange {
+    --pw-primary: oklch(0.72 0.17 42);
+    --pw-primary-foreground: var(--pw-neutral-950);
+    --pw-ring: oklch(0.83 0.17 42);
+  }
+  :root:not(.light).theme-slate {
+    --pw-primary: oklch(0.7 0.03 257);
+    --pw-primary-foreground: var(--pw-neutral-950);
+    --pw-ring: oklch(0.8 0.03 257);
+  }
+  :root:not(.light).theme-rose {
+    --pw-primary: oklch(0.71 0.18 12);
+    --pw-primary-foreground: var(--pw-neutral-950);
+    --pw-ring: oklch(0.83 0.18 12);
+  }
+  :root:not(.light).theme-cyan {
+    --pw-primary: oklch(0.72 0.13 220);
+    --pw-primary-foreground: var(--pw-neutral-950);
+    --pw-ring: oklch(0.8 0.13 220);
+  }
+}
+
 /* A user who asks for more contrast gets stronger boundaries and secondary text. */
 @media (prefers-contrast: more) {
   :root {
@@ -293,6 +372,13 @@
     --pw-border: var(--pw-neutral-600);
     --pw-input: var(--pw-neutral-400);
     --pw-muted-foreground: var(--pw-neutral-300);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not(.light) {
+      --pw-border: var(--pw-neutral-600);
+      --pw-input: var(--pw-neutral-400);
+      --pw-muted-foreground: var(--pw-neutral-300);
+    }
   }
 }
 

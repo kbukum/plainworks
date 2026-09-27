@@ -1,0 +1,10 @@
+/*
+ * Map the space the docked devtools claim onto the app's own overlay insets, so fixed overlays
+ * such as toasts clear the bar. Only the development module loads this sheet; production never
+ * names the devtools and its overlay insets stay at their 0px fallback.
+ */
+:root {
+  --showcase-overlay-inset-bottom: var(--plainworks-devtools-inset-bottom, 0px);
+  --showcase-overlay-inset-left: var(--plainworks-devtools-inset-left, 0px);
+  --showcase-overlay-inset-right: var(--plainworks-devtools-inset-right, 0px);
+}

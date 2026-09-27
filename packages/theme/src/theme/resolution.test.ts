@@ -8,17 +8,18 @@ import {
 } from "./resolution"
 
 describe("resolveTheme", () => {
-  it("resolves an explicit dark theme before hydration", () => {
-    expect(resolveTheme({ mode: "dark", colorScheme: "indigo" }, false)).toEqual({
+  it("marks an explicit mode on the root class", () => {
+    expect(resolveTheme({ mode: "dark", colorScheme: "indigo" })).toEqual({
       htmlClass: "dark theme-indigo",
-      colorScheme: "dark",
+    })
+    expect(resolveTheme({ mode: "light", colorScheme: "blue" })).toEqual({
+      htmlClass: "light theme-blue",
     })
   })
 
-  it("resolves system mode from the server-provided preference", () => {
-    expect(resolveTheme({ mode: "system", colorScheme: "neutral" }, true)).toEqual({
-      htmlClass: "dark theme-neutral",
-      colorScheme: "dark",
+  it("leaves system mode unmarked, so the stylesheet follows the OS preference", () => {
+    expect(resolveTheme({ mode: "system", colorScheme: "neutral" })).toEqual({
+      htmlClass: "theme-neutral",
     })
   })
 })

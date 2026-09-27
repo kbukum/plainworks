@@ -179,6 +179,8 @@ const serverPaint: readonly VisualSurface[] = ["overview", "tasks", "settings-ap
     name: `${slug}-server-paint`,
     matrix: COMPACT_MATRIX,
     capture: PAGE_CAPTURE,
+    // The client bundle is blocked, so the page never hydrates.
+    checks: { hydration: false },
     allowErrors: [/Failed to load resource/],
     arrange: async (page) => {
       const route = appRoute(slug)

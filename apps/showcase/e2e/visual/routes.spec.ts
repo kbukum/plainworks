@@ -38,6 +38,8 @@ const loginSurface: VisualSurface = {
   name: "login",
   matrix: FULL_MATRIX,
   capture: PAGE_CAPTURE,
+  // The server renders the login page as static markup with no client bundle to hydrate.
+  checks: { hydration: false },
   arrange: async (page) => {
     await page.goto("/")
     await expect(
@@ -50,6 +52,7 @@ const loginSurface: VisualSurface = {
 const loginInterruptedSurface: VisualSurface = {
   name: "login-interrupted",
   matrix: COMPACT_MATRIX,
+  checks: { hydration: false },
   arrange: async (page) => {
     await page.goto("/auth/callback?code=stale&state=stale")
     await expect(page.getByRole("alert")).toContainText("Sign-in didn't finish")

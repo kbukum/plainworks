@@ -23,7 +23,7 @@ With Tailwind, `tailwindcss` is an optional peer: your build compiles the styles
 
 ## Tokens
 
-Components style against **semantic tokens**, never raw palette values. A token is a `--pw-<name>` custom property, so light and dark mode (`.dark`), color schemes (`.theme-*`), and density (`data-density`) all swap by class or attribute with no JS.
+Components style against **semantic tokens**, never raw palette values. A token is a `--pw-<name>` custom property, so light and dark mode (a `light` or `dark` root class, or neither to follow the OS), color schemes (`.theme-*`), and density (`data-density`) all swap by class or attribute with no JS.
 
 | Family | Tokens | Tailwind utility |
 | --- | --- | --- |
@@ -64,19 +64,21 @@ What you get by default:
 
 ## SSR-safe theming
 
-Resolve the `<html>` attributes on the server, then own the source on the client:
+Resolve the `<html>` class on the server, then own the source on the client:
 
 ```tsx
 import { parseThemeCookie, resolveTheme } from "@plainworks/theme"
 import { ThemeProvider } from "@plainworks/theme/client"
 
 const preference = parseThemeCookie(request.headers.get("cookie") ?? "")
-const { htmlClass, colorScheme } = resolveTheme(preference, systemPrefersDark)
-// apply htmlClass/colorScheme to <html> before hydration, then:
+const { htmlClass } = resolveTheme(preference)
+// render <html className={htmlClass}>, then:
 
 <ThemeProvider source={themeSource} initialTheme={preference}>
   {children}
 </ThemeProvider>
 ```
+
+**System mode needs no OS signal on the server.** It adds no mode class, and the stylesheet follows `prefers-color-scheme` itself. A dark-OS visitor gets a dark first paint, the class never changes at hydration, and no inline script is needed, so a strict CSP still works. `useTheme().resolvedMode` still reports the mode the OS resolved to.
 
 The neutral `.` entry is DOM-free (portability gate), so it runs on the server, edge, RSC, and React Native; the provider is the only DOM-touching surface and lives behind `./client`.

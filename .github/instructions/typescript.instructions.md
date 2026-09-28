@@ -17,6 +17,7 @@ bun run check-boundaries                      # layer + cycle gate (repo-wide, f
 
 Code style:
 
+- **Alpha: redesign over compatibility.** No backward compatibility is owed. When you supersede something, move every consumer and delete the old path in the same change. Use no shims, aliases, deprecated re-exports, compat flags, or parallel old-and-new models. Breaking changes are welcome. See [Development stage](../copilot-instructions.md#development-stage-alpha-redesign-over-compatibility).
 - **ESM-only, strict TS.** `isolatedDeclarations`, `moduleResolution: bundler`. No CommonJS, no default-export barrels with logic. A package `index.ts` re-exports only.
 - **Organize by concern; self-documenting by path.** A concern that spans more than one module is a **folder** with a re-export-only `index.ts` barrel plus concern-named files inside (e.g. `resilience/{retry,backoff,circuit-breaker,classify}.ts`); a single concern is one clearly named file. The path must convey the concern without opening the file — no junk-drawer `utils`/`helpers`/`core`, no bare verb modules/exports (`compose`, `classify`), qualify them (`pipeline/interceptor.ts` → `composeInterceptors`). Fold proactively when a second sub-concern appears, not once a file is "too long".
 - **No `any` in a public surface.** Prefer `unknown` + narrowing, generics, `satisfies`, discriminated unions. No unchecked `as`/`!` to launder a type. Typed errors (a small typed error / result), never `throw "string"`.

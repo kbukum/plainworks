@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from "@playwright/test"
+import type { Locator, Page } from "@playwright/test"
 
 /**
  * Who draws the focus indicator: the page, as the widest solid outline or box-shadow ring around
@@ -124,17 +124,9 @@ function measureFocus(): FocusMeasurement | null {
   }
 }
 
-/**
- * Assert the focused control shows a visible indicator of at least 2 CSS px (WCAG 2.4.7) and is not
- * entirely covered by other content (WCAG 2.4.11). Polls, because a component may mark its focus a
- * render after the focus event (a one-time-code input tracks the caret through `selectionchange`).
- */
-export async function expectFocusVisible(page: Page): Promise<void> {
-  await expect
-    .poll(async () => judgeFocus(await page.evaluate(measureFocus)), {
-      message: "focused control shows a visible, unobscured focus indicator",
-    })
-    .toEqual([])
+/** Judge the focused control once, as it is now; empty when focus is visible and reachable. */
+export async function findFocusProblems(page: Page): Promise<string[]> {
+  return judgeFocus(await page.evaluate(measureFocus))
 }
 
 /**

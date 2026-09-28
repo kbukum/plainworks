@@ -48,6 +48,7 @@ What this step changes and, explicitly, what it does not.
 - [ ] `bun run verify` green, scoped to the package(s) the step touches.
 - [ ] The `elements` tests green if the step touches `theme`.
 - [ ] A Changeset added.
+- [ ] Superseded code, exports, consumers, and docs removed; no shim, alias, or parallel model left.
 - [ ] <step-specific, verifiable outcomes>
 ```
 
@@ -64,11 +65,21 @@ A plan may **not** invent a lighter standard than plainworks'. Its cross-cutting
 - **Host-independence.** Server-safe `.` entry (no React/DOM); optional `./client` with per-module `"use client"`; token-custody code stays out of client graphs.
 - **Composition.** No import-time side effects, no module-level singletons — per-request factories; adapters register explicitly.
 - **Typed & minimal APIs.** No `any` in public surfaces; typed errors that preserve cause; timeout + cancellation on remote calls.
-- **Root-cause, no shims.** Pre-stable: redesign cleanly and remove the old path; no compat shims or half-migrations.
+- **Root-cause, no compatibility (alpha).** No backward compatibility is owed and breaking changes are welcome (see [Development stage](../../copilot-instructions.md#development-stage-alpha-redesign-over-compatibility)). Plan for the **end state**: every step designs new code as if the thing it supersedes is already gone. No step is "additive" in a way that leaves two models for one concern. No shims, aliases, deprecated re-exports, compat flags, or half-migrations.
 - **Vendored atoms stay locked.** A step never lists a hand edit to `packages/elements/src/shadcn/**` or `shadcn.lock.json`. An atom changes only through `registry:update` (see [`update-atoms`](../update-atoms/SKILL.md)); a deviation is planned on the **deviation ladder** — theme tokens/rules → call site → `@plainworks/ui` wrapper.
 - **Release hygiene.** A Changeset per change; ESM-only, `exports`/`types`/`files` correct; catalog-only versions.
 
 Order steps so each starts only when its dependencies are green, and so each maps to a **standalone, reviewable change** (`std` before everything; transport/data before `auth`; `ui`/`showcase` after the spine).
+
+## Plan the replacement, not a coexistence
+
+When the work supersedes existing code, the plan owns its **full removal**:
+
+- **Find every consumer first.** Before writing steps, list everything the old path touches: packages, `apps/*`, `internal/*`, `create-plainworks` templates, docs, instructions, and skills. A plan that retires an API but leaves a consumer on it is incomplete.
+- **Prefer one step that replaces and deletes.** Split only when the change is genuinely too big to review. If you split, new code in earlier steps never imports, extends, or wraps the old path. The old path stays closed off, and a named later step deletes it using an **exact deletion list**.
+- **Every step records what it removes.** Its acceptance criteria include "superseded code, exports, consumers, and docs are gone, with no shim, alias, or parallel model". The final step leaves **one model per concern**.
+- **No release ships both.** Decide the changeset and release order so old and new are never published together. Breaking changes take a `minor` Changeset pre-1.0.
+- **Re-plan when a step exposes legacy.** If an applied step turns out to be shaped around legacy, add a redesign step. Never carry the flaw forward.
 
 ## Carrying prior review findings
 

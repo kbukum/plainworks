@@ -39,6 +39,7 @@ Never touch `tmp/` (gitignored scratch) and never add a committed doc that refer
 
 Verify each doc against the code it describes; a doc that lies is worse than none:
 
+- **No legacy left behind.** Delete every mention of a removed or superseded API, option, file, or workflow. Never document a "deprecated", "legacy", or "old way" path next to the current one, because plainworks is alpha and keeps one current model (see [Development stage](../../copilot-instructions.md#development-stage-alpha-redesign-over-compatibility)).
 - **Commands & gates** match the root `package.json` scripts and `turbo.json` (`bun run verify` and its `--list`, the individual gate scripts, `bun run gen package`, turbo `--filter` forms) — no renamed or invented script or flag lingers in the docs.
 - **Package & layer structure** matches reality: the `packages/*` / `apps/*` / `internal/*` split and the L0–L4 layer map come from `internal/boundaries/layers.json`; the README, `docs/architecture.md`, and instructions copies are generated (`bun run sync-layer-map`) and `check-layer-map` fails on drift. Never hand-edit between the `layer-map` markers.
 - **Governance table** (task runner, generator, build, lint, boundaries, version sync, tests, releases) names the tools actually in use.

@@ -38,7 +38,7 @@ For each remaining step, in dependency order, run the **`apply-step` workflow** 
 Between steps:
 
 - **Validate the affected package(s)** with the [`validate`](../validate/SKILL.md) skill (scoped `turbo`/`bun run`) — do not proceed on a red one.
-- If a step's acceptance criteria cannot be met as written, **stop** and report the divergence rather than forcing a green; the plan may need a `create-plan` revision. The baseline in [`../../copilot-instructions.md`](../../copilot-instructions.md) wins over the plan text.
+- If a step's acceptance criteria cannot be met as written, **stop** and report the divergence rather than forcing a green; the plan may need a `create-plan` revision. The baseline in [`../../copilot-instructions.md`](../../copilot-instructions.md) wins over the plan text. That includes a step written as "additive" or "keep the old path working". In alpha, apply it for the end state, or revise the plan first.
 
 ## 3. Baseline and review
 

@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright"
-import { expect, type Page } from "@playwright/test"
+import type { Page } from "@playwright/test"
 import { settleAnimations } from "./animation"
 
 /**
@@ -32,7 +32,7 @@ export function formatAxeViolations(violations: readonly AxeViolationSummary[]):
     .join("\n")
 }
 
-/** Options for {@link expectNoBrowserAxeViolations}. */
+/** Options for {@link scanBrowserAxe}. */
 export interface BrowserAxeOptions {
   /** CSS selectors to leave out, for third-party content the kit does not own. */
   readonly exclude?: readonly string[]
@@ -40,13 +40,13 @@ export interface BrowserAxeOptions {
 
 /**
  * Run axe-core in the live browser over the whole current page for WCAG 2.2 AA, including the
- * 24x24 CSS px `target-size` rule (WCAG 2.5.8), and fail with one actionable line per violation.
- * Running animations settle first, so contrast is never sampled mid-transition.
+ * 24x24 CSS px `target-size` rule (WCAG 2.5.8), and return its violations. Running animations
+ * settle first, so contrast is never sampled mid-transition.
  */
-export async function expectNoBrowserAxeViolations(
+export async function scanBrowserAxe(
   page: Page,
   options: BrowserAxeOptions = {},
-): Promise<void> {
+): Promise<AxeViolationSummary[]> {
   await settleAnimations(page)
   let builder = new AxeBuilder({ page }).options({
     runOnly: { type: "tag", values: [...BROWSER_AXE_TAGS] },
@@ -57,8 +57,5 @@ export async function expectNoBrowserAxeViolations(
     builder = builder.exclude(selector)
   }
   const { violations } = await builder.analyze()
-  expect(
-    violations,
-    `Expected no WCAG 2.2 AA violations:\n${formatAxeViolations(violations)}`,
-  ).toEqual([])
+  return violations
 }

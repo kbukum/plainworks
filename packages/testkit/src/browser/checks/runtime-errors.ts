@@ -1,3 +1,5 @@
+import { boundMessage } from "./message"
+
 /** What kind of runtime failure the page raised. */
 export type RuntimeErrorKind = "pageerror" | "hydration" | "console" | "request"
 
@@ -44,6 +46,11 @@ export interface RuntimeErrorWatch {
   readonly errors: readonly RuntimeError[]
   /** Accept failures whose message matches `pattern`, for a test that provokes them on purpose. */
   allow(pattern: RegExp): void
+  /**
+   * Take every failure recorded so far and clear the record. The caller then owns them, as a flow
+   * does when it reports each failure against the checkpoint that raised it.
+   */
+  drain(): RuntimeError[]
   /** Throw one error that lists every recorded failure, if there is any. */
   expectNone(): void
 }
@@ -67,7 +74,8 @@ export async function watchRuntimeErrors(
   }
   const allowed: RegExp[] = []
   const errors: RuntimeError[] = []
-  const record = (kind: RuntimeErrorKind, message: string): void => {
+  const record = (kind: RuntimeErrorKind, raw: string): void => {
+    const message = boundMessage(raw)
     if (allowed.some((pattern) => pattern.test(message))) return
     errors.push({ kind, message })
   }
@@ -94,6 +102,9 @@ export async function watchRuntimeErrors(
     errors,
     allow(pattern) {
       allowed.push(pattern)
+    },
+    drain() {
+      return errors.splice(0)
     },
     expectNone() {
       if (errors.length === 0) return

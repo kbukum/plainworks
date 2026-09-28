@@ -2,11 +2,24 @@
 
 Foundational, **host-independent** React/TypeScript kit: runtime-agnostic cores plus thin, optional client bindings. Cores assume **no host** (no DOM, React, or host globals), so Next.js, Vite, Astro, TanStack Start, and Remix plug in through explicit seams. The authoritative taxonomy and layer map live in [`../docs/architecture.md`](../docs/architecture.md). This file is the engineering baseline for every change.
 
+## Development stage: alpha, redesign over compatibility
+
+plainworks is in **active development** on the `0.1.0-alpha.x` line. **No backward compatibility is owed** to anyone: not consumers, not apps, not templates, not earlier versions of our own code. This stance applies to **every** change, plan, review, and fix:
+
+- **Redesign beats patching.** When code is wrong, outdated, or no longer the simplest design, redesign it on current best practices. Don't bolt a fix onto it. **Breaking changes are welcome**; a patch that preserves a flawed shape is the defect.
+- **Design for the end state.** Build new code as if the thing it supersedes is already gone. Never shape new code around, on top of, or next to a legacy path.
+- **Replace, don't add alongside.** When a change supersedes something, the **same change** moves every consumer (packages, `apps/*`, `internal/*`, `create-plainworks` templates, docs, skills, instructions) and **deletes** the old path. One concern, one model.
+- **Zero compatibility scaffolding.** No shims, aliases, deprecated re-exports, compat flags, `legacy`/`old`/`v2`/`next` names, parallel old-and-new models, or "additive now, remove later" plans.
+- **Too big for one PR?** Plan it (`create-plan`). New code still never builds on the old path. The old path is closed off and listed for deletion in a named step, and **no release ships both**.
+- **Clean up what you find.** Legacy, dead code, unused exports, stale docs, and outdated patterns in a change's blast radius are removed in that change, not left for later.
+
+Breaking changes take a `minor` Changeset while pre-1.0 (see the `release` skill). Describe the change as a redesign, never as a migration path.
+
 ## Engineering principles
 
 Shared baseline — apply to all work here:
 
-- **Phases:** discover → decide (Redesign / Align / Enhance / Drop / Leave) → implement completely → validate. Prefer root-cause redesign over symptom patches; **no compatibility shims** in pre-stable code. Implement the *simplest* design that fully solves it — flexible, extensible, scalable — on current idiomatic TS best practices, not folklore. Complexity must earn its place.
+- **Phases:** discover → decide (Redesign / Align / Enhance / Drop / Leave) → implement completely → validate. **Leave** only what is already the right design. Anything legacy, outdated, or superseded is Redesigned or Dropped (see [Development stage](#development-stage-alpha-redesign-over-compatibility)). Implement the *simplest* design that fully solves it — flexible, extensible, scalable — on current idiomatic TS best practices, not folklore. Complexity must earn its place.
 - **Layering & reuse:** explicit, acyclic dependency direction — a package in `Ln` imports `@plainworks` packages only in a strictly lower layer (see the layer map). Reuse or enhance the canonical lower owner before writing new code; never duplicate a shared concern (errors, result/guards, retry/backoff, contracts/seams, event shapes). A cross-layer need **defines the seam in the lower layer and implements it higher** — never an upward or sideways import. `@plainworks/std` is the bottom and depends on no other package.
 - **Structure & naming (self-documenting by path):** organize by concern the way `rskit` does — a concern that spans more than one module is a **folder** with a re-export-only `index.ts` barrel (the TS equivalent of a barrel-only `mod.rs`) plus concern-named files inside; a single concern is one clearly named file. The folder/file path must tell a reader *what the code is without opening it*: no junk-drawer `utils`/`helpers`/`misc`/`core`, and no bare, ambiguous verb modules or exports (`compose`, `classify`, `handle`, `process`) — qualify by concern (`pipeline/interceptor.ts` exporting `composeInterceptors`, `resilience/classify.ts` exporting `classifyError`). Group **proactively** when a second sub-concern appears, not reactively once a file is "too long"; a cohesive single-concern file is fine at any length. Barrels (`index.ts`/`src/index.ts`) re-export only — never logic.
 - **APIs:** typed and minimal; **no `any`** (and no unchecked `as`/`!`) in public surfaces — use `unknown` + narrowing, generics, and discriminated unions. Actionable typed errors that preserve cause; never throw strings.
@@ -139,4 +152,4 @@ Checked in review and by the gates, for every package:
 
 ## Repo workflow
 
-The **agent creates branches and makes edits; the maintainer commits and pushes.** Commit / push / open a PR only when explicitly asked. Branches are named by the change, prefixed `kbukum/`, cut off an up-to-date `main`. PRs are opened in **draft**. Plans are gitignored scratch under `tmp/`. Never commit secrets or `tmp/`. This repo is **pre-stable — no backward compatibility owed**; redesign at the root over patching a symptom.
+The **agent creates branches and makes edits; the maintainer commits and pushes.** Commit / push / open a PR only when explicitly asked. Branches are named by the change, prefixed `kbukum/`, cut off an up-to-date `main`. PRs are opened in **draft**. Plans are gitignored scratch under `tmp/`. Never commit secrets or `tmp/`. This repo is **alpha, with no backward compatibility owed**. Redesign at the root, welcome breaking changes, and delete legacy in the same change (see [Development stage](#development-stage-alpha-redesign-over-compatibility)).

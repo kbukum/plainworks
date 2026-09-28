@@ -52,7 +52,7 @@ For every comment, decide before touching code:
   - a module-level singleton / import-time side effect flagged once → *every store/client/session in the diff*
   - a token-in-URL or client-imports-server-auth note → *every auth/transport path touched*
   - a duplicated-concern note → *every place that reinvents a `std` owner*
-- **Scope of the sweep.** Default to the PR's change set (`git diff origin/main...HEAD`). Widen to neighbouring files only when the pattern clearly extends there and the fix stays coherent; note the widening. A comment often surfaces a **pre-existing** defect in the blast radius (the touched file and its close callers/callees) — that is in scope too; prefer a root-cause redesign over patching the symptom (pre-stable — no backward compatibility owed).
+- **Scope of the sweep.** Default to the PR's change set (`git diff origin/main...HEAD`). Widen to neighbouring files only when the pattern clearly extends there and the fix stays coherent; note the widening. A comment often surfaces a **pre-existing** defect or legacy path in the blast radius (the touched file and its close callers/callees). That is in scope too. Prefer a root-cause redesign over patching the symptom, and delete the superseded code rather than wrapping it. plainworks is alpha: no backward compatibility is owed, and a breaking fix beats a compatible patch.
 
 ## 3. Apply the pattern across the change set
 
@@ -61,7 +61,7 @@ git diff origin/main...HEAD --name-only     # the files in scope
 ```
 
 - Search the whole change set for the pattern (grep/glob) and fix every occurrence.
-- Where a fix changes behavior, do it **test-first** (failing vitest test → fix → green, failure paths included); keep the fix the simplest correct design, not a bolt-on shim.
+- Where a fix changes behavior, do it **test-first** (failing vitest test → fix → green, failure paths included). Keep the fix the simplest correct design, not a bolt-on shim, compat flag, or alias.
 - Keep each pattern's fixes cohesive so the follow-up amend reads as one intent.
 
 ## 4. Validate — scoped to what changed

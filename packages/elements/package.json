@@ -234,15 +234,15 @@
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.shadcn.json",
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.shadcn.json && tsc --noEmit -p tsconfig.scripts.json",
     "test": "vitest run --coverage",
     "lint": "biome check .",
     "check-packaging": "publint --strict && attw --pack --profile esm-only --exclude-entrypoints @plainworks/elements/styles.css",
-    "registry:add": "node scripts/registry/cli.mjs add",
-    "registry:update": "node scripts/registry/cli.mjs update",
-    "registry:diff": "node scripts/registry/cli.mjs diff",
-    "registry:validate": "node scripts/registry/cli.mjs validate",
-    "registry:codegen": "node scripts/registry/cli.mjs codegen"
+    "registry:add": "bun scripts/registry/cli.ts add",
+    "registry:update": "bun scripts/registry/cli.ts update",
+    "registry:diff": "bun scripts/registry/cli.ts diff",
+    "registry:validate": "bun scripts/registry/cli.ts validate",
+    "registry:codegen": "bun scripts/registry/cli.ts codegen"
   },
   "dependencies": {
     "@base-ui/react": "catalog:",

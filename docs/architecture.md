@@ -10,6 +10,7 @@ Use this reference to decide **where code belongs**, **which hosts can run it**,
 4. Define a shared seam in the lowest consuming layer and implement it higher.
 5. Put React or browser behavior behind `./client`; keep `.` neutral.
 
+<!-- layer-map:diagram -->
 ```mermaid
 flowchart TD
   L4["L4 · app · testkit · mocks · devtools"] --> L3["L3 · auth · ui"]
@@ -19,9 +20,11 @@ flowchart TD
 ```
 
 *Arrows show the only allowed `@plainworks/*` import direction.*
+<!-- /layer-map:diagram -->
 
 ## Layer map
 
+<!-- layer-map:table -->
 | Layer | Packages | Responsibility |
 |---|---|---|
 | **L0** | `std` | Errors, results, guards, resilience, shared seams, list contracts, and structural web types. No React. |
@@ -29,8 +32,9 @@ flowchart TD
 | **L2** | `channel`, `connect`, `query`, `elements` | Streaming, RPC, TanStack Query integration, and vendored UI atoms. |
 | **L3** | `auth`, `ui` | Authentication, OIDC with PKCE, forms, data, navigation, and UI composites. |
 | **L4** | `app`, `testkit`, `mocks`, `devtools` | Application composition, shared test tooling, reusable MSW mock-building primitives, and the development-only runtime inspector. |
+<!-- /layer-map:table -->
 
-[`internal/boundaries/.dependency-cruiser.cjs`](../internal/boundaries/.dependency-cruiser.cjs) owns the authoritative `LAYERS` table. dependency-cruiser rejects upward imports, same-layer imports, cycles, and imports from packages missing from the table.
+[`internal/boundaries/layers.json`](../internal/boundaries/layers.json) is the single source of this map. The diagram and table here, in the README, and in the contributor instructions are generated from it with `bun run sync-layer-map`, and `bun run verify` fails when they drift. dependency-cruiser reads the same file and rejects upward imports, same-layer imports, cycles, and imports from packages missing from the map.
 
 The workspace has three roots:
 
@@ -227,16 +231,9 @@ The catalog pins TypeScript to `^6.0.3` because dependency-cruiser requires the 
 
 ## Definition of Done
 
-Run all gates from the repository root:
+Run all gates from the repository root. `internal/verify` owns the gate list; CI and the release workflow call the same command:
 
 ```sh
-bun run check-versions
-bun run lint
-bun run --filter @plainworks/elements registry:validate
-bun run check-comments
-bun run typecheck
-bun run check-boundaries
-bun run build
-bun run test
-bun run check-packaging
+bun run verify          # every gate, in order
+bun run verify --list   # the gates and what each enforces
 ```

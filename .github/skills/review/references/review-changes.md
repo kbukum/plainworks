@@ -19,7 +19,7 @@ Standing, re-runnable review of a **change set** in this repository — a branch
 
 Work the focused files top to bottom. **Stop and reject as soon as a change fails pass `00` or `01`** — misplaced or duplicated code makes every later pass unreliable.
 
-1. [`00-structure-placement.md`](./00-structure-placement.md) — package placement, acyclic layering + the `LAYERS` map, barrel discipline, server/client boundary, generator-born packages.
+1. [`00-structure-placement.md`](./00-structure-placement.md) — package placement, acyclic layering + the layer map, barrel discipline, server/client boundary, generator-born packages.
 2. [`01-canonical-reuse.md`](./01-canonical-reuse.md) — reuse vs. reimplementation of a `std`/platform-owned concern. *(blocker class)*
 3. [`02-principles.md`](./02-principles.md) — typed/minimal APIs, errors & resilience, async/concurrency, composition, current idioms, AI features.
 4. [`03-security-privacy.md`](./03-security-privacy.md) — trust-boundary validation, header-only auth, PKCE/cookie MUSTs, server/client custody, crypto, data minimization.
@@ -49,7 +49,7 @@ turbo run test --filter='...[origin/main]'   # only packages the diff affects
 bun run check-boundaries                      # fast placement/acyclicity guard
 bun run check-versions                        # catalog single-source
 turbo run check-packaging --filter=@plainworks/<name>   # publint + attw on the built tarball
-bun run --filter @plainworks/elements registry:validate   # when elements changed
+bun run check-registry                        # when elements changed
 turbo run test --filter=@plainworks/elements              # when theme changed (theme-variables contract)
 ```
 

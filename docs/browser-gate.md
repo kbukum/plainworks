@@ -56,7 +56,7 @@ Visual tests carry the `@visual` tag. Each captures one surface, such as a page,
 
 - **Data and time.** Each test resets its worker's mock backend. The host reads `PLAINWORKS_FIXED_NOW` to pin its clock, and the page's `Date` reads the same instant.
 - **Environment.** The locale is `en-US`, the time zone is UTC, and motion is reduced.
-- **Live updates.** A test pauses a live feed before its first update, so a capture never races the stream.
+- **Live updates.** A test pauses a live feed before its first update. When a real timer still drives the page (the Next host's demo stream feeds the devtools rail and inspector), the surface sets `holdsClock`: `arrange` pauses the page clock, the capture runs still, and the clock resumes for the axe scan that follows.
 - **No retries.** A flaky result is a defect to fix, not to retry.
 
 ## Update baselines

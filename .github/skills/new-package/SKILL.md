@@ -3,7 +3,7 @@ name: new-package
 description: >-
     Scaffold a new @plainworks/* package the canonical way — drive the turbo gen golden generator
     (never hand-roll files), pick the one-plain-word concern name, place it in the layer map, and
-    wire it into the boundaries LAYERS table so it is enforced from birth. Use when adding a new
+    wire it into the boundaries layer map (layers.json) so it is enforced from birth. Use when adding a new
     capability or package to plainworks, or when unsure where a package belongs.
 ---
 
@@ -19,15 +19,7 @@ plainworks packages are **born from a golden generator**, never hand-written —
 
 ## Step 2 — Decide the layer
 
-Place the package in the map (source of truth: the `LAYERS` table in [`../../../internal/boundaries/.dependency-cruiser.cjs`](../../../internal/boundaries/.dependency-cruiser.cjs)):
-
-```
-L0  std                                   errors/result/guards/contracts (seams), no React
-L1  state · http · theme · observability
-L2  channel · connect · query · elements
-L3  auth · ui
-L4  app · testkit · mocks
-```
+Place the package in the [layer map](../../../docs/architecture.md#layer-map). Its single source is [`internal/boundaries/layers.json`](../../../internal/boundaries/layers.json); the boundary gate and every doc copy are generated from it.
 
 A package in `Ln` may import `@plainworks` packages only in a strictly lower layer. If the new package needs something from a higher layer, you have the direction wrong — **define the seam in the lower package and implement it higher** (`std` owns shared contracts/event shapes). Dev/test-only tooling that is never published goes under `internal/` (like `@plainworks/boundaries`, `@plainworks/tsdown-config`), not `packages/`.
 
@@ -52,7 +44,7 @@ bun install
 
 ## Step 4 — Wire it into the layer map
 
-The generated package is **not yet in `LAYERS`**, so the boundary gate (correctly) forbids it from importing any other `@plainworks` package — it fails **closed**, never vacuously green. Add the package to the `LAYERS` table in `internal/boundaries/.dependency-cruiser.cjs` at its chosen layer, and mirror it in `README.md` + `docs/architecture.md`. A freshly generated package imports nothing internal, so it stays gate-passing until you add real cross-package imports.
+The generated package is **not yet in the layer map**, so the boundary gate (correctly) forbids it from importing any other `@plainworks` package — it fails **closed**, never vacuously green. Add it to `internal/boundaries/layers.json` at its chosen layer, then run `bun run sync-layer-map` to regenerate the README, `docs/architecture.md`, and instructions copies. A freshly generated package imports nothing internal, so it stays gate-passing until you add real cross-package imports.
 
 Update the boundaries fixture test if the new layer relationship needs coverage (`turbo run test --filter=@plainworks/boundaries`).
 
@@ -68,10 +60,7 @@ A UI package composes atoms from `@plainworks/elements/<name>` — never copy on
 
 ```bash
 bun install
-turbo run lint typecheck build test --filter=@plainworks/<name>
-bun run check-boundaries
-bun run check-versions
-turbo run check-packaging --filter=@plainworks/<name>
+bun run verify --filter=@plainworks/<name>
 bun run changeset          # add the release note
 ```
 
@@ -82,9 +71,9 @@ bun run changeset          # add the release note
 - [ ] `hasClient` chosen correctly; server `.` entry stays React/DOM-free
 - [ ] For a client package: components are accessible (WCAG 2.2 AA) and responsive; tests query by role, mock with MSW, and assert axe cleanliness
 - [ ] For a UI package: atoms consumed from `@plainworks/elements`, never copied or edited
-- [ ] Placed in the layer map and added to the `LAYERS` table (+ README + docs)
+- [ ] Added to `internal/boundaries/layers.json` and `bun run sync-layer-map` run
 - [ ] Imports only strictly-lower layers; a cross-layer need is a seam defined lower
 - [ ] `src/index.ts` re-exports only; logic in concern-named modules; multi-module concerns grouped into folders with barrel-only `index.ts`; names self-documenting by path (no `utils`/bare verbs); no `any` in the public surface
-- [ ] check-versions · lint · typecheck · check-boundaries · build · test · check-packaging green; Changeset added
+- [ ] `bun run verify --filter=@plainworks/<name>` green; Changeset added
 
 Per repo workflow, **create the branch and make edits only** — the maintainer commits and pushes.

@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Dev-only build tooling under `scripts/`, run with bun. It reads the filesystem and spawns
+  // processes, so it opts into Node types — unlike the package source, which stays host-independent
+  // and DOM/Node-free. Kept a separate project so those globals never leak into the shipped graph.
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["scripts"]
+}

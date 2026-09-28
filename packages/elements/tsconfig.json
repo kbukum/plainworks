@@ -10,6 +10,7 @@
   "references": [
     { "path": "./tsconfig.src.json" },
     { "path": "./tsconfig.client.json" },
-    { "path": "./tsconfig.shadcn.json" }
+    { "path": "./tsconfig.shadcn.json" },
+    { "path": "./tsconfig.scripts.json" }
   ]
 }

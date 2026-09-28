@@ -31,7 +31,7 @@ Apply the current step's actions **test-first**, honoring the baseline in [`../.
 
 - **TDD.** For each behavior: failing vitest test → minimal code → refactor while green, failure paths included. Never write production code first and add tests after. Reuse `@plainworks/testkit` fakes/harnesses.
 - **Best-practices bar.** The *simplest* design that fully solves the step — flexible (small typed seams over rigid/speculative abstraction), scalable (bounded buffers, cancellation, no unbounded streams), current idiomatic TS/React. Complexity must earn its place.
-- **Placement & layering.** Right package and layer; a package in `Ln` imports only `L<n`; a cross-layer need defines the seam in the lower package (`std` owns shared contracts/event shapes) and implements it higher. A new package is born through `bun run gen package` (see `new-package`) and added to the `LAYERS` map.
+- **Placement & layering.** Right package and layer; a package in `Ln` imports only `L<n`; a cross-layer need defines the seam in the lower package (`std` owns shared contracts/event shapes) and implements it higher. A new package is born through `bun run gen package` (see `new-package`) and added to `internal/boundaries/layers.json`.
 - **Host-independence.** Server-safe `.` entry (no React/DOM); optional `./client` with per-module `"use client"`; server-only/auth token-custody stays out of client graphs.
 - **Composition.** No import-time side effects, no module-level singletons — per-request factories; adapters register explicitly into an injected registry.
 - **Typed & minimal.** No `any` in public surfaces; typed errors preserving cause; timeout + cancellation on remote calls.

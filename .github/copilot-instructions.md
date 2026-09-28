@@ -40,24 +40,21 @@ Standing, re-runnable development skills that encode this baseline live in [`ski
 
 ## Build, Test, and Lint
 
-The root `package.json` scripts are the canonical gates; they run through `turbo` and are cache-correct. **Always scope to the package(s) you changed** — the unscoped scripts are for CI sign-off. See the `validate` skill for the scoped forms.
+`bun run verify` runs every Definition-of-Done gate in order, and it is the only place the gate list lives (`internal/verify`). CI, the release workflow, and the skills all call it. Each gate is also a root script, cache-correct through `turbo`. **Scope to the package(s) you changed**; the unscoped run is for CI sign-off. See the `validate` skill for the scoped forms.
 
 ```bash
-bun install                       # bun workspaces + catalog
-bun run check-versions            # sherif + syncpack lint (catalog is the single source of versions)
-bun run lint                      # biome check .
-bun run check-comments            # comment-format: `//` and `/** */` prose within the 100-col width
-bun run typecheck                 # tsc --noEmit across packages (+ the generator config)
-bun run check-boundaries          # dependency-cruiser: zero upward/sideways imports, zero cycles
-bun run build                     # tsdown, ESM-only, ships dist/
-bun run test                      # vitest run --coverage
-bun run check-packaging           # publint + are-the-types-wrong over each built tarball
-bun run --filter @plainworks/elements registry:validate   # vendored atoms match shadcn.lock.json
-bun run gen package               # scaffold a new @plainworks/* package from the golden template
-bun run changeset                 # add a Changeset for the release
+bun install                                   # bun workspaces + catalog
+bun run verify                                # every gate, in order
+bun run verify --filter=@plainworks/<name>    # scope the package gates (repeatable turbo filter)
+bun run verify --list                         # the gates and what each enforces
+bun run format                                # Biome safe fixes
+bun run format-comments                       # reflow over-width comment prose
+bun run sync-layer-map                        # regenerate the layer-map docs from layers.json
+bun run gen package                           # scaffold a new @plainworks/* package from the golden template
+bun run changeset                             # add a Changeset for the release
 ```
 
-The Definition of Done for every change is those eight gates green — **check-versions · lint · check-comments · typecheck · check-boundaries · build · test · check-packaging** — plus `registry:validate` (CI runs it on every change; run it locally whenever `elements` changes, and run the `elements` tests when `theme` changes), a Changeset, and the architecture invariants below. Scope with turbo filters: `turbo run test --filter=@plainworks/<name>` for one package, `--filter='...[origin/main]'` for the affected set.
+The Definition of Done for every change is `verify` green, a Changeset, and the architecture invariants below. `verify` includes the vendored-atom lock check (`check-registry`); also run the `elements` tests when `theme` changes. Scope with turbo filters: `--filter=@plainworks/<name>` for one package, `--filter='...[origin/main]'` for the affected set.
 
 ## Package structure
 
@@ -65,21 +62,23 @@ bun workspaces, three roots:
 
 - `packages/<name>/` — the published `@plainworks/*` packages. One concern, one plain word, the **same word everywhere** — no `core`, `engine`, `foundation`, or junk-drawer `utils`. Each is born from the golden generator so its `package.json`/`exports`/`tsconfig`/`tsdown`/`vitest` are identical.
 - `apps/<name>/` — examples/showcase and consuming apps (route tree stays app-local; never imported by a package).
-- `internal/<name>/` — dev-only tooling that is never published (`@plainworks/boundaries`, `@plainworks/tsdown-config`).
+- `internal/<name>/` — dev-only tooling that is never published: the gates (`boundaries`, `bundle-exclusion`, `comment-format`, `verify`), repository tools (`release`, `visual-baselines`), the build preset (`tsdown-config`), the demo domain (`demo`), and the cross-package suite (`integration`).
 
 Every published package: `"type": "module"`, `"sideEffects": false`, a server-safe `.` export and (when interactive) a `./client` export, `"files": ["dist"]`, `react`/`react-dom` as `catalog:` peer ranges. Add a new package **only** through `bun run gen package` — never hand-roll one (see the `new-package` skill).
 
 ## Layer map
 
-```
-L0  std                                   errors/result/guards/contracts (seams), no React
-L1  state (seam + zustand adapter) · http (typed fetch client) · theme (UI design substrate) · observability (logging, reporting, Web Vitals)
-L2  channel (+sse/ws) · connect (RPC) · query (TanStack wiring) · elements (vendored, locked shadcn/Base-UI atoms)
-L3  auth (core + custom/BYO & oidc adapters, PKCE flow, server split, client entry) · ui (composites + forms/data)
-L4  app (providers, harness) · testkit · mocks     (route tree stays app-local)
-```
+<!-- layer-map:table -->
+| Layer | Packages | Responsibility |
+|---|---|---|
+| **L0** | `std` | Errors, results, guards, resilience, shared seams, list contracts, and structural web types. No React. |
+| **L1** | `state`, `http`, `theme`, `observability` | Reactive state, typed HTTP, the design-token substrate, and logging/error-reporting/Web Vitals seams. |
+| **L2** | `channel`, `connect`, `query`, `elements` | Streaming, RPC, TanStack Query integration, and vendored UI atoms. |
+| **L3** | `auth`, `ui` | Authentication, OIDC with PKCE, forms, data, navigation, and UI composites. |
+| **L4** | `app`, `testkit`, `mocks`, `devtools` | Application composition, shared test tooling, reusable MSW mock-building primitives, and the development-only runtime inspector. |
+<!-- /layer-map:table -->
 
-The map has a single source of truth: the `LAYERS` table in [`../internal/boundaries/.dependency-cruiser.cjs`](../internal/boundaries/.dependency-cruiser.cjs), mirrored in README + `docs/architecture.md`. Adding a package means adding it to `LAYERS` (a package absent from the map may import no other `@plainworks` package — the gate fails **closed**, never vacuously green). A fixture-backed test in `@plainworks/boundaries` proves the gate rejects an upward import.
+The map has a single source of truth: [`../internal/boundaries/layers.json`](../internal/boundaries/layers.json). The table above, the README, and `docs/architecture.md` are generated from it (`bun run sync-layer-map`), and `verify` fails when they drift. Adding a package means adding it to `layers.json` (a package absent from the map may import no other `@plainworks` package — the gate fails **closed**, never vacuously green). A fixture-backed test in `@plainworks/boundaries` proves the gate rejects an upward import.
 
 ## Vendored atoms
 

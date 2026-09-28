@@ -128,9 +128,9 @@
   "scripts": {
     "build": "tsdown",
     "check-packaging": "publint --strict && attw --pack --profile esm-only --exclude-entrypoints @plainworks/ui/styles.css",
-    "codegen": "node scripts/codegen/cli.mjs",
+    "codegen": "bun scripts/codegen/cli.ts",
     "lint": "biome check .",
     "test": "vitest run --coverage",
-    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json"
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.scripts.json"
   }
 }

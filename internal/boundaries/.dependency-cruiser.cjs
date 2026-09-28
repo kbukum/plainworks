@@ -7,18 +7,14 @@
 // THIS package's package.json only, with zero churn to the rest of the repo. See
 // docs/architecture.md › Governance.
 //
-// Single source of truth for the layer map (mirrors README + docs/architecture.md):
-//
-//   L0  std
-//   L1  state · http · theme · observability
-//   L2  channel · connect · query · elements
-//   L3  auth · ui
-//   L4  app · testkit · mocks        (dev/test tooling lives here too)
+// The layer map lives in `layers.json` beside this file: one entry per layer, L0 first. It is the
+// single source; `bun run sync-layer-map` renders the README, `docs/architecture.md`, and the
+// instructions from it, and `bun run check-layer-map` fails when they drift.
 //
 // The heavy leaf UI domains `charts`/`media`/`editors` are reserved for L4 on `ui`+`elements`+
-// `theme` (see docs/architecture.md › UI family); they are added to LAYERS only when built, and
-// their arrival pushes `app`/`testkit`/`mocks` to L5. Until then `ui` at L3 with `app` at L4 is
-// the valid intermediate state.
+// `theme` (see docs/architecture.md › UI family); they are added to `layers.json` only when built,
+// and their arrival pushes `app`/`testkit`/`mocks` to L5. Until then `ui` at L3 with `app` at L4
+// is the valid intermediate state.
 //
 // Rule: a package in Ln may import @plainworks packages only in a strictly LOWER layer.
 // Same-layer ("sideways") and upward imports are forbidden. A cross-layer need defines the
@@ -36,23 +32,12 @@ const TEST_FILE = "\\.test\\.tsx?$"
 // Repo root, resolved from this file so cwd (a package dir under `bun run --filter`) is irrelevant.
 const repoRoot = path.resolve(__dirname, "..", "..")
 
-const LAYERS = {
-  std: 0,
-  state: 1,
-  http: 1,
-  theme: 1,
-  observability: 1,
-  channel: 2,
-  connect: 2,
-  query: 2,
-  elements: 2,
-  auth: 3,
-  ui: 3,
-  app: 4,
-  testkit: 4,
-  mocks: 4,
-  devtools: 4,
-}
+// Package name -> layer number, derived from the layer order in `layers.json`.
+const LAYERS = Object.fromEntries(
+  require("./layers.json").layers.flatMap((entry, layer) =>
+    entry.packages.map((pkg) => [pkg, layer]),
+  ),
+)
 
 // Internal concern order INSIDE @plainworks/ui — the package LAYERS model, one level down. `ui`
 // (L3) keeps the interwoven `forms`/`data` concerns as subpaths (not separate packages), so their
@@ -115,7 +100,9 @@ function unmappedUiConcernRules() {
       comment:
         "The packages/ui/src/<concern> folder is not in UI_CONCERNS, so it has no band. Add it to UI_CONCERNS (in .dependency-cruiser.cjs) with a band before importing another @plainworks/ui concern.",
       severity: "error",
-      from: { path: `(^|/)packages/ui/src/(?!(?:client|${neutralConcernDirs.join("|")})/)([^/]+)/` },
+      from: {
+        path: `(^|/)packages/ui/src/(?!(?:client|${neutralConcernDirs.join("|")})/)([^/]+)/`,
+      },
       to: { path: "(^|/)packages/ui/src/", pathNot: "(^|/)packages/ui/src/$2/" },
     },
     {
@@ -203,7 +190,7 @@ const forbidden = [
     // internal, so it is still born gate-passing.
     name: "unmapped-package-no-internal-imports",
     comment:
-      "This package is not in the LAYERS map, so it has no layer. Add it to LAYERS (in .dependency-cruiser.cjs) to give it a layer before importing another @plainworks package.",
+      "This package is not in the LAYERS map, so it has no layer. Add it to internal/boundaries/layers.json to give it a layer before importing another @plainworks package.",
     severity: "error",
     from: { path: `(^|/)packages/(?!(?:${Object.keys(LAYERS).join("|")})/)([^/]+)/src/` },
     to: { path: "(^|/)packages/", pathNot: "(^|/)packages/$2/" },
@@ -215,7 +202,7 @@ const forbidden = [
     // imports need no exclusion: a package cannot be both mapped and unmapped.
     name: "no-mapped-to-unmapped",
     comment:
-      "The imported package is not in the LAYERS map, so no mapped package may depend on it. Add it to LAYERS (in .dependency-cruiser.cjs) first.",
+      "The imported package is not in the LAYERS map, so no mapped package may depend on it. Add it to internal/boundaries/layers.json first.",
     severity: "error",
     from: { path: `(^|/)packages/(?:${Object.keys(LAYERS).join("|")})/src/` },
     to: { path: `(^|/)packages/(?!(?:${Object.keys(LAYERS).join("|")})/)[^/]+/` },

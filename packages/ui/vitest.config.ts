@@ -10,25 +10,25 @@ export default defineConfig({
     // DOM tests that run axe and user-event can pass 5 s on a busy CI runner. The tests are
     // deterministic, so the longer limit only guards against a hang; it never hides a failure.
     testTimeout: 15_000,
-    // The disk→public-API codegen is dev-only `.mjs` tooling under `scripts/`; its tests live
-    // beside it rather than in the shipped `src/` graph.
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "scripts/**/*.test.mjs"],
+    // The disk→public-API codegen is dev-only TypeScript tooling under `scripts/`, run with bun;
+    // its tests live beside it rather than in the shipped `src/` graph.
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "scripts/**/*.test.ts"],
     coverage: {
       provider: "v8",
-      // The `.mjs` codegen under `scripts/` is code this package authors, so it is measured
+      // The codegen under `scripts/` is code this package authors, so it is measured
       // alongside `src/` — not left to run tested-but-unmeasured.
-      include: ["src/**/*.{ts,tsx}", "scripts/**/*.mjs"],
+      include: ["src/**/*.{ts,tsx}", "scripts/**/*.ts"],
       // Re-export-only barrels carry no logic to unit-test (the `"use client"` directive's survival
       // is proven by the CI dist check, not coverage); excluding every `index.ts` barrel keeps
-      // tests from coupling to a re-export file just to color a line. `cli.mjs` is the
-      // maintainer-run bin and `format.mjs` shells to Biome, so neither is unit-measured.
+      // tests from coupling to a re-export file just to color a line. `cli.ts` is the
+      // maintainer-run bin and `format.ts` shells to Biome, so neither is unit-measured.
       exclude: [
         "src/**/*.test.{ts,tsx}",
         "src/**/index.ts",
         "src/client.ts",
-        "scripts/**/*.test.mjs",
-        "scripts/codegen/cli.mjs",
-        "scripts/codegen/format.mjs",
+        "scripts/**/*.test.ts",
+        "scripts/codegen/cli.ts",
+        "scripts/codegen/format.ts",
       ],
       thresholds: {
         lines: 80,

@@ -1,6 +1,6 @@
 {
   "name": "create-plainworks",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.1",
   "description": "The plainworks project initializer: `npm create plainworks` / `bunx create-plainworks` scaffolds one wired, runnable app that assembles the published @plainworks/* surfaces over a local mock backend.",
   "type": "module",
   "license": "MIT",
@@ -31,13 +31,13 @@
     "examples"
   ],
   "scripts": {
-    "build": "node scripts/sync-versions.mjs && bun scripts/bundle-examples.mjs && tsdown",
+    "build": "bun scripts/sync-versions.ts && bun scripts/bundle-examples.ts && tsdown",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
     "lint": "biome check .",
     "check-packaging": "publint --strict",
-    "smoke": "node scripts/smoke.mjs",
-    "sync-versions": "node scripts/sync-versions.mjs"
+    "smoke": "bun scripts/smoke.ts",
+    "sync-versions": "bun scripts/sync-versions.ts"
   },
   "devDependencies": {
     "@types/node": "catalog:",

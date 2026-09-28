@@ -47,6 +47,7 @@ Fill every section of [`../../PULL_REQUEST_TEMPLATE.md`](../../PULL_REQUEST_TEMP
 - **Testing** — check only the DoD gates you actually ran, scoped to affected packages (`turbo run test --filter=@plainworks/<name>`, `bun run check-boundaries`, `bun run check-versions`). Paste real evidence if useful; don't fabricate output.
 - **Breaking Changes** — alpha, so breaking changes are welcome. Say what was redesigned and what was removed, never a migration shim or deprecation path. Check **Breaking change** honestly, and use a `minor` Changeset.
 - **Host-independence & seams** — if a package's server/client split or a shared seam changed, say so (e.g. "auth-header seam moved into `std`"; "`./client` entry added").
+- **UI check** — for a change an app user can see, give the `ui:check --affected` verdict, the flows it ran, and one line per intended visual change. Attach the changed-frames sheet if it helps the reviewer (see `github-pr-media`).
 - **Changeset** — confirm one is included; it is the release-note source of truth, so write it in the same plain, benefit-first voice (what a consumer gains, not the internal mechanics — see the Documentation baseline), not a commit log.
 - **Checklist** — tick only what is genuinely true. An unchecked box is honest signal; a falsely checked one wastes reviewer trust.
 

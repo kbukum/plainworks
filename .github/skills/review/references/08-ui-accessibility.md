@@ -35,6 +35,10 @@ The client-binding pass. It runs **only when the change touches interactive UI**
 
 - Pure logic/types/schemas live in the server-safe `.` graph (or `std`); the `"use client"` leaf holds only DOM/hook-bound code. Logic that could be server-safe stranded inside a `"use client"` module is a should-fix (it needlessly widens the client graph). Server-only auth/token code reachable from a `"use client"` module is a blocker (also pass 03).
 
+## Evidence from the app
+
+For a change that reaches an app, ask for (or run) `bun run ui:check --affected` in that app. A hard failure (exit 1) is a blocker. Read its evidence bundle in `report.md` rather than rerunning. Check every frame in `sheets/changed.png` against the change's intent: an unexplained visual change is a should-fix. A new user-facing journey without a flow, or a flow whose `covers` misses the files it exercises, is a should-fix. Never accept a checkpoint `allow` entry without a reason that names the product decision.
+
 ## Detection starters
 
 Flag candidates, not verdicts — read each hit.

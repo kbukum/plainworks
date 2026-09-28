@@ -13,7 +13,9 @@ export function measureLayoutFacts(page: Page): Promise<LayoutFacts> {
 /**
  * Collect {@link LayoutFacts} from the document. Runs in the browser, so it names nothing outside
  * its own body. Content under `inert` or `aria-hidden` (the page behind a modal) is left out, and
- * visually hidden text (a screen-reader-only label) is never judged as clipped.
+ * visually hidden text (a screen-reader-only label) is never judged as clipped. Focus scrolling is
+ * modeled on the document scroller: the viewport minus the root `scroll-padding` is where focus
+ * brings a control, as far as the page can still scroll.
  */
 function collectLayoutFacts(limits: { maxElements: number; maxTracked: number }): LayoutFacts {
   const viewportWidth = window.innerWidth
@@ -65,12 +67,85 @@ function collectLayoutFacts(limits: { maxElements: number; maxTracked: number })
     const box = element.getBoundingClientRect()
     return { x: box.x, y: box.y, width: box.width, height: box.height }
   }
+  // A scrolling list or a clipped card paints only its padding box, so a control scrolled past its
+  // edge draws nothing outside it. An empty result means nothing of the control is painted.
+  const paintedBoxOf = (element: Element) => {
+    const own = element.getBoundingClientRect()
+    let left = own.left
+    let top = own.top
+    let right = own.right
+    let bottom = own.bottom
+    for (let node = element.parentElement; node !== null; node = node.parentElement) {
+      const style = getComputedStyle(node)
+      if (style.position === "fixed") break
+      if (style.overflowX === "visible" && style.overflowY === "visible") continue
+      const clip = node.getBoundingClientRect()
+      const clipLeft = clip.left + node.clientLeft
+      const clipTop = clip.top + node.clientTop
+      if (style.overflowX !== "visible") {
+        left = Math.max(left, clipLeft)
+        right = Math.min(right, clipLeft + node.clientWidth)
+      }
+      if (style.overflowY !== "visible") {
+        top = Math.max(top, clipTop)
+        bottom = Math.min(bottom, clipTop + node.clientHeight)
+      }
+    }
+    return { x: left, y: top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) }
+  }
   const pinned = (element: Element): Element | null => {
     for (let node: Element | null = element; node !== null; node = node.parentElement) {
       const position = getComputedStyle(node).position
       if (position === "fixed" || position === "sticky") return node
     }
     return null
+  }
+
+  const scroller = document.scrollingElement ?? document.documentElement
+  const rootStyle = getComputedStyle(document.documentElement)
+  const padding = (value: string): number => Number.parseFloat(value) || 0
+  const safe = {
+    top: padding(rootStyle.scrollPaddingTop),
+    bottom: viewportHeight - padding(rootStyle.scrollPaddingBottom),
+    left: padding(rootStyle.scrollPaddingLeft),
+    right: viewportWidth - padding(rootStyle.scrollPaddingRight),
+  }
+  const room = {
+    up: scroller.scrollTop,
+    down: scroller.scrollHeight - scroller.scrollTop - viewportHeight,
+    left: scroller.scrollLeft,
+    right: scroller.scrollWidth - scroller.scrollLeft - viewportWidth,
+  }
+  // Rounding slack, in CSS pixels, for comparing the chrome's edge with the scroll padding.
+  const SLACK = 1
+  const fitsAxis = (
+    start: number,
+    end: number,
+    low: number,
+    high: number,
+    back: number,
+    forward: number,
+  ): boolean => {
+    if (end - start > high - low + SLACK) return false
+    if (end > high) return end - high <= forward + SLACK
+    if (start < low) return low - start <= back + SLACK
+    return true
+  }
+  // Focus scrolls a control into the padded viewport, so chrome that sits wholly in the padding
+  // band cannot cover it once focused, as long as the page can scroll that far.
+  const revealedOnFocus = (element: Element, cover: Element): boolean => {
+    const chrome = cover.getBoundingClientRect()
+    const inPadding =
+      chrome.top >= safe.bottom - SLACK ||
+      chrome.bottom <= safe.top + SLACK ||
+      chrome.left >= safe.right - SLACK ||
+      chrome.right <= safe.left + SLACK
+    if (!inPadding) return false
+    const box = element.getBoundingClientRect()
+    return (
+      fitsAxis(box.top, box.bottom, safe.top, safe.bottom, room.up, room.down) &&
+      fitsAxis(box.left, box.right, safe.left, safe.right, room.left, room.right)
+    )
   }
 
   const facts: {
@@ -128,7 +203,14 @@ function collectLayoutFacts(limits: { maxElements: number; maxTracked: number })
     const exposed =
       reachesSelf ||
       (hitControl !== null && hitControl.closest(OVERLAY) === element.closest(OVERLAY))
-    facts.targets.push({ key: keyOf(element), name: nameOf(element), box: boxOf(element), exposed })
+    const inChrome = pinned(element) !== null
+    facts.targets.push({
+      key: keyOf(element),
+      name: nameOf(element),
+      box: paintedBoxOf(element),
+      exposed,
+      pinned: inChrome,
+    })
     if (facts.tracked.length < limits.maxTracked) {
       facts.tracked.push({ key: keyOf(element), name: nameOf(element), box: boxOf(element) })
     }
@@ -145,6 +227,7 @@ function collectLayoutFacts(limits: { maxElements: number; maxTracked: number })
         : {
             name: nameOf(cover),
             overlay: cover.closest(OVERLAY) !== null || cover.matches(OVERLAY),
+            revealedOnFocus: !inChrome && revealedOnFocus(element, cover),
           }
     facts.focusables.push({ name: nameOf(element), coveredBy })
   }

@@ -69,4 +69,6 @@ Treat a green run as **necessary but not sufficient**: it does not catch unbound
 
 For a client/UI package, accessibility and responsiveness are part of the acceptance bar (review pass [`08`](../review/references/08-ui-accessibility.md)): each component test asserts axe cleanliness in-band with the scoped `turbo run test`. There is **no separate a11y CI script** — don't invent one; the axe assertion lives in the component's own Vitest test.
 
+For a change an app user can see, `verify` is not enough: also meet the [UI Definition of Done](../../copilot-instructions.md#build-test-and-lint) in the app. Save `bun run ui:check --save-as before` before editing. Then run `bun run ui:check --affected` until it exits 0, and review the changed frames in `sheets/changed.png`. Exit code 1 means a check failed; read its evidence in `report.md`. Exit code 2 means the harness could not run: fix the setup, don't retry blindly. Start `bun run ui:host` once to keep each check fast.
+
 Per repo workflow, **make edits only** — the maintainer commits and pushes.

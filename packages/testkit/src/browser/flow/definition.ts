@@ -67,6 +67,12 @@ export interface FlowCheckpoint {
 export interface Flow {
   /** A lowercase slug, unique in a suite. It names the flow's artifacts. */
   readonly name: string
+  /**
+   * Globs of the repository paths this flow proves, relative to the repository root, such as
+   * `apps/showcase/src/routes/tasks/**`. `ui:check --affected` runs the flows whose globs match a
+   * changed file. `*` matches within one path segment and `**` across segments.
+   */
+  readonly covers?: readonly string[]
   readonly checkpoints: readonly FlowCheckpoint[]
 }
 
@@ -74,12 +80,25 @@ const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 /**
  * Validate a flow and return it. Throws a `flow/definition` {@link FlowError} for a name that is
- * not a lowercase slug, no checkpoints, a repeated checkpoint name, an allowance with no reason,
- * or an allowance pattern with the `g` or `y` flag, whose `lastIndex` would make matching depend
- * on what it matched before.
+ * not a lowercase slug, a `covers` glob that is empty or leaves the repository, no checkpoints, a
+ * repeated checkpoint name, an allowance with no reason, or an allowance pattern with the `g` or
+ * `y` flag, whose `lastIndex` would make matching depend on what it matched before.
  */
 export function defineFlow<const T extends Flow>(flow: T): T {
   slug("Flow", flow.name)
+  for (const pattern of flow.covers ?? []) {
+    if (
+      pattern.trim() === "" ||
+      pattern.startsWith("/") ||
+      pattern.includes("\\") ||
+      pattern.split("/").includes("..")
+    ) {
+      throw new FlowError(
+        "definition",
+        `Flow "${flow.name}" covers "${pattern}", which is not a repository-relative glob`,
+      )
+    }
+  }
   if (flow.checkpoints.length === 0) {
     throw new FlowError("definition", `Flow "${flow.name}" needs at least one checkpoint`)
   }

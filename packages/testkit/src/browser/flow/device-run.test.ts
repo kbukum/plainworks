@@ -5,8 +5,8 @@ import type { RuntimeError } from "../checks/runtime-errors"
 import { defineFlow, type Flow, type FlowCheckpoint } from "./definition"
 import { runFlowOnDevice } from "./device-run"
 import { expandFlowMatrix } from "./matrix/expand"
-import type { ArtifactStore } from "./report/artifacts"
 import { openFlowRun } from "./report/artifacts"
+import { memoryArtifactStore } from "./report/memory-store"
 import type { FlowSession } from "./session"
 
 const noop = async (_page: Page): Promise<void> => undefined
@@ -52,17 +52,8 @@ function fakeSession(overrides: Partial<FlowSession> = {}) {
 }
 
 function memoryRun() {
-  const files = new Map<string, string | Uint8Array>()
-  const store: ArtifactStore = {
-    createDir: async () => true,
-    write: async (path, data) => void files.set(path, data),
-    read: async () => "",
-    list: async () => [],
-    size: async () => 0,
-    remove: async () => undefined,
-    link: async () => undefined,
-  }
-  return { run: openFlowRun("/run", store), files }
+  const store = memoryArtifactStore()
+  return { run: openFlowRun("/run", store), files: store.files }
 }
 
 const twoStep: Flow = defineFlow({

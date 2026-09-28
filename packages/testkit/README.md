@@ -148,17 +148,21 @@ export default () => setupFlowRun({ root: ".ui-artifacts" })
 // flows.spec.ts
 const createTask = defineFlow({
   name: "create-task",
+  // Repository globs this flow exercises; `ui:check --affected` maps changed files through them.
+  covers: ["apps/web/src/tasks/**", "apps/web/e2e/flows/create-task.ts"],
   checkpoints: [
     { name: "board", act: (page) => page.goto("/tasks"), ready: (page) => page.getByRole("heading", { name: "Tasks" }) },
     { name: "new-task", act: (page, { signal }) => page.getByRole("button", { name: "New task" }).click({ signal }), ready: (page) => page.getByRole("dialog") },
   ],
 })
 
-for (const planned of planFlowRuns([createTask], { matrix: "quick", axes })) {
+// A plain `playwright test` asserts every flow at `quick`; `ui:check` picks flows, preset, and mode.
+const suite = planFlowSuite([createTask], { axes })
+for (const planned of suite.runs) {
   test.describe(planned.title, () => {
     test.use(planned.use)
     test("flow", ({ page, runtimeErrors }, testInfo) =>
-      runFlow({ page, runtimeErrors }, planned, { mode: "capture", testInfo }),
+      runFlow({ page, runtimeErrors }, planned, { mode: suite.mode, testInfo }),
     )
   })
 }
@@ -167,13 +171,44 @@ for (const planned of planFlowRuns([createTask], { matrix: "quick", axes })) {
 | Export | What it gives you |
 |---|---|
 | `defineFlow` | Validates a flow. A checkpoint picks its checks, may `allow` a finding with a reason, and opts into a `pixel` baseline. Its `act` gets a `signal`: pass it to Playwright calls so a timed-out action stops. |
+| `planFlowSuite` | The spec-side plan: every flow at `quick` in a plain run, or the flows, preset, and mode `ui:check` passes through the environment. |
 | `planFlowRuns` | One test per flow × device for a matrix preset (`quick`, `devices`, `themes`, `a11y`, `full`) or a `MatrixSpec`. Big matrices sample pairwise. Every flow is validated, even one built without `defineFlow`. |
 | `ThemeAxes` | Your theme vocabulary and how `<html>` renders it. For plainworks, build it from `@plainworks/theme`. Without it, flows vary light and dark only. |
-| `runFlow` / `setupFlowRun` | Run a planned flow in a test, and manage the run directory around the whole invocation. |
+| `runFlow` / `setupFlowRun` | Run a planned flow in a test, and manage the run directory around the whole invocation. A run no flow wrote to is removed. |
 | `runFlowOnDevice` / `FlowSession` | The engine behind `runFlow`, driven through a page port you can fake. Each step's port call gets a signal that aborts when the step's budget runs out. |
 | `FlowError` | Why a flow stopped: `action`, `readiness`, `unstable-frame`, `timeout`, `session`, `aborted`, or `failed` checks. |
 
 A run lands in `<root>/runs/<id>/`, with `<root>/latest` pointing at the newest. Each failure gets an evidence bundle next to it: a frame, the ARIA tree, an inert DOM snapshot, and recent console and network entries. The snapshot has no scripts, redirects, or hidden and password values, and a policy that blocks script, so opening it never runs page code. Every page message is size-capped. When a bundle can't be collected, the report says why. Old runs are pruned: five runs, the current one included, within 1 GiB by default. Keep the root out of version control.
+
+### The UI loop — `ui:check`
+
+`ui:check` runs the flows, checks every checkpoint, and compares the frames with a baseline from the same machine. It prints one verdict and the report path. Wire it once per app:
+
+```ts
+// e2e/ui-check.ts, run with `bun e2e/ui-check.ts` (the showcase names it `ui:check`).
+process.exitCode = await runUiCheckCli({ app: "@acme/web", appDir: "apps/web", root: ".ui-artifacts", spec: "e2e/flows.spec.ts", flows, axes, host, warmPort: 5190 })
+```
+
+The everyday loop on a UI change:
+
+```bash
+bun run ui:check --save-as before   # before you edit: save a baseline
+# ...edit...
+bun run ui:check --affected         # the flows your change touches, compared with "before"
+```
+
+| Flag | Effect |
+|---|---|
+| `--affected` | Only the flows whose `covers` match files changed since the merge-base with `origin/main`. A file no flow covers selects every flow (fail safe). The report says why each flow ran. |
+| `--flow <a,b>` | Run the named flows. |
+| `--preset <name>` | The matrix preset. Defaults to `quick`. |
+| `--save-as <name>` | Keep this run as a named local snapshot. |
+| `--base <snapshot or git ref>` | Compare with a snapshot, or with the merge-base of a git ref. Without it, a run compares with `before` when that snapshot exists. A git base is captured once from a worktree and cached by commit, flow source, and preset; the three most recent are kept. |
+| `--no-diff` | Check only; skip the comparison. |
+
+Exit codes: **0** when nothing failed, **1** when a check failed, **2** when the harness could not run (a usage error, a base that could not be captured, or a run that never finished). Visual changes never fail the run. They are listed in `report.md` under **Visual changes**, and `sheets/changed.png` shows each changed frame as before, after, and a highlighted diff. A frame counts as `removed` only when its flow ran cleanly; frames of a flow that errored or wasn't selected are `not captured`.
+
+**Warm host.** `ui:check serve` starts the app once on `warmPort` and keeps it signed in, so later `ui:check` runs skip startup. Stop it with Ctrl-C. It also writes a [Playwright MCP](https://github.com/microsoft/playwright-mcp) config for exploring the same seeded, fixed-clock, signed-in app, and prints the command to start it. Don't explore while `ui:check` runs: the gate resets the demo data before each flow.
 
 ## Streaming transport double — `fakeStreamTransport`
 

@@ -62,8 +62,8 @@ describe("judgeOverlappingTargets", () => {
   it("passes targets that sit apart or only touch", () => {
     expect(
       judgeOverlappingTargets([
-        { key: "0.1", name: "Save", box: box(0, 0), exposed: true },
-        { key: "0.2", name: "Cancel", box: box(100, 0), exposed: true },
+        { key: "0.1", name: "Save", box: box(0, 0), exposed: true, pinned: false },
+        { key: "0.2", name: "Cancel", box: box(100, 0), exposed: true, pinned: false },
       ]),
     ).toEqual([])
   })
@@ -71,8 +71,8 @@ describe("judgeOverlappingTargets", () => {
   it("reports two visible controls drawn over each other", () => {
     expect(
       judgeOverlappingTargets([
-        { key: "0.1", name: "Save", box: box(0, 0), exposed: true },
-        { key: "0.2", name: "Cancel", box: box(70, 10), exposed: true },
+        { key: "0.1", name: "Save", box: box(0, 0), exposed: true, pinned: false },
+        { key: "0.2", name: "Cancel", box: box(70, 10), exposed: true, pinned: false },
       ]),
     ).toEqual([{ check: "overlapping-targets", message: '"Save" and "Cancel" overlap by 30x30px' }])
   })
@@ -80,11 +80,31 @@ describe("judgeOverlappingTargets", () => {
   it("ignores a control nested in another and one hidden under an overlay", () => {
     expect(
       judgeOverlappingTargets([
-        { key: "0.1", name: "Row", box: box(0, 0, 400), exposed: true },
-        { key: "0.1.4", name: "Edit", box: box(300, 0), exposed: true },
-        { key: "0.2", name: "Behind dialog", box: box(0, 0), exposed: false },
+        { key: "0.1", name: "Row", box: box(0, 0, 400), exposed: true, pinned: false },
+        { key: "0.1.4", name: "Edit", box: box(300, 0), exposed: true, pinned: false },
+        { key: "0.2", name: "Behind dialog", box: box(0, 0), exposed: false, pinned: false },
       ]),
     ).toEqual([])
+  })
+
+  it("leaves scrolling content under pinned chrome to the obscured-focus check", () => {
+    expect(
+      judgeOverlappingTargets([
+        { key: "0.1", name: "Last 90 days", box: box(0, 0), exposed: true, pinned: false },
+        { key: "0.9.1", name: "Inspect", box: box(20, 10), exposed: true, pinned: true },
+      ]),
+    ).toEqual([])
+  })
+
+  it("reports two pinned controls drawn over each other", () => {
+    expect(
+      judgeOverlappingTargets([
+        { key: "0.8.1", name: "Dismiss toast", box: box(0, 0), exposed: true, pinned: true },
+        { key: "0.9.1", name: "Inspect", box: box(70, 10), exposed: true, pinned: true },
+      ]),
+    ).toEqual([
+      { check: "overlapping-targets", message: '"Dismiss toast" and "Inspect" overlap by 30x30px' },
+    ])
   })
 })
 
@@ -92,7 +112,10 @@ describe("judgeObscuredFocusables", () => {
   it("reports focusable content hidden under fixed chrome", () => {
     expect(
       judgeObscuredFocusables([
-        { name: "Load more", coveredBy: { name: "Devtools bar", overlay: false } },
+        {
+          name: "Load more",
+          coveredBy: { name: "Devtools bar", overlay: false, revealedOnFocus: false },
+        },
       ]),
     ).toEqual([
       {
@@ -102,11 +125,22 @@ describe("judgeObscuredFocusables", () => {
     ])
   })
 
+  it("accepts a control that focusing scrolls clear of the chrome", () => {
+    expect(
+      judgeObscuredFocusables([
+        {
+          name: "Mark read",
+          coveredBy: { name: "Devtools bar", overlay: false, revealedOnFocus: true },
+        },
+      ]),
+    ).toEqual([])
+  })
+
   it("accepts an uncovered control and one an open overlay covers on purpose", () => {
     expect(
       judgeObscuredFocusables([
         { name: "Save", coveredBy: null },
-        { name: "Tasks", coveredBy: { name: "New task", overlay: true } },
+        { name: "Tasks", coveredBy: { name: "New task", overlay: true, revealedOnFocus: false } },
       ]),
     ).toEqual([])
   })

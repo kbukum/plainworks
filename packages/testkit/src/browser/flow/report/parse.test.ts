@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { FlowError } from "../errors"
-import { parseFlowDeviceReport } from "./parse"
+import { parseFlowDeviceReport, parseFlowReport } from "./parse"
 import type { FlowDeviceReport } from "./schema"
 
 const entry: FlowDeviceReport = {
@@ -65,5 +65,33 @@ describe("parseFlowDeviceReport", () => {
     }
     expect(caught).toBeInstanceOf(FlowError)
     expect(caught).toMatchObject({ kind: "flow/report" })
+  })
+})
+
+describe("parseFlowReport", () => {
+  const report = {
+    schemaVersion: 1,
+    runId: "r1",
+    createdAt: "2026-01-15T12:00:00.000Z",
+    summary: { verdict: "pass" },
+    selection: { by: "all" },
+    runs: [entry],
+  }
+
+  it("keeps the validated entries and totals the summary again", () => {
+    const parsed = parseFlowReport(JSON.parse(JSON.stringify(report)))
+    expect(parsed.runs).toEqual([entry])
+    expect(parsed.summary).toMatchObject({ verdict: "fail", runs: 1, failures: 2 })
+    expect(parsed).not.toHaveProperty("selection")
+  })
+
+  it.each([
+    ["another schema version", { ...report, schemaVersion: 99 }],
+    ["no run id", { ...report, runId: 3 }],
+    ["no runs", { ...report, runs: undefined }],
+    ["a malformed entry", { ...report, runs: [{ flow: 1 }] }],
+    ["not an object", "report"],
+  ])("rejects %s", (_, value) => {
+    expect(() => parseFlowReport(value)).toThrow(FlowError)
   })
 })

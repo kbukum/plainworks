@@ -73,6 +73,16 @@ bun run check-production --filter=@plainworks/showcase
 
 Vitest covers server rendering, hydration, query behavior, mutations, keyboard interactions, and the deterministic DOM accessibility floor. Playwright runs the [browser gate](../../docs/browser-gate.md): every page, overlay, and loading, error, or empty state in light and dark at each viewport, plus a component gallery, with axe, reflow, focus, and screenshot checks. Baselines change only through the `e2e:update` scripts. The workspace-wide CI gates also run type checking, linting, comment formatting, boundary checks, and version checks.
 
+## Check a UI change
+
+```bash
+bun run --filter @plainworks/showcase ui:check --save-as before   # before editing
+bun run --filter @plainworks/showcase ui:check --affected         # after: checks + visual changes
+bun run --filter @plainworks/showcase ui:host                     # optional: a warm, signed-in host
+```
+
+`ui:check` runs the flows in `e2e/flows/` against a seeded, fixed-clock, signed-in host and prints a verdict and a report path under `.ui-artifacts/`. The report lists every failure with its evidence and every visual change with before, after, and diff frames. `ui:host` keeps a host running so each check skips startup, and prints a Playwright MCP command for exploring the same app. See the [testkit guide](../../packages/testkit/README.md#the-ui-loop--uicheck) for the flags and exit codes.
+
 ## Project map
 
 | Path | Responsibility |
@@ -80,7 +90,7 @@ Vitest covers server rendering, hydration, query behavior, mutations, keyboard i
 | `src/app` | Host-neutral navigation, validated reads and writes, authorization, cache reconciliation, and theme resolution. |
 | `src/server` | Streaming server rendering, the HTML document, and request-boundary handling. |
 | `src/client` | The shared React tree, capabilities, sections, router, development inspector, and composed styles. |
-| `e2e` | The browser gate: functional specs at the top level, screenshot surfaces in `visual/`, shared helpers in `support/`, and test-only pages in `fixtures/`. |
+| `e2e` | The browser gate: flows in `flows/` (run by `ui:check`), functional specs at the top level, screenshot surfaces in `visual/`, shared helpers in `support/`, and test-only pages in `fixtures/`. |
 | `server.ts` | Development composition for authentication, SSR, Vite, and isolated demo mock graphs. |
 
 The route tree stays app-local, the app consumes the published kit exports plus the private in-repo `@plainworks/demo` backend, and no package imports the showcase.

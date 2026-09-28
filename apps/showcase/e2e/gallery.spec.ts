@@ -1,10 +1,7 @@
-import {
-  expectFocusVisible,
-  expectNoBrowserAxeViolations,
-  settleAnimations,
-} from "@plainworks/testkit/browser"
+import { settleAnimations } from "@plainworks/testkit/browser"
 import { COLOR_SCHEMES } from "@plainworks/theme"
 import { GALLERY_GROUPS } from "./fixtures/gallery/groups"
+import { expectFocusVisible, expectNoAxeViolations } from "./support/checks"
 import { GALLERY_OVERLAYS, openGalleryGroup, openGalleryOverlay } from "./support/gallery"
 import { expect, test } from "./support/gate"
 
@@ -29,7 +26,7 @@ for (const group of ["form-controls", "feedback"] as const) {
             },
             { scheme, dark: mode === "dark" },
           )
-          await expectNoBrowserAxeViolations(page)
+          await expectNoAxeViolations(page)
         })
       }
     })

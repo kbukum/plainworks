@@ -6,7 +6,6 @@ import { PlainError } from "@plainworks/std"
  * - `definition` — the flow, its matrix, or an allowance is malformed (a programmer fault).
  * - `action` — a checkpoint's action threw.
  * - `readiness` — a checkpoint's declared ready condition never held.
- * - `unstable-frame` — the page never painted the same frame twice in a row.
  * - `timeout` — a step ran past its time budget.
  * - `session` — the browser session failed: the page closed or crashed, or a measurement threw.
  * - `aborted` — the caller cancelled the run.
@@ -17,7 +16,6 @@ export const FLOW_ERROR_KINDS = [
   "definition",
   "action",
   "readiness",
-  "unstable-frame",
   "timeout",
   "session",
   "aborted",

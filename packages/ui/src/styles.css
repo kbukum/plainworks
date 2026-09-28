@@ -8,3 +8,13 @@
  * in the elements atoms and the theme substrate beneath it.
  */
 @source "./**/*.js";
+
+/*
+ * The AppShell's header is sticky and 3.5rem tall. Focus and anchor scrolling stop below it, so a
+ * focused control never lands hidden under the header (WCAG 2.4.11).
+ */
+@layer base {
+  :root:has([data-slot="app-shell"]) {
+    scroll-padding-block-start: 4rem;
+  }
+}

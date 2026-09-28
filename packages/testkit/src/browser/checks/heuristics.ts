@@ -36,8 +36,12 @@ export interface TargetFact {
    * than a surface that hides it, such as an open overlay. Only exposed controls can overlap.
    */
   readonly exposed: boolean
-  /** The control sits in fixed or sticky chrome, rather than in content that scrolls under it. */
-  readonly pinned: boolean
+  /**
+   * The key of the nearest fixed or sticky chrome the control sits in, or `null` for content that
+   * scrolls. Only controls of the same layer can overlap: one layer drawn over another is a
+   * covering, judged by {@link judgeObscuredFocusables}.
+   */
+  readonly layer: string | null
 }
 
 /** A focusable control and what, if anything, covers its center. */
@@ -46,10 +50,14 @@ export interface FocusableFact {
   /** The fixed or sticky element drawn over the control's center, or `null` when uncovered. */
   readonly coveredBy: {
     readonly name: string
+    /**
+     * The cover belongs to an open overlay: the popup itself, its positioner, or its backdrop
+     * (a layer hidden from assistive technology).
+     */
     readonly overlay: boolean
     /**
-     * The chrome sits inside the page's `scroll-padding` and the page has room to scroll, so
-     * focusing the control scrolls it clear, as WCAG 2.4.11 judges it.
+     * Focusing the control scrolls its nearest scroller far enough, honoring `scroll-padding` and
+     * the control's `scroll-margin`, that its center clears the cover, as WCAG 2.4.11 judges it.
      */
     readonly revealedOnFocus: boolean
   } | null
@@ -107,17 +115,18 @@ function clipped(fact: TextFact, detail: string): Finding {
 }
 
 /**
- * Two visible controls drawn over each other: a user cannot tell which one a tap reaches. A control
- * nested in another (an action inside a row link) and one under an open overlay are left out.
- * Content scrolling under pinned chrome is left to {@link judgeObscuredFocusables}: the chrome
- * always wins the tap, and the question is whether focus can scroll the content clear.
+ * Two visible controls of the same layer drawn over each other: a user cannot tell which one a tap
+ * reaches. A control nested in another (an action inside a row link) and one under an open overlay
+ * are left out. Content under pinned chrome, and one chrome under another, is left to
+ * {@link judgeObscuredFocusables}: the upper layer always wins the tap, and the question is whether
+ * focus can bring the control clear.
  */
 export function judgeOverlappingTargets(targets: readonly TargetFact[]): Finding[] {
   const visible = targets.filter((target) => target.exposed)
   const findings: Finding[] = []
   for (const [index, first] of visible.entries()) {
     for (const second of visible.slice(index + 1)) {
-      if (nested(first.key, second.key) || first.pinned !== second.pinned) continue
+      if (nested(first.key, second.key) || first.layer !== second.layer) continue
       const width =
         Math.min(right(first.box), right(second.box)) - Math.max(first.box.x, second.box.x)
       const height =

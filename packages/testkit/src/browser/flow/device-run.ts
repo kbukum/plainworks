@@ -16,7 +16,6 @@ import type {
   VariantReport,
 } from "./report/schema"
 import type { FlowSession } from "./session"
-import { captureStableFrame } from "./stable-frame"
 
 /** Time budgets, in ms, for the steps of a flow. */
 export interface FlowTimeouts {
@@ -51,12 +50,14 @@ export interface DeviceRunOptions {
 
 /**
  * Replay a flow once on one device and report every checkpoint × variant. At each checkpoint it
- * acts, waits for the ready element and hydration, then for each variant switches the live page,
- * settles it, captures a stable frame and ARIA snapshot (in `capture` mode), and runs the
- * checkpoint's checks. A failed check fails its variant and writes an evidence bundle.
+ * acts, waits for the ready element and hydration, then for each variant switches the live page
+ * and settles it. In `assert` mode it runs the checkpoint's checks; a failed check fails its
+ * variant and writes an evidence bundle. In `capture` mode it only writes a frame and an ARIA
+ * snapshot, so a capture stays fast. Both modes report hydration and runtime errors, since either
+ * means the page itself is broken.
  *
- * A step that cannot finish (an action throws, the ready element never shows, a frame never
- * settles, a timeout, a cancel) ends the flow: the checkpoint records the typed error with its
+ * A step that cannot finish (an action throws, the ready element never shows, a timeout, a
+ * cancel) ends the flow: the checkpoint records the typed error with its
  * evidence, and the checkpoints after it are skipped. It never throws for a flow failure; the
  * caller reads the returned report's `status`.
  */
@@ -177,7 +178,7 @@ async function runCheckpoint(
     failure === undefined ? undefined : { kind: failure.reason, message: failure.message }
   let evidence: EvidenceLinks | undefined
   if ((failure !== undefined || failures.length > 0) && failure?.reason !== "aborted") {
-    const collected = await collectEvidence(context, at, checkpoint, "checkpoint", {})
+    const collected = await collectEvidence(context, at, checkpoint, "checkpoint")
     if (collected.links !== undefined) evidence = collected.links
     else if (error === undefined) failures = [unavailable(collected.problem), ...failures]
     else
@@ -205,20 +206,27 @@ async function runVariant(
   const { session, run, mode, plan } = context
   const step = <T>(what: string, work: (signal: AbortSignal) => Promise<T>) =>
     runStep(context, `"${checkpoint.name}" › ${variant.id} › ${what}`, work, context.timeouts.step)
+  if (mode === "capture") {
+    await step("settle", (signal) => session.settle(signal))
+    const bytes = await step("frame", (signal) => session.screenshot(checkpoint, signal))
+    const frame = await run.write(
+      flowArtifactPaths.variant(at, variant.id, "png"),
+      bytes,
+      context.signal,
+    )
+    const snapshot = await step("aria", (signal) => session.ariaSnapshot(signal))
+    const aria = await run.write(
+      flowArtifactPaths.variant(at, variant.id, "aria.yml"),
+      snapshot,
+      context.signal,
+    )
+    return { ...describeVariant(variant), status: "pass", findings: [], allowed: [], frame, aria }
+  }
+
   const before = checks.heuristics
     ? await step("layout", (signal) => session.measureLayout(signal))
     : undefined
   await step("settle", (signal) => session.settle(signal))
-
-  let frame: string | undefined
-  if (mode === "capture") {
-    const bytes = await captureStableFrame(
-      () => step("frame", (signal) => session.screenshot(checkpoint, signal)),
-      context.signal === undefined ? {} : { signal: context.signal },
-    )
-    frame = await run.write(flowArtifactPaths.variant(at, variant.id, "png"), bytes, context.signal)
-  }
-
   const findings: Finding[] = []
   if (before !== undefined) {
     const after = await step("layout", (signal) => session.measureLayout(signal))
@@ -244,49 +252,31 @@ async function runVariant(
     findings.push(...problems.map((message): Finding => ({ check: "focus", message })))
   }
 
-  let aria: string | undefined
-  if (mode === "capture") {
-    const snapshot = await step("aria", (signal) => session.ariaSnapshot(signal))
-    aria = await run.write(
-      flowArtifactPaths.variant(at, variant.id, "aria.yml"),
-      snapshot,
-      context.signal,
-    )
-  }
-  if (checkpoint.pixel === true) {
-    const name = `${at.flow}-${at.device}-${at.checkpoint}-${variant.id}`
-    const mismatch = await step("pixel", (signal) =>
-      session.comparePixels(checkpoint, name, signal),
-    )
-    if (mismatch !== undefined) findings.push({ check: "pixel", message: mismatch })
-  }
-
   const judged = applyAllowances(findings, checkpoint.allow ?? [])
   let failures = judged.failures
   const failed = failures.length > 0
   let evidence: EvidenceLinks | undefined
   if (failed) {
-    const collected = await collectEvidence(context, at, checkpoint, variant.id, {
-      ...(frame === undefined ? {} : { frame }),
-      ...(aria === undefined ? {} : { aria }),
-    })
+    const collected = await collectEvidence(context, at, checkpoint, variant.id)
     evidence = collected.links
     if (collected.problem !== undefined) failures = [unavailable(collected.problem), ...failures]
   }
   return {
-    id: variant.id,
-    mode: variant.mode,
-    theme: variant.theme,
-    density: variant.density,
-    preference: variant.preference,
+    ...describeVariant(variant),
     status: failed ? "fail" : "pass",
     findings: capFindingsPerCheck(failures),
     allowed: judged.allowed,
-    ...(frame === undefined ? {} : { frame }),
-    ...(aria === undefined ? {} : { aria }),
     ...(evidence === undefined ? {} : { evidence }),
   }
 }
+
+const describeVariant = (variant: PageVariant) => ({
+  id: variant.id,
+  mode: variant.mode,
+  theme: variant.theme,
+  density: variant.density,
+  preference: variant.preference,
+})
 
 /** What evidence collection produced: its links, or why there are none. */
 type CollectedEvidence =
@@ -302,7 +292,6 @@ async function collectEvidence(
   at: CheckpointLocation,
   checkpoint: FlowCheckpoint,
   name: string,
-  known: { readonly frame?: string; readonly aria?: string },
 ): Promise<CollectedEvidence> {
   const { session, run } = context
   const path = (extension: string) => flowArtifactPaths.variant(at, name, extension)
@@ -313,12 +302,12 @@ async function collectEvidence(
     const links = await withTimeout(async (budget): Promise<EvidenceLinks> => {
       const signal = hostSignal(budget)
       const snapshot = await session.evidence(signal)
-      const aria =
-        known.aria ??
-        (await run.write(path("aria.yml"), await session.ariaSnapshot(signal), signal))
-      const frame =
-        known.frame ??
-        (await run.write(path("png"), await session.screenshot(checkpoint, signal), signal))
+      const aria = await run.write(path("aria.yml"), await session.ariaSnapshot(signal), signal)
+      const frame = await run.write(
+        path("png"),
+        await session.screenshot(checkpoint, signal),
+        signal,
+      )
       return {
         dom: await run.write(path("dom.html"), snapshot.dom, signal),
         aria,

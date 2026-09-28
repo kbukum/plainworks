@@ -179,79 +179,13 @@ jobs:
       - name: Scaffold, install, typecheck, and build a generated app
         run: bun run --filter create-plainworks smoke
 
-  # The browser gate: boots each reference host and runs its functional, axe, reflow, and
-  # screenshot tests in real Chromium. It runs in the Playwright image pinned by digest, the same
-  # one `internal/visual-baselines` writes the Linux baselines in, so fonts and rendering match them.
-  # The showcase suite is sharded; every shard uploads a blob report that `browser-e2e-report`
-  # merges into one HTML report per host.
+  # The browser gate: boots each reference host and runs its flows and functional specs in real
+  # Chromium, one job per app. Every check is structural (axe, reflow, focus, layout, runtime
+  # errors), so no screenshot is compared and any Linux runner will do.
   browser-e2e:
-    name: browser e2e (${{ matrix.app }} ${{ matrix.shard }})
+    name: browser e2e (${{ matrix.app }})
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    container:
-      image: mcr.microsoft.com/playwright:v1.63.0-noble@sha256:eff16c30e6f3f4af0a03fa4b706120d5e9b0891c344a27d64559aff5900a4a27
-      options: --ipc=host
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { app: showcase, shard: 1/4 }
-          - { app: showcase, shard: 2/4 }
-          - { app: showcase, shard: 3/4 }
-          - { app: showcase, shard: 4/4 }
-          - { app: next-host, shard: 1/1 }
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      # The Playwright image ships without unzip, which setup-bun needs to unpack the Bun tarball.
-      - name: Install unzip for setup-bun
-        run: apt-get update && apt-get install -y --no-install-recommends unzip
-
-      - name: Setup
-        uses: ./.github/actions/setup
-
-      - name: Build the host's package dependencies
-        # Both hosts run their dev server, which serves the app from source, so they need only
-        # their workspace dependencies' dist; hence the dependency-only `^...` filter.
-        run: bunx turbo run build --filter=@plainworks/${{ matrix.app }}^...
-
-      - name: Run the browser gate
-        working-directory: apps/${{ matrix.app }}
-        run: bunx playwright test --shard=${{ matrix.shard }}
-
-      - name: Name the shard's artifacts
-        if: always()
-        id: artifact
-        run: echo "suffix=$(echo '${{ matrix.shard }}' | tr / -)" >> "$GITHUB_OUTPUT"
-
-      - name: Upload the blob report
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: blob-${{ matrix.app }}-${{ steps.artifact.outputs.suffix }}
-          path: apps/${{ matrix.app }}/blob-report/
-          retention-days: 7
-          if-no-files-found: ignore
-
-      - name: Upload traces and screenshot diffs
-        # `retain-on-failure` keeps a failed test's trace, actual image, and diff under
-        # `test-results/`, so a failure is diagnosable after the runner is gone.
-        if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: results-${{ matrix.app }}-${{ steps.artifact.outputs.suffix }}
-          path: apps/${{ matrix.app }}/test-results/
-          retention-days: 7
-          if-no-files-found: ignore
-
-  # Merges each host's shard blob reports into one HTML report, pass or fail.
-  browser-e2e-report:
-    name: browser e2e report (${{ matrix.app }})
-    if: ${{ !cancelled() }}
-    needs: [browser-e2e]
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -263,23 +197,42 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup
 
-      - name: Download the shard blob reports
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
-        with:
-          pattern: blob-${{ matrix.app }}-*
-          path: apps/${{ matrix.app }}/all-blob-reports
-          merge-multiple: true
-
-      - name: Merge into one HTML report
+      - name: Install Chromium
         working-directory: apps/${{ matrix.app }}
-        run: bunx playwright merge-reports --reporter html ./all-blob-reports
+        run: bunx playwright install --with-deps chromium
+
+      - name: Build the host's package dependencies
+        # Both hosts run their dev server, which serves the app from source, so they need only
+        # their workspace dependencies' dist; hence the dependency-only `^...` filter.
+        run: bunx turbo run build --filter=@plainworks/${{ matrix.app }}^...
+
+      - name: Run the browser gate
+        working-directory: apps/${{ matrix.app }}
+        run: bunx playwright test
 
       - name: Upload the HTML report
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-report-${{ matrix.app }}
           path: apps/${{ matrix.app }}/playwright-report/
           retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload traces and flow evidence
+        # `retain-on-failure` keeps a failed test's trace under `test-results/`, and a failed
+        # checkpoint writes its evidence bundle under `.ui-artifacts/`, so a failure is diagnosable
+        # after the runner is gone.
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: results-${{ matrix.app }}
+          path: |
+            apps/${{ matrix.app }}/test-results/
+            apps/${{ matrix.app }}/.ui-artifacts/runs/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: ignore
 
   # Single aggregate check for branch protection. The verify matrix and generator smoke
   # each surface their own contexts, but protection targets this one stable name so adding

@@ -3,6 +3,7 @@ import type { BrowserAxeOptions } from "../checks/axe"
 import type { Allowance } from "../checks/findings"
 import { FlowError } from "./errors"
 import type { VisualCapture } from "./frame"
+import { DEVICE_IDS, type DeviceId } from "./matrix/devices"
 
 /** Which checks a checkpoint runs. Runtime errors are always checked. */
 export interface CheckpointChecks {
@@ -54,10 +55,11 @@ export interface FlowCheckpoint {
   /** Regions that differ on every run for a reason outside the kit, painted over in frames. */
   readonly mask?: (page: Page) => Locator[]
   /**
-   * Compare each variant's frame with a committed baseline. Off by default: a checkpoint opts in
-   * only when it earns a curated baseline, so a flow never creates one as a side effect.
+   * Publish this checkpoint's frame as a docs image under this name, a lowercase slug unique in a
+   * suite. `ui:capture --docs` copies its desktop frame in light and dark to the app's docs folder
+   * as `<name>-light.png` and `<name>-dark.png`.
    */
-  readonly pixel?: boolean
+  readonly docs?: string
 }
 
 /**
@@ -69,10 +71,16 @@ export interface Flow {
   readonly name: string
   /**
    * Globs of the repository paths this flow proves, relative to the repository root, such as
-   * `apps/showcase/src/routes/tasks/**`. `ui:check --affected` runs the flows whose globs match a
+   * `apps/showcase/src/routes/tasks/**`. `ui:capture --affected` runs the flows whose globs match a
    * changed file. `*` matches within one path segment and `**` across segments.
    */
   readonly covers?: readonly string[]
+  /**
+   * Devices this flow always runs on besides the preset's, for a layout that breaks only there:
+   * a dialog on the short `landscape` phone, a page at the 320 px `reflow` width. Each gets the
+   * preset's page variants.
+   */
+  readonly extraDevices?: readonly DeviceId[]
   readonly checkpoints: readonly FlowCheckpoint[]
 }
 
@@ -80,9 +88,10 @@ const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 /**
  * Validate a flow and return it. Throws a `flow/definition` {@link FlowError} for a name that is
- * not a lowercase slug, a `covers` glob that is empty or leaves the repository, no checkpoints, a
- * repeated checkpoint name, an allowance with no reason, or an allowance pattern with the `g` or
- * `y` flag, whose `lastIndex` would make matching depend on what it matched before.
+ * not a lowercase slug, a `covers` glob that is empty or leaves the repository, an unknown extra
+ * device, no checkpoints, a repeated checkpoint name, a docs image name that is not a lowercase
+ * slug or is repeated, an allowance with no reason, or an allowance pattern with the `g` or `y`
+ * flag, whose `lastIndex` would make matching depend on what it matched before.
  */
 export function defineFlow<const T extends Flow>(flow: T): T {
   slug("Flow", flow.name)
@@ -99,10 +108,19 @@ export function defineFlow<const T extends Flow>(flow: T): T {
       )
     }
   }
+  for (const device of flow.extraDevices ?? []) {
+    if (!(DEVICE_IDS as readonly string[]).includes(device)) {
+      throw new FlowError(
+        "definition",
+        `Flow "${flow.name}" names an unknown extra device "${device}"; use one of ${DEVICE_IDS.join(", ")}`,
+      )
+    }
+  }
   if (flow.checkpoints.length === 0) {
     throw new FlowError("definition", `Flow "${flow.name}" needs at least one checkpoint`)
   }
   const seen = new Set<string>()
+  const docs = new Set<string>()
   for (const checkpoint of flow.checkpoints) {
     slug(`Checkpoint in "${flow.name}"`, checkpoint.name)
     if (seen.has(checkpoint.name)) {
@@ -112,6 +130,16 @@ export function defineFlow<const T extends Flow>(flow: T): T {
       )
     }
     seen.add(checkpoint.name)
+    if (checkpoint.docs !== undefined) {
+      slug(`Docs image in "${flow.name}" › "${checkpoint.name}"`, checkpoint.docs)
+      if (docs.has(checkpoint.docs)) {
+        throw new FlowError(
+          "definition",
+          `Flow "${flow.name}" names docs image "${checkpoint.docs}" twice`,
+        )
+      }
+      docs.add(checkpoint.docs)
+    }
     for (const allowance of checkpoint.allow ?? []) {
       const where = `"${flow.name}" › "${checkpoint.name}"`
       if (allowance.reason.trim() === "") {

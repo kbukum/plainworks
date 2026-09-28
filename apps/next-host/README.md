@@ -47,12 +47,12 @@ The mock backend is a catch-all Route Handler (`/api/[...path]`) that dispatches
 | `src/server` | Server-only request resolution, the auth composition, the mock-backend dispatch, and the BFF cookie plumbing. |
 | `src/client` | The `"use client"` providers, the app frame (`HostShell`), live stream, task list, and session gates. |
 | `src/app` | The App Router tree: RSC layout and pages, the BFF route handlers, and the mock-backend catch-all. |
-| `e2e` | The browser gate: sign-in, prefetch hydration, the live feed, the account menu, and screenshots of every page and overlay. |
+| `e2e` | The browser gate: flows over every page and overlay, plus sign-in, prefetch hydration, the live feed, and the account menu. |
 
 The app consumes only published package exports. Nothing in `packages/` imports it, and its route tree stays local.
 
 ## CI
 
-The [browser gate](../../docs/browser-gate.md) runs this app in Chromium over `next dev`, so the development inspector is covered too. It checks sign-in through the BFF, tasks hydrating without a refetch, the live feed, and every page and overlay for axe, reflow, and screenshot changes. `next.config.ts` hides Next's development badge so it never lands in a screenshot. Update the committed Linux baselines with `e2e:update:linux`; `e2e:update` refreshes your local macOS set.
+The [browser gate](../../docs/browser-gate.md) runs this app in Chromium over `next dev`, so the development inspector is covered too. It checks sign-in through the BFF, tasks hydrating without a refetch, and the live feed, and its flows (`e2e/flows/`) check every page, overlay, and inspector tab for axe, reflow, focus, and layout problems. `next.config.ts` hides Next's development badge so it never covers the page.
 
 The standard gates (`bun run verify`) run over this app as a workspace member in the `verify` job. A dedicated `hosts-smoke` job then **boots** both reference hosts and probes them over HTTP — the Vite showcase's SSR and the Next host's overview, mock backend, and session gate — proving they run, not just compile. Being `"private": true`, the app is excluded from `check-packaging` and the release publish set.

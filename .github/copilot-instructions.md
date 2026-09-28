@@ -71,12 +71,11 @@ The Definition of Done for every change is `verify` green, a Changeset, and the 
 
 A change that alters what a user sees or does in an app also meets the **UI Definition of Done**. Run it in the app (today `apps/showcase`):
 
-1. Before editing, save a baseline: `bun run ui:check --save-as before`.
-2. After editing, run `bun run ui:check --affected`. It must finish with **no hard failures** (exit 0).
-3. **Review every changed frame** in the report's `sheets/changed.png`. Each change must be one you intended; fix anything else.
-4. **Record a short summary** in the hand-off or PR: the verdict, which flows ran, and what changed visually and why.
+1. **Check** the flows you touched: `bun run e2e -- e2e/flows.spec.ts --grep "<flow>"`. They must pass.
+2. **Look** at them: `bun run ui:capture --flow <flow>` writes a frame at every checkpoint (desktop and mobile, light and dark). Open the frames or the contact sheets in `sheets/` and confirm the change looks as intended. Add `--save-as before` before editing and `--base before` after when a side-by-side diff helps.
+3. **Record a short summary** in the hand-off or PR: which flows you checked and looked at, and what changed visually and why.
 
-A new user-facing journey gets a flow in `apps/<app>/e2e/flows/` with `covers` globs, so `--affected` selects it. See the [testkit guide](../packages/testkit/README.md#the-ui-loop--uicheck).
+A new user-facing journey gets a flow in `apps/<app>/e2e/flows/` with `covers` globs, so `--affected` selects it. If the change alters a screen an app README shows, rerun `bun run ui:capture --docs` in that app and look at the refreshed images. See the [testkit guide](../packages/testkit/README.md#the-ui-loop--uicapture).
 
 ## Package structure
 
@@ -84,7 +83,7 @@ bun workspaces, three roots:
 
 - `packages/<name>/` — the published `@plainworks/*` packages. One concern, one plain word, the **same word everywhere** — no `core`, `engine`, `foundation`, or junk-drawer `utils`. Each is born from the golden generator so its `package.json`/`exports`/`tsconfig`/`tsdown`/`vitest` are identical.
 - `apps/<name>/` — examples/showcase and consuming apps (route tree stays app-local; never imported by a package).
-- `internal/<name>/` — dev-only tooling that is never published: the gates (`boundaries`, `bundle-exclusion`, `comment-format`, `verify`), repository tools (`release`, `visual-baselines`), the build preset (`tsdown-config`), the demo domain (`demo`), and the cross-package suite (`integration`).
+- `internal/<name>/` — dev-only tooling that is never published: the gates (`boundaries`, `bundle-exclusion`, `comment-format`, `verify`), repository tools (`release`), the build preset (`tsdown-config`), the demo domain (`demo`), and the cross-package suite (`integration`).
 
 Every published package: `"type": "module"`, `"sideEffects": false`, a server-safe `.` export and (when interactive) a `./client` export, `"files": ["dist"]`, `react`/`react-dom` as `catalog:` peer ranges. Add a new package **only** through `bun run gen package` — never hand-roll one (see the `new-package` skill).
 

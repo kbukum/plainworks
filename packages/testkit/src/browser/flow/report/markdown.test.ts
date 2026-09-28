@@ -115,7 +115,7 @@ describe("renderFlowReportMarkdown", () => {
   })
 })
 
-describe("renderFlowReportMarkdown for ui:check", () => {
+describe("renderFlowReportMarkdown for ui:capture", () => {
   it("explains the selection, then the visual changes with their files and sheets", () => {
     const markdown = renderFlowReportMarkdown({
       ...report([passing]),
@@ -185,10 +185,20 @@ describe("renderFlowReportMarkdown for ui:check", () => {
   it("says why no review ran", () => {
     const markdown = renderFlowReportMarkdown({
       ...report([passing]),
-      review: { status: "skipped", reason: "No base: run ui:check --save-as before first" },
+      review: { status: "skipped", reason: "The base could not be captured" },
     })
+    expect(markdown).toContain("## Visual changes\n\nNot reviewed: The base could not be captured")
+  })
+
+  it("lists the frames under their own heading when nothing was compared", () => {
+    const markdown = renderFlowReportMarkdown({
+      ...report([passing]),
+      sheets: { checkpoints: ["sheets/a.png"] },
+    })
+    expect(markdown).not.toContain("## Visual changes")
     expect(markdown).toContain(
-      "## Visual changes\n\nNot reviewed: No base: run ui:check --save-as before first",
+      "## Frames\n\nNot compared with a base; pass `--base` to see what changed.",
     )
+    expect(markdown).toContain("Contact sheets: [01](sheets/a.png)")
   })
 })

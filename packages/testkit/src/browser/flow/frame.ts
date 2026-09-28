@@ -29,9 +29,7 @@ export interface CaptureFramePage {
 /**
  * Run `capture` in the capture's canonical frame. A full page starts from the top, because Chromium
  * paints sticky chrome at the current scroll offset, and its fixed chrome is hidden until the
- * capture ends, even when it fails. The stylesheet lives in the page for the whole call, so every
- * frame a retrying `toHaveScreenshot` takes sees it; that matcher reads only style files, never
- * inline CSS. A viewport capture is left exactly as the user sees it.
+ * capture ends, even when it fails. A viewport capture is left exactly as the user sees it.
  */
 export async function withCaptureFrame<T>(
   page: CaptureFramePage,

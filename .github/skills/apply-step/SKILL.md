@@ -44,7 +44,7 @@ Keep the edit scoped to *this* step's `Files touched`; if the step is mis-scoped
 ## 3. Validate, review, and mark done
 
 - **Validate** the affected package(s) with [`validate`](../validate/SKILL.md), scoped `turbo`/`bun run`, vitest green under race/shuffle. A step does not land red. Run `bun run check-boundaries` on any structural change.
-- For a step that changes what an app user sees, meet the [UI Definition of Done](../../copilot-instructions.md#build-test-and-lint): save a `before` snapshot first, finish on a green `ui:check --affected`, review the changed frames, and note the summary in the step's decisions.
+- For a step that changes what an app user sees, meet the [UI Definition of Done](../../copilot-instructions.md#build-test-and-lint): check the touched flows in e2e, capture them with `ui:capture --flow <flow>` and look at the frames, and note the summary in the step's decisions.
 - Add the **Changeset** the step's acceptance requires.
 - **Review** the step's diff with the relevant [`review`](../review/SKILL.md) passes — ideally in a fresh agent.
 - Only when acceptance criteria are genuinely met, flip the progress signal so `apply-plan` can resume: set `**Status:** done` and check its `- [x]` boxes. Never mark a step done on a partial or red result.

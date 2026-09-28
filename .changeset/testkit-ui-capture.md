@@ -1,0 +1,5 @@
+---
+"@plainworks/testkit": minor
+---
+
+Add `ui:capture` to `@plainworks/testkit/browser`: one command that replays an app's flows and writes a frame and an ARIA snapshot at every checkpoint, with a contact sheet per checkpoint, for you or an agent to open and judge. It runs no checks, so capturing one flow takes seconds. `--flow` picks flows, and `--affected` picks the ones whose `covers` match your changed files. Pass `--base` with a saved snapshot (`--save-as`) or a git ref to also see each changed frame as before, after, and a highlighted diff. `ui:capture --docs` refreshes an app's committed docs images: mark a checkpoint with `docs: "<name>"`, and it writes that desktop frame in light and dark to the app's `docsDir`, removing images no checkpoint names. A warm host (`ui:capture serve`) skips startup, and a generated Playwright MCP config lets you explore the same signed-in, fixed-clock app. The overlap and obscured-focus heuristics now judge what is painted and what focus scrolls clear, so content under a docked bar with matching `scroll-padding` no longer fails. `setupFlowRun` replaces `finishFlowRun`.

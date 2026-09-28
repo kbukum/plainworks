@@ -48,12 +48,6 @@ export interface FlowSession {
   overlaysOutsideViewport(signal: AbortSignal): Promise<string[]>
   /** One line per problem with the focused control's indicator. */
   focusProblems(signal: AbortSignal): Promise<string[]>
-  /** Compare a frame with its committed baseline; a message when they differ. */
-  comparePixels(
-    checkpoint: FlowCheckpoint,
-    name: string,
-    signal: AbortSignal,
-  ): Promise<string | undefined>
   /** Take the runtime errors raised since the last call. */
   drainRuntimeErrors(): RuntimeError[]
   evidence(signal: AbortSignal): Promise<EvidenceSnapshot>

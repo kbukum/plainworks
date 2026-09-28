@@ -184,7 +184,8 @@ describe("reviewChanges", () => {
     })
     expect(review).toEqual({
       status: "skipped",
-      reason: "The base run before (r1) captured no frames: save it with ui:check, which captures",
+      reason:
+        "The base run before (r1) captured no frames: save it with ui:capture, which captures",
     })
   })
 

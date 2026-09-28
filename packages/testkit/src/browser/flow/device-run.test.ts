@@ -26,6 +26,7 @@ function fakeSession(overrides: Partial<FlowSession> = {}) {
   const calls: string[] = []
   const errors: RuntimeError[] = []
   let shot = 0
+  let scans = 0
   const session: FlowSession = {
     act: async (checkpoint) => void calls.push(`act:${checkpoint.name}`),
     waitReady: async () => true,
@@ -39,16 +40,18 @@ function fakeSession(overrides: Partial<FlowSession> = {}) {
       return Uint8Array.of(7)
     },
     ariaSnapshot: async () => "- main",
-    scanAxe: async () => [],
+    scanAxe: async () => {
+      scans++
+      return []
+    },
     horizontalOverflow: async () => 0,
     overlaysOutsideViewport: async () => [],
     focusProblems: async () => [],
-    comparePixels: async (_checkpoint, name) => void calls.push(`pixel:${name}`),
     drainRuntimeErrors: () => errors.splice(0),
     evidence: async () => ({ dom: "<html></html>", console: "[]", network: "[]" }),
     ...overrides,
   }
-  return { session, calls, errors, shots: () => shot }
+  return { session, calls, errors, shots: () => shot, scans: () => scans }
 }
 
 function memoryRun() {
@@ -94,8 +97,8 @@ describe("runFlowOnDevice", () => {
     ])
   })
 
-  it("writes a stable frame and an ARIA snapshot per variant in capture mode", async () => {
-    const { session, shots } = fakeSession()
+  it("writes one frame and an ARIA snapshot per variant in capture mode, and runs no checks", async () => {
+    const { session, scans, shots } = fakeSession({ horizontalOverflow: async () => 12 })
     const { run, files } = memoryRun()
     const report = await runFlowOnDevice({
       flow: twoStep,
@@ -114,24 +117,44 @@ describe("runFlowOnDevice", () => {
         "/run/flows/create-task/desktop/02-new-task/dark.default.default.standard.aria.yml",
       ),
     ).toBe("- main")
-    // Two identical shots per stable frame, for two checkpoints × two variants.
-    expect(shots()).toBe(8)
+    // One shot per frame, for two checkpoints × two variants.
+    expect(shots()).toBe(4)
+    expect(report.status).toBe("pass")
+    expect(scans()).toBe(0)
   })
 
-  it("captures nothing in assert mode and compares pixels only where a checkpoint opts in", async () => {
-    const flow = defineFlow({
-      name: "board",
-      checkpoints: [checkpoint("list"), checkpoint("detail", { pixel: true })],
-    })
-    const { session, calls, shots } = fakeSession()
+  it("captures nothing in assert mode", async () => {
+    const { session, scans, shots } = fakeSession()
     const { run, files } = memoryRun()
-    const report = await runFlowOnDevice({ flow, plan: desktop, session, run, mode: "assert" })
+    const report = await runFlowOnDevice({
+      flow: twoStep,
+      plan: desktop,
+      session,
+      run,
+      mode: "assert",
+    })
     expect(shots()).toBe(0)
     expect(files.size).toBe(0)
     expect(report.checkpoints[0]?.variants[0]?.frame).toBeUndefined()
-    expect(calls.filter((call) => call.startsWith("pixel:"))).toEqual([
-      "pixel:board-desktop-detail-light.default.default.standard",
-      "pixel:board-desktop-detail-dark.default.default.standard",
+    expect(scans()).toBe(4)
+  })
+
+  it("still reports runtime errors and a missed hydration in capture mode", async () => {
+    const fake = fakeSession({
+      waitHydrated: async () => false,
+      act: async () => void fake.errors.push({ kind: "pageerror", message: "boom" }),
+    })
+    const flow = defineFlow({ name: "one", checkpoints: [checkpoint("only")] })
+    const report = await runFlowOnDevice({
+      flow,
+      plan: desktop,
+      session: fake.session,
+      run: memoryRun().run,
+      mode: "capture",
+    })
+    expect(report.checkpoints[0]?.findings.map((finding) => finding.check)).toEqual([
+      "hydration",
+      "runtime",
     ])
   })
 
@@ -274,15 +297,6 @@ describe("runFlowOnDevice", () => {
       variants: [],
     })
     expect(calls).not.toContain("act:saved")
-  })
-
-  it("reports a frame that never settles as an unstable-frame error", async () => {
-    let shot = 0
-    const { session } = fakeSession({ screenshot: async () => Uint8Array.of(shot++) })
-    const { run } = memoryRun()
-    const flow = defineFlow({ name: "one", checkpoints: [checkpoint("only")] })
-    const report = await runFlowOnDevice({ flow, plan: desktop, session, run, mode: "capture" })
-    expect(report.error).toMatchObject({ kind: "unstable-frame" })
   })
 
   it("maps a thrown action to an action error and a crashed measurement to a session error", async () => {

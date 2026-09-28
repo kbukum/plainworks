@@ -31,6 +31,9 @@ export const GALLERY_OVERLAYS: readonly GalleryOverlay[] = [
     trigger: "select",
     action: "click",
     popup: (page) => page.getByRole("listbox"),
+    // The same Base UI focus guards as the navigation menu, which bracket the listbox on the mobile
+    // screen. The listbox itself is still scanned.
+    axe: { exclude: ["[data-base-ui-focus-guard]"] },
   },
   {
     group: "navigation",

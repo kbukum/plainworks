@@ -1,7 +1,6 @@
 /**
  * Every check a flow runs at a checkpoint. The first group is the baseline-free spine the gate has
- * always run; the layout heuristics turn visual defects axe cannot see into findings; `pixel` is
- * the opt-in comparison against a committed baseline.
+ * always run; the layout heuristics turn visual defects axe cannot see into findings.
  */
 export const CHECK_IDS = [
   "runtime",
@@ -15,7 +14,6 @@ export const CHECK_IDS = [
   "obscured-focusable",
   "broken-image",
   "layout-shift",
-  "pixel",
 ] as const
 
 /** One check of {@link CHECK_IDS}. */

@@ -89,13 +89,11 @@ The proto is the source of truth; regenerate the checked-in `*_pb.ts` with `bun 
 The shared Playwright harness the reference hosts run, and the **flow engine** on top of it. Every test starts from a fixed "now", locale, and time zone, signs in once per worker, and fails on any runtime error, hydration error, or off-origin request. A flow then replays a journey and checks axe, reflow, overlays, focus, and layout at each checkpoint — no committed screenshots. `@playwright/test` and `@axe-core/playwright` are **optional peers**, loaded only by this subpath.
 
 ```ts
-// playwright.config.ts: a fixed locale, time zone, and motion, plus strict screenshot defaults.
-import { browserGateScreenshot, browserGateUse } from "@plainworks/testkit/browser"
+// playwright.config.ts: a fixed locale, time zone, and motion.
+import { browserGateUse } from "@plainworks/testkit/browser"
 
 export default defineConfig({
   fullyParallel: true,
-  updateSnapshots: "none",
-  expect: { toHaveScreenshot: browserGateScreenshot },
   use: { ...browserGateUse },
 })
 ```
@@ -123,21 +121,25 @@ const test = createBrowserGate({
 | Export | What it gives you |
 |---|---|
 | `createBrowserGate` | The gated `test`: starts one host per worker (on `basePort + n`) and signs in once, then resets the host, pins `Date`, and fails on runtime errors. `runtimeErrors.allow(pattern)` accepts a failure the test provokes. |
-| `browserGateUse` / `browserGateScreenshot` | The context and screenshot defaults for the Playwright config: fixed locale, time zone, and reduced motion; frozen animations and a strict pixel budget. |
+| `browserGateUse` | The context defaults for the Playwright config: fixed locale, time zone, and reduced motion. |
 | `VisualCapture` | Frames a checkpoint's screenshot: the `viewport`, or the `full-page` with the `position: fixed` chrome it names hidden, since Chromium would paint it mid-image. |
 | `pressWithKeyboard` | Opens a control from the keyboard, so the overlay it opens shows focus as a keyboard user sees it. |
+| `focusWithKeyboard` | Focuses a control as keyboard focus arrives, so it shows its focus indicator even after a click. |
 
 The host reads `PLAINWORKS_FIXED_NOW` to pin its own clock, so server-rendered and browser-rendered dates agree.
 
 ### Flows
 
-A **flow** is a named journey of checkpoints on one live page. One definition runs as an end-to-end test (`assert`) and captures frames for review (`capture`). Each flow replays **once per device**. At every checkpoint it switches the page through each variant in place (mode, brand theme, density, and a preference such as forced colors or 200% text), then runs the checks.
+A **flow** is a named journey of checkpoints on one live page. One definition runs two ways: `assert` checks every checkpoint as an end-to-end test, and `capture` writes a frame and an ARIA snapshot at every checkpoint for you to look at, with no checks. Each flow replays **once per device**. At every checkpoint it switches the page through each variant in place (mode, brand theme, density, and a preference such as forced colors or 200% text).
 
 ```mermaid
 flowchart LR
   A[act] --> R[ready + hydrated] --> V{each variant}
-  V --> S[settle] --> F[stable frame + ARIA<br/>capture mode] --> C[checks + layout heuristics]
+  V --> S[settle] --> M{mode}
+  M -->|assert| C[checks + layout heuristics]
+  M -->|capture| F[frame + ARIA]
   C --> V
+  F --> V
   V --> N[next checkpoint]
 ```
 
@@ -148,7 +150,7 @@ export default () => setupFlowRun({ root: ".ui-artifacts" })
 // flows.spec.ts
 const createTask = defineFlow({
   name: "create-task",
-  // Repository globs this flow exercises; `ui:check --affected` maps changed files through them.
+  // Repository globs this flow exercises; `ui:capture --affected` maps changed files through them.
   covers: ["apps/web/src/tasks/**", "apps/web/e2e/flows/create-task.ts"],
   checkpoints: [
     { name: "board", act: (page) => page.goto("/tasks"), ready: (page) => page.getByRole("heading", { name: "Tasks" }) },
@@ -156,7 +158,7 @@ const createTask = defineFlow({
   ],
 })
 
-// A plain `playwright test` asserts every flow at `quick`; `ui:check` picks flows, preset, and mode.
+// A plain `playwright test` asserts every flow at `quick`; `ui:capture` picks flows, preset, and mode.
 const suite = planFlowSuite([createTask], { axes })
 for (const planned of suite.runs) {
   test.describe(planned.title, () => {
@@ -170,45 +172,65 @@ for (const planned of suite.runs) {
 
 | Export | What it gives you |
 |---|---|
-| `defineFlow` | Validates a flow. A checkpoint picks its checks, may `allow` a finding with a reason, and opts into a `pixel` baseline. Its `act` gets a `signal`: pass it to Playwright calls so a timed-out action stops. |
-| `planFlowSuite` | The spec-side plan: every flow at `quick` in a plain run, or the flows, preset, and mode `ui:check` passes through the environment. |
+| `defineFlow` | Validates a flow. `extraDevices` adds devices beyond the preset's, such as `landscape` for a tall dialog. A checkpoint picks its checks and may `allow` a finding with a reason. Its `act` gets a `signal`: pass it to Playwright calls so a timed-out action stops. |
+| `planFlowSuite` | The spec-side plan: every flow at `quick` in a plain run, or the flows, preset, and mode `ui:capture` passes through the environment (`FLOW_SUITE_ENV`). |
 | `planFlowRuns` | One test per flow × device for a matrix preset (`quick`, `devices`, `themes`, `a11y`, `full`) or a `MatrixSpec`. Big matrices sample pairwise. Every flow is validated, even one built without `defineFlow`. |
 | `ThemeAxes` | Your theme vocabulary and how `<html>` renders it. For plainworks, build it from `@plainworks/theme`. Without it, flows vary light and dark only. |
 | `runFlow` / `setupFlowRun` | Run a planned flow in a test, and manage the run directory around the whole invocation. A run no flow wrote to is removed. |
 | `runFlowOnDevice` / `FlowSession` | The engine behind `runFlow`, driven through a page port you can fake. Each step's port call gets a signal that aborts when the step's budget runs out. |
-| `FlowError` | Why a flow stopped: `action`, `readiness`, `unstable-frame`, `timeout`, `session`, `aborted`, or `failed` checks. |
+| `FlowError` | Why a flow stopped: `action`, `readiness`, `timeout`, `session`, `aborted`, or `failed` checks. |
+
+Nothing is compared with a committed screenshot: every check is structural, so any machine gives the same verdict.
 
 A run lands in `<root>/runs/<id>/`, with `<root>/latest` pointing at the newest. Each failure gets an evidence bundle next to it: a frame, the ARIA tree, an inert DOM snapshot, and recent console and network entries. The snapshot has no scripts, redirects, or hidden and password values, and a policy that blocks script, so opening it never runs page code. Every page message is size-capped. When a bundle can't be collected, the report says why. Old runs are pruned: five runs, the current one included, within 1 GiB by default. Keep the root out of version control.
 
-### The UI loop — `ui:check`
+### The UI loop — `ui:capture`
 
-`ui:check` runs the flows, checks every checkpoint, and compares the frames with a baseline from the same machine. It prints one verdict and the report path. Wire it once per app:
+`ui:capture` captures the flows you name as frames, so you or an agent can open them and judge the UI. It runs no checks (the e2e suite does), so a capture of one flow takes seconds. It can also show what changed against a saved snapshot or a git ref. Wire it once per app:
 
 ```ts
-// e2e/ui-check.ts, run with `bun e2e/ui-check.ts` (the showcase names it `ui:check`).
-process.exitCode = await runUiCheckCli({ app: "@acme/web", appDir: "apps/web", root: ".ui-artifacts", spec: "e2e/flows.spec.ts", flows, axes, host, warmPort: 5190 })
+// e2e/ui-capture.ts, run with `bun e2e/ui-capture.ts` (the showcase names it `ui:capture`).
+process.exitCode = await runUiCaptureCli({ app: "@acme/web", appDir: "apps/web", root: ".ui-artifacts", spec: "e2e/flows.spec.ts", flows, axes, host, warmPort: 5190 })
 ```
 
 The everyday loop on a UI change:
 
 ```bash
-bun run ui:check --save-as before   # before you edit: save a baseline
+bun run ui:capture --flow create-task   # frames of one flow; open them and look
+# ...edit, capture again, look again...
+```
+
+When you want a diff, save a snapshot first and compare with it:
+
+```bash
+bun run ui:capture --flow create-task --save-as before
 # ...edit...
-bun run ui:check --affected         # the flows your change touches, compared with "before"
+bun run ui:capture --flow create-task --base before
 ```
 
 | Flag | Effect |
 |---|---|
+| `--flow <a,b>` | Capture the named flows. Without it or `--affected`, every flow. |
 | `--affected` | Only the flows whose `covers` match files changed since the merge-base with `origin/main`. A file no flow covers selects every flow (fail safe). The report says why each flow ran. |
-| `--flow <a,b>` | Run the named flows. |
-| `--preset <name>` | The matrix preset. Defaults to `quick`. |
+| `--preset <name>` | The matrix preset. Defaults to `quick` (desktop and mobile, light and dark). |
 | `--save-as <name>` | Keep this run as a named local snapshot. |
-| `--base <snapshot or git ref>` | Compare with a snapshot, or with the merge-base of a git ref. Without it, a run compares with `before` when that snapshot exists. A git base is captured once from a worktree and cached by commit, flow source, and preset; the three most recent are kept. |
-| `--no-diff` | Check only; skip the comparison. |
+| `--base <snapshot or git ref>` | Also compare with a snapshot, or with the merge-base of a git ref. A git base is captured once from a worktree and cached by commit, flow source, and preset; the three most recent are kept. Without it, nothing is compared. |
+| `--docs` | Refresh the app's docs images. Takes no other flag. See below. |
 
-Exit codes: **0** when nothing failed, **1** when a check failed, **2** when the harness could not run (a usage error, a base that could not be captured, or a run that never finished). Visual changes never fail the run. They are listed in `report.md` under **Visual changes**, and `sheets/changed.png` shows each changed frame as before, after, and a highlighted diff. A frame counts as `removed` only when its flow ran cleanly; frames of a flow that errored or wasn't selected are `not captured`.
+Frames land in the run's `flows/` folder, and `sheets/` holds one contact sheet per checkpoint with every variant side by side. With `--base`, `report.md` lists the **Visual changes**, and `sheets/changed.png` shows each changed frame as before, after, and a highlighted diff. A changed frame never fails the run.
 
-**Warm host.** `ui:check serve` starts the app once on `warmPort` and keeps it signed in, so later `ui:check` runs skip startup. Stop it with Ctrl-C. It also writes a [Playwright MCP](https://github.com/microsoft/playwright-mcp) config for exploring the same seeded, fixed-clock, signed-in app, and prints the command to start it. Don't explore while `ui:check` runs: the gate resets the demo data before each flow.
+**Docs images.** A README can show real screenshots that never go stale. Mark a checkpoint with `docs: "tasks-board"` and set `docsDir` in the config, such as `docs/images`. Then `ui:capture --docs` captures only the flows that mark images and copies each marked desktop frame to `<docsDir>/tasks-board-light.png` and `tasks-board-dark.png`. It deletes any other PNG in that folder, so the set always matches the marks. If a flow breaks, it writes nothing. Commit the folder, and rerun `--docs` when the UI changes. Nothing checks the images; the diff shows up in review. Embed a pair with `<picture>`, so the reader's color scheme picks the image:
+
+```html
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/tasks-board-dark.png">
+  <img alt="The tasks board" src="docs/images/tasks-board-light.png">
+</picture>
+```
+
+Exit codes: **0** when every flow captured, **1** when a flow broke (it errored, raised a runtime error, or never hydrated), **2** when the harness could not run (a usage error, a base that could not be captured, or a run that never finished).
+
+**Warm host.** `ui:capture serve` starts the app once on `warmPort` and keeps it signed in, so later captures skip startup. Stop it with Ctrl-C. It also writes a [Playwright MCP](https://github.com/microsoft/playwright-mcp) config for exploring the same seeded, fixed-clock, signed-in app, and prints the command to start it. Don't explore while a capture runs: the gate resets the demo data before each flow.
 
 ## Streaming transport double — `fakeStreamTransport`
 

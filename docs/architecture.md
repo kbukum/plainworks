@@ -182,7 +182,7 @@ The [showcase](../apps/showcase/README.md) proves a Vite-gated shell with HTTP/q
 |---|---|---|---|
 | **Unit** | One package or concern | Shared fakes from `@plainworks/testkit` | Package `src/**/*.test.ts` files |
 | **Integration** | Built public exports from several packages | MSW or in-memory doubles | [`internal/integration`](../internal/integration) |
-| **Browser** | Each reference host in real Chromium: flows, axe, reflow, and screenshots | The host's seeded mock backend and a fixed clock | App `e2e/` suites; see [Browser gate](./browser-gate.md) |
+| **Browser** | Each reference host in real Chromium: flows with axe, reflow, focus, and layout checks, and no screenshot baselines | The host's seeded mock backend and a fixed clock | App `e2e/` suites; see [Browser gate](./browser-gate.md) |
 
 Unit tests assert behavior with deterministic clocks, seeded randomness, and no real network or filesystem. React tests query by role or label, use `user-event`, and assert accessibility. Integration tests run against built package exports so they exercise what a consumer installs.
 

@@ -5,7 +5,7 @@ export type { AxeViolationSummary, BrowserAxeOptions } from "./axe"
 export { BROWSER_AXE_TAGS, formatAxeViolations, scanBrowserAxe } from "./axe"
 export type { Allowance, AllowedFinding, CheckId, Finding, JudgedFindings } from "./findings"
 export { applyAllowances, CHECK_IDS, capFindingsPerCheck } from "./findings"
-export { findFocusProblems, pressWithKeyboard } from "./focus"
+export { findFocusProblems, focusWithKeyboard, pressWithKeyboard } from "./focus"
 export type {
   FocusableFact,
   ImageFact,

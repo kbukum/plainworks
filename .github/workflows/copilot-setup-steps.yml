@@ -1,7 +1,7 @@
 name: Copilot Setup Steps
 
 # Prepares the Copilot cloud agent's environment so it can run the same UI loop as a developer:
-# `bun run ui:check --affected` in `apps/showcase`. Runs on its own when this file changes, and by
+# `bun run ui:capture --affected` in `apps/showcase`. Runs on its own when this file changes, and by
 # hand from the Actions tab.
 on:
   workflow_dispatch:
@@ -28,7 +28,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      # The agent overrides the checkout depth, so fetch `main` on its own: `ui:check --affected`
+      # The agent overrides the checkout depth, so fetch `main` on its own: `ui:capture --affected`
       # and `--base main` need the merge-base with it.
       - name: Fetch main for the merge-base
         run: git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main

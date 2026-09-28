@@ -13,6 +13,11 @@ bun run --filter @plainworks/showcase dev
 
 The showcase server-renders a task dashboard, hydrates it on the client, reads data through the query and HTTP packages, applies the theme before paint, and routes live events into state and cache updates.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="apps/showcase/docs/images/overview-dark.png">
+  <img alt="The showcase overview: metric cards, a revenue trend chart, top products, and recent activity" src="apps/showcase/docs/images/overview-light.png">
+</picture>
+
 A second reference host, [`@plainworks/next-host`](./apps/next-host), assembles the same packages under Next.js App Router and React Server Components. Two genuinely different hosts on one kit is the proof of host-independence.
 
 ## Choose a package

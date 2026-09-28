@@ -42,6 +42,14 @@ describe("defineFlow", () => {
     ).toHaveLength(1)
   })
 
+  it("accepts checkpoints marked as docs images", () => {
+    const flow = {
+      name: "tasks",
+      checkpoints: [checkpoint("board", { docs: "tasks-board" }), checkpoint("dialog")],
+    }
+    expect(defineFlow(flow).checkpoints[0]?.docs).toBe("tasks-board")
+  })
+
   it.each([
     ["a flow name that is not a slug", { name: "Create Task", checkpoints: [checkpoint("a")] }],
     ["a flow with no checkpoints", { name: "empty", checkpoints: [] }],
@@ -63,6 +71,17 @@ describe("defineFlow", () => {
         ],
       },
     ],
+    [
+      "a docs image name that is not a slug",
+      { name: "f", checkpoints: [checkpoint("a", { docs: "Tasks Board" })] },
+    ],
+    [
+      "two docs images with one name",
+      {
+        name: "f",
+        checkpoints: [checkpoint("a", { docs: "shot" }), checkpoint("b", { docs: "shot" })],
+      },
+    ],
     ["an empty covers pattern", { name: "f", covers: [" "], checkpoints: [checkpoint("a")] }],
     [
       "an absolute covers pattern",
@@ -75,6 +94,11 @@ describe("defineFlow", () => {
     [
       "a backslash covers pattern",
       { name: "f", covers: ["src\\a"], checkpoints: [checkpoint("a")] },
+    ],
+    [
+      "an unknown extra device",
+      // A flow built outside TypeScript can name any device.
+      { name: "f", extraDevices: ["watch"] as never, checkpoints: [checkpoint("a")] },
     ],
   ])("rejects %s with a definition error", (_, flow) => {
     const error = definitionError(() => defineFlow(flow))

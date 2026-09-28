@@ -27,7 +27,7 @@ export const FIXED_NOW_ENV = "PLAINWORKS_FIXED_NOW"
 
 /**
  * The environment variable that points every worker at a host that is already running, such as
- * the warm host `ui:check` reuses or a base commit's host. No worker then starts its own. Run a
+ * the warm host `ui:capture` reuses or a base commit's host. No worker then starts its own. Run a
  * single worker against it, since each test resets that one backend.
  */
 export const GATE_ORIGIN_ENV = "PLAINWORKS_GATE_ORIGIN"
@@ -49,27 +49,6 @@ export const browserGateUse: {
   colorScheme: "light",
   reducedMotion: "reduce",
   serviceWorkers: "block",
-}
-
-/**
- * Screenshot comparison defaults for the Playwright config's `expect.toHaveScreenshot`. Animations
- * and the caret are frozen, `scale: "css"` keeps one baseline per CSS pixel whatever the device
- * scale, and `threshold` absorbs per-pixel anti-aliasing. `maxDiffPixels` is a fixed count, not a
- * share of the image, and stays below one 24×24 target, so a missing control fails on any capture
- * size. A ratio would not: 1% of a mostly blank screen hides a whole row of dialog actions.
- */
-export const browserGateScreenshot: {
-  readonly animations: "disabled"
-  readonly caret: "hide"
-  readonly scale: "css"
-  readonly threshold: number
-  readonly maxDiffPixels: number
-} = {
-  animations: "disabled",
-  caret: "hide",
-  scale: "css",
-  threshold: 0.2,
-  maxDiffPixels: 100,
 }
 
 /** The fixtures the gate adds to every test. */
@@ -103,7 +82,7 @@ export interface BrowserGateOptions {
   readonly allowedOrigins?: readonly string[]
   /**
    * Return the host to its seeded state before each test, for example by calling its reset
-   * endpoint. Tests then pass in any order and on any shard, whatever an earlier test changed.
+   * endpoint. Tests then pass in any order and on any worker, whatever an earlier test changed.
    */
   readonly resetHost?: (request: APIRequestContext) => Promise<void>
   /**

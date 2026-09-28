@@ -3,7 +3,7 @@ import { FlowError } from "./errors"
 import { MODE_ONLY_THEME_AXES, type ThemeAxes } from "./matrix/axes"
 import { type DeviceContextOptions, deviceContextOptions } from "./matrix/devices"
 import { type DevicePlan, expandFlowMatrix } from "./matrix/expand"
-import type { MatrixPresetName, MatrixSpec } from "./matrix/presets"
+import { MATRIX_PRESETS, type MatrixPresetName, type MatrixSpec } from "./matrix/presets"
 
 /** One Playwright test: a flow replayed on one device. */
 export interface PlannedFlowRun {
@@ -25,11 +25,13 @@ export interface FlowPlanOptions {
 }
 
 /**
- * Plan a suite: one run per flow and device, so each flow replays once per device and visits
- * every page variant in place. Declare one `test.describe` per run with `test.use(run.use)`, and
- * the runner opens each device's context. Every flow is validated with {@link defineFlow}, so one
- * built by hand is held to the same rules. Throws a `flow/definition` {@link FlowError} for an
- * invalid flow, or for two flows with one name, whose artifacts would collide.
+ * Plan a suite: one run per flow and device, so each flow replays once per device and visits every
+ * page variant in place. A flow's `extraDevices` follow the matrix's devices, each with the
+ * variants the matrix gives a device of its own. Declare one `test.describe` per run with
+ * `test.use(run.use)`, and the runner opens each device's context. Every flow is validated with
+ * {@link defineFlow}, so one built by hand is held to the same rules. Throws a `flow/definition`
+ * {@link FlowError} for an invalid flow, or for two flows with one name, whose artifacts would
+ * collide.
  */
 export function planFlowRuns(flows: readonly Flow[], options: FlowPlanOptions): PlannedFlowRun[] {
   const names = new Set<string>()
@@ -41,14 +43,18 @@ export function planFlowRuns(flows: readonly Flow[], options: FlowPlanOptions): 
     names.add(flow.name)
   }
   const axes = options.axes ?? MODE_ONLY_THEME_AXES
-  const plans = expandFlowMatrix(options.matrix, axes)
-  return flows.flatMap((flow) =>
-    plans.map((plan) => ({
+  const spec = typeof options.matrix === "string" ? MATRIX_PRESETS[options.matrix] : options.matrix
+  const plans = expandFlowMatrix(spec, axes)
+  return flows.flatMap((flow) => {
+    const extra = (flow.extraDevices ?? []).filter((device) => !spec.devices.includes(device))
+    const extraPlans =
+      extra.length === 0 ? [] : expandFlowMatrix({ ...spec, devices: [...new Set(extra)] }, axes)
+    return [...plans, ...extraPlans].map((plan) => ({
       title: `${flow.name} › ${plan.device.id}`,
       flow,
       plan,
       axes,
       use: deviceContextOptions(plan.device),
-    })),
-  )
+    }))
+  })
 }

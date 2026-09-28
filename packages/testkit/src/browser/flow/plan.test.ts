@@ -55,4 +55,19 @@ describe("planFlowRuns", () => {
       FlowError,
     )
   })
+
+  it("adds a flow's extra devices after the preset's, once each, with the preset's variants", () => {
+    const dialogs = defineFlow({ ...flow("dialogs"), extraDevices: ["landscape", "mobile"] })
+    const planned = planFlowRuns([dialogs], { matrix: "quick" })
+    expect(planned.map((run) => run.title)).toEqual([
+      "dialogs › desktop",
+      "dialogs › mobile",
+      "dialogs › landscape",
+    ])
+    expect(planned[2]?.plan.variants.map((variant) => variant.id)).toEqual([
+      "light.default.default.standard",
+      "dark.default.default.standard",
+    ])
+    expect(planned[2]?.use).toMatchObject({ isMobile: true })
+  })
 })

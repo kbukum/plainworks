@@ -98,8 +98,11 @@ export interface SelectedFlow {
 
 /** Which flows a run picked, over which matrix preset. */
 export interface FlowSelection {
-  /** `all` flows, the flows `named` on the command line, or the flows `affected` by a change. */
-  readonly by: "all" | "named" | "affected"
+  /**
+   * `all` flows, the flows `named` on the command line, the flows `affected` by a change, or the
+   * flows that mark `docs` images.
+   */
+  readonly by: "all" | "named" | "affected" | "docs"
   readonly preset: MatrixPresetName
   /** For `affected`: the commit changed files were counted from. */
   readonly since?: string

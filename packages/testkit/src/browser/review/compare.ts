@@ -63,7 +63,7 @@ export async function reviewChanges(options: ReviewChangesOptions): Promise<Chan
   if (before.size === 0) {
     return {
       status: "skipped",
-      reason: `The base run ${baseName} captured no frames: save it with ui:check, which captures`,
+      reason: `The base run ${baseName} captured no frames: save it with ui:capture, which captures`,
     }
   }
   if (after.size === 0) {

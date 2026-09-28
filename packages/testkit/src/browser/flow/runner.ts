@@ -5,14 +5,7 @@ import { FlowError } from "./errors"
 import { flowOutcomeError } from "./outcome"
 import { createPageFlowSession } from "./page-session"
 import type { PlannedFlowRun } from "./plan"
-import {
-  FLOW_RUN_ENV,
-  finishFlowRun,
-  flowArtifactPaths,
-  openFlowRun,
-  startFlowRun,
-} from "./report/artifacts"
-import type { RetentionPolicy } from "./report/retention"
+import { FLOW_RUN_ENV, flowArtifactPaths, openFlowRun } from "./report/artifacts"
 import type { FlowDeviceReport, FlowRunMode } from "./report/schema"
 
 /** The gate fixtures a flow runs on. */
@@ -87,29 +80,4 @@ function traceOf(testInfo: TestInfo | undefined): string | undefined {
   const setting = testInfo.project.use.trace
   const mode = typeof setting === "object" ? setting.mode : setting
   return mode === undefined || mode === "off" ? undefined : testInfo.outputPath("trace.zip")
-}
-
-/** Options for {@link setupFlowRun}. */
-export interface SetupFlowRunOptions {
-  /** The artifact root, such as `.ui-artifacts`. Keep it out of version control. */
-  readonly root: string
-  readonly retention?: RetentionPolicy
-}
-
-/**
- * Start a run for one Playwright invocation, from its `globalSetup`. It publishes the run
- * directory to the workers, and returns the teardown Playwright calls once every test finished:
- * that merges the run's entries into `report.json` and `report.md`, points `<root>/latest` at the
- * run, and prunes old runs.
- */
-export async function setupFlowRun(options: SetupFlowRunOptions): Promise<() => Promise<void>> {
-  const run = await startFlowRun({ root: options.root })
-  process.env[FLOW_RUN_ENV] = run.dir
-  return async () => {
-    await finishFlowRun({
-      root: options.root,
-      run,
-      ...(options.retention === undefined ? {} : { retention: options.retention }),
-    })
-  }
 }

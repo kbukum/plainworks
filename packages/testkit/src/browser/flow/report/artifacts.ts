@@ -1,4 +1,14 @@
-import { lstat, mkdir, readdir, readFile, rename, rm, symlink, writeFile } from "node:fs/promises"
+import {
+  cp,
+  lstat,
+  mkdir,
+  readdir,
+  readFile,
+  rename,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises"
 import { posix } from "node:path"
 import { FlowError } from "../errors"
 import { renderFlowReportMarkdown } from "./markdown"
@@ -17,12 +27,15 @@ export interface ArtifactStore {
   /** Write a file, creating its parent directories. `signal` stops a write still under way. */
   write(path: string, data: string | Uint8Array, signal?: AbortSignal): Promise<void>
   read(path: string): Promise<string>
+  readBytes(path: string): Promise<Uint8Array>
   /** The names in a directory, or none when it does not exist. */
   list(path: string): Promise<string[]>
   /** The bytes a directory holds, counted without following links. */
   size(path: string): Promise<number>
   /** Remove a file or directory tree. */
   remove(path: string): Promise<void>
+  /** Copy a directory tree to `to`, replacing whatever was there. */
+  copy(from: string, to: string): Promise<void>
   /** Point the link at `path` to `target` (relative to the link), replacing any old link. */
   link(target: string, path: string): Promise<void>
 }
@@ -39,18 +52,30 @@ export interface FlowRun {
  */
 export const FLOW_RUN_ENV = "PLAINWORKS_FLOW_RUN_DIR"
 
-/** Where each file of a run lives, relative to the run directory. */
+/**
+ * Where each file of a run lives, relative to the run directory: frames and evidence under
+ * `flows/`, the change review's files under `review/`, and contact sheets under `sheets/`.
+ */
 export const flowArtifactPaths: {
   readonly checkpoint: (at: CheckpointLocation) => string
   readonly variant: (at: CheckpointLocation, variant: string, extension: string) => string
+  readonly review: (at: CheckpointLocation, variant: string, extension: string) => string
+  readonly sheet: (at: CheckpointLocation) => string
+  readonly changedSheet: string
   readonly entry: (flow: string, device: string) => string
 } = {
-  checkpoint: ({ flow, device, index, checkpoint }) =>
-    `flows/${flow}/${device}/${String(index + 1).padStart(2, "0")}-${checkpoint}`,
-  variant: (at, variant, extension) =>
-    `${flowArtifactPaths.checkpoint(at)}/${variant}.${extension}`,
+  checkpoint: (at) => `flows/${checkpointPath(at)}`,
+  variant: (at, variant, extension) => `flows/${checkpointPath(at)}/${variant}.${extension}`,
+  review: (at, variant, extension) => `review/${checkpointPath(at)}/${variant}.${extension}`,
+  sheet: ({ flow, device, index, checkpoint }) =>
+    `sheets/${flow}--${device}--${step(index)}-${checkpoint}.html`,
+  changedSheet: "sheets/changed.html",
   entry: (flow, device) => `entries/${flow}--${device}.json`,
 }
+
+const step = (index: number): string => String(index + 1).padStart(2, "0")
+const checkpointPath = ({ flow, device, index, checkpoint }: CheckpointLocation): string =>
+  `${flow}/${device}/${step(index)}-${checkpoint}`
 
 /** One checkpoint of one flow on one device, as the artifact layout addresses it. */
 export interface CheckpointLocation {
@@ -115,15 +140,14 @@ export function openFlowRun(dir: string, store: ArtifactStore = nodeArtifactStor
 }
 
 /**
- * Finish a run: merge every stored entry into `report.json` and `report.md`, point
- * `<root>/latest` at the run, and prune old runs by `retention`. Entries are validated, so a
- * malformed one fails with a `flow/report` {@link FlowError} rather than merging silently.
+ * Merge every entry a run stored into one report. Entries are validated, so a malformed one fails
+ * with a `flow/report` {@link FlowError} rather than merging silently. Nothing is written: the
+ * owner of the run adds what it knows (a selection, a review, sheets) and calls
+ * {@link publishFlowRun}.
  */
-export async function finishFlowRun(options: {
-  readonly root: string
+export async function collectFlowRun(options: {
   readonly run: FlowRun
   readonly now?: () => number
-  readonly retention?: RetentionPolicy
   readonly store?: ArtifactStore
 }): Promise<FlowReport> {
   const store = options.store ?? nodeArtifactStore
@@ -142,14 +166,28 @@ export async function finishFlowRun(options: {
     runs.push(parseFlowDeviceReport(value))
   }
   runs.sort((a, b) => (a.flow === b.flow ? compare(a.device, b.device) : compare(a.flow, b.flow)))
-
-  const report: FlowReport = {
+  return {
     schemaVersion: FLOW_REPORT_SCHEMA_VERSION,
     runId: run.id,
     createdAt: new Date((options.now ?? Date.now)()).toISOString(),
     summary: summarizeFlowRuns(runs),
     runs,
   }
+}
+
+/**
+ * Publish a run's report: write `report.json` and `report.md` into the run, point
+ * `<root>/latest` at it, and prune old runs by `retention`.
+ */
+export async function publishFlowRun(options: {
+  readonly root: string
+  readonly run: FlowRun
+  readonly report: FlowReport
+  readonly retention?: RetentionPolicy
+  readonly store?: ArtifactStore
+}): Promise<void> {
+  const store = options.store ?? nodeArtifactStore
+  const { run, report } = options
   await store.write(posix.join(run.dir, "report.json"), `${JSON.stringify(report, null, 2)}\n`)
   await store.write(posix.join(run.dir, "report.md"), renderFlowReportMarkdown(report))
   await store.link(posix.join("runs", run.id), posix.join(options.root, "latest"))
@@ -162,7 +200,6 @@ export async function finishFlowRun(options: {
   for (const id of planRunRetention(stored, options.retention ?? DEFAULT_RETENTION, run.id)) {
     await store.remove(posix.join(runsDir, id))
   }
-  return report
 }
 
 const compare = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0)
@@ -188,6 +225,7 @@ export const nodeArtifactStore: ArtifactStore = {
     await writeFile(path, data, signal === undefined ? {} : { signal })
   },
   read: (path) => readFile(path, "utf8"),
+  readBytes: async (path) => new Uint8Array(await readFile(path)),
   async list(path) {
     try {
       return (await readdir(path)).sort()
@@ -205,6 +243,11 @@ export const nodeArtifactStore: ArtifactStore = {
     return total
   },
   remove: (path) => rm(path, { recursive: true, force: true }),
+  async copy(from, to) {
+    await rm(to, { recursive: true, force: true })
+    await mkdir(posix.dirname(to), { recursive: true })
+    await cp(from, to, { recursive: true })
+  },
   async link(target, path) {
     // A new link under a temporary name, renamed over the old one, so `latest` is never missing.
     const temporary = `${path}.${process.pid}.tmp`

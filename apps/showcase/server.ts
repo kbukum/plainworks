@@ -316,11 +316,14 @@ async function main(): Promise<void> {
   // time and re-bundle them mid-session. A page loaded across that re-bundle mixes two copies of
   // React. Naming every browser entry, including the E2E fixtures, pre-bundles them all at start.
   // `warmup` transforms both graphs at start, so the first page load does not pay for them. The
-  // browser gate runs one server per worker and gives each its own dependency cache.
+  // browser gate runs one server per worker and gives each its own dependency cache. The watcher
+  // skips test output: a flow writes DOM snapshots mid-run, and watching them would reload the page
+  // under test.
   vite = await createViteServer({
     server: {
       middlewareMode: true,
       hmr: { server },
+      watch: { ignored: ["**/.ui-artifacts/**", "**/test-results/**", "**/playwright-report/**"] },
       warmup: {
         clientFiles: [CLIENT_ENTRY.slice(1), "e2e/fixtures/**/*.tsx"],
         ssrFiles: ["src/entry-server.tsx"],

@@ -69,6 +69,15 @@ bun run changeset                             # add a Changeset for the release
 
 The Definition of Done for every change is `verify` green, a Changeset, and the architecture invariants below. `verify` includes the vendored-atom lock check (`check-registry`); also run the `elements` tests when `theme` changes. Scope with turbo filters: `--filter=@plainworks/<name>` for one package, `--filter='...[origin/main]'` for the affected set.
 
+A change that alters what a user sees or does in an app also meets the **UI Definition of Done**. Run it in the app (today `apps/showcase`):
+
+1. Before editing, save a baseline: `bun run ui:check --save-as before`.
+2. After editing, run `bun run ui:check --affected`. It must finish with **no hard failures** (exit 0).
+3. **Review every changed frame** in the report's `sheets/changed.png`. Each change must be one you intended; fix anything else.
+4. **Record a short summary** in the hand-off or PR: the verdict, which flows ran, and what changed visually and why.
+
+A new user-facing journey gets a flow in `apps/<app>/e2e/flows/` with `covers` globs, so `--affected` selects it. See the [testkit guide](../packages/testkit/README.md#the-ui-loop--uicheck).
+
 ## Package structure
 
 bun workspaces, three roots:

@@ -27,6 +27,9 @@ export default defineConfig({
     ...browserGateUse,
     trace: "retain-on-failure",
   },
+  // One flow run per invocation: `flows.spec.ts` writes into it, and the teardown publishes
+  // `.ui-artifacts/latest/report.md`. `ui:check` owns the run itself.
+  globalSetup: "./e2e/support/flow-run.ts",
   snapshotPathTemplate: "{testDir}/{testFilePath}-snapshots/{platform}/{arg}{ext}",
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 })

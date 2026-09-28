@@ -29,19 +29,30 @@ export interface TextFact {
 export interface TargetFact {
   readonly key: string
   readonly name: string
+  /** The part of the control its clipping ancestors (a scrolling list) leave painted. */
   readonly box: LayoutBox
   /**
    * The control's center shows the control itself or another control of the same layer, rather
    * than a surface that hides it, such as an open overlay. Only exposed controls can overlap.
    */
   readonly exposed: boolean
+  /** The control sits in fixed or sticky chrome, rather than in content that scrolls under it. */
+  readonly pinned: boolean
 }
 
 /** A focusable control and what, if anything, covers its center. */
 export interface FocusableFact {
   readonly name: string
   /** The fixed or sticky element drawn over the control's center, or `null` when uncovered. */
-  readonly coveredBy: { readonly name: string; readonly overlay: boolean } | null
+  readonly coveredBy: {
+    readonly name: string
+    readonly overlay: boolean
+    /**
+     * The chrome sits inside the page's `scroll-padding` and the page has room to scroll, so
+     * focusing the control scrolls it clear, as WCAG 2.4.11 judges it.
+     */
+    readonly revealedOnFocus: boolean
+  } | null
 }
 
 /** An `<img>` and its load state. */
@@ -98,13 +109,15 @@ function clipped(fact: TextFact, detail: string): Finding {
 /**
  * Two visible controls drawn over each other: a user cannot tell which one a tap reaches. A control
  * nested in another (an action inside a row link) and one under an open overlay are left out.
+ * Content scrolling under pinned chrome is left to {@link judgeObscuredFocusables}: the chrome
+ * always wins the tap, and the question is whether focus can scroll the content clear.
  */
 export function judgeOverlappingTargets(targets: readonly TargetFact[]): Finding[] {
   const visible = targets.filter((target) => target.exposed)
   const findings: Finding[] = []
   for (const [index, first] of visible.entries()) {
     for (const second of visible.slice(index + 1)) {
-      if (nested(first.key, second.key)) continue
+      if (nested(first.key, second.key) || first.pinned !== second.pinned) continue
       const width =
         Math.min(right(first.box), right(second.box)) - Math.max(first.box.x, second.box.x)
       const height =
@@ -126,12 +139,13 @@ const right = (box: LayoutBox): number => box.x + box.width
 const bottom = (box: LayoutBox): number => box.y + box.height
 
 /**
- * Focusable content under fixed or sticky chrome (a docked bar, a toast region) that a user cannot
- * see. An open overlay covers the page on purpose, so it never counts.
+ * Focusable content under fixed or sticky chrome (a docked bar, a toast region) that stays hidden
+ * when focused. An open overlay covers the page on purpose, and content that focusing scrolls clear
+ * of the chrome is only below the fold, so neither counts.
  */
 export function judgeObscuredFocusables(focusables: readonly FocusableFact[]): Finding[] {
   return focusables.flatMap(({ name, coveredBy }) =>
-    coveredBy === null || coveredBy.overlay
+    coveredBy === null || coveredBy.overlay || coveredBy.revealedOnFocus
       ? []
       : [
           {

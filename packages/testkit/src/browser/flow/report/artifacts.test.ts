@@ -1,57 +1,31 @@
 import { describe, expect, it } from "vitest"
 import { FlowError } from "../errors"
 import {
-  type ArtifactStore,
-  finishFlowRun,
+  collectFlowRun,
   flowArtifactPaths,
   openFlowRun,
+  publishFlowRun,
   startFlowRun,
 } from "./artifacts"
+import { memoryArtifactStore } from "./memory-store"
+import type { RetentionPolicy } from "./retention"
 import type { FlowDeviceReport } from "./schema"
 
-/** An in-memory store: files by path, directories implied by their contents. */
 function memoryStore() {
-  const files = new Map<string, string | Uint8Array>()
-  const dirs = new Set<string>()
-  const links = new Map<string, string>()
-  const under = (path: string) => [...files.keys()].filter((file) => file.startsWith(`${path}/`))
-  const store: ArtifactStore = {
-    async createDir(path) {
-      if (dirs.has(path)) return false
-      dirs.add(path)
-      return true
-    },
-    async write(path, data) {
-      files.set(path, data)
-    },
-    async read(path) {
-      const data = files.get(path)
-      if (data === undefined) throw new Error(`ENOENT ${path}`)
-      return typeof data === "string" ? data : new TextDecoder().decode(data)
-    },
-    async list(path) {
-      const names = new Set<string>()
-      for (const entry of [...dirs, ...files.keys()]) {
-        if (entry.startsWith(`${path}/`))
-          names.add(entry.slice(path.length + 1).split("/")[0] ?? "")
-      }
-      return [...names].sort()
-    },
-    async size(path) {
-      return under(path).reduce((total, file) => {
-        const data = files.get(file)
-        return total + (typeof data === "string" ? data.length : (data?.byteLength ?? 0))
-      }, 0)
-    },
-    async remove(path) {
-      for (const file of under(path)) files.delete(file)
-      for (const dir of [...dirs]) if (dir === path || dir.startsWith(`${path}/`)) dirs.delete(dir)
-    },
-    async link(target, path) {
-      links.set(path, target)
-    },
-  }
-  return { store, files, dirs, links }
+  const store = memoryArtifactStore()
+  return { store, files: store.files, dirs: store.dirs, links: store.links }
+}
+
+/** Collect and publish a run, the way a run's owner finishes it. */
+async function finish(
+  options: Parameters<typeof collectFlowRun>[0] & {
+    readonly root: string
+    readonly retention?: RetentionPolicy
+  },
+) {
+  const report = await collectFlowRun(options)
+  await publishFlowRun({ ...options, report })
+  return report
 }
 
 const entry = (flow: string, device: FlowDeviceReport["device"]): FlowDeviceReport => ({
@@ -70,6 +44,10 @@ describe("flowArtifactPaths", () => {
     expect(flowArtifactPaths.variant(at, "dark.indigo.compact.standard", "png")).toBe(
       "flows/create-task/mobile/02-new-task/dark.indigo.compact.standard.png",
     )
+    expect(flowArtifactPaths.review(at, "light.default.default.standard", "diff.png")).toBe(
+      "review/create-task/mobile/02-new-task/light.default.default.standard.diff.png",
+    )
+    expect(flowArtifactPaths.sheet(at)).toBe("sheets/create-task--mobile--02-new-task.html")
     expect(flowArtifactPaths.entry("create-task", "mobile")).toBe(
       "entries/create-task--mobile.json",
     )
@@ -114,7 +92,7 @@ describe("flow runs", () => {
       JSON.stringify(entry("a-flow", "mobile")),
     )
 
-    const report = await finishFlowRun({ root: "/art", run, now: () => NOW, store })
+    const report = await finish({ root: "/art", run, now: () => NOW, store })
     expect(report).toMatchObject({
       schemaVersion: 1,
       runId: run.id,
@@ -126,15 +104,28 @@ describe("flow runs", () => {
     expect(links.get("/art/latest")).toBe(`runs/${run.id}`)
   })
 
+  it("collects without writing, so the owner can add to the report before publishing", async () => {
+    const { store, files } = memoryStore()
+    const run = await startFlowRun({ root: "/art", now: () => NOW, store })
+    const report = await collectFlowRun({ run, now: () => NOW, store })
+    expect(report.runs).toEqual([])
+    expect(files.has(`${run.dir}/report.json`)).toBe(false)
+    await publishFlowRun({
+      root: "/art",
+      run,
+      report: { ...report, review: { status: "skipped", reason: "no base" } },
+      store,
+    })
+    expect(JSON.parse(await store.read(`${run.dir}/report.json`)).review.reason).toBe("no base")
+  })
+
   it("rejects a malformed entry instead of merging it", async () => {
     const { store } = memoryStore()
     const run = await startFlowRun({ root: "/art", now: () => NOW, store })
     await openFlowRun(run.dir, store).write("entries/x--desktop.json", '{"flow": 1}')
-    await expect(finishFlowRun({ root: "/art", run, now: () => NOW, store })).rejects.toMatchObject(
-      {
-        kind: "flow/report",
-      },
-    )
+    await expect(finish({ root: "/art", run, now: () => NOW, store })).rejects.toMatchObject({
+      kind: "flow/report",
+    })
   })
 
   it("prunes old runs past the retention policy, keeping the one just finished", async () => {
@@ -147,7 +138,7 @@ describe("flow runs", () => {
     }
     const last = runs.at(-1)
     if (last === undefined) throw new Error("no run")
-    await finishFlowRun({
+    await finish({
       root: "/art",
       run: last,
       now: () => NOW,

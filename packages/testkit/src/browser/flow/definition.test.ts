@@ -27,6 +27,15 @@ describe("defineFlow", () => {
     expect(defineFlow(flow)).toBe(flow)
   })
 
+  it("accepts the repository paths a flow covers", () => {
+    const flow = {
+      name: "tasks",
+      covers: ["apps/showcase/src/routes/tasks/**", "packages/ui/src/client/data/**"],
+      checkpoints: [checkpoint("board")],
+    }
+    expect(defineFlow(flow).covers).toHaveLength(2)
+  })
+
   it("accepts a single surface as a one-checkpoint flow", () => {
     expect(
       defineFlow({ name: "login", checkpoints: [checkpoint("login")] }).checkpoints,
@@ -53,6 +62,19 @@ describe("defineFlow", () => {
           checkpoint("a", { allow: [{ check: "runtime", match: /500/g, reason: "x" }] }),
         ],
       },
+    ],
+    ["an empty covers pattern", { name: "f", covers: [" "], checkpoints: [checkpoint("a")] }],
+    [
+      "an absolute covers pattern",
+      { name: "f", covers: ["/src/**"], checkpoints: [checkpoint("a")] },
+    ],
+    [
+      "a climbing covers pattern",
+      { name: "f", covers: ["../x/**"], checkpoints: [checkpoint("a")] },
+    ],
+    [
+      "a backslash covers pattern",
+      { name: "f", covers: ["src\\a"], checkpoints: [checkpoint("a")] },
     ],
   ])("rejects %s with a definition error", (_, flow) => {
     const error = definitionError(() => defineFlow(flow))

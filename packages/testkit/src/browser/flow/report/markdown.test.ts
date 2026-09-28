@@ -114,3 +114,81 @@ describe("renderFlowReportMarkdown", () => {
     )
   })
 })
+
+describe("renderFlowReportMarkdown for ui:check", () => {
+  it("explains the selection, then the visual changes with their files and sheets", () => {
+    const markdown = renderFlowReportMarkdown({
+      ...report([passing]),
+      selection: {
+        by: "affected",
+        preset: "quick",
+        since: "abc1234",
+        changedFiles: 3,
+        unmapped: ["packages/std/src/x.ts"],
+        flows: [
+          { name: "create-task", reasons: ["fail safe: packages/std/src/x.ts is not covered"] },
+        ],
+      },
+      review: {
+        status: "compared",
+        base: { kind: "git", name: "origin/main", commit: "abc1234", runId: "r1" },
+        totals: { unchanged: 3, changed: 1, added: 1, removed: 0, "not-captured": 2 },
+        changes: [
+          {
+            flow: "create-task",
+            device: "desktop",
+            index: 0,
+            checkpoint: "tasks",
+            variant: "dark.default.default.standard",
+            status: "changed",
+            pixels: { different: 640, total: 1_296_000, sizeChanged: false },
+            ariaChanged: true,
+            before: "review/a.before.png",
+            after: "flows/a.png",
+            diff: "review/a.diff.png",
+            ariaDiff: "review/a.aria.diff",
+          },
+          {
+            flow: "create-task",
+            device: "desktop",
+            index: 1,
+            checkpoint: "new-task",
+            variant: "light.default.default.standard",
+            status: "added",
+            after: "flows/b.png",
+          },
+        ],
+      },
+      sheets: { checkpoints: ["sheets/a.png"], changed: "sheets/changed.png" },
+    })
+    expect(markdown).toContain("## Selection")
+    expect(markdown).toContain("Affected by 3 changed files since `abc1234`, preset `quick`.")
+    expect(markdown).toContain(
+      "- **create-task** — fail safe: packages/std/src/x.ts is not covered",
+    )
+    expect(markdown).toContain("## Visual changes")
+    expect(markdown).toContain(
+      "Against git `origin/main` (`abc1234`): 1 changed, 1 added, 0 removed, 3 unchanged, 2 not captured (their flow errored or did not run).",
+    )
+    expect(markdown).toContain(
+      "- changed `create-task › desktop › 01 tasks › dark.default.default.standard` — 640 px, ARIA changed — [before](review/a.before.png) · [after](flows/a.png) · [diff](review/a.diff.png) · [ARIA diff](review/a.aria.diff)",
+    )
+    expect(markdown).toContain(
+      "- added `create-task › desktop › 02 new-task › light.default.default.standard` — [after](flows/b.png)",
+    )
+    expect(markdown).toContain(
+      "Contact sheets: [changed only](sheets/changed.png) · [01](sheets/a.png)",
+    )
+    expect(markdown.indexOf("## Visual changes")).toBeLessThan(markdown.indexOf("| Flow |"))
+  })
+
+  it("says why no review ran", () => {
+    const markdown = renderFlowReportMarkdown({
+      ...report([passing]),
+      review: { status: "skipped", reason: "No base: run ui:check --save-as before first" },
+    })
+    expect(markdown).toContain(
+      "## Visual changes\n\nNot reviewed: No base: run ui:check --save-as before first",
+    )
+  })
+})

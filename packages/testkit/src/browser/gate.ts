@@ -26,6 +26,13 @@ export const BROWSER_GATE_NOW = "2026-01-15T12:00:00.000Z"
 export const FIXED_NOW_ENV = "PLAINWORKS_FIXED_NOW"
 
 /**
+ * The environment variable that points every worker at a host that is already running, such as
+ * the warm host `ui:check` reuses or a base commit's host. No worker then starts its own. Run a
+ * single worker against it, since each test resets that one backend.
+ */
+export const GATE_ORIGIN_ENV = "PLAINWORKS_GATE_ORIGIN"
+
+/**
  * Browser context options for a deterministic run: a fixed locale and time zone, light mode by
  * default, reduced motion, and no service workers (which could serve a response the gate did not
  * see). Spread it into the Playwright config's `use`.
@@ -117,7 +124,8 @@ const WORKER_SETUP_TIMEOUT_MS = 300_000
 /**
  * Build the `test` for a gated browser suite.
  *
- * Each worker can start its own host and sign in once, so workers run in parallel. Before each test
+ * Each worker can start its own host and sign in once, so workers run in parallel; with
+ * {@link GATE_ORIGIN_ENV} set, every worker uses that running host instead. Before each test
  * touches the page, the gate resets the host when asked, pins the page's `Date` to a fixed instant
  * (timers keep running, so the app still works), and starts watching for runtime errors, including
  * requests that leave the allowed origins. When the test ends, any recorded error fails it, so a
@@ -129,16 +137,21 @@ export function createBrowserGate(options: BrowserGateOptions = {}): BrowserGate
     gateOrigin: [
       // biome-ignore lint/correctness/noEmptyPattern: Playwright reads a fixture's dependencies from its destructured first argument, and this one has none.
       async ({}, use, workerInfo) => {
+        const running = process.env[GATE_ORIGIN_ENV]
+        if (running !== undefined && running !== "") {
+          await use(running)
+          return
+        }
         const host = options.host
         if (host === undefined) {
           await use(workerInfo.project.use.baseURL)
           return
         }
-        const running = await startGateHost(host, host.basePort + workerInfo.parallelIndex)
+        const started = await startGateHost(host, host.basePort + workerInfo.parallelIndex)
         try {
-          await use(running.origin)
+          await use(started.origin)
         } finally {
-          await running.stop()
+          await started.stop()
         }
       },
       { scope: "worker", timeout: WORKER_SETUP_TIMEOUT_MS },

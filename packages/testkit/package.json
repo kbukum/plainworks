@@ -58,7 +58,9 @@
     "@plainworks/std": "workspace:*",
     "@testing-library/react": "catalog:",
     "axe-core": "catalog:",
-    "jose": "catalog:"
+    "jose": "catalog:",
+    "pixelmatch": "catalog:",
+    "pngjs": "catalog:"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "catalog:",
@@ -70,6 +72,7 @@
     "@plainworks/tsdown-config": "workspace:*",
     "@playwright/test": "catalog:",
     "@types/node": "catalog:",
+    "@types/pngjs": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitest/coverage-v8": "catalog:",

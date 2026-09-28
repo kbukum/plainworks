@@ -2,14 +2,17 @@ import { CHECK_IDS, type CheckId } from "../../checks/findings"
 import { FLOW_ERROR_KINDS, FlowError } from "../errors"
 import { FLOW_MODES, PREFERENCE_IDS } from "../matrix/axes"
 import { DEVICE_IDS } from "../matrix/devices"
-import type {
-  CheckpointReport,
-  EvidenceLinks,
-  FlowDeviceReport,
-  FlowStatus,
-  ReportedError,
-  VariantReport,
+import {
+  type CheckpointReport,
+  type EvidenceLinks,
+  FLOW_REPORT_SCHEMA_VERSION,
+  type FlowDeviceReport,
+  type FlowReport,
+  type FlowStatus,
+  type ReportedError,
+  type VariantReport,
 } from "./schema"
+import { summarizeFlowRuns } from "./summary"
 
 const STATUSES: readonly FlowStatus[] = ["pass", "fail", "error", "skipped"]
 
@@ -23,6 +26,33 @@ export function parseFlowDeviceReport(value: unknown): FlowDeviceReport {
     throw new FlowError("report", "A stored flow run entry does not match the report schema")
   }
   return value
+}
+
+/**
+ * Validate a stored `report.json`, such as a saved snapshot a run compares against. It keeps what a
+ * comparison reads: the run id, the time, and every run entry, each validated. The summary is
+ * totalled again from the entries rather than trusted, and the run-specific selection, review, and
+ * sheets are dropped. Throws a `flow/report` {@link FlowError} for a report of another schema
+ * version or any malformed entry.
+ */
+export function parseFlowReport(value: unknown): FlowReport {
+  if (!isRecord(value) || value.schemaVersion !== FLOW_REPORT_SCHEMA_VERSION) {
+    throw new FlowError(
+      "report",
+      `A stored report is not a schema v${FLOW_REPORT_SCHEMA_VERSION} flow report`,
+    )
+  }
+  if (!isString(value.runId) || !isString(value.createdAt) || !Array.isArray(value.runs)) {
+    throw new FlowError("report", "A stored report is missing its run id, time, or runs")
+  }
+  const runs = value.runs.map(parseFlowDeviceReport)
+  return {
+    schemaVersion: FLOW_REPORT_SCHEMA_VERSION,
+    runId: value.runId,
+    createdAt: value.createdAt,
+    summary: summarizeFlowRuns(runs),
+    runs,
+  }
 }
 
 type Fields = { readonly [key: string]: unknown }

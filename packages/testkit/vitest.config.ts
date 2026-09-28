@@ -27,6 +27,7 @@ export default defineConfig({
         "src/browser/surface-gate/{surface,assertions}.ts",
         "src/browser/checks/{animation,axe,focus,layout,layout-facts}.ts",
         "src/browser/flow/{page-session,runner}.ts",
+        "src/browser/ui-check/node-runtime.ts",
       ],
       thresholds: {
         lines: 80,

@@ -8,6 +8,7 @@ import { createQueryClient, type DehydratedState } from "@plainworks/query"
 import { hydrateRoot } from "react-dom/client"
 import { QUERY_STATE_SCRIPT_ID, ROOT_ELEMENT_ID, SNAPSHOT_SCRIPT_ID } from "../app/constants"
 import { buildClientCapabilities } from "./capabilities"
+import { devtoolsEnabled } from "./dev-tools/enabled"
 import { createShowcaseDevtoolsSeams, type ShowcaseDevtoolsSeams } from "./dev-tools/seams"
 import { Showcase } from "./showcase"
 import { createThemeSource } from "./sources"
@@ -39,9 +40,10 @@ function hydrate(): void {
   // production bundle (`check-production` proves it). The side-effect-free HTTP seam is imported
   // statically because its interceptor must wrap the client at construction, and awaiting it would
   // delay hydration past `load`. The inspector is optional: a failure is reported and the app
-  // hydrates uninstrumented, and the shell mounts only after hydration.
+  // hydrates uninstrumented, and the shell mounts only after hydration. A browser profile can turn
+  // it off, as the flow suite does.
   let devtools: ShowcaseDevtoolsSeams | undefined
-  if (import.meta.env.DEV) {
+  if (import.meta.env.DEV && devtoolsEnabled(() => window.localStorage)) {
     try {
       devtools = createShowcaseDevtoolsSeams()
     } catch (error) {

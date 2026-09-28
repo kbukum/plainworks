@@ -1,6 +1,4 @@
-import { expect, type Page } from "@playwright/test"
-import { settleAnimations } from "./animation"
-import { GATE_VIEWPORTS, type ViewportSize } from "./matrix"
+import type { Page } from "@playwright/test"
 
 // Sub-pixel layout can round the document one pixel wider than the viewport without a scrollbar.
 const OVERFLOW_SLACK_PX = 1
@@ -10,35 +8,6 @@ export async function horizontalOverflow(page: Page): Promise<number> {
   return page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   )
-}
-
-/** Assert the page does not scroll horizontally at its current viewport. */
-export async function expectNoHorizontalOverflow(
-  page: Page,
-  label: string = page.url(),
-): Promise<void> {
-  expect(await horizontalOverflow(page), `${label} overflows horizontally`).toBeLessThanOrEqual(
-    OVERFLOW_SLACK_PX,
-  )
-}
-
-/**
- * Assert the page reflows at the WCAG 1.4.10 target: a real 320 CSS px viewport, not CSS zoom, so
- * media and container queries collapse the way they would for a user at 400% zoom. The original
- * viewport is restored afterwards, so later assertions keep their own size.
- */
-export async function expectReflowAtNarrowViewport(page: Page): Promise<void> {
-  const original = page.viewportSize()
-  try {
-    await page.setViewportSize(GATE_VIEWPORTS.reflow)
-    // Controls that resize with their container transition to the narrow layout; measure the end.
-    await settleAnimations(page)
-    await expectNoHorizontalOverflow(page, `${page.url()} at 320 CSS px (WCAG 1.4.10 reflow)`)
-  } finally {
-    if (original) {
-      await page.setViewportSize(original)
-    }
-  }
 }
 
 /** An open overlay's name and its box in viewport coordinates. */
@@ -57,7 +26,7 @@ export interface OverlayBox {
  */
 export function judgeOverlayContainment(
   overlays: readonly OverlayBox[],
-  viewport: ViewportSize,
+  viewport: { readonly width: number; readonly height: number },
 ): string[] {
   const size = `${viewport.width}x${viewport.height}`
   return overlays.flatMap((box) => {
@@ -100,16 +69,9 @@ function measureOverlays(): OverlayBox[] {
     }))
 }
 
-/**
- * Assert every open dialog, alert dialog, and menu fits inside the viewport, so none of its content
- * is cut off where neither the overlay nor the scroll-locked page can reach it.
- */
-export async function expectOverlaysInViewport(
-  page: Page,
-  label: string = page.url(),
-): Promise<void> {
+/** Describe every open dialog, alert dialog, and menu that crosses a viewport edge. */
+export async function findOverlaysOutsideViewport(page: Page): Promise<string[]> {
   const viewport = page.viewportSize()
-  if (viewport === null) throw new Error("expectOverlaysInViewport needs a fixed viewport size")
-  const failures = judgeOverlayContainment(await page.evaluate(measureOverlays), viewport)
-  expect(failures, `${label} has an overlay outside the viewport`).toEqual([])
+  if (viewport === null) throw new Error("Overlay containment needs a fixed viewport size")
+  return judgeOverlayContainment(await page.evaluate(measureOverlays), viewport)
 }

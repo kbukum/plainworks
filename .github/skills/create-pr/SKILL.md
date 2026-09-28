@@ -45,7 +45,7 @@ Fill every section of [`../../PULL_REQUEST_TEMPLATE.md`](../../PULL_REQUEST_TEMP
 - **Type of Change / Package(s) Affected** — mark accurately.
 - **Changes Made** — a short, grouped bullet list of the *key* changes by concern, not one bullet per file and not a commit log.
 - **Testing** — check only the DoD gates you actually ran, scoped to affected packages (`turbo run test --filter=@plainworks/<name>`, `bun run check-boundaries`, `bun run check-versions`). Paste real evidence if useful; don't fabricate output.
-- **Breaking Changes** — pre-stable, describe the redesign, not a migration shim.
+- **Breaking Changes** — alpha, so breaking changes are welcome. Say what was redesigned and what was removed, never a migration shim or deprecation path. Check **Breaking change** honestly, and use a `minor` Changeset.
 - **Host-independence & seams** — if a package's server/client split or a shared seam changed, say so (e.g. "auth-header seam moved into `std`"; "`./client` entry added").
 - **Changeset** — confirm one is included; it is the release-note source of truth, so write it in the same plain, benefit-first voice (what a consumer gains, not the internal mechanics — see the Documentation baseline), not a commit log.
 - **Checklist** — tick only what is genuinely true. An unchecked box is honest signal; a falsely checked one wastes reviewer trust.

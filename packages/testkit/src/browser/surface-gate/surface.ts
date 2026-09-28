@@ -1,11 +1,15 @@
 import { expect, type Locator, type Page } from "@playwright/test"
-import { type BrowserAxeOptions, expectNoBrowserAxeViolations } from "./axe"
-import { captureOptions, type VisualCapture, withCaptureFrame } from "./capture"
-import { expectFocusVisible } from "./focus"
-import { expectHydrated } from "./hydration"
-import { expectNoHorizontalOverflow, expectOverlaysInViewport } from "./layout"
+import type { BrowserAxeOptions } from "../checks/axe"
+import type { RuntimeErrorWatch } from "../checks/runtime-errors"
+import { captureOptions, type VisualCapture, withCaptureFrame } from "../flow/frame"
+import {
+  expectFocusVisible,
+  expectHydrated,
+  expectNoBrowserAxeViolations,
+  expectNoHorizontalOverflow,
+  expectOverlaysInViewport,
+} from "./assertions"
 import { expandMatrix, type VisualMatrix, type VisualVariant } from "./matrix"
-import type { RuntimeErrorWatch } from "./runtime-errors"
 
 /** Which checks a surface runs besides its screenshot. */
 export interface VisualChecks {

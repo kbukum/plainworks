@@ -86,7 +86,7 @@ The proto is the source of truth; regenerate the checked-in `*_pb.ts` with `bun 
 
 ## Browser gate — `@plainworks/testkit/browser`
 
-The shared Playwright gate the reference hosts run. A test written with it starts from a fixed "now", fails on any runtime error, hydration error, or off-origin request, and can check axe, reflow, focus, and a screenshot baseline in one call. `@playwright/test` and `@axe-core/playwright` are **optional peers**, loaded only by this subpath.
+The shared Playwright harness the reference hosts run, and the **flow engine** on top of it. Every test starts from a fixed "now", locale, and time zone, signs in once per worker, and fails on any runtime error, hydration error, or off-origin request. A flow then replays a journey and checks axe, reflow, overlays, focus, and layout at each checkpoint — no committed screenshots. `@playwright/test` and `@axe-core/playwright` are **optional peers**, loaded only by this subpath.
 
 ```ts
 // playwright.config.ts: a fixed locale, time zone, and motion, plus strict screenshot defaults.
@@ -101,8 +101,8 @@ export default defineConfig({
 ```
 
 ```ts
-// A spec: each worker starts its own host and signs in once; then one test per surface variant.
-import { BROWSER_GATE_NOW, createBrowserGate, FIXED_NOW_ENV, FULL_MATRIX, planVisualTests, runVisualTest, VISUAL_TAG } from "@plainworks/testkit/browser"
+// A gated test: each worker starts its own host and signs in once, then resets the host per test.
+import { BROWSER_GATE_NOW, createBrowserGate, FIXED_NOW_ENV } from "@plainworks/testkit/browser"
 
 const test = createBrowserGate({
   host: {
@@ -118,29 +118,62 @@ const test = createBrowserGate({
     await request.post("/mock/reset")
   },
 })
-
-const surfaces = [{ name: "tasks", matrix: FULL_MATRIX, arrange: (page) => page.goto("/tasks") }]
-
-for (const planned of planVisualTests(surfaces)) {
-  test(planned.title, { tag: VISUAL_TAG }, ({ page, runtimeErrors }) =>
-    runVisualTest({ page, runtimeErrors }, planned),
-  )
-}
 ```
 
 | Export | What it gives you |
 |---|---|
 | `createBrowserGate` | The gated `test`: starts one host per worker (on `basePort + n`) and signs in once, then resets the host, pins `Date`, and fails on runtime errors. `runtimeErrors.allow(pattern)` accepts a failure the test provokes. |
-| `planVisualTests` / `runVisualTest` | One test per surface × color mode × viewport. Each runs its checks, then compares one baseline named `<surface>-<mode>-<viewport>.png`. |
-| `VisualCapture` | Frames a screenshot: the `viewport`, or the `full-page` with the `position: fixed` chrome it names hidden, since Chromium would paint it mid-image. |
-| `FULL_MATRIX` / `COMPACT_MATRIX` / `DIALOG_MATRIX` | Light and dark at desktop, tablet, mobile, and 320 px reflow; at desktop and mobile only; or at desktop, mobile, and a short 844×390 landscape phone for dialogs. |
-| `expectNoBrowserAxeViolations` | WCAG 2.2 AA axe scan with rule-level failure messages. |
-| `expectReflowAtNarrowViewport` / `expectNoHorizontalOverflow` | No horizontal scrolling at 320 CSS px (WCAG 1.4.10). |
-| `expectOverlaysInViewport` | Every open dialog, alert dialog, and menu fits the viewport, so none of it is cut off. Visual tests run it with the overflow check. |
-| `expectFocusVisible` | The focused control shows a 2 px indicator and is not covered (WCAG 2.4.7, 2.4.11). |
+| `browserGateUse` / `browserGateScreenshot` | The context and screenshot defaults for the Playwright config: fixed locale, time zone, and reduced motion; frozen animations and a strict pixel budget. |
+| `VisualCapture` | Frames a checkpoint's screenshot: the `viewport`, or the `full-page` with the `position: fixed` chrome it names hidden, since Chromium would paint it mid-image. |
 | `pressWithKeyboard` | Opens a control from the keyboard, so the overlay it opens shows focus as a keyboard user sees it. |
 
-Declare tests in the spec file, as above, so reports and file filters point at the spec. The host reads `PLAINWORKS_FIXED_NOW` to pin its own clock, so server-rendered and browser-rendered dates agree.
+The host reads `PLAINWORKS_FIXED_NOW` to pin its own clock, so server-rendered and browser-rendered dates agree.
+
+### Flows
+
+A **flow** is a named journey of checkpoints on one live page. One definition runs as an end-to-end test (`assert`) and captures frames for review (`capture`). Each flow replays **once per device**. At every checkpoint it switches the page through each variant in place (mode, brand theme, density, and a preference such as forced colors or 200% text), then runs the checks.
+
+```mermaid
+flowchart LR
+  A[act] --> R[ready + hydrated] --> V{each variant}
+  V --> S[settle] --> F[stable frame + ARIA<br/>capture mode] --> C[checks + layout heuristics]
+  C --> V
+  V --> N[next checkpoint]
+```
+
+```ts
+// global-setup.ts: one run directory per invocation; the teardown writes report.json and report.md.
+export default () => setupFlowRun({ root: ".ui-artifacts" })
+
+// flows.spec.ts
+const createTask = defineFlow({
+  name: "create-task",
+  checkpoints: [
+    { name: "board", act: (page) => page.goto("/tasks"), ready: (page) => page.getByRole("heading", { name: "Tasks" }) },
+    { name: "new-task", act: (page, { signal }) => page.getByRole("button", { name: "New task" }).click({ signal }), ready: (page) => page.getByRole("dialog") },
+  ],
+})
+
+for (const planned of planFlowRuns([createTask], { matrix: "quick", axes })) {
+  test.describe(planned.title, () => {
+    test.use(planned.use)
+    test("flow", ({ page, runtimeErrors }, testInfo) =>
+      runFlow({ page, runtimeErrors }, planned, { mode: "capture", testInfo }),
+    )
+  })
+}
+```
+
+| Export | What it gives you |
+|---|---|
+| `defineFlow` | Validates a flow. A checkpoint picks its checks, may `allow` a finding with a reason, and opts into a `pixel` baseline. Its `act` gets a `signal`: pass it to Playwright calls so a timed-out action stops. |
+| `planFlowRuns` | One test per flow × device for a matrix preset (`quick`, `devices`, `themes`, `a11y`, `full`) or a `MatrixSpec`. Big matrices sample pairwise. Every flow is validated, even one built without `defineFlow`. |
+| `ThemeAxes` | Your theme vocabulary and how `<html>` renders it. For plainworks, build it from `@plainworks/theme`. Without it, flows vary light and dark only. |
+| `runFlow` / `setupFlowRun` | Run a planned flow in a test, and manage the run directory around the whole invocation. |
+| `runFlowOnDevice` / `FlowSession` | The engine behind `runFlow`, driven through a page port you can fake. Each step's port call gets a signal that aborts when the step's budget runs out. |
+| `FlowError` | Why a flow stopped: `action`, `readiness`, `unstable-frame`, `timeout`, `session`, `aborted`, or `failed` checks. |
+
+A run lands in `<root>/runs/<id>/`, with `<root>/latest` pointing at the newest. Each failure gets an evidence bundle next to it: a frame, the ARIA tree, an inert DOM snapshot, and recent console and network entries. The snapshot has no scripts, redirects, or hidden and password values, and a policy that blocks script, so opening it never runs page code. Every page message is size-capped. When a bundle can't be collected, the report says why. Old runs are pruned: five runs, the current one included, within 1 GiB by default. Keep the root out of version control.
 
 ## Streaming transport double — `fakeStreamTransport`
 

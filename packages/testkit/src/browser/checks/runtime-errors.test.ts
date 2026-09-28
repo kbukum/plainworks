@@ -67,6 +67,15 @@ describe("watchRuntimeErrors", () => {
     expect(() => watch.expectNone()).toThrow(/pageerror: boom[\s\S]*hydration: Hydration failed/)
   })
 
+  it("cuts a message a page makes enormous, so one error cannot flood memory or the report", async () => {
+    const fake = fakePage()
+    const watch = await watchRuntimeErrors(fake.page, { allowedOrigins: [ORIGIN] })
+    fake.console("error", "x".repeat(1_000_000))
+    const [error] = watch.errors
+    expect(error?.message.length).toBeLessThan(5_000)
+    expect(error?.message).toMatch(/…\(cut at \d+ chars\)$/)
+  })
+
   it("blocks and records a request to any origin outside the allowed set", async () => {
     const fake = fakePage()
     const watch = await watchRuntimeErrors(fake.page, { allowedOrigins: [ORIGIN] })
@@ -84,6 +93,17 @@ describe("watchRuntimeErrors", () => {
     fake.console("error", "Failed to load resource: the server responded with a status of 500")
     fake.console("error", "Unexpected token")
     expect(watch.errors.map((error) => error.message)).toEqual(["Unexpected token"])
+  })
+
+  it("hands recorded errors to a caller that takes ownership, so the end-of-test check skips them", async () => {
+    const fake = fakePage()
+    const watch = await watchRuntimeErrors(fake.page, { allowedOrigins: [ORIGIN] })
+    fake.emit("pageerror", new Error("boom"))
+    expect(watch.drain()).toEqual([{ kind: "pageerror", message: "boom" }])
+    expect(watch.errors).toEqual([])
+    expect(() => watch.expectNone()).not.toThrow()
+    fake.console("error", "later")
+    expect(watch.drain()).toEqual([{ kind: "console", message: "later" }])
   })
 
   it("requires at least one allowed origin, so the network guard can never be open", async () => {

@@ -23,7 +23,10 @@ export default defineConfig({
         "src/**/index.ts",
         "src/client.ts",
         "src/connect/gen/**",
-        "src/browser/{animation,axe,focus,gate,layout,surface}.ts",
+        "src/browser/gate.ts",
+        "src/browser/surface-gate/{surface,assertions}.ts",
+        "src/browser/checks/{animation,axe,focus,layout,layout-facts}.ts",
+        "src/browser/flow/{page-session,runner}.ts",
       ],
       thresholds: {
         lines: 80,

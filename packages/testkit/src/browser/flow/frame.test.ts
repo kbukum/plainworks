@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest"
-import { type CaptureFramePage, captureOptions, withCaptureFrame } from "./capture"
+import { type CaptureFramePage, captureOptions, withCaptureFrame } from "./frame"
 
 function fakePage(log: string[]): CaptureFramePage {
   return {

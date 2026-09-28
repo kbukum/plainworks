@@ -9,8 +9,8 @@ import {
   type PlaywrightWorkerOptions,
   type TestType,
 } from "@playwright/test"
+import { type RuntimeErrorWatch, watchRuntimeErrors } from "./checks/runtime-errors"
 import { type BrowserGateHost, startGateHost } from "./host"
-import { type RuntimeErrorWatch, watchRuntimeErrors } from "./runtime-errors"
 
 /**
  * The instant every gated page and host reads as "now": a fixed midday UTC, so a date never flips

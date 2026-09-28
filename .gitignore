@@ -30,6 +30,9 @@ blob-report/
 playwright/.cache/
 **/*-snapshots/darwin/
 **/*-snapshots/win32/
+# Flow run output (frames, ARIA trees, evidence, reports): regenerated per run and pruned by
+# retention, never committed.
+.ui-artifacts/
 
 # Turbo local task cache
 .turbo/

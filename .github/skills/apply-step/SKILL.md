@@ -20,7 +20,7 @@ A path to one step file, e.g. `tmp/channel-sse-reconnect/02-sse-adapter.md`.
 A step is not self-contained — earlier steps make naming, layering, and API decisions this step depends on. Read, in order:
 
 1. **`README.md`** of the plan folder — goal, dependency order, and the cross-cutting baseline rules.
-2. **Every previous step** (`NN-*.md` with a lower number) — for the decisions and files they established. Honor them; do not re-litigate a completed step.
+2. **Every previous step** (`NN-*.md` with a lower number) — for the decisions and files they established. Honor them unless one leaves legacy in place (a shim, a parallel old-and-new model, or new code built around an old path). In that case, stop and add a redesign step with `create-plan`; don't build on the flaw.
 3. **The current step** — its scope, numbered actions, files touched, and acceptance criteria.
 
 Confirm the current step's *Depends on* steps are `done` before starting. If a dependency is unfinished, stop and say so.
@@ -35,7 +35,7 @@ Apply the current step's actions **test-first**, honoring the baseline in [`../.
 - **Host-independence.** Server-safe `.` entry (no React/DOM); optional `./client` with per-module `"use client"`; server-only/auth token-custody stays out of client graphs.
 - **Composition.** No import-time side effects, no module-level singletons — per-request factories; adapters register explicitly into an injected registry.
 - **Typed & minimal.** No `any` in public surfaces; typed errors preserving cause; timeout + cancellation on remote calls.
-- **Root-cause, no shims.** Redesign cleanly; remove the old path (pre-stable, no back-compat).
+- **Root-cause, no compatibility (alpha).** Redesign on current best practices rather than patching; breaking changes are welcome. Build new code for the end state, never around the old path. When the step supersedes something, move every consumer and delete the old path, its exports, and its docs in this step, unless the plan names a later deletion step. Leave no shims, aliases, deprecated re-exports, or compat flags. See [Development stage](../../copilot-instructions.md#development-stage-alpha-redesign-over-compatibility).
 - **Vendored atoms stay locked.** Never hand-edit `packages/elements/src/shadcn/**` or `shadcn.lock.json`, even when a step's `Files touched` lists them — change an atom only with `registry:update`. A visual or behavior change follows the **deviation ladder** (theme → call site → `ui` wrapper); see the [Vendored atoms](../../copilot-instructions.md#vendored-atoms) baseline.
 - **Organize by concern; self-documenting by path.** Group related modules into a **concern folder** with a re-export-only `index.ts` barrel plus concern-named files (as `rskit` groups `retry/{backoff,policy}.rs` under a barrel-only `mod.rs`); a single concern is one clearly named file. No junk-drawer `utils`/`helpers`/`core`, no bare verb modules/exports (`compose`, `classify`) — qualify by concern (`pipeline/interceptor.ts` → `composeInterceptors`). Fold **proactively** when a second sub-concern appears — never pile several concerns flat in `src/`. A barrel `index.ts` re-exports only, holds no logic. When you touch a file that already mixes distinct concerns, promote it **in this step** — don't defer the reorg.
 

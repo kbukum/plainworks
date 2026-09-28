@@ -28,6 +28,7 @@ Each skill is a folder with a `SKILL.md` (YAML frontmatter + workflow) and optio
 - Skills are discoverable in Copilot CLI via `/skills`; project skills live under `.github/skills/` (also `.claude/skills` / `.agents/skills` are honored), personal skills under `~/.copilot/skills`.
 - Claude Code slash commands under [`../../.claude/commands/`](../../.claude/commands/) are **thin routers** to these skills — each `/<name>` points at `.github/skills/<name>/SKILL.md`, the single source of truth. Edit the `SKILL.md`, never the router body.
 - Run reviews (`review`) in a **fresh, clean-context agent** with a high-capability model (Opus 4.8), never inline in the session that wrote the code.
+- Every skill is bound to the [Development stage](../copilot-instructions.md#development-stage-alpha-redesign-over-compatibility) rule. plainworks is alpha, so redesign beats patching and breaking changes are welcome. Superseded code is deleted in the same change: no shims, aliases, or parallel old-and-new models.
 - Validation is `bun run` / `turbo`-first, scoped to the changed package(s) (`turbo run test --filter=@plainworks/<name>`, `--filter='...[origin/main]'` for the affected set); full-tree gates are for audits and releases.
 - The **agent creates branches and makes edits; the maintainer commits and pushes.** Commit / push / open a PR only when explicitly asked; PRs are opened in **draft**.
 

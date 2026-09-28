@@ -29,7 +29,7 @@ Match the layer map — the adapter is part of, or sits beside, the core package
 4. **Core keeps the lean default.** The in-memory / local backend stays in the core package and remains the zero-config default; alternative backends are opt-in and selected via config.
 5. **Server/client custody.** Token-holding code (auth server) ships in the server-safe `.` entry and must never be importable from a `"use client"` graph. Auth MUSTs: Authorization Code + PKCE `S256` only; `Secure`+`HttpOnly`+`SameSite=Strict` `__Host-` cookies (BFF default) or in-memory access token (SPA fallback) — never localStorage; header-only tokens; refresh-token rotation for the token-holding fallback. An adapter that exposes a client hook (a `state`/`query` binding) keeps the hook in a `"use client"` module and tests it behaviorally under jsdom with `@testing-library/user-event` + MSW.
 
-Study an existing adapter in the same package for the exact shape before writing a new one.
+Study an existing adapter in the same package for the exact shape before writing a new one. If that shape, or the seam itself, is outdated, redesign it on current best practices rather than copying it. If the new adapter supersedes an existing one, move its consumers and delete the old adapter in the same change (alpha, no backward compatibility; see [Development stage](../../copilot-instructions.md#development-stage-alpha-redesign-over-compatibility)).
 
 The shadcn atoms in `@plainworks/elements` are **not** a backend. They are **vendored** and **locked**, so they have no adapter seam to extend; refresh them with [`update-atoms`](../update-atoms/SKILL.md), and route a deviation through the deviation ladder in the [Vendored atoms](../../copilot-instructions.md#vendored-atoms) baseline.
 

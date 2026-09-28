@@ -57,10 +57,11 @@ $ turbo run test --filter=@plainworks/<name>
 - [ ] Adapters/backends register explicitly (`register()` / `createX({...})`) — no `init()`-style magic
 - [ ] No `any` in public APIs; errors are typed; tokens are header-only (never query string / localStorage)
 - [ ] No upward imports — the layer map (`internal/boundaries/layers.json`) is respected
+- [ ] Superseded code is deleted with every consumer migrated. No shim, alias, deprecated re-export, or parallel old/new model (alpha: no backward compatibility)
 
 ## Breaking Changes
 
-<!-- If breaking, describe the impact and the migration path. Pre-1.0: breaking = a minor changeset. -->
+<!-- Alpha: breaking changes are welcome. Say what was redesigned and what old path was removed. No migration shims or deprecations. Pre-1.0: breaking = a minor changeset. -->
 
 ## Changeset
 

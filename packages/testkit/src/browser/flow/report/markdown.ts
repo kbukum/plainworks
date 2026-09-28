@@ -13,7 +13,7 @@ import type {
 
 /**
  * Render `report.md`: the verdict first, then why each flow ran and what changed visually (when the
- * run was a `ui:check`), then one row per flow and device, then every failure with links to its
+ * run compared with a base), then one row per flow and device, then every failure with links to its
  * evidence, then every allowed finding with its reason. Links are relative to the run directory,
  * where the file is written.
  */
@@ -85,7 +85,9 @@ function selectionLines(selection: FlowSelection | undefined): string[] {
       ? `Affected by ${selection.changedFiles ?? 0} changed files since \`${selection.since ?? "?"}\``
       : selection.by === "named"
         ? "Named on the command line"
-        : "Every flow"
+        : selection.by === "docs"
+          ? "The flows that mark docs images"
+          : "Every flow"
   return [
     "",
     "## Selection",
@@ -103,8 +105,9 @@ function reviewLines(
   sheets: ContactSheets | undefined,
 ): string[] {
   if (review === undefined && sheets === undefined) return []
-  const lines = ["", "## Visual changes", ""]
-  if (review === undefined) lines.push("Not reviewed.")
+  const lines = ["", review === undefined ? "## Frames" : "## Visual changes", ""]
+  if (review === undefined)
+    lines.push("Not compared with a base; pass `--base` to see what changed.")
   else if (review.status === "skipped") lines.push(`Not reviewed: ${oneLine(review.reason)}`)
   else {
     const { base, totals } = review

@@ -138,3 +138,13 @@ export async function pressWithKeyboard(control: Locator): Promise<void> {
   await control.focus()
   await control.press("Enter")
 }
+
+/**
+ * Move focus to a control the way a keyboard user's focus arrives: a bare Shift press puts the page
+ * in keyboard modality first, so the control matches `:focus-visible` even after an earlier click.
+ * Programmatic focus after a click shows no indicator, so a focus check would measure none.
+ */
+export async function focusWithKeyboard(control: Locator): Promise<void> {
+  await control.page().keyboard.press("Shift")
+  await control.focus()
+}

@@ -37,7 +37,7 @@ The client-binding pass. It runs **only when the change touches interactive UI**
 
 ## Evidence from the app
 
-For a change that reaches an app, ask for (or run) `bun run ui:check --affected` in that app. A hard failure (exit 1) is a blocker. Read its evidence bundle in `report.md` rather than rerunning. Check every frame in `sheets/changed.png` against the change's intent: an unexplained visual change is a should-fix. A new user-facing journey without a flow, or a flow whose `covers` misses the files it exercises, is a should-fix. Never accept a checkpoint `allow` entry without a reason that names the product decision.
+For a change that reaches an app, the touched flows must pass in the app's e2e suite; a failing check is a blocker, and its evidence bundle is in `.ui-artifacts/latest/report.md`. Capture them with `bun run ui:capture --flow <flow>` and look at the frames against the change's intent: a visual result that doesn't match it is a should-fix. A new user-facing journey without a flow, or a flow whose `covers` misses the files it exercises, is a should-fix. Never accept a checkpoint `allow` entry without a reason that names the product decision.
 
 ## Detection starters
 

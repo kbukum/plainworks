@@ -202,19 +202,6 @@
         "vitest": "catalog:",
       },
     },
-    "internal/visual-baselines": {
-      "name": "@plainworks/visual-baselines",
-      "version": "0.0.0",
-      "bin": {
-        "plainworks-visual-baselines": "./src/cli.ts",
-      },
-      "devDependencies": {
-        "@types/node": "catalog:",
-        "@vitest/coverage-v8": "catalog:",
-        "typescript": "catalog:",
-        "vitest": "catalog:",
-      },
-    },
     "packages/app": {
       "name": "@plainworks/app",
       "version": "0.1.0-alpha.1",
@@ -1267,8 +1254,6 @@
     "@plainworks/ui": ["@plainworks/ui@workspace:packages/ui"],
 
     "@plainworks/verify": ["@plainworks/verify@workspace:internal/verify"],
-
-    "@plainworks/visual-baselines": ["@plainworks/visual-baselines@workspace:internal/visual-baselines"],
 
     "@playwright/test": ["@playwright/test@1.63.0", "", { "dependencies": { "playwright": "1.63.0" }, "bin": { "playwright": "cli.js" } }, "sha512-oxMK4vllB9RK5NQ2l1pq1IfOf2AvnEuj/vYGDj0H2nMtmtZpKtCwt/l00GEO6xjGfpBNAvjovvYdCm50dRQkpQ=="],
 

@@ -1,22 +1,19 @@
-import {
-  expectFocusVisible,
-  expectNoBrowserAxeViolations,
-  expectReflowAtNarrowViewport,
-  pressWithKeyboard,
-} from "@plainworks/testkit/browser"
+import { pressWithKeyboard } from "@plainworks/testkit/browser"
+import { expectFocusVisible, expectNoAxeViolations } from "./support/checks"
 import { expect, test } from "./support/gate"
-import { HOST_ROUTES, hostRoute, openRoute, pauseLiveActivity } from "./support/host"
+import { hostRoute, openRoute, pauseLiveActivity } from "./support/host"
 import { SIGNED_OUT_STATE } from "./support/session"
 
 // The Next host as a user meets it: anonymous overview, sign-in through the BFF, the prefetched
-// task list, the live feed, the account menu, the color mode, and each page's reflow and axe floor.
+// task list, the live feed, the account menu, and the color mode. Each page's axe, reflow, and
+// focus checks run in the flows (`e2e/flows/`).
 
 test.describe("signed out", () => {
   test.use({ storageState: SIGNED_OUT_STATE })
 
   test("the public overview offers sign-in, which lands on the gated tasks", async ({ page }) => {
     await openRoute(page, hostRoute("overview"))
-    await expectNoBrowserAxeViolations(page)
+    await expectNoAxeViolations(page)
     await page.getByRole("button", { name: "Sign in" }).click()
     await expect(page.getByRole("heading", { level: 1, name: "Tasks" })).toBeVisible()
     await expect(page.getByRole("button", { name: /Signed in as/ })).toBeVisible()
@@ -37,14 +34,6 @@ test.describe("signed out", () => {
     await expect(page.getByRole("heading", { level: 1, name: "Account settings" })).toBeVisible()
   })
 })
-
-for (const route of HOST_ROUTES) {
-  test(`${route.slug} meets WCAG AA and reflows at 320 px`, async ({ page }) => {
-    await openRoute(page, route)
-    await expectNoBrowserAxeViolations(page)
-    await expectReflowAtNarrowViewport(page)
-  })
-}
 
 test("tasks hydrate from the server prefetch without refetching", async ({ page }) => {
   const taskReads: string[] = []
@@ -89,7 +78,7 @@ test("the chosen color mode applies and survives a reload", async ({ page }) => 
   await page.reload()
   await expect(page.locator("html")).toHaveClass(/\bdark\b/)
   await pauseLiveActivity(page)
-  await expectNoBrowserAxeViolations(page)
+  await expectNoAxeViolations(page)
 })
 
 test("a narrow screen reaches every section from the sections menu", async ({ page }) => {
@@ -110,7 +99,7 @@ test("the development inspector opens over the page and closes on Escape", async
     .click()
   const inspector = page.getByRole("region", { name: "Plainworks inspector" })
   await expect(inspector).toBeVisible()
-  await expectNoBrowserAxeViolations(page)
+  await expectNoAxeViolations(page)
   await page.keyboard.press("Escape")
   await expect(inspector).toBeHidden()
 })

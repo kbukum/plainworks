@@ -24,10 +24,9 @@ export default defineConfig({
         "src/client.ts",
         "src/connect/gen/**",
         "src/browser/gate.ts",
-        "src/browser/surface-gate/{surface,assertions}.ts",
         "src/browser/checks/{animation,axe,focus,layout,layout-facts}.ts",
         "src/browser/flow/{page-session,runner}.ts",
-        "src/browser/ui-check/node-runtime.ts",
+        "src/browser/ui-capture/node-runtime.ts",
       ],
       thresholds: {
         lines: 80,

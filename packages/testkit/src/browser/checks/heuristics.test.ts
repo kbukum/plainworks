@@ -62,8 +62,8 @@ describe("judgeOverlappingTargets", () => {
   it("passes targets that sit apart or only touch", () => {
     expect(
       judgeOverlappingTargets([
-        { key: "0.1", name: "Save", box: box(0, 0), exposed: true, pinned: false },
-        { key: "0.2", name: "Cancel", box: box(100, 0), exposed: true, pinned: false },
+        { key: "0.1", name: "Save", box: box(0, 0), exposed: true, layer: null },
+        { key: "0.2", name: "Cancel", box: box(100, 0), exposed: true, layer: null },
       ]),
     ).toEqual([])
   })
@@ -71,8 +71,8 @@ describe("judgeOverlappingTargets", () => {
   it("reports two visible controls drawn over each other", () => {
     expect(
       judgeOverlappingTargets([
-        { key: "0.1", name: "Save", box: box(0, 0), exposed: true, pinned: false },
-        { key: "0.2", name: "Cancel", box: box(70, 10), exposed: true, pinned: false },
+        { key: "0.1", name: "Save", box: box(0, 0), exposed: true, layer: null },
+        { key: "0.2", name: "Cancel", box: box(70, 10), exposed: true, layer: null },
       ]),
     ).toEqual([{ check: "overlapping-targets", message: '"Save" and "Cancel" overlap by 30x30px' }])
   })
@@ -80,30 +80,31 @@ describe("judgeOverlappingTargets", () => {
   it("ignores a control nested in another and one hidden under an overlay", () => {
     expect(
       judgeOverlappingTargets([
-        { key: "0.1", name: "Row", box: box(0, 0, 400), exposed: true, pinned: false },
-        { key: "0.1.4", name: "Edit", box: box(300, 0), exposed: true, pinned: false },
-        { key: "0.2", name: "Behind dialog", box: box(0, 0), exposed: false, pinned: false },
+        { key: "0.1", name: "Row", box: box(0, 0, 400), exposed: true, layer: null },
+        { key: "0.1.4", name: "Edit", box: box(300, 0), exposed: true, layer: null },
+        { key: "0.2", name: "Behind dialog", box: box(0, 0), exposed: false, layer: null },
       ]),
     ).toEqual([])
   })
 
-  it("leaves scrolling content under pinned chrome to the obscured-focus check", () => {
+  it("leaves content under pinned chrome, and one chrome under another, to the obscured-focus check", () => {
     expect(
       judgeOverlappingTargets([
-        { key: "0.1", name: "Last 90 days", box: box(0, 0), exposed: true, pinned: false },
-        { key: "0.9.1", name: "Inspect", box: box(20, 10), exposed: true, pinned: true },
+        { key: "0.1", name: "Last 90 days", box: box(0, 0), exposed: true, layer: null },
+        { key: "0.9.1", name: "Inspect", box: box(20, 10), exposed: true, layer: "0.9" },
+        { key: "0.8.1", name: "Dismiss toast", box: box(30, 10), exposed: true, layer: "0.8" },
       ]),
     ).toEqual([])
   })
 
-  it("reports two pinned controls drawn over each other", () => {
+  it("reports two controls of the same pinned chrome drawn over each other", () => {
     expect(
       judgeOverlappingTargets([
-        { key: "0.8.1", name: "Dismiss toast", box: box(0, 0), exposed: true, pinned: true },
-        { key: "0.9.1", name: "Inspect", box: box(70, 10), exposed: true, pinned: true },
+        { key: "0.9.1", name: "Dismiss", box: box(0, 0), exposed: true, layer: "0.9" },
+        { key: "0.9.2", name: "Inspect", box: box(70, 10), exposed: true, layer: "0.9" },
       ]),
     ).toEqual([
-      { check: "overlapping-targets", message: '"Dismiss toast" and "Inspect" overlap by 30x30px' },
+      { check: "overlapping-targets", message: '"Dismiss" and "Inspect" overlap by 30x30px' },
     ])
   })
 })

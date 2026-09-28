@@ -1,14 +1,5 @@
-import { expectHydrated, type VisualCapture } from "@plainworks/testkit/browser"
 import { expect, type Locator, type Page } from "@playwright/test"
-
-/**
- * A full-page capture of a page: the devtools chrome is `position: fixed`, so the capture hides it
- * rather than paint it mid-image. The `-viewport` surfaces show it where a user sees it.
- */
-export const PAGE_CAPTURE: VisualCapture = {
-  kind: "full-page",
-  hideFixed: ["[data-plainworks-devtools]"],
-}
+import { expectHydrated } from "./checks"
 
 /** One routed page of the showcase and the content that proves it rendered. */
 export interface AppRoute {
@@ -103,9 +94,12 @@ export function appRoute(slug: string): AppRoute {
   return route
 }
 
-/** Load `route` from the server and wait until its content has rendered and hydrated. */
-export async function openRoute(page: Page, route: AppRoute): Promise<void> {
-  await page.goto(route.path)
+/**
+ * Load `route` from the server and wait until its content has rendered and hydrated. A flow passes
+ * its action's `signal`, so a timed-out step stops navigating.
+ */
+export async function openRoute(page: Page, route: AppRoute, signal?: AbortSignal): Promise<void> {
+  await page.goto(route.path, signal === undefined ? {} : { signal })
   await expect(page.getByRole("heading", { level: 1, name: route.heading })).toBeVisible()
   await expect(route.ready(page)).toBeVisible()
   await page.waitForLoadState("networkidle")
@@ -114,19 +108,20 @@ export async function openRoute(page: Page, route: AppRoute): Promise<void> {
 
 /**
  * Reach `route` through the app's own navigation: the primary rail when it is visible, the sections
- * drawer otherwise. The page must already be hydrated.
+ * drawer otherwise, as a narrow screen shows it. The page must already be hydrated.
  */
-export async function navigateTo(page: Page, route: AppRoute): Promise<void> {
+export async function navigateTo(page: Page, route: AppRoute, signal?: AbortSignal): Promise<void> {
+  const options = signal === undefined ? {} : { signal }
   const rail = page.getByRole("navigation", { name: "Primary" })
   if (await rail.isVisible()) {
-    await rail.getByRole("link", { name: route.nav, exact: true }).click()
+    await rail.getByRole("link", { name: route.nav, exact: true }).click(options)
     return
   }
-  await page.getByRole("button", { name: "Open sections menu" }).click()
+  await page.getByRole("button", { name: "Open sections menu" }).click(options)
   await page
     .getByRole("navigation", { name: "Sections" })
     .getByRole("link", { name: route.nav, exact: true })
-    .click()
+    .click(options)
 }
 
 /**
@@ -134,16 +129,17 @@ export async function navigateTo(page: Page, route: AppRoute): Promise<void> {
  * shows only seeded tasks. The demo stream's first update comes a few seconds after hydration; if
  * it wins the race, the page reloads and tries again.
  */
-export async function openPausedTasks(page: Page): Promise<void> {
+export async function openPausedTasks(page: Page, signal?: AbortSignal): Promise<void> {
   const pause = page.getByRole("button", { name: "Pause live task updates" })
   const resume = page.getByRole("button", { name: "Resume live task updates" })
   // Live task titles end in their sequence number; seeded ones never do.
   const liveTask = page.getByRole("cell", { name: / #\d+$/ })
   await expect(async () => {
-    await openRoute(page, appRoute("tasks"))
+    signal?.throwIfAborted()
+    await openRoute(page, appRoute("tasks"), signal)
     // A click before hydration does nothing, so retry it until the toggle answers.
     await expect(async () => {
-      await pause.click()
+      await pause.click({ timeout: 2_000 })
       await expect(resume).toBeVisible({ timeout: 500 })
     }).toPass({ timeout: 10_000 })
     await expect(liveTask).toHaveCount(0, { timeout: 0 })

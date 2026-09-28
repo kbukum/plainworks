@@ -15,8 +15,8 @@ const e2eDistDir = process.env.PLAINWORKS_E2E_DIST_DIR
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // The Plainworks inspector is this host's development tool. Next's own badge would sit on every
-  // browser-gate screenshot; build and runtime errors still open Next's overlay.
+  // The Plainworks inspector is this host's development tool. Next's own badge would cover the page
+  // under every browser-gate check; build and runtime errors still open Next's overlay.
   devIndicators: false,
   ...(e2eDistDir === undefined ? {} : { distDir: e2eDistDir }),
   ...(analysis

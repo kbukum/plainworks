@@ -1,8 +1,6 @@
-import {
-  expectNoBrowserAxeViolations,
-  expectReflowAtNarrowViewport,
-} from "@plainworks/testkit/browser"
+import { pressWithKeyboard } from "@plainworks/testkit/browser"
 import type { Locator, Page } from "@playwright/test"
+import { expectFocusVisible, expectNoAxeViolations, expectReflow } from "./support/checks"
 import { openFixturePage } from "./support/fixture-page"
 import { expect, test } from "./support/gate"
 import { signIn } from "./support/session"
@@ -41,8 +39,8 @@ test("consumer discovers instances, isolates failure, reports overflow, and clea
   page,
 }) => {
   await openFixture(page)
-  await expectReflowAtNarrowViewport(page)
-  await expectNoBrowserAxeViolations(page)
+  await expectReflow(page)
+  await expectNoAxeViolations(page)
   // The package stylesheet is scoped to the devtools root: host elements keep browser defaults.
   await expect(page.getByRole("heading", { level: 1 })).toHaveCSS("font-size", "32px")
   const rail = page.getByRole("region", { name: "Plainworks devtools" })
@@ -59,6 +57,7 @@ test("consumer discovers instances, isolates failure, reports overflow, and clea
     "true",
   )
   await expect(panel.getByText("Primary ready", { exact: true })).toBeVisible()
+  await expectNoAxeViolations(page)
   await panel.getByRole("combobox", { name: "Instance" }).selectOption({ label: "Secondary cache" })
   await expect(panel.getByText("Secondary ready", { exact: true })).toBeVisible()
   await expect(panel.getByText("Primary ready", { exact: true })).toBeHidden()
@@ -68,6 +67,7 @@ test("consumer discovers instances, isolates failure, reports overflow, and clea
   await rail.getByRole("button", { name: "Primary cache: Failed" }).click()
   await panel.getByRole("combobox", { name: "Instance" }).selectOption({ label: "Primary cache" })
   await expect(panel.getByRole("alert")).toContainText("Fixture source unavailable")
+  await expectNoAxeViolations(page)
   await panel.getByRole("tab", { name: "fixture", exact: true }).click()
   await panel.getByRole("combobox", { name: "Instance" }).selectOption({ label: "Secondary cache" })
   await expect(panel.getByText("Secondary ready", { exact: true })).toBeVisible()
@@ -138,12 +138,12 @@ test("rail, inspector, and custom commands are accessible and responsive", async
     }, colorScheme === "dark")
     // The host's mode class reaches the inspector's scoped theme tokens.
     surfaces.add(await panel.evaluate((element) => getComputedStyle(element).backgroundColor))
-    await expectNoBrowserAxeViolations(page)
+    await expectNoAxeViolations(page)
     await page.setViewportSize({ width: 320, height: 512 })
     expect(
       await panel.evaluate((element) => element.scrollWidth - element.clientWidth),
     ).toBeLessThanOrEqual(1)
-    await expectNoBrowserAxeViolations(page)
+    await expectNoAxeViolations(page)
     await page.setViewportSize({ width: 1280, height: 800 })
   }
   expect(surfaces.size).toBe(2)
@@ -152,12 +152,42 @@ test("rail, inspector, and custom commands are accessible and responsive", async
   const box = await panel.boundingBox()
   expect(box?.width).toBeLessThanOrEqual(320)
   await page.keyboard.press("Escape")
-  await expectNoBrowserAxeViolations(page)
+  await expectNoAxeViolations(page)
   expect(
     await page
       .getByRole("region", { name: "Plainworks devtools" })
       .evaluate((element) => element.getBoundingClientRect().width),
   ).toBeLessThanOrEqual(320)
+})
+
+// The showcase registers no channel source; the Next host's inspector covers the channel panel.
+const INSPECTOR_TABS = ["Overview", "Timeline", "mock", "http", "query"] as const
+
+test("every inspector tab meets WCAG AA in light and dark", async ({ page }) => {
+  await signIn(page)
+  await launcher(page).click()
+  const panel = inspector(page)
+  for (const tab of INSPECTOR_TABS) {
+    const trigger = panel.getByRole("tab", { name: tab, exact: true })
+    await trigger.click()
+    await expect(trigger).toHaveAttribute("aria-selected", "true")
+    for (const dark of [false, true]) {
+      await test.step(`${tab} ${dark ? "dark" : "light"}`, async () => {
+        await page.locator("html").evaluate((root, on) => root.classList.toggle("dark", on), dark)
+        await expectNoAxeViolations(page)
+      })
+    }
+  }
+})
+
+test("the reset confirmation opens from the keyboard with visible focus", async ({ page }) => {
+  await signIn(page)
+  await launcher(page).click()
+  await inspector(page).getByRole("tab", { name: "mock", exact: true }).click()
+  await pressWithKeyboard(inspector(page).getByRole("button", { name: "Reset mock data" }))
+  await expect(page.getByRole("alertdialog", { name: "Reset mock data?" })).toBeVisible()
+  await expectFocusVisible(page)
+  await expectNoAxeViolations(page)
 })
 
 const SIDES = ["bottom", "left", "right"] as const
@@ -304,7 +334,7 @@ test("every dock side is accessible and keeps the page reflowable", async ({ pag
     }, colorScheme === "dark")
     for (const side of SIDES) {
       await dockTo(page, side)
-      await expectNoBrowserAxeViolations(page)
+      await expectNoAxeViolations(page)
       // Each dock control keeps a target of at least 24×24 CSS px.
       for (const control of [
         panel.getByRole("button", { name: `Dock to ${side}` }),
@@ -323,7 +353,7 @@ test("every dock side is accessible and keeps the page reflowable", async ({ pag
   // then the page has no horizontal scroll.
   await page.setViewportSize({ width: 320, height: 568 })
   await expect(page.locator("html")).toHaveAttribute("data-plainworks-devtools-docked", "bottom")
-  await expectReflowAtNarrowViewport(page)
+  await expectReflow(page)
   await expect(panel).toBeVisible()
   expect((await box(panel)).width).toBeLessThanOrEqual(320)
 })
@@ -372,7 +402,7 @@ test("the inspector keeps a stable layout under production-sized data", async ({
     expect(
       await panel.evaluate((element) => element.scrollWidth - element.clientWidth),
     ).toBeLessThanOrEqual(1)
-    await expectNoBrowserAxeViolations(page)
+    await expectNoAxeViolations(page)
 
     await page.keyboard.press("Escape")
     await expect(panel).toHaveCount(0)

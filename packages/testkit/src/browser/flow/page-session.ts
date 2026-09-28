@@ -1,4 +1,4 @@
-import { expect, type Page, errors as playwrightErrors } from "@playwright/test"
+import { type Page, errors as playwrightErrors } from "@playwright/test"
 import { settleAnimations } from "../checks/animation"
 import { formatAxeViolations, scanBrowserAxe } from "../checks/axe"
 import { findFocusProblems } from "../checks/focus"
@@ -7,7 +7,7 @@ import { findOverlaysOutsideViewport, horizontalOverflow } from "../checks/layou
 import { measureLayoutFacts } from "../checks/layout-facts"
 import { boundMessage } from "../checks/message"
 import type { RuntimeErrorWatch } from "../checks/runtime-errors"
-import { browserGateScreenshot, browserGateUse } from "../gate"
+import { browserGateUse } from "../gate"
 import type { FlowCheckpoint } from "./definition"
 import { createEvidenceLog, snapshotDom, withoutQuery } from "./evidence"
 import { captureOptions, withCaptureFrame } from "./frame"
@@ -97,9 +97,10 @@ export function createPageFlowSession(options: PageFlowSessionOptions): PageFlow
     withCaptureFrame(page, checkpoint.frame, () =>
       page.screenshot({
         ...captureOptions(checkpoint.frame),
-        animations: browserGateScreenshot.animations,
-        caret: browserGateScreenshot.caret,
-        scale: browserGateScreenshot.scale,
+        // Frozen animations and caret, one image pixel per CSS pixel whatever the device scale.
+        animations: "disabled",
+        caret: "hide",
+        scale: "css",
         mask: checkpoint.mask?.(page) ?? [],
         signal,
       }),
@@ -167,22 +168,6 @@ export function createPageFlowSession(options: PageFlowSessionOptions): PageFlow
     horizontalOverflow: () => horizontalOverflow(page),
     overlaysOutsideViewport: () => findOverlaysOutsideViewport(page),
     focusProblems: () => findFocusProblems(page),
-    async comparePixels(checkpoint, name) {
-      try {
-        await withCaptureFrame(page, checkpoint.frame, () =>
-          expect(page).toHaveScreenshot(`${name}.png`, {
-            ...captureOptions(checkpoint.frame),
-            mask: checkpoint.mask?.(page) ?? [],
-          }),
-        )
-        return undefined
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
-        return boundMessage(
-          message.split("\n").find((line) => line.trim() !== "") ?? "The frame differs",
-        )
-      }
-    },
     drainRuntimeErrors: () => runtimeErrors.drain(),
     async evidence(): Promise<EvidenceSnapshot> {
       const dom = await page.evaluate(snapshotDom, MAX_DOM_CHARS)

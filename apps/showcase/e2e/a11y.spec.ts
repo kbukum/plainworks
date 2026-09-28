@@ -1,9 +1,9 @@
-import { expectNoBrowserAxeViolations } from "@plainworks/testkit/browser"
+import { expectNoAxeViolations } from "./support/checks"
 import { expect, test } from "./support/gate"
 import { signIn } from "./support/session"
 
-// Accessibility behavior the per-surface visual gate cannot see from a still page: skip link
-// target, forced-colors focus, logout, and the auth routes' HTTP contract.
+// Accessibility behavior the flows cannot see from a checkpoint: skip link target, forced-colors
+// focus, logout, and the auth routes' HTTP contract.
 
 test("skip link bypasses persistent navigation to main landmark", async ({ page }) => {
   await signIn(page)
@@ -33,7 +33,7 @@ test("logging out returns to the signed-out login page", async ({ page }) => {
   // The mock IdP approves in-process, so the session gate must not restart login on its own:
   // logging out lands on the signed-out page and stays there until an explicit sign-in.
   await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible()
-  await expectNoBrowserAxeViolations(page)
+  await expectNoAxeViolations(page)
 })
 
 test("a callback without its login cookie explains itself and signs in again", async ({ page }) => {
@@ -41,7 +41,7 @@ test("a callback without its login cookie explains itself and signs in again", a
   // Sign-in begun on another origin, or left open past the cookie's lifetime, arrives like this.
   await page.goto("/auth/callback?code=stale&state=stale")
   await expect(page.getByRole("alert")).toContainText("Sign-in didn't finish")
-  await expectNoBrowserAxeViolations(page)
+  await expectNoAxeViolations(page)
   await page.getByRole("button", { name: "Sign in" }).click()
   await expect(page.getByRole("button", { name: /Signed in as/ })).toBeVisible()
 })

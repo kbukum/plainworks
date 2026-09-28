@@ -1,29 +1,7 @@
 import { defineFlow } from "@plainworks/testkit/browser"
-import { expect, type Page } from "@playwright/test"
+import { openPausedTasks } from "../support/app"
 
 const TITLE = "Verify flagship journeys"
-
-/**
- * Open the task board with live updates paused, before any live update lands, so the table shows
- * only seeded tasks. The demo stream's first update comes a few seconds after hydration; if it wins
- * the race, the page reloads and tries again.
- */
-async function openPausedBoard(page: Page, signal: AbortSignal): Promise<void> {
-  const pause = page.getByRole("button", { name: "Pause live task updates" })
-  const resume = page.getByRole("button", { name: "Resume live task updates" })
-  // Live task titles end in their sequence number; seeded ones never do.
-  const liveTask = page.getByRole("cell", { name: / #\d+$/ })
-  await expect(async () => {
-    signal.throwIfAborted()
-    await page.goto("/tasks")
-    // A click before hydration does nothing, so retry it until the toggle answers.
-    await expect(async () => {
-      await pause.click({ timeout: 2_000 })
-      await expect(resume).toBeVisible({ timeout: 500 })
-    }).toPass({ timeout: 10_000 })
-    await expect(liveTask).toHaveCount(0, { timeout: 0 })
-  }).toPass({ timeout: 45_000 })
-}
 
 /** Create a task from the board: the board, the empty dialog, the filled form, the new row. */
 export const createTaskFlow = defineFlow({
@@ -37,8 +15,9 @@ export const createTaskFlow = defineFlow({
   checkpoints: [
     {
       name: "board",
-      act: (page, { signal }) => openPausedBoard(page, signal),
+      act: (page, { signal }) => openPausedTasks(page, signal),
       ready: (page) => page.getByRole("table", { name: /Tasks/ }),
+      docs: "tasks-board",
     },
     {
       name: "new-task",
@@ -54,6 +33,7 @@ export const createTaskFlow = defineFlow({
       },
       ready: (page) =>
         page.getByRole("dialog", { name: "New task" }).getByRole("button", { name: "Create task" }),
+      docs: "new-task",
     },
     {
       name: "created",

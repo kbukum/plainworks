@@ -13,9 +13,14 @@ export function measureLayoutFacts(page: Page): Promise<LayoutFacts> {
 /**
  * Collect {@link LayoutFacts} from the document. Runs in the browser, so it names nothing outside
  * its own body. Content under `inert` or `aria-hidden` (the page behind a modal) is left out, and
- * visually hidden text (a screen-reader-only label) is never judged as clipped. Focus scrolling is
- * modeled on the document scroller: the viewport minus the root `scroll-padding` is where focus
- * brings a control, as far as the page can still scroll.
+ * visually hidden text (a screen-reader-only label) is never judged as clipped.
+ *
+ * Open overlays (a popup role, or an out-of-flow panel an expanded trigger controls) cover the page
+ * on purpose, so a cover that is the popup, its positioner, or its backdrop is marked as an
+ * overlay. Each control's `layer` is the nearest fixed or sticky chrome it sits in; only controls
+ * in the same layer can overlap. Focus scrolling is modeled through every scroller the control sits
+ * in, nearest first and the document last: each scrollport minus its `scroll-padding`, plus the
+ * control's `scroll-margin`, as far as each can still scroll.
  */
 function collectLayoutFacts(limits: { maxElements: number; maxTracked: number }): LayoutFacts {
   const viewportWidth = window.innerWidth
@@ -63,9 +68,16 @@ function collectLayoutFacts(limits: { maxElements: number; maxTracked: number })
     [...element.childNodes].some(
       (node) => node.nodeType === Node.TEXT_NODE && (node.textContent ?? "").trim() !== "",
     )
+  // Tracked boxes are in document coordinates, so a scroll between two measurements (a full-page
+  // capture starts from the top) is not mistaken for content that moved.
   const boxOf = (element: Element) => {
     const box = element.getBoundingClientRect()
-    return { x: box.x, y: box.y, width: box.width, height: box.height }
+    return {
+      x: box.x + window.scrollX,
+      y: box.y + window.scrollY,
+      width: box.width,
+      height: box.height,
+    }
   }
   // A scrolling list or a clipped card paints only its padding box, so a control scrolled past its
   // edge draws nothing outside it. An empty result means nothing of the control is painted.
@@ -101,50 +113,177 @@ function collectLayoutFacts(limits: { maxElements: number; maxTracked: number })
     return null
   }
 
-  const scroller = document.scrollingElement ?? document.documentElement
-  const rootStyle = getComputedStyle(document.documentElement)
-  const padding = (value: string): number => Number.parseFloat(value) || 0
-  const safe = {
-    top: padding(rootStyle.scrollPaddingTop),
-    bottom: viewportHeight - padding(rootStyle.scrollPaddingBottom),
-    left: padding(rootStyle.scrollPaddingLeft),
-    right: viewportWidth - padding(rootStyle.scrollPaddingRight),
+  // Every open overlay: a popup role, or an out-of-flow panel an expanded trigger controls (a
+  // disclosure navigation menu). Page content under one is covered on purpose.
+  const overlays = new Set<Element>(document.querySelectorAll(OVERLAY))
+  for (const trigger of document.querySelectorAll("[aria-expanded='true'][aria-controls]")) {
+    for (const id of (trigger.getAttribute("aria-controls") ?? "").split(/\s+/)) {
+      const panel = id === "" ? null : document.getElementById(id)
+      if (panel === null) continue
+      const position = getComputedStyle(panel).position
+      if (position === "absolute" || position === "fixed") overlays.add(panel)
+    }
   }
-  const room = {
-    up: scroller.scrollTop,
-    down: scroller.scrollHeight - scroller.scrollTop - viewportHeight,
-    left: scroller.scrollLeft,
-    right: scroller.scrollWidth - scroller.scrollLeft - viewportWidth,
+  const overlayOf = (element: Element): Element | null => {
+    for (let node: Element | null = element; node !== null; node = node.parentElement) {
+      if (overlays.has(node)) return node
+    }
+    return null
   }
-  // Rounding slack, in CSS pixels, for comparing the chrome's edge with the scroll padding.
+  // A backdrop is a layer with nothing of its own to show (hidden from assistive technology,
+  // presentational, or empty) that an open overlay paints over: the overlay's center hits the
+  // overlay before it.
+  const empty = (cover: Element): boolean =>
+    hiddenFromUsers(cover) ||
+    ["presentation", "none"].includes(cover.getAttribute("role") ?? "") ||
+    (cover.childElementCount === 0 && (cover.textContent ?? "").trim() === "")
+  const backdropOf = (cover: Element, overlay: Element): boolean => {
+    const box = overlay.getBoundingClientRect()
+    const x = box.left + box.width / 2
+    const y = box.top + box.height / 2
+    const stack = document.elementsFromPoint(x, y)
+    const above = stack.findIndex((node) => overlay.contains(node))
+    const under = stack.indexOf(cover)
+    return above !== -1 && under > above
+  }
+  // A positioner holds the popup and is no bigger than it, so a sticky header that happens to
+  // contain an open tooltip stays page chrome.
+  const positionerOf = (cover: Element, overlay: Element): boolean => {
+    if (!cover.contains(overlay)) return false
+    const own = cover.getBoundingClientRect()
+    const popup = overlay.getBoundingClientRect()
+    return own.width <= popup.width + 1 && own.height <= popup.height + 1
+  }
+  // A cover is part of an open overlay when it is the popup, its positioner, or the backdrop laid
+  // under it.
+  const belongsToOverlay = (cover: Element): boolean =>
+    overlayOf(cover) !== null ||
+    [...overlays].some(
+      (overlay) => positionerOf(cover, overlay) || (empty(cover) && backdropOf(cover, overlay)),
+    )
+
+  // Rounding slack, in CSS pixels, for comparing a cover's edge with a control's center.
   const SLACK = 1
-  const fitsAxis = (
+  interface Scrollport {
+    readonly low: { readonly x: number; readonly y: number }
+    readonly high: { readonly x: number; readonly y: number }
+    readonly back: { readonly x: number; readonly y: number }
+    readonly forward: { readonly x: number; readonly y: number }
+  }
+  const px = (value: string): number => Number.parseFloat(value) || 0
+  const scrolls = (value: string): boolean => value === "auto" || value === "scroll"
+  const portOf = (
+    left: number,
+    top: number,
+    width: number,
+    height: number,
+    style: CSSStyleDeclaration,
+    scroller: Element,
+  ): Scrollport => ({
+    low: { x: left + px(style.scrollPaddingLeft), y: top + px(style.scrollPaddingTop) },
+    high: {
+      x: left + width - px(style.scrollPaddingRight),
+      y: top + height - px(style.scrollPaddingBottom),
+    },
+    back: { x: scroller.scrollLeft, y: scroller.scrollTop },
+    forward: {
+      x: scroller.scrollWidth - scroller.scrollLeft - width,
+      y: scroller.scrollHeight - scroller.scrollTop - height,
+    },
+  })
+  // Every scroller focus moves to bring the control into view, nearest first: each scrolling
+  // ancestor, then the document. Fixed or sticky chrome does not move with the scrollers outside
+  // it, so the chain stops there.
+  const scrollportsOf = (element: Element): Scrollport[] => {
+    const ports: Scrollport[] = []
+    for (let node = element.parentElement; node !== null; node = node.parentElement) {
+      if (node === document.body || node === document.documentElement) break
+      const style = getComputedStyle(node)
+      const scrollsY = scrolls(style.overflowY) && node.scrollHeight > node.clientHeight
+      const scrollsX = scrolls(style.overflowX) && node.scrollWidth > node.clientWidth
+      if (scrollsX || scrollsY) {
+        const box = node.getBoundingClientRect()
+        ports.push(
+          portOf(
+            box.left + node.clientLeft,
+            box.top + node.clientTop,
+            node.clientWidth,
+            node.clientHeight,
+            style,
+            node,
+          ),
+        )
+      }
+      if (style.position === "fixed" || style.position === "sticky") return ports
+    }
+    const scroller = document.scrollingElement ?? document.documentElement
+    ports.push(
+      portOf(
+        0,
+        0,
+        viewportWidth,
+        viewportHeight,
+        getComputedStyle(document.documentElement),
+        scroller,
+      ),
+    )
+    return ports
+  }
+  // How far focus scrolls along one axis: nothing when the control's margin box already fits, else
+  // to its nearest edge (its start when it is larger than the scrollport), as far as it can scroll.
+  const focusScroll = (
     start: number,
     end: number,
     low: number,
     high: number,
     back: number,
     forward: number,
-  ): boolean => {
-    if (end - start > high - low + SLACK) return false
-    if (end > high) return end - high <= forward + SLACK
-    if (start < low) return low - start <= back + SLACK
-    return true
+  ): number => {
+    const wanted =
+      end - start > high - low || start < low ? start - low : end > high ? end - high : 0
+    return Math.min(Math.max(wanted, -back), forward)
   }
-  // Focus scrolls a control into the padded viewport, so chrome that sits wholly in the padding
-  // band cannot cover it once focused, as long as the page can scroll that far.
+  // Focus scrolls the control into each scrollport in turn, minus its `scroll-padding` and plus the
+  // control's `scroll-margin`. Pinned covers stay put, so the control is revealed when its scrolled
+  // center no longer sits under the cover.
   const revealedOnFocus = (element: Element, cover: Element): boolean => {
+    const ports = scrollportsOf(element)
+    if (ports.length === 0) return false
+    const style = getComputedStyle(element)
+    const own = element.getBoundingClientRect()
+    let box = { left: own.left, top: own.top, right: own.right, bottom: own.bottom }
+    for (const port of ports) {
+      const dx = focusScroll(
+        box.left - px(style.scrollMarginLeft),
+        box.right + px(style.scrollMarginRight),
+        port.low.x,
+        port.high.x,
+        port.back.x,
+        port.forward.x,
+      )
+      const dy = focusScroll(
+        box.top - px(style.scrollMarginTop),
+        box.bottom + px(style.scrollMarginBottom),
+        port.low.y,
+        port.high.y,
+        port.back.y,
+        port.forward.y,
+      )
+      box = {
+        left: box.left - dx,
+        top: box.top - dy,
+        right: box.right - dx,
+        bottom: box.bottom - dy,
+      }
+    }
+    const centerX = (box.left + box.right) / 2
+    const centerY = (box.top + box.bottom) / 2
     const chrome = cover.getBoundingClientRect()
-    const inPadding =
-      chrome.top >= safe.bottom - SLACK ||
-      chrome.bottom <= safe.top + SLACK ||
-      chrome.left >= safe.right - SLACK ||
-      chrome.right <= safe.left + SLACK
-    if (!inPadding) return false
-    const box = element.getBoundingClientRect()
     return (
-      fitsAxis(box.top, box.bottom, safe.top, safe.bottom, room.up, room.down) &&
-      fitsAxis(box.left, box.right, safe.left, safe.right, room.left, room.right)
+      centerX < chrome.left - SLACK ||
+      centerX > chrome.right + SLACK ||
+      centerY < chrome.top - SLACK ||
+      centerY > chrome.bottom + SLACK
     )
   }
 
@@ -201,15 +340,14 @@ function collectLayoutFacts(limits: { maxElements: number; maxTracked: number })
     // A control drawn over this one is an overlap to report; an overlay drawn over it is not.
     const hitControl = hit?.closest(INTERACTIVE) ?? null
     const exposed =
-      reachesSelf ||
-      (hitControl !== null && hitControl.closest(OVERLAY) === element.closest(OVERLAY))
-    const inChrome = pinned(element) !== null
+      reachesSelf || (hitControl !== null && overlayOf(hitControl) === overlayOf(element))
+    const chrome = pinned(element)
     facts.targets.push({
       key: keyOf(element),
       name: nameOf(element),
       box: paintedBoxOf(element),
       exposed,
-      pinned: inChrome,
+      layer: chrome === null ? null : keyOf(chrome),
     })
     if (facts.tracked.length < limits.maxTracked) {
       facts.tracked.push({ key: keyOf(element), name: nameOf(element), box: boxOf(element) })
@@ -226,8 +364,8 @@ function collectLayoutFacts(limits: { maxElements: number; maxTracked: number })
         ? null
         : {
             name: nameOf(cover),
-            overlay: cover.closest(OVERLAY) !== null || cover.matches(OVERLAY),
-            revealedOnFocus: !inChrome && revealedOnFocus(element, cover),
+            overlay: belongsToOverlay(cover),
+            revealedOnFocus: revealedOnFocus(element, cover),
           }
     facts.focusables.push({ name: nameOf(element), coveredBy })
   }

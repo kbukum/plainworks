@@ -11,10 +11,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "playwright test",
-    "ui:check": "bun e2e/ui-check.ts",
-    "ui:host": "bun e2e/ui-check.ts serve",
-    "e2e:update": "playwright test --update-snapshots=changed",
-    "e2e:update:linux": "bun ../../internal/visual-baselines/src/cli.ts showcase"
+    "ui:capture": "bun e2e/ui-capture.ts",
+    "ui:host": "bun e2e/ui-capture.ts serve"
   },
   "dependencies": {
     "@plainworks/app": "workspace:*",
@@ -47,7 +45,6 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-
     "jsdom": "catalog:",
     "msw": "catalog:",
     "tailwindcss": "catalog:",

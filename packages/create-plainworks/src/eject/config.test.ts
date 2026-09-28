@@ -18,6 +18,12 @@ describe("isSkippedEntry", () => {
     }
   })
 
+  it("skips browser-test run output", () => {
+    for (const path of ["playwright-report", "test-results", ".ui-artifacts"]) {
+      expect(isSkippedEntry(path)).toBe(true)
+    }
+  })
+
   it("skips the test suite and the workspace-only task/test config at the app root", () => {
     for (const name of ["test", "turbo.json", "vitest.config.ts", "next-env.d.ts"]) {
       expect(isSkippedEntry(name)).toBe(true)

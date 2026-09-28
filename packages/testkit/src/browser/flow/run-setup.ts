@@ -24,7 +24,7 @@ export interface SetupFlowRunOptions {
  * that merges the run's entries into `report.json` and `report.md`, points `<root>/latest` at the
  * run, and prunes old runs. A run no flow wrote to, such as one of only other specs, is removed.
  *
- * When the environment already names a run directory, a caller such as `ui:check` owns the run
+ * When the environment already names a run directory, a caller such as `ui:capture` owns the run
  * and finishes it itself, so this starts nothing and the teardown does nothing.
  */
 export async function setupFlowRun(options: SetupFlowRunOptions): Promise<() => Promise<void>> {

@@ -1,8 +1,0 @@
-{
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    // A bun-run repository tool, not host-independent package source, so it opts back into Node.
-    "types": ["node"]
-  },
-  "include": ["src"]
-}

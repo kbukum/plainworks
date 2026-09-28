@@ -23,7 +23,7 @@ describe("planFlowSuite", () => {
     ])
   })
 
-  it("follows the flows, preset, and mode a caller such as ui:check hands it", () => {
+  it("follows the flows, preset, and mode a caller such as ui:capture hands it", () => {
     const suite = planFlowSuite(FLOWS, {
       env: {
         [FLOW_SUITE_ENV.flows]: "create-task",

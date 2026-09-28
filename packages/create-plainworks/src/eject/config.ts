@@ -15,10 +15,11 @@ export const STANDALONE_TSCONFIG: StandaloneTsconfig = NEXT_STANDALONE_TSCONFIG
 /** The only `tsconfig.extends` an ejectable app may use — the base config eject replaces inline. */
 export const NEUTRALIZED_TSCONFIG_EXTENDS = "../../tsconfig.base.json"
 
-// Entries never copied into a generated project. Build output (`node_modules`, `dist`, …) is
-// dropped at any depth; the workspace-only task/test config (`test/`, `turbo.json`, …) is dropped
-// only at the app root, so a real nested route like `src/app/test/page.tsx` survives. Per-file
-// patterns (`*.test.ts(x)`, `*.tsbuildinfo`) are dropped at any depth.
+// Entries never copied into a generated project. Build and browser-test run output (`node_modules`,
+// `dist`, `playwright-report`, …) is dropped at any depth; the workspace-only task/test config
+// (`test/`, `turbo.json`, …) is dropped only at the app root, so a real nested route like
+// `src/app/test/page.tsx` survives. Per-file patterns (`*.test.ts(x)`, `*.tsbuildinfo`) are dropped
+// at any depth.
 const SKIP_ANY_DEPTH = new Set([
   "node_modules",
   "dist",
@@ -26,6 +27,9 @@ const SKIP_ANY_DEPTH = new Set([
   ".turbo",
   ".next",
   ".bundle-analysis",
+  "playwright-report",
+  "test-results",
+  ".ui-artifacts",
 ])
 const SKIP_AT_ROOT = new Set(["test", "turbo.json", "vitest.config.ts", "next-env.d.ts"])
 

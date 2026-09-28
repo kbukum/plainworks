@@ -6,7 +6,7 @@ import { type PlannedFlowRun, planFlowRuns } from "./plan"
 import type { FlowRunMode } from "./report/schema"
 
 /**
- * The environment a caller such as `ui:check` sets to pick a suite's flows (comma-separated
+ * The environment a caller such as `ui:capture` sets to pick a suite's flows (comma-separated
  * names), preset, and mode. A plain `playwright test` sets none, and runs every flow in `assert`
  * mode at the default preset.
  */
@@ -37,7 +37,7 @@ export interface FlowSuite {
 
 /**
  * Plan a flow spec's suite from the environment: the named flows (or all), the named preset (or
- * `quick`), and the mode (or `assert`). One spec then serves CI, which asserts, and `ui:check`,
+ * `quick`), and the mode (or `assert`). One spec then serves CI, which asserts, and `ui:capture`,
  * which captures. Throws a `flow/definition` {@link FlowError} for an unknown flow, preset, or
  * mode.
  */

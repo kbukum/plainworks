@@ -46,6 +46,7 @@ Verify each doc against the code it describes; a doc that lies is worse than non
 - **The TS6-now/TS7-later rationale** stays accurate to the catalog pin and the boundaries guard.
 - **Examples run.** Code/command snippets reflect current behavior and current APIs — never pseudo-code.
 - **Atom docs match the lock.** Docs describe `elements` atoms as **vendored** and **locked** (`src/shadcn/`, pinned by `shadcn.lock.json`) with owned primitives in `src/atoms/`. A doc that calls vendored atoms editable, tells a reader to change one in place, or skips the **deviation ladder** (theme → call site → `ui` wrapper) is stale.
+- **Screenshots match the UI.** App READMEs embed images that `ui:capture --docs` generates from the checkpoints marked `docs` (the showcase keeps them in `apps/showcase/docs/images/`). When a UI change makes one stale, rerun `bun run ui:capture --docs` in that app and look at the new images. Never edit or add one by hand.
 - **Links resolve.** Internal relative links point at files that exist; other-repo references use full URLs, never bare `#123`.
 
 ## Pass 3 — Clarity & developer experience

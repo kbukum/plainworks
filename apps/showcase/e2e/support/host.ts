@@ -4,8 +4,8 @@ import { BROWSER_GATE_NOW, type BrowserGateHost, FIXED_NOW_ENV } from "@plainwor
 export const APP_DIR: string = new URL("../../", import.meta.url).pathname
 
 /**
- * How to start the showcase's dev SSR host. Each worker gets its own on `basePort + n`; `ui:check`
- * starts the same host from a base commit's worktree.
+ * How to start the showcase's dev SSR host. Each worker gets its own on `basePort + n`;
+ * `ui:capture` starts the same host from a base commit's worktree.
  */
 export const SHOWCASE_HOST: BrowserGateHost = {
   command: ["bun", "run", "server.ts"],

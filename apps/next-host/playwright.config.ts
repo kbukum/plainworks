@@ -1,8 +1,8 @@
-import { browserGateScreenshot, browserGateUse } from "@plainworks/testkit/browser"
+import { browserGateUse } from "@plainworks/testkit/browser"
 import { defineConfig, devices } from "@playwright/test"
 
-// The Next host's browser gate: the same functional, WCAG 2.2 AA axe, reflow, and screenshot checks
-// as the showcase, over `next dev` so the development inspector is part of the proof. The fixed
+// The Next host's browser gate: every flow (`e2e/flows/`) checked at each checkpoint, plus
+// functional specs, over `next dev` so the development inspector is part of the proof. The fixed
 // clock, locale, time zone, and motion come from `@plainworks/testkit/browser`. See
 // `docs/browser-gate.md`.
 //
@@ -12,21 +12,22 @@ const CI = Boolean(process.env.CI)
 
 export default defineConfig({
   testDir: "e2e",
-  // Tests are independent (each resets its worker's mock backend), so they run and shard singly.
+  // Tests are independent (each resets its worker's mock backend), so they run in parallel.
   fullyParallel: true,
   // A quarter of the cores: each worker compiles its own Next dev server, heavier than a Vite one.
   workers: CI ? 1 : "25%",
-  // No retries: a flaky visual or a11y result is a defect to fix, not to hide.
+  // No retries: a flaky result is a defect to fix, not to hide.
   retries: 0,
   forbidOnly: CI,
-  // Baselines change only through `e2e:update`, never as a side effect of a run.
-  updateSnapshots: "none",
-  reporter: CI ? [["github"], ["list"], ["blob"]] : [["list"], ["html", { open: "never" }]],
-  expect: { toHaveScreenshot: browserGateScreenshot },
+  reporter: CI
+    ? [["github"], ["list"], ["html", { open: "never" }]]
+    : [["list"], ["html", { open: "never" }]],
   use: {
     ...browserGateUse,
     trace: "retain-on-failure",
   },
-  snapshotPathTemplate: "{testDir}/{testFilePath}-snapshots/{platform}/{arg}{ext}",
+  // One flow run per invocation: `flows.spec.ts` writes into it, and the teardown publishes
+  // `.ui-artifacts/latest/report.md`.
+  globalSetup: "./e2e/support/flow-run.ts",
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
 })

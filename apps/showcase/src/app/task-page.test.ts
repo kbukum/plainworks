@@ -1,5 +1,5 @@
 import type { Task } from "@plainworks/demo"
-import type { PaginatedResult } from "@plainworks/query"
+import type { PaginatedResult } from "@plainworks/std/list"
 import { describe, expect, it } from "vitest"
 import { dropTaskFromPage, reconcileTaskInPage } from "./task-page"
 

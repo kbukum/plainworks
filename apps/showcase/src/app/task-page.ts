@@ -1,6 +1,5 @@
 import { type Task, taskPriorityRank } from "@plainworks/demo"
-import type { PaginatedResult } from "@plainworks/query"
-import type { ListQueryParams } from "@plainworks/std/list"
+import type { ListQueryParams, PaginatedResult } from "@plainworks/std/list"
 
 /** Result of reconciling one task into a cached list page. */
 export interface TaskPageReconciliation {

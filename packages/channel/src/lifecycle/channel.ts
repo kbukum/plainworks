@@ -1,4 +1,5 @@
 import { getErrorMessage, isNonNegativeInteger } from "@plainworks/std"
+import { createEmitter, type Emitter } from "@plainworks/std/emitter"
 import { type RandomSource, systemRandom } from "@plainworks/std/random"
 import {
   AbortError,
@@ -140,9 +141,6 @@ export function createChannel(options: ChannelOptions): Channel {
     assertDurationMs("idleTimeoutMs", idleTimeoutMs)
   }
 
-  const typeListeners = new Map<string, Set<Listener<StreamFrame>>>()
-  const anyListeners = new Set<Listener<StreamFrame>>()
-
   // One connect()/close() cycle. Its `AbortController` is the session's cancellation root; `closed`
   // records a caller close so the reconnect loop can tell it apart from a failure. A fresh session
   // per connect() makes the channel re-connectable; identity guards a superseded loop from
@@ -166,6 +164,15 @@ export function createChannel(options: ChannelOptions): Channel {
       // No one left to report an observer's own failure to — the lifecycle must continue.
     }
   }
+
+  // Frame listeners are untrusted too: a throwing one is reported and the others still hear it.
+  const createFrameEmitter = (): Emitter<StreamFrame> =>
+    createEmitter({
+      onListenerError: (cause) =>
+        notifyError(ChannelError.protocol("a channel listener threw", { cause })),
+    })
+  const anyFrames = createFrameEmitter()
+  const framesByType = new Map<string, Emitter<StreamFrame>>()
 
   const setStatus = (next: ChannelStatus): void => {
     if (status === next) {
@@ -191,22 +198,8 @@ export function createChannel(options: ChannelOptions): Channel {
     if (frame.retry !== undefined) {
       serverRetryMs = frame.retry
     }
-    const deliver = (listener: Listener<StreamFrame>): void => {
-      try {
-        listener(frame)
-      } catch (cause) {
-        notifyError(ChannelError.protocol("a channel listener threw", { cause }))
-      }
-    }
-    for (const listener of [...anyListeners]) {
-      deliver(listener)
-    }
-    const set = typeListeners.get(frame.type)
-    if (set !== undefined) {
-      for (const listener of [...set]) {
-        deliver(listener)
-      }
-    }
+    anyFrames.emit(frame)
+    framesByType.get(frame.type)?.emit(frame)
   }
 
   const buildHeaders = async (signal: WebAbortSignal): Promise<AuthHeaders> => {
@@ -481,25 +474,25 @@ export function createChannel(options: ChannelOptions): Channel {
       setStatus("closed")
     },
     on(type: string, listener: Listener<StreamFrame>): Subscription {
-      let set = typeListeners.get(type)
-      if (set === undefined) {
-        set = new Set()
-        typeListeners.set(type, set)
+      let frames = framesByType.get(type)
+      if (frames === undefined) {
+        frames = createFrameEmitter()
+        framesByType.set(type, frames)
       }
-      set.add(listener)
+      const typeFrames = frames
+      const subscription = typeFrames.subscribe(listener)
       return {
         unsubscribe: () => {
-          set?.delete(listener)
+          subscription.unsubscribe()
+          // Drop an emptied type so a churn of one-off types never grows the map.
+          if (typeFrames.listenerCount === 0 && framesByType.get(type) === typeFrames) {
+            framesByType.delete(type)
+          }
         },
       }
     },
     onAny(listener: Listener<StreamFrame>): Subscription {
-      anyListeners.add(listener)
-      return {
-        unsubscribe: () => {
-          anyListeners.delete(listener)
-        },
-      }
+      return anyFrames.subscribe(listener)
     },
     get status(): ChannelStatus {
       return status

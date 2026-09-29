@@ -14,13 +14,24 @@ bun add @plainworks/channel
 
 `channel` is a **neutral (`.`)** package. The core references no host global — it drives the wire only through an **injected transport factory**, so the non-universal primitives (`fetch` + `ReadableStream` for SSE, the `WebSocket` constructor for WS) enter through a seam with a platform default. A worker with no `EventSource`, React Native needing a polyfill, or a custom host each supplies its own transport without forking the core. Timers and RNG are injected `std` seams (`delay`, `clock`, `random`) that default to the host, so timing is deterministic under test. The React hooks live at the separate **`./client`** entry and are **DOM-free** (React-without-DOM), so they run in the browser, a Next client tree, and React Native alike. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives) for the primitive contract.
 
+## Entries
+
+| Entry | What it holds |
+|---|---|
+| `.` | `createChannel`, the channel status, and the typed `ChannelError`. |
+| `./transport` | The SSE and WebSocket transports. |
+| `./events` | The event router, decoders, and sinks. |
+| `./client` | The React Provider and hooks (`"use client"`, DOM-free). |
+
+The transport contract (`StreamTransport`, `StreamFrame`) comes from `@plainworks/std/seam`.
+
 ## Server-safe core (`.`)
 
 `createChannel` is a **factory**, never a module-level singleton — each call returns one logical stream with its own lifecycle, so nothing leaks across SSR requests. It owns lifecycle and stable-open gating; **reconnection, jittered backoff, the retry ceiling, and retry classification all come from `std`** — this package keeps no private backoff copy.
 
 ```ts
 import { createChannel } from "@plainworks/channel"
-import { createSseTransport } from "@plainworks/channel"
+import { createSseTransport } from "@plainworks/channel/transport"
 
 const channel = createChannel({
   transport: createSseTransport({ url: "https://api.example.com/stream" }),
@@ -49,11 +60,13 @@ A channel moves through `idle → connecting → open → reconnecting → closi
 
 ## Transports
 
-A transport is a `StreamTransportFactory` injected into `createChannel`. The core never imports a wire global — it calls the factory. The transport contract (`StreamTransport`, `StreamFrame`, and friends) is a neutral, host-independent seam owned by `@plainworks/std/seam`; `channel` re-exports it for convenience.
+A transport is a `StreamTransportFactory` injected into `createChannel`. The core never imports a wire global — it calls the factory. The transport contract (`StreamTransport`, `StreamFrame`, and friends) is a neutral, host-independent seam owned by `@plainworks/std/seam`, so a custom transport depends only on `std`.
 
 ### SSE — `createSseTransport`
 
 Built on the platform `fetch` + `Response.body` + [`eventsource-parser`](https://github.com/rexxars/eventsource-parser) (not `@microsoft/fetch-event-source`). Honors `Last-Event-ID` for resume and the server's `retry:` hint. The whole decode buffer is bounded by `maxBufferChars` (**S2**) — an overflow raises a typed `channel/protocol` error rather than growing unbounded. `fetch` is an injectable seam (`options.fetch`) that defaults to the host.
+
+The transport **owns the response body**. An abort, an overflow, or a listener that throws cancels the body stream, and every exit releases the reader, so a stream never outlives its attempt.
 
 ```ts
 createSseTransport({ url: "https://api.example.com/stream", maxBufferChars: 1_048_576 })
@@ -75,17 +88,28 @@ createWsTransport({
 The channel delivers raw `StreamFrame`s. The **event router** adds a typed layer: decode a frame to `{ type, payload, id }`, then fan it out to sinks. Delivery is drained through `std`'s bounded queue, so a slow sink applies backpressure instead of buffering without limit.
 
 ```ts
-import { createEventRouter, createStateSink, jsonDecoder } from "@plainworks/channel"
+import { createEventRouter, createStateSink, jsonDecoder } from "@plainworks/channel/events"
 
 const router = createEventRouter<{ n: number }>({
   channel,
   decode: jsonDecoder((v) => userSchema.parse(v)),
   sinks: [createStateSink(stateSource, (event, current) => [...(current ?? []), event.payload])],
   onError: (err) => log(err),
+  onDrop: (event) => log("dropped", event.type),
 })
 // … later
 router.close()
 ```
+
+**Overflow never goes unseen.** The buffer holds `capacity` events (default 1024). When it is full, `overflow` picks what to lose:
+
+| `overflow` | What it drops |
+|---|---|
+| `drop-oldest` (default) | The oldest buffered event, so the freshest wins. |
+| `drop-new` | The new event. |
+| `reject` | The new event, like `drop-new`. The stream keeps running. |
+
+Every dropped event reaches `onDrop`. Pass a `telemetry` seam too, and each drop is also a `channel.event.dropped` event with the `channel.overflow.policy` and `channel.event.type` attributes.
 
 `jsonDecoder` parses the frame body and hands the untrusted value to your validator. A malformed-JSON or validation failure is reported to `onError` and the frame is dropped — one bad frame never tears down the stream. `createStateSink` folds events into a `std` `StateSource` (the `state` store as the `memory` scope), so the sink writes through one state contract rather than reaching into a store directly. `EventSink` is the seam for any custom sink.
 
@@ -95,7 +119,7 @@ router.close()
 
 ```tsx
 "use client"
-import { createSseTransport } from "@plainworks/channel"
+import { createSseTransport } from "@plainworks/channel/transport"
 import { createChannelContext } from "@plainworks/channel/client"
 
 const { ChannelProvider, useChannelStatus, useChannelEvent } = createChannelContext()

@@ -1,5 +1,14 @@
+import { AbortError } from "@plainworks/std/resilience"
 import type { AuthHeaders, StreamFrame, StreamTransportContext } from "@plainworks/std/seam"
-import type { WebFetch, WebHeaders, WebRequestInit, WebResponse } from "@plainworks/std/web"
+import type {
+  WebAbortSignal,
+  WebFetch,
+  WebHeaders,
+  WebReadableStream,
+  WebReadableStreamDefaultReader,
+  WebRequestInit,
+  WebResponse,
+} from "@plainworks/std/web"
 import { describe, expect, test } from "vitest"
 import { ChannelError } from "../error"
 import { createSseTransport } from "./sse"
@@ -13,21 +22,114 @@ function sseResponse(chunks: readonly string[], init?: { status?: number; conten
   })
 }
 
+type ReadResult = Awaited<ReturnType<WebReadableStreamDefaultReader<Uint8Array>["read"]>>
+
+/**
+ * An SSE body the test feeds chunk by chunk. Like a platform stream, `cancel` settles a pending
+ * read as done and only the first cancel reaches the source, so `cancelReasons` shows what the
+ * transport cancelled with and `locked` whether it released the reader.
+ */
+function controlledBody() {
+  const encoder = new TextEncoder()
+  const chunks: ReadResult[] = []
+  const pending: Array<(result: ReadResult) => void> = []
+  const cancelReasons: unknown[] = []
+  let finished = false
+  let locked = false
+  const settle = (result: ReadResult): void => {
+    const next = pending.shift()
+    if (next) {
+      next(result)
+    } else {
+      chunks.push(result)
+    }
+  }
+  const finish = (): void => {
+    finished = true
+    for (const next of pending.splice(0)) {
+      next({ done: true })
+    }
+  }
+  const reader: WebReadableStreamDefaultReader<Uint8Array> = {
+    read: () => {
+      const next = chunks.shift()
+      if (next) {
+        return Promise.resolve(next)
+      }
+      if (finished) {
+        return Promise.resolve({ done: true })
+      }
+      return new Promise((resolve) => pending.push(resolve))
+    },
+    cancel: async (reason) => {
+      if (!finished) {
+        cancelReasons.push(reason)
+        chunks.length = 0
+        finish()
+      }
+    },
+    releaseLock: () => {
+      locked = false
+    },
+  }
+  const body: WebReadableStream<Uint8Array> = {
+    getReader: () => {
+      locked = true
+      return reader
+    },
+    cancel: (reason) => reader.cancel(reason),
+  }
+  const response: WebResponse = {
+    ok: true,
+    status: 200,
+    statusText: "OK",
+    headers: new Headers({ "content-type": "text/event-stream" }),
+    url: "https://example.test/stream",
+    redirected: false,
+    bodyUsed: false,
+    body,
+    clone: () => response,
+    arrayBuffer: () => Promise.reject(new Error("not used")),
+    json: () => Promise.reject(new Error("not used")),
+    text: () => Promise.reject(new Error("not used")),
+  }
+  return {
+    cancelReasons,
+    get locked() {
+      return locked
+    },
+    response: () => response,
+    push: (text: string) => settle({ done: false, value: encoder.encode(text) }),
+    end: () => {
+      settle({ done: true })
+      finished = true
+    },
+  }
+}
+
 /** A collecting {@link StreamTransportContext} plus the fetch init the transport issued. */
-function collect(options: { lastEventId?: string; headers?: AuthHeaders } = {}) {
+function collect(
+  options: {
+    lastEventId?: string
+    headers?: AuthHeaders
+    signal?: WebAbortSignal
+    onFrame?: (frame: StreamFrame) => void
+  } = {},
+) {
   const frames: StreamFrame[] = []
   const ids: string[] = []
   let opened = 0
   let seenInit: WebRequestInit | undefined
   const context: StreamTransportContext = {
     headers: options.headers ?? ({} as AuthHeaders),
-    signal: new AbortController().signal,
+    signal: options.signal ?? new AbortController().signal,
     lastEventId: options.lastEventId,
     onOpen: () => {
       opened++
     },
     onFrame: (frame) => {
       frames.push(frame)
+      options.onFrame?.(frame)
     },
     onId: (id) => {
       ids.push(id)
@@ -239,5 +341,94 @@ describe("createSseTransport", () => {
 
     expect(resolved).toBe("https://example.test/signed")
     expect(h.frames).toHaveLength(1)
+  })
+
+  describe("stream ownership", () => {
+    test("releases the reader without cancelling after a clean end", async () => {
+      const stream = controlledBody()
+      const h = collect()
+      const transport = createSseTransport({
+        url: "https://example.test/stream",
+        fetch: h.fetchWith(stream.response),
+      })()
+      stream.push("data: a\n\n")
+      stream.end()
+
+      await transport.open(h.context)
+
+      expect(h.frames).toHaveLength(1)
+      expect(stream.cancelReasons).toEqual([])
+      expect(stream.locked).toBe(false)
+    })
+
+    test("cancels and releases the reader when aborted mid-stream", async () => {
+      const stream = controlledBody()
+      const controller = new AbortController()
+      const reason = new Error("closed by caller")
+      const h = collect({ signal: controller.signal, onFrame: () => controller.abort(reason) })
+      const transport = createSseTransport({
+        url: "https://example.test/stream",
+        fetch: h.fetchWith(stream.response),
+      })()
+      stream.push("data: a\n\n")
+
+      const error = await transport.open(h.context).catch((caught: unknown) => caught)
+
+      expect(error).toBeInstanceOf(AbortError)
+      expect((error as AbortError).cause).toBe(reason)
+      expect(stream.cancelReasons).toEqual([reason])
+      expect(stream.locked).toBe(false)
+    })
+
+    test("cancels a body that is already aborted when the stream opens", async () => {
+      const stream = controlledBody()
+      const controller = new AbortController()
+      const h = collect({ signal: controller.signal })
+      const context = { ...h.context, onOpen: () => controller.abort() }
+      const transport = createSseTransport({
+        url: "https://example.test/stream",
+        fetch: h.fetchWith(stream.response),
+      })()
+
+      await expect(transport.open(context)).rejects.toBeInstanceOf(AbortError)
+      expect(stream.cancelReasons).toHaveLength(1)
+      expect(stream.locked).toBe(false)
+    })
+
+    test("cancels and releases the reader when the consumer throws", async () => {
+      const stream = controlledBody()
+      const failure = new Error("consumer failed")
+      const h = collect({
+        onFrame: () => {
+          throw failure
+        },
+      })
+      const transport = createSseTransport({
+        url: "https://example.test/stream",
+        fetch: h.fetchWith(stream.response),
+      })()
+      stream.push("data: a\n\n")
+
+      await expect(transport.open(h.context)).rejects.toBe(failure)
+      expect(stream.cancelReasons).toEqual([failure])
+      expect(stream.locked).toBe(false)
+    })
+
+    test("cancels and releases the reader when a frame overflows the buffer", async () => {
+      const stream = controlledBody()
+      const h = collect()
+      const transport = createSseTransport({
+        url: "https://example.test/stream",
+        maxBufferChars: 8,
+        fetch: h.fetchWith(stream.response),
+      })()
+      stream.push(`data: ${"x".repeat(64)}`)
+
+      const error = await transport.open(h.context).catch((caught: unknown) => caught)
+
+      expect(error).toBeInstanceOf(ChannelError)
+      expect(stream.cancelReasons).toEqual([error])
+      expect(stream.locked).toBe(false)
+    })
   })
 })

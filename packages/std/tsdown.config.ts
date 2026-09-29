@@ -5,6 +5,7 @@ import { preset } from "@plainworks/tsdown-config"
 export default preset({
   entry: {
     index: "src/index.ts",
+    emitter: "src/emitter/index.ts",
     encoding: "src/encoding/index.ts",
     list: "src/list/index.ts",
     pipeline: "src/pipeline/index.ts",

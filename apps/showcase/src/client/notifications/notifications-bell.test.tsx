@@ -2,7 +2,8 @@
 
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
-import { createQueryClient, prefetchQuery } from "@plainworks/query"
+import { createQueryClient } from "@plainworks/query"
+import { prefetchQuery } from "@plainworks/query/hydration"
 import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/client"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"

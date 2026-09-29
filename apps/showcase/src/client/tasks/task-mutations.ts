@@ -1,8 +1,8 @@
 "use client"
 
 import type { CreateTaskInput, Task, UpdateTaskInput } from "@plainworks/demo"
-import { optimisticUpdate, type PaginatedResult, writeQueryData } from "@plainworks/query"
-import type { ListQueryParams } from "@plainworks/std/list"
+import { optimisticUpdate, writeQueryData } from "@plainworks/query/cache"
+import type { ListQueryParams, PaginatedResult } from "@plainworks/std/list"
 import type { QueryKey } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
 import { useCallback, useEffect, useRef, useState } from "react"

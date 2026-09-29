@@ -112,3 +112,38 @@ test("an already-aborted signal rejects immediately without taking a waiter slot
   queue.push(1)
   await expect(waiting).resolves.toBe(1)
 })
+
+test("onDrop hears the evicted head under drop-oldest", () => {
+  const dropped: number[] = []
+  const queue = createBoundedQueue<number>(2, {
+    overflow: "drop-oldest",
+    onDrop: (item) => dropped.push(item),
+  })
+  queue.push(1)
+  queue.push(2)
+  queue.push(3)
+  expect(dropped).toEqual([1])
+  expect(queue.tryPop()).toBe(2)
+})
+
+test("onDrop hears the rejected newcomer under drop-new", () => {
+  const dropped: number[] = []
+  const queue = createBoundedQueue<number>(1, {
+    overflow: "drop-new",
+    onDrop: (item) => dropped.push(item),
+  })
+  queue.push(1)
+  expect(queue.push(2)).toBe(false)
+  expect(dropped).toEqual([2])
+})
+
+test("onDrop is not called under reject, which throws instead", () => {
+  const dropped: number[] = []
+  const queue = createBoundedQueue<number>(1, {
+    overflow: "reject",
+    onDrop: (item) => dropped.push(item),
+  })
+  queue.push(1)
+  expect(() => queue.push(2)).toThrow(QueueFullError)
+  expect(dropped).toEqual([])
+})

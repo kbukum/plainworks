@@ -7,7 +7,7 @@
 
 export type { BackoffPolicy, JitterStrategy } from "./backoff"
 export { defaultBackoff, nextBackoff } from "./backoff"
-export type { BoundedQueue, OverflowPolicy } from "./bounded-queue"
+export type { BoundedQueue, BoundedQueueOptions, OverflowPolicy } from "./bounded-queue"
 export {
   createBoundedQueue,
   QueueClosedError,

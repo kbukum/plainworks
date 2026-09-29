@@ -32,7 +32,7 @@ describe("createQueryEventSink", () => {
     const query = client.getQueryCache().find({ queryKey: ["user", 1] })
     const sink = createQueryEventSink<UserEvent>(client, () => ({
       kind: "invalidate",
-      filters: { queryKey: ["user"], refetchType: "none" },
+      target: { key: ["user"] },
     }))
 
     await sink.deliver({ type: "user.touched", data: undefined }, new AbortController().signal)
@@ -104,7 +104,7 @@ describe("createQueryEventSink", () => {
 
     const sink = createQueryEventSink<UserEvent>(client, () => ({
       kind: "invalidate",
-      filters: { queryKey: ["user"] }, // default refetchType "active" → refetches the observed query
+      target: { key: ["user"] }, // refetches the observed (active) query
     }))
     const controller = new AbortController()
     const delivery = sink.deliver({ type: "user.touched", data: undefined }, controller.signal)

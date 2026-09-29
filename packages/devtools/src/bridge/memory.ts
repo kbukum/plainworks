@@ -1,3 +1,4 @@
+import { createEmitter, type Emitter } from "@plainworks/std/emitter"
 import type { Subscription } from "@plainworks/std/seam"
 
 /** One end of a bridge: post frames outward, subscribe to frames arriving from the other end. */
@@ -33,39 +34,21 @@ export interface MemoryBridgeOptions {
  * frames unchanged.
  */
 export function createMemoryBridge(options: MemoryBridgeOptions = {}): Bridge {
-  const onError = options.onError ?? (() => {})
-  const hostListeners = new Set<(frame: unknown) => void>()
-  const clientListeners = new Set<(frame: unknown) => void>()
+  const emitterOptions = { onListenerError: options.onError ?? (() => {}) }
+  const toHost = createEmitter<unknown>(emitterOptions)
+  const toClient = createEmitter<unknown>(emitterOptions)
 
-  function deliver(listeners: Set<(frame: unknown) => void>, frame: unknown): void {
-    for (const listener of [...listeners]) {
-      try {
-        listener(frame)
-      } catch (error) {
-        onError(error)
-      }
-    }
-  }
-
-  function port(
-    own: Set<(frame: unknown) => void>,
-    peer: Set<(frame: unknown) => void>,
-  ): BridgePort {
-    return {
-      post: (frame) => deliver(peer, frame),
-      subscribe(listener) {
-        own.add(listener)
-        return { unsubscribe: () => own.delete(listener) }
-      },
-    }
-  }
+  const port = (own: Emitter<unknown>, peer: Emitter<unknown>): BridgePort => ({
+    post: (frame) => peer.emit(frame),
+    subscribe: (listener) => own.subscribe(listener),
+  })
 
   return {
-    host: port(hostListeners, clientListeners),
-    client: port(clientListeners, hostListeners),
+    host: port(toHost, toClient),
+    client: port(toClient, toHost),
     dispose() {
-      hostListeners.clear()
-      clientListeners.clear()
+      toHost.clear()
+      toClient.clear()
     },
   }
 }

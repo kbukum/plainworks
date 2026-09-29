@@ -14,7 +14,16 @@ bun add @plainworks/connect
 
 ## Runtime primitives
 
-`connect` is split across two entries. The neutral **`.`** entry (transport factory, interceptors, typed error, query bindings) names no DOM or Node global — it builds on `@connectrpc/connect-web` (plain `fetch`) and `@connectrpc/connect-query-core` (React-free), so it runs on server, edge, workers, RSC, and React Native. The **`./client`** entry is per-module `"use client"` and re-exports the connect-query React hooks; it is never the default import.
+`connect` has one entry per concern. Only `./client` touches React.
+
+| Entry | What it holds |
+|---|---|
+| `.` | The transport factory and the typed `RpcError`. |
+| `./interceptor` | The resilience and auth interceptors. |
+| `./query` | Query keys, query options, and method-scoped invalidation. |
+| `./client` | The connect-query React hooks and `TransportProvider` (`"use client"`). |
+
+The non-client entries name no DOM or Node global. They build on `@connectrpc/connect-web` (plain `fetch`) and `@connectrpc/connect-query-core` (React-free), so they run on server, edge, workers, RSC, and React Native.
 
 `fetch` is an **injected seam** (`options.fetch`, typed as the `std` `WebFetch` contract) that defaults to the host's platform `fetch` — pass a `WebFetch` wrapper for tests or custom credentials rather than a raw DOM `fetch`.
 
@@ -85,10 +94,18 @@ try {
 
 ## Query conventions
 
-The neutral bindings re-export connect-query-core (keys, options, invalidation) plus two kit conveniences:
+`@plainworks/connect/query` re-exports connect-query-core's keys and options, plus two kit conveniences:
 
-- **`createQueryKey({ schema, input, transport? })`** — a finite-cardinality, deterministic key for a unary method. Equal `schema` + `input` produce deeply-equal keys.
-- **`createInvalidator(queryClient)`** — a method-scoped invalidation helper for mutations; the key is built with `cardinality: undefined` so it prefix-matches **both** finite and infinite queries for the method. React-free — it takes any `@tanstack/query-core` `QueryClient`, so it works in an RSC/server action.
+- **`createQueryKey({ schema, input, transport? })`** builds a finite, deterministic key for a unary method. Equal `schema` and `input` give deeply equal keys.
+- **`createMethodInvalidator(cache)`** invalidates a method's cached queries after a mutation, both finite and infinite. Pass `input` to narrow it and `signal` to cancel the refetches. It takes the `std` `CacheInvalidator` seam, so wire it to TanStack Query with `@plainworks/query/cache`:
+
+```ts
+import { createMethodInvalidator } from "@plainworks/connect/query"
+import { createCacheInvalidator } from "@plainworks/query/cache"
+
+const invalidate = createMethodInvalidator(createCacheInvalidator(queryClient))
+await invalidate(EchoService.method.echo)
+```
 
 > **connect-n1** — keys are **transport-scoped**. A hand-built key **must thread the same `transport`** the connect-query hooks use, or it will not match a hook-generated cache entry.
 

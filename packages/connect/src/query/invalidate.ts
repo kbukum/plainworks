@@ -1,43 +1,41 @@
 import type { DescMessage, DescMethodUnary, MessageInitShape } from "@bufbuild/protobuf"
 import { createConnectQueryKey } from "@connectrpc/connect-query-core"
-import type { QueryClient } from "@tanstack/query-core"
+import type { CacheInvalidator } from "@plainworks/std/seam"
+import type { WebAbortSignal } from "@plainworks/std/web"
 
-/** Options for the method-scoped invalidator returned by {@link createInvalidator}. */
-export interface InvalidateOptions<I extends DescMessage> {
-  /**
-   * Restrict invalidation to a specific request input. Omit to invalidate every cached query for
-   * the method regardless of input.
-   */
+/** Options for a {@link MethodInvalidator} call. */
+export interface MethodInvalidateOptions<I extends DescMessage> {
+  /** Only invalidate queries for this request input. Omit to invalidate every input. */
   readonly input?: MessageInitShape<I>
+  /** Aborting cancels the refetches the invalidation started. */
+  readonly signal?: WebAbortSignal
 }
 
+/** Invalidate every cached query for one unary RPC method, finite and infinite. */
+export type MethodInvalidator = <I extends DescMessage, O extends DescMessage>(
+  schema: DescMethodUnary<I, O>,
+  options?: MethodInvalidateOptions<I>,
+) => Promise<void>
+
 /**
- * Bind a `QueryClient` to a method-scoped invalidation helper — the kit's invalidation convention
- * for mutations. The key is built with `cardinality: undefined` so it matches **both** finite and
- * infinite queries for the method (connect-query omits the field, yielding a prefix key).
- * Matching is always a **prefix** match: an exact-match option is deliberately absent because this
- * helper never builds a full cache key (a real entry carries `"finite"`/`"infinite"` cardinality,
- * which an exact filter here could never satisfy), so it would silently match nothing.
+ * Bind a {@link CacheInvalidator} to Connect's query keys, for invalidating after a mutation. The
+ * key leaves out `cardinality`, so it partially matches **both** the finite and the infinite
+ * queries for the method. There is no exact option: a real entry always carries a cardinality, so
+ * an exact match could never hit.
  *
- * React-free: it takes any `@tanstack/query-core` `QueryClient` (the server-safe core of TanStack
- * Query), so it works in an RSC/server action as well as the browser.
- *
- * This overlaps `@plainworks/query`'s `invalidateCache` (both are thin prefix-invalidation wrappers
- * over TanStack `invalidateQueries`) on purpose: `connect` and `query` are sibling L2 packages, so
- * neither may import the other and the shared shape stays duplicated. Do not "fix" this into a
- * cross-package import — it would be an illegal sideways layer dependency. This one owns the
- * Connect-specific key construction (`createConnectQueryKey`) the generic helper cannot.
+ * Pass `createCacheInvalidator(queryClient)` from `@plainworks/query/cache`. `connect` depends only
+ * on the seam, so it never imports `query`.
  */
-export function createInvalidator(queryClient: QueryClient) {
-  return function invalidate<I extends DescMessage, O extends DescMessage>(
-    schema: DescMethodUnary<I, O>,
-    options: InvalidateOptions<I> = {},
-  ): Promise<void> {
-    const queryKey = createConnectQueryKey({
+export function createMethodInvalidator(cache: CacheInvalidator): MethodInvalidator {
+  return (schema, options = {}) => {
+    const key = createConnectQueryKey({
       schema,
       cardinality: undefined,
       ...(options.input !== undefined ? { input: options.input } : {}),
     })
-    return queryClient.invalidateQueries({ queryKey })
+    return cache.invalidate(
+      { key },
+      options.signal !== undefined ? { signal: options.signal } : undefined,
+    )
   }
 }

@@ -3,7 +3,7 @@
 // the snapshot and dehydrated cache are embedded under, and the exact list request — the contract
 // that makes hydration match.
 
-import type { ListQueryParams } from "@plainworks/query"
+import type { ListQueryParams } from "@plainworks/std/list"
 
 /** Resource name the tasks list query key is scoped to. */
 export const TASKS_RESOURCE = "tasks"

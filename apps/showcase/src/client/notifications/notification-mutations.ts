@@ -1,7 +1,7 @@
 "use client"
 
 import type { Notification } from "@plainworks/demo"
-import { optimisticUpdate } from "@plainworks/query"
+import { optimisticUpdate } from "@plainworks/query/cache"
 import type { QueryKey } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
 import { useCallback, useEffect, useRef, useState } from "react"

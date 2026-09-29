@@ -1,4 +1,5 @@
 import { type ErrorSnapshot, isPositiveInteger } from "@plainworks/std"
+import { createEmitter } from "@plainworks/std/emitter"
 import type { Subscription } from "@plainworks/std/seam"
 import { type SourceDescriptor, type SourceId, sourceKey } from "../protocol"
 import type { RetentionEntry } from "../retention"
@@ -83,7 +84,7 @@ export function createDevtoolsStore(
   if (!isPositiveInteger(capacity)) {
     throw new RangeError("Store capacity must be a positive safe integer.")
   }
-  const listeners = new Set<() => void>()
+  const changes = createEmitter<void>()
 
   const model: Model = {
     sources: new Map(),
@@ -118,7 +119,7 @@ export function createDevtoolsStore(
     if (disposed || model.disposed) return
     if (!mutate()) return
     state = snapshotOf(model)
-    for (const listener of [...listeners]) listener()
+    changes.emit()
   }
 
   function pushEvent(entry: RetentionEntry): boolean {
@@ -243,7 +244,7 @@ export function createDevtoolsStore(
         if (!disposed && !model.disposed) {
           model.disposed = true
           state = snapshotOf(model)
-          for (const listener of [...listeners]) listener()
+          changes.emit()
         }
         break
       default:
@@ -257,12 +258,7 @@ export function createDevtoolsStore(
     getSnapshot: () => state,
     subscribe(listener) {
       if (disposed) return { unsubscribe: () => {} }
-      listeners.add(listener)
-      return {
-        unsubscribe: () => {
-          listeners.delete(listener)
-        },
-      }
+      return changes.subscribe(listener)
     },
     pause() {
       publish(() => {
@@ -293,7 +289,7 @@ export function createDevtoolsStore(
       if (disposed) return
       disposed = true
       subscription.unsubscribe()
-      listeners.clear()
+      changes.clear()
     },
   }
 }

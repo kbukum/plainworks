@@ -1,46 +1,53 @@
 import { createConnectQueryKey } from "@connectrpc/connect-query-core"
-import { EchoService, echoResponse } from "@plainworks/testkit/connect"
-import { QueryClient } from "@tanstack/query-core"
+import { fakeCacheInvalidator } from "@plainworks/testkit"
+import { EchoService } from "@plainworks/testkit/connect"
 import { describe, expect, test } from "vitest"
-import { createInvalidator } from "./invalidate"
+import { createMethodInvalidator } from "./invalidate"
 
 const echo = EchoService.method.echo
 
-function seed(client: QueryClient, input?: { message: string }) {
-  const finite = createConnectQueryKey({
-    schema: echo,
-    cardinality: "finite",
-    ...(input !== undefined ? { input } : {}),
-  })
-  const infinite = createConnectQueryKey({
-    schema: echo,
-    cardinality: "infinite",
-    ...(input !== undefined ? { input } : {}),
-  })
-  client.setQueryData(finite, echoResponse("cached"))
-  client.setQueryData(infinite, { pages: [], pageParams: [] })
+function seed(cache: ReturnType<typeof fakeCacheInvalidator>, input?: { message: string }) {
+  const scope = input !== undefined ? { input } : {}
+  const finite = createConnectQueryKey({ schema: echo, cardinality: "finite", ...scope })
+  const infinite = createConnectQueryKey({ schema: echo, cardinality: "infinite", ...scope })
+  cache.seed(finite)
+  cache.seed(infinite)
   return { finite, infinite }
 }
 
-describe("createInvalidator", () => {
-  test("prefix-matches both finite and infinite queries for the method", async () => {
-    const client = new QueryClient()
-    const { finite, infinite } = seed(client)
+describe("createMethodInvalidator", () => {
+  test("matches both finite and infinite queries for the method", async () => {
+    const cache = fakeCacheInvalidator()
+    const { finite, infinite } = seed(cache)
 
-    await createInvalidator(client)(echo)
+    await createMethodInvalidator(cache)(echo)
 
-    expect(client.getQueryState(finite)?.isInvalidated).toBe(true)
-    expect(client.getQueryState(infinite)?.isInvalidated).toBe(true)
+    expect(cache.isStale(finite)).toBe(true)
+    expect(cache.isStale(infinite)).toBe(true)
   })
 
   test("restricts invalidation to a specific input when given", async () => {
-    const client = new QueryClient()
-    const ping = seed(client, { message: "ping" })
-    const pong = seed(client, { message: "pong" })
+    const cache = fakeCacheInvalidator()
+    const ping = seed(cache, { message: "ping" })
+    const pong = seed(cache, { message: "pong" })
 
-    await createInvalidator(client)(echo, { input: { message: "ping" } })
+    await createMethodInvalidator(cache)(echo, { input: { message: "ping" } })
 
-    expect(client.getQueryState(ping.finite)?.isInvalidated).toBe(true)
-    expect(client.getQueryState(pong.finite)?.isInvalidated).toBe(false)
+    expect(cache.isStale(ping.finite)).toBe(true)
+    expect(cache.isStale(pong.finite)).toBe(false)
+  })
+
+  test("forwards the abort signal to the cache", async () => {
+    const signals: unknown[] = []
+    const invalidate = createMethodInvalidator({
+      invalidate: async (_target, options) => {
+        signals.push(options?.signal)
+      },
+    })
+    const controller = new AbortController()
+
+    await invalidate(echo, { signal: controller.signal })
+
+    expect(signals).toEqual([controller.signal])
   })
 })

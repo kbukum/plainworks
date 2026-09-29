@@ -1,6 +1,7 @@
 "use client"
 
 import { isPositiveInteger } from "@plainworks/std"
+import { createEmitter } from "@plainworks/std/emitter"
 import type {
   StandardSchemaV1,
   StateCapabilities,
@@ -68,11 +69,7 @@ export function createStringSource<Value>(params: {
       `A ${medium} versioning policy needs a positive integer version, received ${String(versioning.version)}.`,
     )
   }
-  const listeners = new Set<() => void>()
-  const notifyLocal = (): void => {
-    // Snapshot so a listener that unsubscribes mid-dispatch does not disturb this pass.
-    for (const listener of [...listeners]) listener()
-  }
+  const localChanges = createEmitter<void>()
 
   const validate = async (value: Value): Promise<Value> => {
     if (schema === undefined) {
@@ -167,7 +164,7 @@ export function createStringSource<Value>(params: {
           cause,
         })
       }
-      notifyLocal()
+      localChanges.emit()
     },
     remove: async () => {
       try {
@@ -178,14 +175,14 @@ export function createStringSource<Value>(params: {
         }
         throw new StateSourceError(`Could not remove the ${medium} value.`, { cause })
       }
-      notifyLocal()
+      localChanges.emit()
     },
     subscribe: (onChange) => {
-      listeners.add(onChange)
+      const local = localChanges.subscribe(onChange)
       const externalTeardown = backend.subscribeExternal?.(onChange)
       return {
         unsubscribe: () => {
-          listeners.delete(onChange)
+          local.unsubscribe()
           externalTeardown?.()
         },
       }

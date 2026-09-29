@@ -1,4 +1,4 @@
-import type { InvalidateQueryFilters, QueryClient, QueryKey, Updater } from "@tanstack/query-core"
+import type { QueryClient, QueryKey, Updater } from "@tanstack/query-core"
 
 /**
  * Write decoded data into the cache for `queryKey` — the payload-carrying half of protocol-agnostic
@@ -21,25 +21,6 @@ export function writeQueryData<T>(
       : updater
   setOrEvict(client, queryKey, next)
   return next
-}
-
-/**
- * Mark cached queries stale so TanStack refetches them — the change-signal half of cache routing,
- * for an event that says "something changed, re-read it" without carrying the new value. Matching
- * is a **prefix** match on `filters.queryKey` (as TanStack invalidation always is), so invalidating
- * `["users"]` refetches every `["users", …]` query. Returns the settle promise of the refetches.
- *
- * This overlaps `@plainworks/connect`'s `createInvalidator` (both are thin prefix-invalidation
- * wrappers over TanStack `invalidateQueries`) on purpose: `query` and `connect` are sibling L2
- * packages, so neither may import the other and the shared shape stays duplicated. Do not "fix"
- * this into a cross-package import — it would be an illegal sideways layer dependency. This one is
- * protocol-agnostic; the Connect helper owns Connect-specific key construction.
- */
-export function invalidateCache(
-  client: QueryClient,
-  filters?: InvalidateQueryFilters,
-): Promise<void> {
-  return client.invalidateQueries(filters)
 }
 
 /** The rollback handle returned by {@link optimisticUpdate}: restore the pre-update value on failure. */

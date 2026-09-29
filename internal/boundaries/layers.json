@@ -7,7 +7,7 @@
     },
     {
       "packages": ["state", "http", "theme", "observability"],
-      "summary": "Reactive state, typed HTTP, the design-token substrate, and logging/error-reporting/Web Vitals seams."
+      "summary": "Reactive state, typed HTTP, the design-token substrate, and logging, error reporting, telemetry, and Web Vitals."
     },
     {
       "packages": ["channel", "connect", "query", "elements"],

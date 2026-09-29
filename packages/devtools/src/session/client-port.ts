@@ -1,4 +1,5 @@
 import { type ErrorSnapshot, err, ok, PlainError, type Result } from "@plainworks/std"
+import { createEmitter } from "@plainworks/std/emitter"
 import type { Json } from "@plainworks/std/encoding"
 import type { Subscription } from "@plainworks/std/seam"
 import type { WebAbortSignal } from "@plainworks/std/web"
@@ -102,7 +103,7 @@ export function createClientPort(
   snapshot: () => DevtoolsSnapshot,
   portId: string,
 ): DevtoolsClientPort {
-  const listeners = new Set<(message: DevtoolsMessage) => void>()
+  const messages = createEmitter<DevtoolsMessage>()
   const pending = new Map<string, Pending>()
   const latestDetail = new Map<string, string>()
   let counter = 0
@@ -119,7 +120,7 @@ export function createClientPort(
     if (cleanedUp) return
     cleanedUp = true
     subscription?.unsubscribe()
-    listeners.clear()
+    messages.clear()
     latestDetail.clear()
   }
 
@@ -135,14 +136,13 @@ export function createClientPort(
       terminated = true
       settleAll("devtools/session-disposed", "Session disposed.")
     }
-    for (const listener of [...listeners]) {
-      try {
-        listener(message)
-      } catch {
-        // A broken subscriber never blocks delivery to the others.
-      }
+    // A throwing subscriber never blocks the others; its error reaches the bridge after the pass,
+    // and a dispose still cleans up.
+    try {
+      messages.emit(message)
+    } finally {
+      if (message.type === "disposed") cleanup()
     }
-    if (message.type === "disposed") cleanup()
   })
   if (cleanedUp) subscription.unsubscribe()
 
@@ -208,8 +208,7 @@ export function createClientPort(
   return {
     subscribe(listener) {
       if (terminated) return { unsubscribe: () => {} }
-      listeners.add(listener)
-      return { unsubscribe: () => listeners.delete(listener) }
+      return messages.subscribe(listener)
     },
     snapshot,
     requestDetail(id, ref, signal) {

@@ -1,4 +1,5 @@
 import { isNonNegativeInteger, isPositiveInteger } from "@plainworks/std"
+import { createEmitter } from "@plainworks/std/emitter"
 import { utf8ByteLength } from "@plainworks/std/encoding"
 import type {
   InferSchemaOutput,
@@ -128,12 +129,7 @@ export function createCookieSessionStore<Schema extends StandardSchemaV1>(
     httpOnly: true,
     maxAgeSeconds: codec.ttlSeconds,
   })
-  const listeners = new Set<() => void>()
-  const notify = (): void => {
-    for (const listener of listeners) {
-      listener()
-    }
-  }
+  const changes = createEmitter<void>()
 
   return {
     capabilities: COOKIE_SESSION_CAPABILITIES,
@@ -155,7 +151,7 @@ export function createCookieSessionStore<Schema extends StandardSchemaV1>(
         )
       }
       config.jar.set(entry)
-      notify()
+      changes.emit()
     },
     async remove(): Promise<void> {
       // Clear by writing the same `__Host-` cookie empty with Max-Age=0 (Secure + Path=/ retained).
@@ -167,15 +163,10 @@ export function createCookieSessionStore<Schema extends StandardSchemaV1>(
         maxAgeSeconds: 0,
       })
       config.jar.set(`${name}=; ${clearAttributes}`)
-      notify()
+      changes.emit()
     },
     subscribe(onChange: () => void): Subscription {
-      listeners.add(onChange)
-      return {
-        unsubscribe: () => {
-          listeners.delete(onChange)
-        },
-      }
+      return changes.subscribe(onChange)
     },
   }
 }

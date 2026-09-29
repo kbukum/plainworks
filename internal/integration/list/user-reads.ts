@@ -4,9 +4,10 @@
 // the read instead of being trusted by an unchecked cast.
 
 import type { User, UserDepartment, UserRole, UserStatus } from "@plainworks/demo"
-import { buildListQuery, type createHttpClient } from "@plainworks/http"
-import type { CursorResult, ListQueryParams, PaginatedResult } from "@plainworks/query"
+import type { createHttpClient } from "@plainworks/http"
+import { buildListQuery } from "@plainworks/http/list"
 import { isAbsentOr, isNonEmptyString, isOneOf, isRecord } from "@plainworks/std"
+import type { CursorResult, ListQueryParams, PaginatedResult } from "@plainworks/std/list"
 import { isCursorResult, isPaginatedResult } from "@plainworks/std/list"
 import { guardSchema, type StandardSchemaV1 } from "@plainworks/std/seam"
 import type { WebAbortSignal } from "@plainworks/std/web"

@@ -34,6 +34,22 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./cache": {
+      "types": "./dist/cache.d.ts",
+      "import": "./dist/cache.js"
+    },
+    "./hydration": {
+      "types": "./dist/hydration.d.ts",
+      "import": "./dist/hydration.js"
+    },
+    "./list": {
+      "types": "./dist/list.d.ts",
+      "import": "./dist/list.js"
+    },
+    "./remote": {
+      "types": "./dist/remote.d.ts",
+      "import": "./dist/remote.js"
+    },
     "./client": {
       "types": "./dist/client.d.ts",
       "import": "./dist/client.js"

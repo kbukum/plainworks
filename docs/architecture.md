@@ -28,7 +28,7 @@ flowchart TD
 | Layer | Packages | Responsibility |
 |---|---|---|
 | **L0** | `std` | Errors, results, guards, resilience, shared seams, list contracts, and structural web types. No React. |
-| **L1** | `state`, `http`, `theme`, `observability` | Reactive state, typed HTTP, the design-token substrate, and logging/error-reporting/Web Vitals seams. |
+| **L1** | `state`, `http`, `theme`, `observability` | Reactive state, typed HTTP, the design-token substrate, and logging, error reporting, telemetry, and Web Vitals. |
 | **L2** | `channel`, `connect`, `query`, `elements` | Streaming, RPC, TanStack Query integration, and vendored UI atoms. |
 | **L3** | `auth`, `ui` | Authentication, OIDC with PKCE, forms, data, navigation, and UI composites. |
 | **L4** | `app`, `testkit`, `mocks`, `devtools` | Application composition, shared test tooling, reusable MSW mock-building primitives, and the development-only runtime inspector. |
@@ -146,7 +146,7 @@ flowchart TD
 
 *The packages meet through a lower-layer contract, not a cross-layer import.*
 
-The same rule applies to event shapes, stream transports, state sources, and other host capabilities.
+The same rule applies to event shapes, stream transports, state sources, and other host capabilities. It also covers **siblings** that may not import each other: `observability` implements the `Telemetry` seam that `http` and `channel` report to, and `query` implements the `CacheInvalidator` seam that `connect` invalidates through.
 
 ### Inject components at the call site
 

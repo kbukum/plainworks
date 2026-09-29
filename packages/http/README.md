@@ -39,7 +39,7 @@ const user = await client.request({
 Each `request` runs a fixed pipeline:
 
 1. **Build the URL safely** — rejects any credential smuggled into the query string or URL userinfo.
-2. **Run the interceptor chain** — auth injection, observability, and your own middleware.
+2. **Run the interceptor chain** — telemetry, your own middleware, then auth injection.
 3. **Apply resilience** — a per-attempt timeout and bounded, jittered retry for idempotent methods.
 4. **Decode the body** to an untrusted `unknown`, then **validate** it with the request's `schema` to produce `HttpResponse<T>`, where `data` is `T | undefined` (a `204`/no-content response has no body).
 
@@ -71,21 +71,22 @@ await client.post("/orders", { body: { sku: "abc" }, idempotencyKey: key })
 
 The response body crosses a trust boundary, so it is decoded to `unknown` and never silently cast to a caller-chosen `T`. Pass a `schema` — any [Standard Schema](https://standardschema.dev) validator (Zod, Valibot, ArkType, …) — and the client validates the decoded body and infers the response type from it; a validation failure raises a fatal `http/validate` error that preserves the issues as `cause`. Omit `schema` and `data` is the raw `unknown` for you to narrow. To opt explicitly out of validation — "I trust this wire" — pass `unsafePassthrough<T>()` from `@plainworks/std/seam`; the unchecked cast then lives at that one audited call site, never as a hidden default. The seam is reusable: any transport layered on this client validates its payloads through the same `std` contract.
 
-### Interceptors
+### Interceptors and telemetry
 
-An interceptor wraps the request/response flow. The client composes them outermost-first, with the built-in auth injector nearest the wire so it re-runs on every retry attempt.
+An interceptor wraps the request/response flow. The client composes them outermost-first, with the built-in auth injector nearest the wire so it re-runs on every retry attempt. Import the interceptor types from `@plainworks/http/interceptor`.
 
 ```ts
 import { createHttpClient } from "@plainworks/http"
+import { createTelemetry } from "@plainworks/observability"
 
 const client = createHttpClient({
   baseUrl: "https://api.example.com",
   authProvider: async () => ({ Authorization: `Bearer ${await token()}` }),
-  observability: { onRequest, onResponse },
+  telemetry: createTelemetry({ logger }),
 })
 ```
 
-Auth is **header-only** — a token never lands in a URL. Pass `observability` to receive structured request/response/error records; the client wires this logging interceptor outermost for you. Everything is redacted before it's emitted: sensitive headers are masked (tune via `redact`), URLs are cut to scheme + host + path (userinfo, query, and fragment stripped), and errors are scrubbed before reaching `onError`.
+Auth is **header-only** — a token never lands in a URL. Pass any `Telemetry` from `@plainworks/std/seam` to see each attempt as an `http.client.request` operation with OpenTelemetry attributes (`http.request.method`, `url.full`, `server.address`, `http.response.status_code`). A status of 400 or above fails with the status code as its type. Headers and bodies are never reported, and URLs are cut to scheme, host and path.
 
 ### Codec seam
 
@@ -98,7 +99,7 @@ Bodies pass through a `BodyCodec`. `jsonCodec` is the default; supply your own �
 
 plainworks defines a canonical **PostgREST/Supabase-style** list-read wire: filter, sort, paginate (offset **or** cursor), free-text search, eager-load, and facet. `buildListQuery` serializes a typed `ListQueryParams` into exactly that query string, so the frontend speaks the same list language a backend implementing this contract parses — no stringly-typed caller API. The result flows through the same URL safety, credential guard, auth injection, timeout, retry, and codec as any other request.
 
-The contract slice — the param builder, the envelope types, the canonical operator-token table (`FILTER_OPERATOR_TOKENS`, `filterOperatorFromToken`), and the value escape/parse **codec** (`escapeScalarValue`/`escapeListValue` and their inverses `unescapeValue`/`parseDelimitedList`) — is also published as **`@plainworks/http/list`**, so a server-side implementer of the contract (like `@plainworks/mocks`) parses the same tokens and escapes the builder serializes from, without pulling in the fetch client. Serializer and parser read one codec, so they cannot drift.
+The list dialect lives on **`@plainworks/http/list`**: the param builder, the canonical operator-token table (`FILTER_OPERATOR_TOKENS`, `filterOperatorFromToken`), and the value escape/parse **codec** (`escapeScalarValue`/`escapeListValue` and their inverses `unescapeValue`/`parseDelimitedList`) — so a server-side implementer of the contract (like `@plainworks/mocks`) parses the same tokens and escapes the builder serializes from, without pulling in the fetch client. Serializer and parser read one codec, so they cannot drift.
 
 ```ts
 // A backend parsing the same wire the builder emits (`role=not.in.(admin,editor)`).
@@ -110,7 +111,7 @@ const values = resolved && parseDelimitedList(resolved.rest.slice(1, -1)) // ["a
 ```
 
 ```ts
-import { buildListQuery } from "@plainworks/http"
+import { buildListQuery } from "@plainworks/http/list"
 import { z } from "zod"
 
 // Provide your own Standard Schema validator matching the envelope shape.
@@ -150,7 +151,7 @@ Each filter serializes to `field=op.value`; a field carrying several filters bec
 | `in` `nin` | `in.(a,b,c)` · `not.in.(a,b,c)` | array |
 | `null` `notNull` | `is.null` · `not.is.null` | none |
 
-Responses decode through the request's schema into the envelope the canonical contract specifies: `PaginatedResult<T>` (offset — `{ data, pagination: { page, pageSize, total, totalPages }, facets? }`) or `CursorResult<T>` (cursor — `nextCursor`/`prevCursor` instead of page counts). Cursor mode is the default for infinite lists, since an offset drifts as rows change between fetches. A request selects cursor mode by the **presence of `cursor`** — an empty `cursor=` asks for the first page (otherwise a cursor first page and a defaulted offset page 1 would be identical on the wire). The matching **cache-key** derivation lives in [`@plainworks/query`](../query/README.md) — the L2 half of the same contract.
+Responses decode through the request's schema into the envelope `@plainworks/std/list` defines: `PaginatedResult<T>` (offset — `{ data, pagination: { page, pageSize, total, totalPages }, facets? }`) or `CursorResult<T>` (cursor — `nextCursor`/`prevCursor` instead of page counts). Cursor mode is the default for infinite lists, since an offset drifts as rows change between fetches. A request selects cursor mode by the **presence of `cursor`** — an empty `cursor=` asks for the first page (otherwise a cursor first page and a defaulted offset page 1 would be identical on the wire). The matching **cache-key** derivation lives in [`@plainworks/query`](../query/README.md) — the L2 half of the same contract.
 
 ## Typed errors
 

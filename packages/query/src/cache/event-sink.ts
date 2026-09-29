@@ -1,7 +1,8 @@
-import type { EventSink, PlainEvent } from "@plainworks/std/seam"
+import type { CacheTarget, EventSink, PlainEvent } from "@plainworks/std/seam"
 import type { WebAbortSignal } from "@plainworks/std/web"
-import type { InvalidateQueryFilters, QueryClient, QueryKey, Updater } from "@tanstack/query-core"
-import { invalidateCache, writeQueryData } from "./routing"
+import type { QueryClient, QueryKey, Updater } from "@tanstack/query-core"
+import { createCacheInvalidator } from "./invalidator"
+import { writeQueryData } from "./routing"
 
 /**
  * The cache action a routed event resolves to — either write the decoded payload into a key, or
@@ -19,8 +20,8 @@ export type QueryCacheAction =
     }
   | {
       readonly kind: "invalidate"
-      /** Which queries to invalidate (prefix match); omit to invalidate the whole cache. */
-      readonly filters?: InvalidateQueryFilters
+      /** Which queries to invalidate (a prefix unless `exact`); omit to invalidate the whole cache. */
+      readonly target?: CacheTarget
     }
 
 /**
@@ -48,6 +49,7 @@ export function createQueryEventSink<TEvent extends PlainEvent = PlainEvent>(
   client: QueryClient,
   route: QueryEventRouter<TEvent>,
 ): EventSink<TEvent> {
+  const invalidator = createCacheInvalidator(client)
   return {
     async deliver(event: TEvent, signal: WebAbortSignal): Promise<void> {
       // The owning stream may have closed before this delivery ran — never mutate the cache
@@ -65,17 +67,9 @@ export function createQueryEventSink<TEvent extends PlainEvent = PlainEvent>(
         writeQueryData<unknown>(client, action.queryKey, action.update)
         return
       }
-      // Honor an abort that lands mid-invalidation: cancel the matching queries so a torn-down
-      // stream stops the refetches instead of letting them mutate a cache the host has abandoned.
-      const onAbort = (): void => {
-        void client.cancelQueries(action.filters)
-      }
-      signal.addEventListener("abort", onAbort, { once: true })
-      try {
-        await invalidateCache(client, action.filters)
-      } finally {
-        signal.removeEventListener("abort", onAbort)
-      }
+      // An abort that lands mid-invalidation cancels the refetches, so a torn-down stream never
+      // mutates a cache the host has abandoned.
+      await invalidator.invalidate(action.target, { signal })
     },
   }
 }

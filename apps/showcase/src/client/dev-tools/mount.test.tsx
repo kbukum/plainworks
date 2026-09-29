@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
 import { createMockServerHandle } from "@plainworks/demo/server"
-import { createHttpClient, type HttpInterceptor } from "@plainworks/http"
+import { createHttpClient } from "@plainworks/http"
+import type { HttpInterceptor } from "@plainworks/http/interceptor"
 import { createQueryClient } from "@plainworks/query"
 import { deferred } from "@plainworks/testkit"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"

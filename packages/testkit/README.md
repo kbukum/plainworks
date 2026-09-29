@@ -22,8 +22,9 @@ import {
   fakeAuthHeaderProvider,
   fakeSchema,
   guardSchema,
-  createEmitter,
   recordEvents,
+  recordTelemetry,
+  fakeCacheInvalidator,
   expectOk,
   expectErr,
   deferred,
@@ -48,6 +49,16 @@ const schema = guardSchema(
   (v): v is { id: string } =>
     typeof v === "object" && v !== null && typeof (v as { id?: unknown }).id === "string",
 )
+
+// Record what a transport reports through the telemetry seam.
+const telemetry = recordTelemetry()
+telemetry.records // [{ kind: "start", name: "http.client.request", ... }, ...]
+
+// Assert which cache entries an invalidation marked stale.
+const cache = fakeCacheInvalidator()
+cache.seed(["users", 1])
+await cache.invalidate({ key: ["users"] })
+cache.isStale(["users", 1]) // true
 
 // Assert on a `Result` from `@plainworks/std`.
 expectOk(ok(42)) // === 42; throws a typed PlainError on an Err

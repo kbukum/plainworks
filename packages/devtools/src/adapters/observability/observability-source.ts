@@ -1,10 +1,6 @@
-import type {
-  LogRecord,
-  ReportEvent,
-  ReporterBackend,
-  WebVitalMetric,
-  WebVitalReporter,
-} from "@plainworks/observability"
+import type { LogRecord } from "@plainworks/observability/logging"
+import type { ReportEvent, ReporterBackend } from "@plainworks/observability/reporting"
+import type { WebVitalMetric, WebVitalReporter } from "@plainworks/observability/vitals"
 import type { Json } from "@plainworks/std/encoding"
 import { assertTimerMs } from "@plainworks/std/resilience"
 import { type Clock, systemClock } from "@plainworks/std/time"
@@ -45,14 +41,14 @@ export interface ObservabilityInstrumentation {
   /** Register this with a {@link @plainworks/devtools!DevtoolsSession}. */
   readonly source: Source
   /**
-   * A {@link @plainworks/observability!LogSink} to add alongside the operational sink. It only
-   * reads the already-redacted record and never throws, so a fault here cannot break the logger or
-   * the application path.
+   * A {@link @plainworks/observability/logging!LogSink} to add alongside the operational sink.
+   * It only reads the already-redacted record and never throws, so a fault here cannot break the
+   * logger or the application path.
    */
   readonly logSink: (record: LogRecord) => void
-  /** A {@link @plainworks/observability!ReporterBackend} to register beside the real backends. */
+  /** A {@link @plainworks/observability/reporting!ReporterBackend} to register beside the real backends. */
   readonly reporterBackend: ReporterBackend
-  /** A {@link @plainworks/observability!WebVitalReporter} to tee measurements into the timeline. */
+  /** A {@link @plainworks/observability/vitals!WebVitalReporter} to tee measurements into the timeline. */
   readonly vitalReporter: WebVitalReporter
 }
 

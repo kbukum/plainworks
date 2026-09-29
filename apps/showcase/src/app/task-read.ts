@@ -5,14 +5,10 @@
 // server-safe: it names no host global, so the server prefetch and the browser query run it alike.
 
 import type { Task } from "@plainworks/demo"
-import { buildListQuery, type createHttpClient } from "@plainworks/http"
-import {
-  type ListQueryParams,
-  type ListQueryPlan,
-  listQueryOptions,
-  type PaginatedResult,
-} from "@plainworks/query"
-import { isPaginatedResult } from "@plainworks/std/list"
+import type { createHttpClient } from "@plainworks/http"
+import { buildListQuery } from "@plainworks/http/list"
+import { type ListQueryPlan, listQueryOptions } from "@plainworks/query/list"
+import { isPaginatedResult, type ListQueryParams, type PaginatedResult } from "@plainworks/std/list"
 import { guardSchema } from "@plainworks/std/seam"
 import type { WebAbortSignal } from "@plainworks/std/web"
 import { TASKS_RESOURCE } from "./constants"

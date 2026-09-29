@@ -3,7 +3,7 @@
 // lets every bucket agree on the cookie names, the capability ids the snapshot is keyed by, the
 // route paths, and the exact list request the dashboard reads.
 
-import type { ListQueryParams } from "@plainworks/query"
+import type { ListQueryParams } from "@plainworks/std/list"
 
 /** Resource name the tasks list query key is scoped to. */
 export const TASKS_RESOURCE = "tasks"

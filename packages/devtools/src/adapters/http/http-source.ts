@@ -1,4 +1,5 @@
-import { type HttpInterceptor, isHttpError } from "@plainworks/http"
+import { isHttpError } from "@plainworks/http"
+import type { HttpInterceptor } from "@plainworks/http/interceptor"
 import type { Json } from "@plainworks/std/encoding"
 import { redact } from "@plainworks/std/privacy"
 import { type Clock, systemClock } from "@plainworks/std/time"

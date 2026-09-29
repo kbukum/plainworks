@@ -1,6 +1,5 @@
 import { isErr } from "@plainworks/std"
 import { composeInterceptors } from "@plainworks/std/pipeline"
-import type { RedactOptions } from "@plainworks/std/privacy"
 import { type RandomSource, systemRandom } from "@plainworks/std/random"
 import {
   type Delay,
@@ -16,6 +15,7 @@ import {
   type AuthHeaderProvider,
   type InferSchemaOutput,
   type StandardSchemaV1,
+  type Telemetry,
   validateWithSchema,
 } from "@plainworks/std/seam"
 import { type Clock, systemClock } from "@plainworks/std/time"
@@ -30,13 +30,8 @@ import {
 } from "@plainworks/std/web"
 import { type BodyCodec, jsonCodec } from "../codec"
 import { HttpError } from "../error"
-import {
-  authHeaderInterceptor,
-  type HttpHandler,
-  type HttpInterceptor,
-  loggingInterceptor,
-  type ObservabilityHooks,
-} from "../interceptor"
+import { authHeaderInterceptor, type HttpHandler, type HttpInterceptor } from "../interceptor"
+import { telemetryInterceptor } from "../interceptor/telemetry"
 import { assertSafeRequestUrl, buildUrl, type QueryParams } from "../url"
 import { type HttpRequest, toRequestInit } from "./request"
 import type { RequestInput } from "./request-input"
@@ -56,7 +51,7 @@ export interface HttpClientOptions {
   readonly fetch?: WebFetch
   /** Header-only credential seam; when set, its headers are injected on every attempt. */
   readonly authProvider?: AuthHeaderProvider
-  /** Extra interceptors, ordered outermost-first, run between logging and auth injection. */
+  /** Extra interceptors, ordered outermost-first, run between telemetry and auth injection. */
   readonly interceptors?: readonly HttpInterceptor[]
   /** Body encode/decode seam; defaults to {@link jsonCodec}. */
   readonly codec?: BodyCodec
@@ -64,10 +59,11 @@ export interface HttpClientOptions {
   readonly timeoutMs?: number
   /** Retry policy; when omitted, each request makes a single attempt. */
   readonly retry?: RetryPolicy
-  /** Redacted observability sink around each request. */
-  readonly observability?: ObservabilityHooks
-  /** Redaction options applied before values reach {@link HttpClientOptions.observability}. */
-  readonly redact?: RedactOptions
+  /**
+   * Where each attempt is reported, as an `http.client.request` operation with OpenTelemetry HTTP
+   * client attributes. Headers and bodies are never reported. Omit it to report nothing.
+   */
+  readonly telemetry?: Telemetry
   /** Injectable delay for deterministic timeout/backoff tests; defaults to the host timer. */
   readonly delay?: Delay
   /** Injectable jitter source for deterministic retry tests; defaults to the system RNG. */
@@ -98,10 +94,10 @@ export interface HttpClient extends ResourceMethods {
 
 /**
  * Build a typed fetch client. The client resolves and encodes the request, runs it through the
- * interceptor chain (logging → caller interceptors → auth injection → `fetch`), bounds each attempt
- * with a timeout, retries idempotent failures per the policy using the shared `std` resilience
- * primitives, maps failures to a typed {@link HttpError}, and decodes the body with the codec. It
- * holds no module-level state and performs no work until a request is made.
+ * interceptor chain (telemetry → caller interceptors → auth injection → `fetch`), bounds each
+ * attempt with a timeout, retries idempotent failures per the policy using the shared `std`
+ * resilience primitives, maps failures to a typed {@link HttpError}, and decodes the body with the
+ * codec. It holds no module-level state and performs no work until a request is made.
  */
 export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
   const fetchImpl = resolveFetch(options.fetch, () =>
@@ -115,8 +111,8 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
   const clock = options.clock ?? systemClock
 
   const interceptors: HttpInterceptor[] = []
-  if (options.observability !== undefined) {
-    interceptors.push(loggingInterceptor(options.observability, options.redact))
+  if (options.telemetry !== undefined) {
+    interceptors.push(telemetryInterceptor(options.telemetry))
   }
   if (options.interceptors !== undefined) {
     interceptors.push(...options.interceptors)

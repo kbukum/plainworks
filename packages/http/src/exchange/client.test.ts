@@ -7,6 +7,7 @@ import {
   fakeAuthHeaderProvider,
   fakeFetch,
   fakeSchema,
+  recordTelemetry,
 } from "@plainworks/testkit"
 import { expect, test, vi } from "vitest"
 import { HttpError } from "../error"
@@ -388,19 +389,26 @@ test("refuses a body on a GET before encoding or fetching", async () => {
   expect(calls.length).toBe(0)
 })
 
-test("redacts credential headers passed to the observability sink", async () => {
-  const { fetch } = fakeFetch([jsonResponse({ ok: true })])
-  const logged: Array<Record<string, unknown>> = []
+test("reports every attempt through the telemetry seam, without headers", async () => {
+  const { fetch } = fakeFetch([new Response("{}", { status: 503 }), jsonResponse({ ok: true })])
+  const telemetry = recordTelemetry()
   const client = createHttpClient({
     baseUrl: "https://api.test",
     fetch,
     delay: autoBackoffDelay().delay,
-    observability: { onRequest: (r) => logged.push(r.headers) },
+    retry,
+    telemetry,
   })
 
-  await client.request({ path: "me", headers: { authorization: "Bearer secret" } })
+  await client.request({ path: "me", headers: { authorization: "Bearer live-token" } })
 
-  expect(logged[0]?.authorization).toBe("[REDACTED]")
+  expect(telemetry.records.map((record) => record.kind)).toEqual([
+    "start",
+    "fail",
+    "start",
+    "finish",
+  ])
+  expect(JSON.stringify(telemetry.records)).not.toContain("live-token")
 })
 
 test("wraps a transport failure in a retryable network error", async () => {

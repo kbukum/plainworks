@@ -3,6 +3,7 @@
 // `fetch`). It implements one attempt of the transport seam; reconnect/backoff/timeouts live in the
 // channel core. Runs anywhere `fetch` and `TextDecoder` exist (Node, edge, workers, browser).
 import { isPositiveInteger } from "@plainworks/std"
+import { AbortError } from "@plainworks/std/resilience"
 import type {
   StreamTransport,
   StreamTransportContext,
@@ -12,6 +13,7 @@ import {
   resolveFetch,
   type WebFetch,
   type WebReadableStream,
+  type WebReadableStreamDefaultReader,
   type WebResponse,
 } from "@plainworks/std/web"
 import { createParser } from "eventsource-parser"
@@ -103,12 +105,17 @@ export function createSseTransport(options: SseTransportOptions): StreamTranspor
   })
 }
 
-/** Pull the body one chunk at a time and dispatch each decoded SSE frame; resolve on clean EOF. */
+/**
+ * Pull the body one chunk at a time and dispatch each decoded SSE frame; resolve on clean EOF. The
+ * reader owns the stream: an abort, an overflow, or a throwing consumer cancels it, and every exit
+ * releases the lock, so nothing leaks even when `fetch` does not tear the body down itself.
+ */
 async function readEventStream(
   body: WebReadableStream<Uint8Array>,
   context: StreamTransportContext,
   maxBufferChars: number,
 ): Promise<void> {
+  const { signal } = context
   const reader = body.getReader()
   const decoder = new TextDecoder()
   let pendingRetry: number | undefined
@@ -139,23 +146,52 @@ async function readEventStream(
     },
     maxBufferSize: maxBufferChars,
   })
+  // Cancelling settles a pending `read()` as done, so the loop below sees the abort and exits.
+  const onAbort = (): void => {
+    void cancelQuietly(reader, signal.reason)
+  }
+  signal.addEventListener("abort", onAbort, { once: true })
 
   try {
     while (true) {
-      const result = await reader.read()
-      if (result.done) {
-        parser.feed(decoder.decode())
-        if (overflow !== undefined) {
-          throw overflow
-        }
-        return
+      // An already-aborted signal never fires `abort` again, so check before every read.
+      if (signal.aborted) {
+        await cancelQuietly(reader, signal.reason)
+        throw new AbortError({ cause: signal.reason })
       }
-      parser.feed(decoder.decode(result.value, { stream: true }))
+      const result = await reader.read()
+      if (signal.aborted) {
+        throw new AbortError({ cause: signal.reason })
+      }
+      parser.feed(result.done ? decoder.decode() : decoder.decode(result.value, { stream: true }))
       if (overflow !== undefined) {
         throw overflow
       }
+      if (result.done) {
+        return
+      }
     }
+  } catch (error) {
+    await cancelQuietly(reader, error)
+    throw error
   } finally {
+    signal.removeEventListener("abort", onAbort)
     reader.releaseLock()
+  }
+}
+
+/**
+ * Cancel as best-effort teardown. A stream that refuses to cancel must not hide the abort,
+ * overflow, or consumer error being raised, so a rejected cancel is ignored. Cancelling a stream
+ * that is already closed or cancelled is a no-op.
+ */
+async function cancelQuietly(
+  reader: WebReadableStreamDefaultReader<Uint8Array>,
+  reason: unknown,
+): Promise<void> {
+  try {
+    await reader.cancel(reason)
+  } catch {
+    // Ignored on purpose: teardown is best-effort.
   }
 }

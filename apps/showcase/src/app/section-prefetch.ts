@@ -5,7 +5,7 @@
 // runs inside the server render graph.
 
 import type { HttpClient } from "@plainworks/http"
-import { prefetchQuery } from "@plainworks/query"
+import { prefetchQuery } from "@plainworks/query/hydration"
 import type { QueryClient } from "@tanstack/react-query"
 import {
   NOTIFICATION_LIST_PARAMS,

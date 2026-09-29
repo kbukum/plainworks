@@ -56,15 +56,28 @@ export interface BoundedQueue<T> {
   close(): void
 }
 
+/** Options for {@link createBoundedQueue}. */
+export interface BoundedQueueOptions<T> {
+  /** What a full queue does with a pushed item. Defaults to `drop-oldest`. */
+  readonly overflow?: OverflowPolicy
+  /** Maximum pending consumers. Defaults to the queue capacity. */
+  readonly maxWaiters?: number
+  /**
+   * Hears every item the overflow policy discards: the evicted head under `drop-oldest`, the
+   * refused newcomer under `drop-new`. `reject` throws instead, so it never calls this. Use it to
+   * make loss observable.
+   */
+  readonly onDrop?: (item: T) => void
+}
+
 /**
- * Build a {@link BoundedQueue} of `capacity` (must be `>= 1`) using `overflow` (default
- * `drop-oldest`). A waiting consumer is handed a pushed item directly, so the buffer never grows
- * past `capacity`. Pending consumers are bounded by `maxWaiters` (default `capacity`); an excess
- * `pop` rejects with {@link QueueWaitersFullError}.
+ * Build a {@link BoundedQueue} of `capacity` (must be `>= 1`). A waiting consumer is handed a
+ * pushed item directly, so the buffer never grows past `capacity`. Pending consumers are bounded by
+ * `maxWaiters`; an excess `pop` rejects with {@link QueueWaitersFullError}.
  */
 export function createBoundedQueue<T>(
   capacity: number,
-  options: { overflow?: OverflowPolicy; maxWaiters?: number } = {},
+  options: BoundedQueueOptions<T> = {},
 ): BoundedQueue<T> {
   if (!isPositiveInteger(capacity)) {
     throw new RangeError("createBoundedQueue requires an integer capacity >= 1")
@@ -116,9 +129,13 @@ export function createBoundedQueue<T>(
           throw new QueueFullError(capacity)
         }
         if (overflow === "drop-new") {
+          options.onDrop?.(item)
           return false
         }
-        takeHead()
+        const evicted = takeHead()
+        buffer.push(item)
+        options.onDrop?.(evicted)
+        return true
       }
       buffer.push(item)
       return true

@@ -1,5 +1,5 @@
 import type { Notification } from "@plainworks/demo"
-import type { PaginatedResult } from "@plainworks/query"
+import type { PaginatedResult } from "@plainworks/std/list"
 
 /** One cached page of notifications. */
 export type NotificationPage = PaginatedResult<Notification>

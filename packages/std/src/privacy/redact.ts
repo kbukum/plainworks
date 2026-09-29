@@ -39,8 +39,12 @@ const DEFAULT_SENSITIVE_KEYS: readonly string[] = [
   "private_key",
 ]
 
-/** JWT-shaped string (`header.payload.signature`). */
-const JWT_PATTERN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/
+/**
+ * JWT-shaped string (`header.payload.signature`). A JOSE header is a JSON object, so its base64url
+ * form always starts with `eyJ`; requiring it keeps hostnames and dotted names (`api.example.com`,
+ * `http.client.request`) readable. The signature may be empty (an unsecured JWT).
+ */
+const JWT_PATTERN = /^eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$/
 /** `Bearer <token>` authorization value. */
 const BEARER_PATTERN = /^Bearer\s+\S+/i
 /**

@@ -17,7 +17,7 @@ Like a language's standard library, `std` has a small **prelude** and a set of *
 | Import | What it gives you |
 |---|---|
 | `std` (prelude) | `PlainError` (a typed base that keeps `cause` and a `kind`), `ensureError`, `getErrorMessage`, `createErrorSnapshot` (safe to log), `Result` with `ok` / `err` / `isOk` / `isErr` / `unwrap` / `unwrapOr`, the guards `isDefined` / `isRecord` / `isNonEmptyString` / `hasProperty` / `isOneOf` / `isPositiveInteger` / `isNonNegativeInteger`, and `assert` / `assertNever`. |
-| `std/resilience` | One failure taxonomy (`classifyError`, `classifyStatus`, `NetworkError`, `StatusError`), bounded jittered backoff, `withTimeout` and deadlines, `runWithRetry` for idempotent calls, and `createBoundedQueue`. |
+| `std/resilience` | One failure taxonomy (`classifyError`, `classifyStatus`, `NetworkError`, `StatusError`), bounded jittered backoff, `withTimeout` and deadlines, `runWithRetry` for idempotent calls, and `createBoundedQueue` (with an `onDrop` hook so loss is observable). |
 | `std/pipeline` | `composeInterceptors` and `pipeValues`. |
 | `std/privacy` | `redact` and `isSensitiveKey`, for stripping secrets before logging. |
 | `std/random` | `systemRandom`, seedable `createSeededRandom` for tests, `randomId` and `idempotencyKey`. |
@@ -25,7 +25,8 @@ Like a language's standard library, `std` has a small **prelude** and a set of *
 | `std/encoding` | base64url, `utf8ByteLength`, and JSON: the `Json` type, `isJson`, `stringifyJson` (throws `JsonEncodeError` instead of dropping values), `escapeJsonForHtml`, and `toBoundedJson` for capped diagnostic copies. |
 | `std/web` | Body reads under a byte cap (`readBoundedBytes`, `readBoundedText`, `PayloadTooLargeError`), cookie parsing (`readCookie`, `parseCookieHeader`), `resolveFetch`, and the self-contained `Web*` platform types (`WebFetch`, `WebHeaders`, `WebAbortSignal`, …) that let a neutral package name `fetch` or `Headers` in its API. |
 | `std/list` | The protocol-independent list contract: `ListQueryParams`, the `ListFilter` union and operator vocabulary, and the `PaginatedResult` / `CursorResult` envelopes. `@plainworks/http` owns the REST wire dialect. |
-| `std/seam` | The shared seams higher layers implement: `AuthHeaderProvider`, the event shapes (`PlainEvent`, `Listener`, `Subscription`), `StateSource` with `createSourceReconciler`, and the [Standard Schema](https://standardschema.dev) seam with `validateWithSchema`. |
+| `std/emitter` | `createEmitter`, the one in-memory listener set: subscribe, emit, `listenerCount`, and `clear`. A throwing listener never stops the others. |
+| `std/seam` | The shared seams higher layers implement: `AuthHeaderProvider`, the event shapes (`PlainEvent`, `Listener`, `Subscription`), `Telemetry` (operations and events, with `noopTelemetry` and `toTelemetryFailure`), `CacheInvalidator` with `CacheTarget`, `StateSource` with `createSourceReconciler`, and the [Standard Schema](https://standardschema.dev) seam with `validateWithSchema`. |
 
 ## Runtime primitives
 

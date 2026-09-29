@@ -1,17 +1,18 @@
 "use client"
 
+import { createChannelContext } from "@plainworks/channel/client"
+import { createEventRouter, createStateSink } from "@plainworks/channel/events"
+import { createQueryEventSink } from "@plainworks/query/cache"
+import { isRecord } from "@plainworks/std"
+import { AbortError } from "@plainworks/std/resilience"
 import {
-  createEventRouter,
-  createStateSink,
+  createSourceReconciler,
+  type PlainEvent,
+  type StateSource,
   type StreamFrame,
   type StreamTransport,
   type StreamTransportFactory,
-} from "@plainworks/channel"
-import { createChannelContext } from "@plainworks/channel/client"
-import { createQueryEventSink } from "@plainworks/query"
-import { isRecord } from "@plainworks/std"
-import { AbortError } from "@plainworks/std/resilience"
-import { createSourceReconciler, type PlainEvent, type StateSource } from "@plainworks/std/seam"
+} from "@plainworks/std/seam"
 import { useQueryClient } from "@tanstack/react-query"
 import { type ReactElement, type ReactNode, useEffect, useState } from "react"
 

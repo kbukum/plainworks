@@ -5,8 +5,9 @@
 // reads the live mock backend per request.
 
 import { createHttpClient } from "@plainworks/http"
-import { createQueryClient, dehydrateClient, prefetchQuery } from "@plainworks/query"
+import { createQueryClient } from "@plainworks/query"
 import { HydrationBoundary } from "@plainworks/query/client"
+import { dehydrateClient, prefetchQuery } from "@plainworks/query/hydration"
 import type { ReactElement } from "react"
 import { TaskList } from "../../client/task-list"
 import { TASK_LIST_PARAMS, TASKS_PATH } from "../../neutral/constants"

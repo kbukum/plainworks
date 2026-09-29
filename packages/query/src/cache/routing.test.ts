@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { createQueryClient } from "../query-client"
-import { invalidateCache, optimisticUpdate, writeQueryData } from "./routing"
+import { optimisticUpdate, writeQueryData } from "./routing"
 
 describe("cache routing", () => {
   describe("writeQueryData", () => {
@@ -19,17 +19,6 @@ describe("cache routing", () => {
       expect(client.getQueryData(key)).toBe(1)
       expect(writeQueryData<number>(client, key, () => undefined)).toBeUndefined()
       expect(client.getQueryData(key)).toBeUndefined()
-    })
-  })
-
-  describe("invalidateCache", () => {
-    it("marks a prefix-matched query stale", async () => {
-      const client = createQueryClient()
-      await client.query({ queryKey: ["users", 1], queryFn: async () => "ada" })
-      const query = client.getQueryCache().find({ queryKey: ["users", 1] })
-      expect(query?.state.isInvalidated).toBe(false)
-      await invalidateCache(client, { queryKey: ["users"], refetchType: "none" })
-      expect(query?.state.isInvalidated).toBe(true)
     })
   })
 

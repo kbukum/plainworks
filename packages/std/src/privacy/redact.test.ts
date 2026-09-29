@@ -36,6 +36,11 @@ test("masks token-shaped strings even under an innocuous key", () => {
   expect(redact("Bearer sometoken")).toBe("[REDACTED]")
 })
 
+test("leaves hostnames and dotted names that only look like three segments", () => {
+  expect(redact("api.example.com")).toBe("api.example.com")
+  expect(redact({ name: "http.client.request" })).toEqual({ name: "http.client.request" })
+})
+
 test("leaves non-sensitive data intact and recurses arrays", () => {
   expect(redact({ items: [{ id: 1 }, { id: 2, secret: "s" }] })).toEqual({
     items: [{ id: 1 }, { id: 2, secret: "[REDACTED]" }],

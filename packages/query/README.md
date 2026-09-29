@@ -14,7 +14,18 @@ bun add @plainworks/query @tanstack/query-core @tanstack/react-query
 
 ## Runtime primitives
 
-`query` is a **neutral (`.`)** package touching no host global, so it runs on server, edge, workers, and RSC. Its `./client` bindings are the **React-without-DOM** bucket — pure React context over TanStack's `QueryClientProvider`/`HydrationBoundary`, no DOM — so the provider runs on React Native/Expo too, not just the browser. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives).
+`query` is a **neutral** package (every entry except `./client`) touching no host global, so it runs on server, edge, workers, and RSC. Its `./client` bindings are the **React-without-DOM** bucket — pure React context over TanStack's `QueryClientProvider`/`HydrationBoundary`, no DOM — so the provider runs on React Native/Expo too, not just the browser. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives).
+
+## Entries
+
+| Import | What it gives you |
+|---|---|
+| `@plainworks/query` | `createQueryClient`, the per-request client factory. |
+| `@plainworks/query/cache` | Cache routing: `writeQueryData`, `optimisticUpdate`, `createCacheInvalidator`, and `createQueryEventSink`. |
+| `@plainworks/query/hydration` | RSC prefetch, dehydrate, and hydrate. |
+| `@plainworks/query/remote` | The `remote` state scope. |
+| `@plainworks/query/list` | List cache keys and query options. |
+| `@plainworks/query/client` | The React `QueryProvider` and `HydrationBoundary`. |
 
 ## The client factory (`.`)
 
@@ -43,13 +54,13 @@ const client = createQueryClient()
 
 ## Cache routing — one pattern, every protocol
 
-Two helpers fold external signals into the cache. `writeQueryData` carries a payload; `invalidateCache` marks a prefix stale so it refetches. `optimisticUpdate` applies a value now and hands back a `rollback` for the failure path — compare-and-set, so a failed older mutation never overwrites a newer write (`rollback()` returns whether it restored).
+Two helpers fold external signals into the cache. `writeQueryData` carries a payload; `createCacheInvalidator` implements the `CacheInvalidator` seam from `@plainworks/std/seam`, which marks entries stale so they refetch. A key is a prefix unless you set `exact`, and an abort cancels the refetches. Protocol packages such as `@plainworks/connect` take this seam, so they never import `query`. `optimisticUpdate` applies a value now and hands back a `rollback` for the failure path — compare-and-set, so a failed older mutation never overwrites a newer write (`rollback()` returns whether it restored).
 
 ```ts
-import { writeQueryData, invalidateCache, optimisticUpdate } from "@plainworks/query"
+import { createCacheInvalidator, optimisticUpdate, writeQueryData } from "@plainworks/query/cache"
 
 writeQueryData(client, ["user", 1], { id: 1, name: "Ada" })
-await invalidateCache(client, { queryKey: ["users"] })
+await createCacheInvalidator(client).invalidate({ key: ["users"] })
 
 const { rollback } = optimisticUpdate({
   client,
@@ -64,12 +75,12 @@ const { rollback } = optimisticUpdate({
 `createQueryEventSink` folds a decoded `PlainEvent` into the cache through the same neutral event shape that drives a `channel` `StateSource`. A pure `QueryEventRouter` maps each event to one action — `set` or `invalidate` — and the sink applies it. `deliver` is async, honors an `AbortSignal` (a delivery after teardown is dropped), and awaits an invalidate's refetches so a fast stream applies backpressure. One seam, two sinks (state + query) — no bespoke event bus.
 
 ```ts
-import { createQueryEventSink } from "@plainworks/query"
+import { createQueryEventSink } from "@plainworks/query/cache"
 
 const sink = createQueryEventSink(client, (event) =>
   event.type === "user.renamed"
     ? { kind: "set", queryKey: ["user", event.data.id], update: event.data }
-    : { kind: "invalidate", filters: { queryKey: ["users"] } },
+    : { kind: "invalidate", target: { key: ["users"] } },
 )
 await sink.deliver(event) // wired to a channel stream at the app layer
 ```
@@ -80,7 +91,7 @@ await sink.deliver(event) // wired to a channel stream at the app layer
 
 ```ts
 import { createScopedState } from "@plainworks/state/client"
-import { createRemoteScope } from "@plainworks/query"
+import { createRemoteScope } from "@plainworks/query/remote"
 
 const useCount = createScopedState<number>({
   scope: createRemoteScope({ client }),
@@ -97,6 +108,8 @@ Warm the cache on the server, ship it to the browser, hydrate with no loading fl
 
 ```tsx
 // server
+import { dehydrateClient, prefetchQuery } from "@plainworks/query/hydration"
+
 await prefetchQuery(client, { queryKey: ["user", 1], queryFn: fetchUser })
 // Everything dehydrated ships to the browser, so the query policy is required — an allowlist
 // keeps server-only or sensitive queries out of the payload.
@@ -112,11 +125,11 @@ const state = dehydrateClient(client, {
 
 ## List cache keys — the list contract, cache side
 
-The abstract list-read contract — the typed `ListQueryParams` and the `{ data, pagination, facets }` envelopes — is defined in [`@plainworks/std/list`](../std/README.md) and re-exported here, so a `query` consumer imports the types from the one package it already reached for; the REST wire serializer (`buildListQuery`) lives in [`@plainworks/http`](../http/README.md). `query` owns the **deterministic cache-key derivation** from the same `ListQueryParams`. Equal params produce a deeply-equal key regardless of filter order; any filter/sort/page/search change keys distinctly. `infiniteListQueryKey` omits `page`/`cursor`, so every page of one `useInfiniteQuery` shares a key. Every cursor-mode fetch carries an explicit `cursor` — empty (`cursor=`) on the first page — so a backend implementing the contract can select cursor mode from the very first request.
+The abstract list-read contract — the typed `ListQueryParams` and the `{ data, pagination, facets }` envelopes — is defined in [`@plainworks/std/list`](../std/README.md); the REST wire serializer (`buildListQuery`) lives in [`@plainworks/http/list`](../http/README.md). `query` owns the **deterministic cache-key derivation** from the same `ListQueryParams`. Equal params produce a deeply-equal key regardless of filter order; any filter/sort/page/search change keys distinctly. `infiniteListQueryKey` omits `page`/`cursor`, so every page of one `useInfiniteQuery` shares a key. Every cursor-mode fetch carries an explicit `cursor` — empty (`cursor=`) on the first page — so a backend implementing the contract can select cursor mode from the very first request.
 
 ```ts
-import { listQueryOptions, infiniteListQueryOptions } from "@plainworks/query"
-import { buildListQuery } from "@plainworks/http"
+import { buildListQuery } from "@plainworks/http/list"
+import { infiniteListQueryOptions, listQueryOptions } from "@plainworks/query/list"
 import { z } from "zod"
 
 const itemSchema = z.object({ id: z.string(), name: z.string() })

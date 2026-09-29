@@ -4,15 +4,11 @@
 // malformed response fails the read instead of being trusted by an unchecked cast. Neutral and
 // server-safe: it names no host global, so the RSC prefetch and the browser query run it alike.
 
-import { buildListQuery, type createHttpClient } from "@plainworks/http"
-import {
-  type ListQueryParams,
-  type ListQueryPlan,
-  listQueryOptions,
-  type PaginatedResult,
-} from "@plainworks/query"
+import type { createHttpClient } from "@plainworks/http"
+import { buildListQuery } from "@plainworks/http/list"
+import { type ListQueryPlan, listQueryOptions } from "@plainworks/query/list"
 import { isAbsentOr, isNonEmptyString, isOneOf, isRecord } from "@plainworks/std"
-import { isPaginatedResult } from "@plainworks/std/list"
+import { isPaginatedResult, type ListQueryParams, type PaginatedResult } from "@plainworks/std/list"
 import { guardSchema } from "@plainworks/std/seam"
 import type { WebAbortSignal } from "@plainworks/std/web"
 import { TASKS_RESOURCE } from "./constants"

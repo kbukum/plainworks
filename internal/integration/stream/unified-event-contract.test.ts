@@ -1,11 +1,11 @@
+import { type Channel, createChannel } from "@plainworks/channel"
 import {
-  type Channel,
-  createChannel,
   createEventRouter,
   createStateSink,
   type StateProjection,
-} from "@plainworks/channel"
-import { createQueryClient, createQueryEventSink } from "@plainworks/query"
+} from "@plainworks/channel/events"
+import { createQueryClient } from "@plainworks/query"
+import { createQueryEventSink } from "@plainworks/query/cache"
 import type { PlainEvent } from "@plainworks/std/seam"
 import {
   fakeStateSource,

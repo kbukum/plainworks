@@ -1,5 +1,6 @@
 "use client"
 
+import { createEmitter } from "@plainworks/std/emitter"
 import type { StreamFrame } from "@plainworks/std/seam"
 import {
   createContext,
@@ -128,20 +129,14 @@ export function createChannelContext(): ChannelContext {
  * rebinding: the core owns reconnect.
  */
 function buildHandle(options: ChannelOptions): ChannelHandle {
-  const statusListeners = new Set<() => void>()
+  const statusChanges = createEmitter<void>()
   let status: ChannelStatus = "idle"
-
-  const notifyStatus = (): void => {
-    for (const listener of [...statusListeners]) {
-      listener()
-    }
-  }
 
   const channel = createChannel({
     ...options,
     onStatusChange: (next) => {
       status = next
-      notifyStatus()
+      statusChanges.emit()
       options.onStatusChange?.(next)
     },
   })
@@ -150,8 +145,8 @@ function buildHandle(options: ChannelOptions): ChannelHandle {
     channel,
     getStatus: () => status,
     subscribeStatus: (onChange) => {
-      statusListeners.add(onChange)
-      return () => statusListeners.delete(onChange)
+      const subscription = statusChanges.subscribe(onChange)
+      return () => subscription.unsubscribe()
     },
     activate: (autoConnect) => {
       if (autoConnect) {

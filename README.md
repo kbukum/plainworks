@@ -28,7 +28,7 @@ A second reference host, [`@plainworks/next-host`](./apps/next-host), assembles 
 | Reactive state with optional React bindings | [`@plainworks/state`](./packages/state) |
 | Typed HTTP requests and list-query serialization | [`@plainworks/http`](./packages/http) |
 | Theme tokens, schemes, and runtime resolution | [`@plainworks/theme`](./packages/theme) |
-| Structured logging, error reporting, and Web Vitals | [`@plainworks/observability`](./packages/observability) |
+| Structured logging, error reporting, telemetry, and Web Vitals | [`@plainworks/observability`](./packages/observability) |
 | SSE and WebSocket channels | [`@plainworks/channel`](./packages/channel) |
 | Connect RPC clients and interceptors | [`@plainworks/connect`](./packages/connect) |
 | TanStack Query factories and cache integration | [`@plainworks/query`](./packages/query) |

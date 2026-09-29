@@ -41,17 +41,24 @@
       // compile it — its consumers' DOM programs (e.g. a client test) must exclude tests and typecheck
       // them in a DOM-free `tsconfig.test.json` instead.
       "@plainworks/testkit/connect": ["./packages/testkit/src/connect/index.ts"],
-      // `http/list` is the wire-contract slice (operators/params/result) that never touches the
-      // fetch-bridging client graph, so host-bound programs that cannot compile neutral shim-typed
-      // source (e.g. `mocks`, which opts into `types: ["node"]`) may consume it.
-      "@plainworks/http/list": ["./packages/http/src/list/index.ts"],
       // `auth/server` is the token-custody / cookie-minting entry: map it to its real `src/server.ts`
       // barrel so dependency-cruiser resolves the subpath and can enforce that no `"use client"` graph
       // imports it (the server/client custody boundary).
       "@plainworks/auth/server": ["./packages/auth/src/server.ts"],
-      // `std` concern modules are subpaths (`@plainworks/std/web`); the generic rule below would send
-      // them to a nonexistent `packages/std/web/src`. The prelude `@plainworks/std` uses the generic rule.
+      // Concern modules are subpaths named after their folder (`@plainworks/std/web`,
+      // `@plainworks/http/list`); the generic rule below would send them to a nonexistent
+      // `packages/<name>/<concern>/src`. A package rule is a longer match than `@plainworks/*/client`,
+      // so its `src/*.ts` fallback keeps resolving `./client` to the `src/client.ts` barrel. The prelude
+      // `@plainworks/<name>` uses the generic rule.
       "@plainworks/std/*": ["./packages/std/src/*/index.ts"],
+      "@plainworks/observability/*": [
+        "./packages/observability/src/*/index.ts",
+        "./packages/observability/src/*.ts"
+      ],
+      "@plainworks/http/*": ["./packages/http/src/*/index.ts", "./packages/http/src/*.ts"],
+      "@plainworks/query/*": ["./packages/query/src/*/index.ts", "./packages/query/src/*.ts"],
+      "@plainworks/connect/*": ["./packages/connect/src/*/index.ts", "./packages/connect/src/*.ts"],
+      "@plainworks/channel/*": ["./packages/channel/src/*/index.ts", "./packages/channel/src/*.ts"],
       "@plainworks/*": ["./packages/*/src"]
     }
   }

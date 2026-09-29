@@ -1,4 +1,4 @@
-import { listQueryKey } from "@plainworks/query"
+import { listQueryKey } from "@plainworks/query/list"
 import { describe, expect, it } from "vitest"
 
 // The cache-key derivation is order-independent over the AND-set of filters and distinct on any

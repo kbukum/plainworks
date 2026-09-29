@@ -1,6 +1,7 @@
 "use client"
 
-import { createHttpClient, type HttpClient, type HttpInterceptor } from "@plainworks/http"
+import { createHttpClient, type HttpClient } from "@plainworks/http"
+import type { HttpInterceptor } from "@plainworks/http/interceptor"
 import { createContext, type ReactElement, type ReactNode, useContext, useState } from "react"
 
 const HttpClientContext = createContext<HttpClient | null>(null)

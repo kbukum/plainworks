@@ -11,5 +11,9 @@ export {
   createQueryOptions,
   skipToken,
 } from "@connectrpc/connect-query-core"
-export { createInvalidator, type InvalidateOptions } from "./invalidate"
+export {
+  createMethodInvalidator,
+  type MethodInvalidateOptions,
+  type MethodInvalidator,
+} from "./invalidate"
 export { createQueryKey, type QueryKeyParams } from "./query-key"

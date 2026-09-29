@@ -1,39 +1,14 @@
-// Server-safe public entry for `@plainworks/connect` — a re-export-only barrel (no logic here; the
-// implementation lives in concern modules). No React or DOM imports, so the `.` entry — the Connect
-// transport factory, the resilience/auth interceptors, the typed error, and the neutral
-// connect-query bindings — runs anywhere (Node, edge, workers, RSC). The React hooks live at the
-// separate `./client` entry.
-
-// Typed error + boundary mapper
+// Server-safe public entry for `@plainworks/connect`: the Connect RPC transport and its typed
+// error. Interceptors live on `./interceptor`, the TanStack Query bindings on `./query`, and the
+// React hooks on `./client`. Re-export-only barrel. No React or DOM imports, so the `.` entry runs
+// anywhere (Node, edge, workers, RSC).
 export {
   isRpcError,
   mapConnectError,
   RpcError,
   type RpcErrorCode,
+  type RpcErrorInit,
 } from "./error"
-// Interceptors (resilience, header-only auth, classification)
-export {
-  authHeaderInterceptor,
-  type ConnectResilienceOptions,
-  type ConnectRetryPolicy,
-  isConnectRetryable,
-  resilienceInterceptor,
-} from "./interceptor"
-// Neutral Connect ↔ TanStack Query bindings (keys, options, invalidation)
-export {
-  type ConnectQueryKey,
-  callUnaryMethod,
-  createConnectQueryKey,
-  createInfiniteQueryOptions,
-  createInvalidator,
-  createProtobufSafeUpdater,
-  createQueryKey,
-  createQueryOptions,
-  type InvalidateOptions,
-  type QueryKeyParams,
-  skipToken,
-} from "./query"
-// Transport factory
 export {
   type ConnectProtocol,
   type CreateConnectTransportOptions,

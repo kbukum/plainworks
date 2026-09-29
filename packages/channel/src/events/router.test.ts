@@ -1,6 +1,13 @@
+import type { OverflowPolicy } from "@plainworks/std/resilience"
 import type { PlainEvent, StateSource } from "@plainworks/std/seam"
 import type { WebAbortSignal } from "@plainworks/std/web"
-import { fakeStateSource, fakeStreamTransport, flushMicrotasks } from "@plainworks/testkit"
+import {
+  deferred,
+  fakeStateSource,
+  fakeStreamTransport,
+  flushMicrotasks,
+  recordTelemetry,
+} from "@plainworks/testkit"
 import { describe, expect, test, vi } from "vitest"
 import { createChannel } from "../lifecycle"
 import { jsonDecoder } from "./event"
@@ -148,45 +155,93 @@ describe("createEventRouter", () => {
     router.close()
   })
 
-  test("bounds the buffer and drops the oldest events when a sink falls behind", async () => {
-    const { channel, transport } = channelOn()
-    const delivered: number[] = []
-    let release!: () => void
-    const gate = new Promise<void>((resolve) => {
-      release = resolve
-    })
-    let first = true
-    const sink: EventSink<NEvent> = {
-      deliver: async (e) => {
-        if (first) {
-          first = false
-          // Stall the drain on the first event so the queue fills to capacity behind it.
-          await gate
-        }
-        delivered.push(e.data.n)
-      },
+  describe("overflow", () => {
+    /** Stall the sink on event 1, push 2..5 into a capacity-2 buffer, then let the drain finish. */
+    async function overflowRun(options: {
+      overflow: OverflowPolicy
+      onDrop?: (event: NEvent) => void
+      telemetry?: ReturnType<typeof recordTelemetry>
+    }) {
+      const { channel, transport } = channelOn()
+      const gate = deferred<void>()
+      const delivered: number[] = []
+      const router = createEventRouter<NEvent>({
+        channel,
+        decode: jsonDecoder((v) => v as { n: number }),
+        sinks: [
+          {
+            deliver: async (e) => {
+              if (e.data.n === 1) {
+                await gate.promise
+              }
+              delivered.push(e.data.n)
+            },
+          },
+        ],
+        capacity: 2,
+        overflow: options.overflow,
+        ...(options.onDrop ? { onDrop: options.onDrop } : {}),
+        ...(options.telemetry ? { telemetry: options.telemetry } : {}),
+      })
+      await flushMicrotasks()
+      const attempt = takeAttempt(transport)
+      attempt.open()
+      for (const n of [1, 2, 3, 4, 5]) {
+        attempt.frame({ type: "tick", data: JSON.stringify({ n }) })
+      }
+      await flushMicrotasks()
+      gate.resolve()
+      await flushMicrotasks()
+      router.close()
+      return { delivered, channel }
     }
-    const router = createEventRouter<NEvent>({
-      channel,
-      decode: jsonDecoder((v) => v as { n: number }),
-      sinks: [sink],
-      capacity: 2,
+
+    test.each([
+      { overflow: "drop-oldest", delivered: [1, 4, 5], dropped: [2, 3] },
+      { overflow: "drop-new", delivered: [1, 2, 3], dropped: [4, 5] },
+      { overflow: "reject", delivered: [1, 2, 3], dropped: [4, 5] },
+    ] as const)("$overflow reports every dropped event", async (row) => {
+      const dropped: number[] = []
+
+      const { delivered, channel } = await overflowRun({
+        overflow: row.overflow,
+        onDrop: (event) => void dropped.push(event.data.n),
+      })
+
+      expect(delivered).toEqual(row.delivered)
+      expect(dropped).toEqual(row.dropped)
+      expect(channel.status).not.toBe("closed")
     })
 
-    await flushMicrotasks()
-    const attempt = takeAttempt(transport)
-    attempt.open()
-    for (const n of [1, 2, 3, 4, 5]) {
-      attempt.frame({ type: "t", data: JSON.stringify({ n }) })
-    }
-    await flushMicrotasks()
-    release()
-    await flushMicrotasks()
+    test("emits a telemetry event for every drop", async () => {
+      const telemetry = recordTelemetry()
 
-    // Event 1 was popped into the stalled sink; with capacity 2 and the default drop-oldest policy,
-    // only the freshest two of {2,3,4,5} survive → 4 and 5. The buffer never grew past capacity.
-    expect(delivered).toEqual([1, 4, 5])
-    router.close()
+      await overflowRun({ overflow: "drop-oldest", telemetry })
+
+      expect(telemetry.records).toEqual([
+        {
+          kind: "event",
+          name: "channel.event.dropped",
+          attributes: { "channel.overflow.policy": "drop-oldest", "channel.event.type": "tick" },
+        },
+        {
+          kind: "event",
+          name: "channel.event.dropped",
+          attributes: { "channel.overflow.policy": "drop-oldest", "channel.event.type": "tick" },
+        },
+      ])
+    })
+
+    test("a throwing drop observer does not stall the stream", async () => {
+      const { delivered } = await overflowRun({
+        overflow: "drop-new",
+        onDrop: () => {
+          throw new Error("observer failed")
+        },
+      })
+
+      expect(delivered).toEqual([1, 2, 3])
+    })
   })
 
   test("stops delivering after close", async () => {

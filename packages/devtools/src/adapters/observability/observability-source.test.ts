@@ -1,4 +1,6 @@
-import type { LogRecord, ReportEvent, WebVitalMetric } from "@plainworks/observability"
+import type { LogRecord } from "@plainworks/observability/logging"
+import type { ReportEvent } from "@plainworks/observability/reporting"
+import type { WebVitalMetric } from "@plainworks/observability/vitals"
 import { describe, expect, it, vi } from "vitest"
 import { createDevtoolsSession } from "../../session"
 import type { SourceObserver } from "../../source"

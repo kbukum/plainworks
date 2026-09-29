@@ -16,13 +16,16 @@ function appManifest(): PackageManifest {
       build: "next build",
       typecheck: "next typegen && tsc --noEmit",
       test: "vitest run",
+      "check-production": "next build && plainworks-bundle-exclusion devtools-exclusion.json",
     },
     dependencies: {
       "@plainworks/ui": "workspace:*",
-      "@plainworks/testkit": "workspace:*",
       next: "catalog:",
     },
     devDependencies: {
+      "@plainworks/bundle-exclusion": "workspace:*",
+      "@plainworks/testkit": "workspace:*",
+      "@plainworks/vitest-config": "workspace:*",
       "@testing-library/react": "catalog:",
       "axe-core": "catalog:",
       jsdom: "catalog:",
@@ -42,28 +45,35 @@ describe("toTemplateManifest", () => {
     expect(template.description).toBe(TEMPLATE_DESCRIPTION)
   })
 
-  it("drops the test script but keeps the build/dev scripts", () => {
+  it("drops the monorepo gate scripts but keeps the build/dev scripts", () => {
     const scripts = toTemplateManifest(appManifest()).scripts as Record<string, string>
     expect(scripts.test).toBeUndefined()
+    expect(scripts["check-production"]).toBeUndefined()
     expect(scripts.build).toBe("next build")
     expect(scripts.typecheck).toBe("next typegen && tsc --noEmit")
   })
 
-  it("strips the test-only devDependencies but keeps the build toolchain", () => {
+  it("strips the unit-test toolchain but keeps the build and e2e toolchain", () => {
     const dev = toTemplateManifest(appManifest()).devDependencies ?? {}
     expect(dev["@testing-library/react"]).toBeUndefined()
     expect(dev["axe-core"]).toBeUndefined()
     expect(dev.jsdom).toBeUndefined()
     expect(dev.msw).toBeUndefined()
     expect(dev.vitest).toBeUndefined()
+    expect(dev["@plainworks/testkit"]).toBe("workspace:*")
     expect(dev.typescript).toBe("catalog:")
     expect(dev.tailwindcss).toBe("catalog:")
+  })
+
+  it("drops the private workspace tools the monorepo gates run", () => {
+    const dev = toTemplateManifest(appManifest()).devDependencies ?? {}
+    expect(dev["@plainworks/bundle-exclusion"]).toBeUndefined()
+    expect(dev["@plainworks/vitest-config"]).toBeUndefined()
   })
 
   it("preserves the workspace/catalog dependency ranges for the runtime pin", () => {
     const deps = toTemplateManifest(appManifest()).dependencies ?? {}
     expect(deps["@plainworks/ui"]).toBe("workspace:*")
-    expect(deps["@plainworks/testkit"]).toBe("workspace:*")
     expect(deps.next).toBe("catalog:")
   })
 

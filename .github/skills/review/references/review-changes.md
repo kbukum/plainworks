@@ -44,11 +44,13 @@ See [`SKILL.md`](../SKILL.md) for severity definitions.
 **Scope every command to the changed package(s)** — do not run the full-tree gates here:
 
 ```bash
-turbo run lint typecheck build test --filter=@plainworks/<name>
+bun run lint
+bun run check-shape                           # when manifests, build descriptions, or generators changed
+turbo run typecheck build test --filter=@plainworks/<name>
 turbo run test --filter='...[origin/main]'   # only packages the diff affects
 bun run check-boundaries                      # fast placement/acyclicity guard
 bun run check-versions                        # catalog single-source
-turbo run check-packaging --filter=@plainworks/<name>   # publint + attw on the built tarball
+turbo run check-packaging --filter=@plainworks/<name>   # plainworks-release check-packaging
 bun run check-registry                        # when elements changed
 turbo run test --filter=@plainworks/elements              # when theme changed (theme-variables contract)
 ```

@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "check-production": "PLAINWORKS_BUNDLE_ANALYSIS=1 next build && bun ../../internal/bundle-exclusion/cli.ts devtools-exclusion.json",
+    "check-production": "PLAINWORKS_BUNDLE_ANALYSIS=1 next build && plainworks-bundle-exclusion devtools-exclusion.json",
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
@@ -24,7 +24,6 @@
     "@plainworks/query": "workspace:*",
     "@plainworks/state": "workspace:*",
     "@plainworks/std": "workspace:*",
-    "@plainworks/testkit": "workspace:*",
     "@plainworks/theme": "workspace:*",
     "@plainworks/ui": "workspace:*",
     "@tanstack/react-query": "catalog:",
@@ -36,6 +35,9 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "catalog:",
+    "@plainworks/bundle-exclusion": "workspace:*",
+    "@plainworks/testkit": "workspace:*",
+    "@plainworks/vitest-config": "workspace:*",
     "@playwright/test": "catalog:",
     "@tailwindcss/postcss": "catalog:",
     "@testing-library/dom": "catalog:",

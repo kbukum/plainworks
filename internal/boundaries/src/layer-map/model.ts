@@ -1,3 +1,4 @@
+import { isRecord } from "@plainworks/std"
 /** A layer-map problem: an invalid `layers.json` or a malformed generated block in a doc. */
 export class LayerMapError extends Error {
   override readonly name = "LayerMapError"
@@ -37,10 +38,6 @@ export function parseLayerMap(value: unknown): LayerMap {
     return { packages, summary }
   })
   return { layers: parsed }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
 function isNonEmptyStringArray(value: unknown): value is string[] {

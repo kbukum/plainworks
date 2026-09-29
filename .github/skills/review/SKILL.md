@@ -58,7 +58,9 @@ severity (blocker / should-fix / nit) — file:line — what's wrong — which p
 **Scope every command to the changed package(s)** — the unscoped gates are for a project audit or CI sign-off:
 
 ```bash
-turbo run lint typecheck build test --filter=@plainworks/<name>
+bun run lint
+bun run check-shape                           # when manifests, build descriptions, or generators changed
+turbo run typecheck build test --filter=@plainworks/<name>
 turbo run test --filter='...[origin/main]'   # affected set
 bun run check-boundaries                      # placement/acyclicity (fast, source-level)
 bun run check-versions                        # catalog single-source

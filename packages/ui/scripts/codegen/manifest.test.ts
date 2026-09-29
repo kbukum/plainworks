@@ -4,8 +4,6 @@ import { join, relative } from "node:path"
 import { describe, expect, it } from "vitest"
 import { formatSource } from "./format"
 import {
-  buildExports,
-  buildPublishedFiles,
   buildRegistry,
   buildTsdownEntry,
   collectItemFiles,
@@ -77,24 +75,19 @@ describe("codegen stays in lock-step with disk (cannot drift)", () => {
     expect(buildRegistry(packageRoot)).toEqual(committed)
   })
 
-  it("re-derives the committed package exports map exactly", () => {
+  it("lists only authored source a published package ships, so an install from npm resolves", () => {
     const pkg = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"))
-    expect(buildExports()).toEqual(pkg.exports)
-  })
-
-  it("re-derives the committed published files whitelist exactly", () => {
-    const pkg = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"))
-    expect(buildPublishedFiles(buildRegistry(packageRoot))).toEqual(pkg.files)
-  })
-
-  it("publishes every source file a registry item lists, so an install from npm resolves", () => {
-    const files = buildPublishedFiles(buildRegistry(packageRoot))
-    const published = files.filter((entry) => !entry.startsWith("!"))
+    expect(pkg.files).toEqual(expect.arrayContaining(["src", "registry.json"]))
     const paths = buildRegistry(packageRoot).items.flatMap((item) => item.files.map((f) => f.path))
     expect(paths).toContain("src/region/async-status.ts")
     for (const path of paths) {
-      expect(published.some((entry) => path === entry || path.startsWith(`${entry}/`))).toBe(true)
+      expect(path.startsWith("src/")).toBe(true)
+      expect(path).not.toMatch(/\.test\./)
     }
+  })
+
+  it("names each entry after the subpath consumers import", () => {
+    expect(Object.keys(buildTsdownEntry())).toContain("theme")
   })
 
   it("gives the manifest and every concern a tsdown entry", () => {
@@ -109,6 +102,10 @@ describe("codegen stays in lock-step with disk (cannot drift)", () => {
     expect(rendered).toBe(committed)
   })
 
+  it("ships registry.json with the package so the shadcn registry resolves from npm", () => {
+    expect(renderTsdownConfig()).toContain('files: ["registry.json"]')
+  })
+
   it("gives every client concern barrel on disk a build entry (independent of the CONCERNS list)", () => {
     const barrels = discoverClientBarrels(packageRoot)
     // Guard the guard: disk discovery must actually find concerns, never pass on an empty set.
@@ -121,7 +118,7 @@ describe("codegen stays in lock-step with disk (cannot drift)", () => {
 })
 
 describe("codegen orchestration writes every artifact from disk", () => {
-  it("regenerates registry.json, the tsdown entries, and package exports", () => {
+  it("regenerates registry.json and the build description", () => {
     const root = mkdtempSync(join(tmpdir(), "pw-ui-codegen-"))
     try {
       // `runCodegen` scans every registry concern folder, so the fixture stands each one up with a
@@ -150,22 +147,15 @@ describe("codegen orchestration writes every artifact from disk", () => {
         join(root, "src/client/layout/part.tsx"),
         '"use client"\nimport { Button } from "@plainworks/elements/button"\nexport const Stack = () => Button\n',
       )
-      writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "x", exports: {} })}\n`)
 
       runCodegen(root)
 
       expect(readFileSync(join(root, "tsdown.config.ts"), "utf8")).toContain(
         "src/client/layout/index.ts",
       )
-      const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"))
-      expect(pkg.exports["./layout"]).toEqual({
-        types: "./dist/layout.d.ts",
-        import: "./dist/layout.js",
-      })
       const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"))
       const layout = registry.items.find((item: { name: string }) => item.name === "layout")
       expect(layout.dependencies).toEqual(["@plainworks/elements"])
-      expect(pkg.files).toEqual(["dist", "registry.json", "src/client", "!src/client/**/*.test.*"])
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

@@ -50,10 +50,7 @@ beforeEach(() => {
     dependencies: { "@plainworks/ui": "workspace:*", next: "catalog:" },
     devDependencies: { typescript: "catalog:" },
   })
-  writeJson(join(appDir, "tsconfig.json"), {
-    extends: "../../tsconfig.base.json",
-    compilerOptions: { paths: {} },
-  })
+  writeJson(join(appDir, "tsconfig.json"), { extends: "../../tsconfig.app.json" })
   writeSource(join(appDir, "src", "page.tsx"), 'import { Button } from "@plainworks/ui/client"\n')
   writeSource(join(appDir, "src", "neutral", "local.ts"), 'import { x } from "../page"\n')
 })
@@ -65,6 +62,31 @@ afterEach(() => {
 describe("assertEjectable", () => {
   it("passes a clean app coupling only through neutralized channels", () => {
     expect(() => assertEjectable({ appDir, repoRoot })).not.toThrow()
+  })
+
+  it("accepts the private workspace tools eject drops", () => {
+    privatePackage("@plainworks/vitest-config", "vitest-config")
+    writeJson(join(appDir, "package.json"), {
+      name: "@plainworks/next-host",
+      private: true,
+      dependencies: { "@plainworks/ui": "workspace:*", next: "catalog:" },
+      devDependencies: {
+        "@plainworks/bundle-exclusion": "workspace:*",
+        "@plainworks/vitest-config": "workspace:*",
+        typescript: "catalog:",
+      },
+    })
+    expect(() => assertEjectable({ appDir, repoRoot })).not.toThrow()
+  })
+
+  it("rejects a gated import of a tool eject drops", () => {
+    writeJson(join(appDir, "package.json"), {
+      name: "@plainworks/next-host",
+      dependencies: { "@plainworks/ui": "workspace:*" },
+      devDependencies: { "@plainworks/vitest-config": "workspace:*" },
+    })
+    writeSource(join(appDir, "src", "setup.ts"), 'import "@plainworks/vitest-config"\n')
+    expect(() => assertEjectable({ appDir, repoRoot })).toThrow(/not a declared dependency/)
   })
 
   it("ignores generated bundle-analysis output", () => {
@@ -112,7 +134,7 @@ describe("assertEjectable", () => {
   it("tolerates comments and trailing commas in tsconfig.json", () => {
     writeSource(
       join(appDir, "tsconfig.json"),
-      `{\n  // Base config to extend\n  "extends": "../../tsconfig.base.json",\n  "compilerOptions": { "paths": {}, },\n}\n`,
+      `{\n  // Shared app config to extend\n  "extends": "../../tsconfig.app.json",\n  "compilerOptions": { "incremental": true, },\n}\n`,
     )
     expect(() => assertEjectable({ appDir, repoRoot })).not.toThrow()
   })
@@ -156,7 +178,7 @@ describe("assertEjectable", () => {
 
   it("rejects a tsconfig that declares project references", () => {
     writeJson(join(appDir, "tsconfig.json"), {
-      extends: "../../tsconfig.base.json",
+      extends: "../../tsconfig.app.json",
       references: [{ path: "../other" }],
     })
     expect(() => assertEjectable({ appDir, repoRoot })).toThrow(/project references/)
@@ -164,7 +186,7 @@ describe("assertEjectable", () => {
 
   it("rejects a tsconfig that aliases workspace source through paths", () => {
     writeJson(join(appDir, "tsconfig.json"), {
-      extends: "../../tsconfig.base.json",
+      extends: "../../tsconfig.app.json",
       compilerOptions: { paths: { "@plainworks/*": ["../../packages/*/src"] } },
     })
     expect(() => assertEjectable({ appDir, repoRoot })).toThrow(/compilerOptions.paths/)

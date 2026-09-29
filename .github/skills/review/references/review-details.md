@@ -30,12 +30,13 @@ Tool output only, no judgment. Use plainworks' real gates (run under a supported
 
 ```bash
 bun run check-versions                              # Sherif + Syncpack: single-catalog / dedupe (fast)
-turbo run lint --filter=@plainworks/<name>          # Biome check
+bun run lint                                        # Biome check
+bun run check-shape                                 # generated workspace manifests
 turbo run typecheck --filter=@plainworks/<name>     # tsc --noEmit
 bun run check-boundaries                            # dependency-cruiser layer gate
 turbo run build --filter=@plainworks/<name>         # tsdown
 turbo run test --filter=@plainworks/<name>          # Vitest + coverage
-turbo run check-packaging --filter=@plainworks/<name>   # publint + are-the-types-wrong
+turbo run check-packaging --filter=@plainworks/<name>   # packed tarball checks
 ```
 
 Report pass/fail per command with the first failure block verbatim.
@@ -76,7 +77,7 @@ Skip if: no security-sensitive, auth, config, transport, or redirect code in sco
 
 **Scope:** `src/index.ts`, `src/client.ts`, `package.json`, anything changing the public export surface.
 
-Check: exports are intentional and minimal; **no `any` / `unknown`-without-narrowing on a public API** — prefer generics, discriminated unions, typed contracts; ESM-only discipline holds (`"type": "module"`, `"sideEffects": false`, correct `exports` for `.` and, where present, `./client`, `"files": ["dist"]`); client-only code carries `"use client"` and lives behind `./client`, `.` stays server-safe; every dependency/peer is **catalog-pinned** (`catalog:` / `workspace:*`), no inline version; a new dep is justified (maintained, no open advisory, not duplicating `@plainworks/std` or the platform); a new package is wired into `layers.json` and imports only downward. *(Reuse & placement: passes [`01`](./01-canonical-reuse.md) and [`00`](./00-structure-placement.md); packaging: pass [`04`](./04-quality.md).)*
+Check: exports are intentional and minimal; **no `any` / `unknown`-without-narrowing on a public API** — prefer generics, discriminated unions, typed contracts; ESM-only discipline holds (`"type": "module"`, generated `sideEffects`, generated `exports` for `.` and, where present, `./client`, generated `files`); client-only code carries `"use client"` and lives behind `./client`, `.` stays server-safe; every dependency/peer is **catalog-pinned** (`catalog:` / `workspace:*`), no inline version; a new dep is justified (maintained, no open advisory, not duplicating `@plainworks/std` or the platform); a new package is wired into `layers.json` and imports only downward. *(Reuse & placement: passes [`01`](./01-canonical-reuse.md) and [`00`](./00-structure-placement.md); packaging: pass [`04`](./04-quality.md).)*
 
 Skip if: no public items, deps, or `package.json` in scope.
 

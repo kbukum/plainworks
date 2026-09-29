@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "bun run server.ts",
     "build": "NODE_ENV=production vite build",
-    "check-production": "NODE_ENV=production vite build --sourcemap hidden --outDir .bundle-analysis --emptyOutDir --logLevel warn && bun ../../internal/bundle-exclusion/cli.ts devtools-exclusion.json",
+    "check-production": "NODE_ENV=production vite build --sourcemap hidden --outDir .bundle-analysis --emptyOutDir --logLevel warn && plainworks-bundle-exclusion devtools-exclusion.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "e2e": "playwright test",
@@ -36,7 +36,9 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "catalog:",
+    "@plainworks/bundle-exclusion": "workspace:*",
     "@plainworks/testkit": "workspace:*",
+    "@plainworks/vitest-config": "workspace:*",
     "@playwright/test": "catalog:",
     "@tailwindcss/vite": "catalog:",
     "@testing-library/dom": "catalog:",

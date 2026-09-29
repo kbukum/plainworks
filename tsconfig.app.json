@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  // The shared base for host applications and the integration suite. They run in a real host, so
+  // they see the Node and DOM libs the host-independent packages forbid. This never leaks upward:
+  // the packages they consume still compile under the DOM-free base config.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node"],
+    // An app emits no declarations, so `isolatedDeclarations` (a `.d.ts`-publishing constraint)
+    // buys nothing here; the packages it consumes are already held to it.
+    "isolatedDeclarations": false,
+    // Each app's `vitest.config.ts` loads the shared test preset, which Node's native type stripping
+    // resolves only through explicit `.ts` specifiers.
+    "allowImportingTsExtensions": true,
+    // Resolve every `@plainworks/*` import to the built `dist` surface a consumer installs, not the
+    // `@plainworks/source` condition the base config enables. An app proves the published exports
+    // and types, so its `typecheck`, `build`, and `test` depend on `^build`.
+    "customConditions": []
+  }
+}

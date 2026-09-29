@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S bun --conditions=@plainworks/source
 import { spawnSync } from "node:child_process"
 import { resolve } from "node:path"
 import { runVerify } from "./run"

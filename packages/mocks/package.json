@@ -25,24 +25,27 @@
     "access": "public"
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "!src/**/*.test.*"
   ],
   "exports": {
     ".": {
+      "@plainworks/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./vite-plugin": {
+      "@plainworks/source": "./src/vite-plugin.ts",
       "types": "./dist/vite-plugin.d.ts",
-      "import": "./dist/vite-plugin.js"
+      "default": "./dist/vite-plugin.js"
     }
   },
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
-    "lint": "biome check .",
-    "check-packaging": "publint --strict && attw --pack --profile esm-only"
+    "check-packaging": "plainworks-release check-packaging"
   },
   "dependencies": {
     "@plainworks/http": "workspace:*",
@@ -58,11 +61,10 @@
     }
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "catalog:",
     "@plainworks/tsdown-config": "workspace:*",
+    "@plainworks/vitest-config": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
-    "publint": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",

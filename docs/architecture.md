@@ -36,15 +36,18 @@ flowchart TD
 
 [`internal/boundaries/layers.json`](../internal/boundaries/layers.json) is the single source of this map. The diagram and table here, in the README, and in the contributor instructions are generated from it with `bun run sync-layer-map`, and `bun run verify` fails when they drift. dependency-cruiser reads the same file and rejects upward imports, same-layer imports, cycles, and imports from packages missing from the map.
 
-The workspace has three roots:
+The workspace has three roots and four generated profiles. `bun run check-shape` verifies them, and `bun run sync-shape` rewrites the derived manifest fields.
 
-| Root | Purpose |
-|---|---|
-| `packages/*` | Published `@plainworks/*` packages generated from the golden template. |
-| `apps/*` | Private consumers and examples. Route trees stay app-local. |
-| `internal/*` | Development tooling and cross-package tests that are never published. |
+| Profile | Workspaces | Contract |
+|---|---|---|
+| **package** | `packages/*` and built private packages such as `internal/demo` | A `tsdown.config.ts` build description drives `exports`, `files`, `sideEffects`, scripts, and preset dev dependencies. |
+| **cli** | `create-plainworks` | A published command with a bin build and package checks. |
+| **tool** | dev-only `internal/*` tools | Source lives under `src/`, tests are colocated, optional `src/cli.ts` exposes `plainworks-<dirname>` and runs Bun with the `@plainworks/source` condition (so a tool imports `@plainworks/*` from source with no build), and `tsconfig.json` extends `../../tsconfig.tool.json`. |
+| **app** | `apps/*` and `internal/integration` | `tsconfig.json` extends `../../tsconfig.app.json`, tests use `appTestConfig`, and tasks resolve built package surfaces. |
 
-Published packages ship ESM, set `"sideEffects": false`, expose a server-safe `.`, and add `./client` only when needed. Their manifests publish `dist` and keep React dependencies as catalog-managed peers.
+Published packages ship ESM, expose a server-safe `.`, and add `./client` only when needed. Their manifests are generated from the typed `PackageBuild` description exported by `tsdown.config.ts`, and React dependencies stay catalog-managed peers.
+
+The root tsconfigs mirror those profiles: `tsconfig.base.json` typechecks host-neutral packages, `tsconfig.tool.json` typechecks source-run internal tools with Node types, and `tsconfig.app.json` typechecks apps and integration suites against built package surfaces.
 
 ## Choose an entry point
 
@@ -81,6 +84,10 @@ Published packages use standard npm exports. `elements` and `ui` also derive sha
 |---|---|
 | **npm package** | Import versioned infrastructure and UI packages through their public exports. |
 | **Registry manifest** | Let an app copy `elements` or `ui` source into its own tree. Inside this repo, `elements` atoms stay vendored and locked. |
+
+Inside the monorepo, package exports include a private `"@plainworks/source"` condition before `types` and `default`. `tsconfig.base.json`, `@plainworks/vitest-config`, `@plainworks/boundaries`, and every tool bin (through `bun --conditions`) resolve that condition, so packages and tools typecheck, test, and run against source without a build first. Apps and `internal/integration` use `tsconfig.app.json` with no custom condition, so they resolve `dist` and prove the published surface. Vendored shadcn atoms resolve through `dist` only; the layer gate maps their subpaths back to source so it still checks every import of an atom.
+
+`plainworks-release pack <dir> [--destination <dir>]` packs the same manifest npm publishes: catalog and workspace ranges are resolved, `publishConfig` is applied, and the published manifest carries no source condition. `plainworks-release check-packaging [dir]` runs `publint --strict` and are-the-types-wrong against that tarball. Packages publish `dist` plus `src` (tests excluded), with JavaScript and declaration source maps pointing at the TypeScript source.
 
 ## Naming and structure
 
@@ -174,7 +181,7 @@ The [showcase](../apps/showcase/README.md) proves a Vite-gated shell with HTTP/q
 | **Async ownership** | Give streams, subscriptions, timers, queues, and abort controllers explicit cancellation and teardown. Bound buffers and retries. |
 | **Accessibility** | Interactive client code meets WCAG 2.2 AA, supports keyboard and visible focus, uses 24×24 CSS-pixel targets, and includes an axe assertion. |
 | **Responsive UI** | Use fluid, mobile-first layouts, container queries, and reduced-motion and color-scheme preferences. Avoid fixed-size traps. |
-| **Packaging** | Ship ESM-only `dist`, correct exports and types, and no committed build output. |
+| **Packaging** | Ship ESM-only `dist` plus source maps, correct generated exports and types, and no committed build output. |
 
 ## Testing
 
@@ -212,13 +219,14 @@ The integration suite verifies serialization, offset and cursor paging, cache ke
 |---|---|
 | Tasks and caching | Turborepo |
 | Package generation | `@turbo/gen` through `bun run gen` |
-| Build | tsdown, ESM-only |
+| Build | tsdown through `@plainworks/tsdown-config`, ESM-only |
 | Lint and format | Biome |
 | Boundaries and cycles | dependency-cruiser |
-| Packaging | publint and are-the-types-wrong |
+| Workspace shape | `plainworks-shape check` and `plainworks-shape sync` |
+| Packaging | `plainworks-release check-packaging` with publint and are-the-types-wrong |
 | Portability | ES2023-only typecheck and boundary fixtures |
 | Version synchronization | Syncpack and Sherif against one Bun catalog |
-| Tests and coverage | Vitest; 80% per package and 85% for security-critical packages |
+| Tests and coverage | Vitest through `@plainworks/vitest-config`; 80% per package and 85% for security-critical packages |
 | Releases | Changesets and npm trusted publishing with provenance |
 
 Every dependency version lives in the root Bun catalog. Package manifests use `catalog:` so Syncpack and Sherif can reject inline or divergent versions.
@@ -237,3 +245,5 @@ Run all gates from the repository root. `internal/verify` owns the gate list; CI
 bun run verify          # every gate, in order
 bun run verify --list   # the gates and what each enforces
 ```
+
+`verify` has 12 gates: versions, lint, comments, layer map, atom lock, workspace shape, typecheck, boundaries, build, test, packaging, and production-bundle checks.

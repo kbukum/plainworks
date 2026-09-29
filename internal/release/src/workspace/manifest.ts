@@ -1,5 +1,6 @@
+import { isRecord } from "@plainworks/std"
+import { listWorkspaces, type Manifest, type WorkspaceFiles } from "@plainworks/workspace"
 import { ReleaseToolError } from "../error"
-import type { WorkspaceFiles } from "./files"
 
 /** A workspace that is published to npm: `@plainworks/*` or `create-plainworks`, never private. */
 export interface PublishableWorkspace {
@@ -13,51 +14,14 @@ export interface PublishableWorkspace {
 
 const RUNTIME_DEPENDENCY_FIELDS = ["dependencies", "peerDependencies", "optionalDependencies"]
 
-/**
- * Lists every publishable workspace under the root manifest's `workspaces` globs, sorted by
- * directory. A directory without a `package.json` is skipped; an unreadable manifest fails.
- */
+/** Lists every publishable workspace, sorted by directory. */
 export function readPublishableWorkspaces(files: WorkspaceFiles): PublishableWorkspace[] {
-  const found: PublishableWorkspace[] = []
-  for (const dir of workspaceDirs(files)) {
-    const manifest = readManifest(files, `${dir}/package.json`)
-    if (manifest === undefined || !isPublishable(manifest)) continue
+  return listWorkspaces(files).flatMap(({ dir, manifest }) => {
+    if (!isPublishable(manifest)) return []
     const { name, version } = manifest
     if (typeof version !== "string") throw new ReleaseToolError(`${name} has no version`)
-    found.push({ dir, name, version, deps: runtimeDependencies(manifest) })
-  }
-  return found.sort((a, b) => a.dir.localeCompare(b.dir))
-}
-
-type Manifest = Readonly<Record<string, unknown>>
-
-function workspaceDirs(files: WorkspaceFiles): string[] {
-  const root = readManifest(files, "package.json")
-  if (root === undefined) throw new ReleaseToolError("The root package.json is missing")
-  const { workspaces } = root
-  if (!Array.isArray(workspaces)) {
-    throw new ReleaseToolError("The root package.json has no workspaces array")
-  }
-  return workspaces.flatMap((pattern: unknown) => {
-    if (typeof pattern !== "string" || !pattern.endsWith("/*") || pattern.includes("**")) {
-      throw new ReleaseToolError(`Unsupported workspace glob: ${String(pattern)}`)
-    }
-    const base = pattern.slice(0, -2)
-    return files.listDirectories(base).map((entry) => `${base}/${entry}`)
+    return [{ dir, name, version, deps: runtimeDependencies(manifest) }]
   })
-}
-
-function readManifest(files: WorkspaceFiles, path: string): Manifest | undefined {
-  const text = files.readText(path)
-  if (text === undefined) return undefined
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(text)
-  } catch (cause) {
-    throw new ReleaseToolError(`${path} is not valid JSON`, { cause })
-  }
-  if (!isRecord(parsed)) throw new ReleaseToolError(`${path} is not a JSON object`)
-  return parsed
 }
 
 function isPublishable(manifest: Manifest): manifest is Manifest & { name: string } {
@@ -73,8 +37,4 @@ function runtimeDependencies(manifest: Manifest): string[] {
     if (isRecord(deps)) for (const name of Object.keys(deps)) names.add(name)
   }
   return [...names].sort()
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
 }

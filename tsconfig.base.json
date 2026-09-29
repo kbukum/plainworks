@@ -4,7 +4,7 @@
     "target": "ES2023",
     // ES2023 only — no DOM/WebWorker libs, so host-only globals (window, self, caches, indexedDB) can never typecheck in package source; the universal Web APIs every runtime shares (timers, AbortController/AbortSignal) are declared narrowly in types/universal-web.d.ts, which host-independent packages include explicitly. Because packages resolve `@plainworks/*` to source, every consumer compiles that code and must see the same globals.
     "lib": ["ES2023"],
-    // Host-independence: no ambient @types — package source must not see Node/DOM globals; host-bound tooling (internal/boundaries) opts back in with `"types": ["node"]`.
+    // Host-independence: no ambient @types — package source must not see Node/DOM globals. Dev tools extend `tsconfig.tool.json`, which adds Node types.
     "types": [],
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -29,37 +29,6 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "useDefineForClassFields": true,
-
-    "paths": {
-      // Client subpath must map before the generic rule so `@plainworks/foo/client` resolves to the real `src/client.ts` barrel (not `packages/foo/client/src`); otherwise dependency-cruiser leaves client-subpath imports unresolved and misses server/client boundary violations.
-      "@plainworks/*/client": ["./packages/*/src/client.ts"],
-      // A published subpath other than `./client` needs its own explicit rule: the generic
-      // `@plainworks/*` rule would send `@plainworks/testkit/connect` to `packages/testkit/connect/src`
-      // (which does not exist) and fall through to the built `dist`, so a dependent typechecks against
-      // stale output while the main entry resolves to live source. Map it to source like every other
-      // entry; because `testkit/connect` is neutral, shim-typed code, only DOM-free programs may
-      // compile it — its consumers' DOM programs (e.g. a client test) must exclude tests and typecheck
-      // them in a DOM-free `tsconfig.test.json` instead.
-      "@plainworks/testkit/connect": ["./packages/testkit/src/connect/index.ts"],
-      // `auth/server` is the token-custody / cookie-minting entry: map it to its real `src/server.ts`
-      // barrel so dependency-cruiser resolves the subpath and can enforce that no `"use client"` graph
-      // imports it (the server/client custody boundary).
-      "@plainworks/auth/server": ["./packages/auth/src/server.ts"],
-      // Concern modules are subpaths named after their folder (`@plainworks/std/web`,
-      // `@plainworks/http/list`); the generic rule below would send them to a nonexistent
-      // `packages/<name>/<concern>/src`. A package rule is a longer match than `@plainworks/*/client`,
-      // so its `src/*.ts` fallback keeps resolving `./client` to the `src/client.ts` barrel. The prelude
-      // `@plainworks/<name>` uses the generic rule.
-      "@plainworks/std/*": ["./packages/std/src/*/index.ts"],
-      "@plainworks/observability/*": [
-        "./packages/observability/src/*/index.ts",
-        "./packages/observability/src/*.ts"
-      ],
-      "@plainworks/http/*": ["./packages/http/src/*/index.ts", "./packages/http/src/*.ts"],
-      "@plainworks/query/*": ["./packages/query/src/*/index.ts", "./packages/query/src/*.ts"],
-      "@plainworks/connect/*": ["./packages/connect/src/*/index.ts", "./packages/connect/src/*.ts"],
-      "@plainworks/channel/*": ["./packages/channel/src/*/index.ts", "./packages/channel/src/*.ts"],
-      "@plainworks/*": ["./packages/*/src"]
-    }
+    "customConditions": ["@plainworks/source"]
   }
 }

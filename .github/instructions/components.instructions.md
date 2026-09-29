@@ -43,7 +43,8 @@ Tests (Vitest + React Testing Library, test-first, DOM env):
 Scope every gate to the package you changed:
 
 ```bash
-turbo run lint typecheck build test --filter=@plainworks/<name>
+bun run lint
+turbo run typecheck build test --filter=@plainworks/<name>
 bun run check-boundaries                      # server/client + layer gate
 bun run --filter @plainworks/elements registry:validate   # when elements changed
 turbo run test --filter=@plainworks/elements              # when theme changed (theme-variables contract)

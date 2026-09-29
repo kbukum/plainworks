@@ -12,7 +12,7 @@ Docs that match the code, and a release path that stays reproducible and honest.
 - **Server/client split is documented.** For a package with a client entry, the README makes clear what is server-safe (`.`) vs client-only (`./client`, `"use client"`). Silent omission that could lead a consumer to import client code on the server is a should-fix.
 - **Layer map stays single-source.** The dependency direction lives in `internal/boundaries/layers.json`; the gate reads it and the README, `docs/architecture.md`, and instructions copies are generated from it (`check-layer-map` fails on drift). A new package added without its layer row, or a hand edit between the `layer-map` markers, is a should-fix.
 - **No history/plan narration in shipped docs.** READMEs and `docs/` describe the code **as it is today**, not "we migrated from X" or "step 4 will add Y". Migration/plan notes belong in `tmp/`. Prose flows naturally (no hard-wrapped columns); diagrams (mermaid) where they clarify architecture.
-- **Commands are real.** Every command in docs exists in a `package.json` or `turbo.json` (`bun run <script>`, `turbo run <task> --filter=…`, `bun run gen package`). An invented flag or a stale command is a should-fix — verify against the manifests.
+- **Commands are real.** Every command in docs exists in a `package.json`, `turbo.json`, or an internal tool bin (`bun run <script>`, `turbo run <task> --filter=…`, `bun run gen package`, `bun run gen tool`, `plainworks-shape …`). An invented flag or a stale command is a should-fix — verify against the manifests.
 
 ## Readability checks (a crowded doc is a defect, not thoroughness)
 

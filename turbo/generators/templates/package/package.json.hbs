@@ -3,7 +3,6 @@
   "version": "0.1.0-alpha.1",
   "description": {{{json description}}},
   "type": "module",
-  "sideEffects": false,
   "license": "MIT",
   "author": "Plainworks",
   "homepage": "https://github.com/kbukum/plainworks/tree/main/packages/{{name}}#readme",
@@ -22,32 +21,12 @@
   "publishConfig": {
     "access": "public"
   },
-  "files": [
-    "dist"
-  ],
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }{{#if hasClient}},
-    "./client": {
-      "types": "./dist/client.d.ts",
-      "import": "./dist/client.js"
-    }{{/if}}
-  },
-  "scripts": {
-    "build": "tsdown",
-    "typecheck": "{{#if hasClient}}tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json{{else}}tsc --noEmit{{/if}}",
-    "test": "vitest run --coverage",
-    "lint": "biome check .",
-    "check-packaging": "publint --strict && attw --pack --profile esm-only"
-  },
   "devDependencies": {
-    "@arethetypeswrong/cli": "catalog:",
 {{#if hasClient}}
     "@plainworks/testkit": "workspace:*",
 {{/if}}
     "@plainworks/tsdown-config": "workspace:*",
+    "@plainworks/vitest-config": "workspace:*",
 {{#if hasClient}}
     "@testing-library/react": "catalog:",
     "@testing-library/user-event": "catalog:",
@@ -63,7 +42,6 @@
     "jsdom": "catalog:",
     "msw": "catalog:",
 {{/if}}
-    "publint": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

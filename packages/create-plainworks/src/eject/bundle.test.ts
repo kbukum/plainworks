@@ -48,10 +48,7 @@ beforeEach(() => {
     dependencies: { "@plainworks/ui": "workspace:*" },
     devDependencies: { vitest: "catalog:", typescript: "catalog:" },
   })
-  writeJson(join(appDir, "tsconfig.json"), {
-    extends: "../../tsconfig.base.json",
-    compilerOptions: { paths: {} },
-  })
+  writeJson(join(appDir, "tsconfig.json"), { extends: "../../tsconfig.app.json" })
   writeJson(join(appDir, "turbo.json"), { extends: ["//"] })
   writeText(join(appDir, "vitest.config.ts"), "export default {}\n")
   writeText(join(appDir, ".gitignore"), "/.next/\n")

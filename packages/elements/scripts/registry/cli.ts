@@ -50,7 +50,7 @@ function main(): void {
   } else if (command === "codegen") {
     const generated = runCodegen(packageRoot)
     process.stdout.write(
-      `Regenerated registry.json, exports, entries, and the manifest (${generated.length} atoms).\n`,
+      `Regenerated registry.json, the build entries, and the manifest (${generated.length} atoms).\n`,
     )
   } else {
     throw new Error(`Unknown registry command: ${command}`)

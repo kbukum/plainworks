@@ -1,0 +1,24 @@
+{
+  "name": "@plainworks/workspace",
+  "version": "0.0.0",
+  "description": "Reads the repository's workspaces for the dev tools: the file access seam, an in-memory double for tests, and the workspace list from the root manifest.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@plainworks/vitest-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@plainworks/std": "workspace:*"
+  }
+}

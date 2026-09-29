@@ -1,0 +1,26 @@
+{
+  "name": "@plainworks/shape",
+  "version": "0.0.0",
+  "description": "Keeps every workspace on its profile: `sync` writes the fields a profile derives, and `check` reports any workspace that drifts from it.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "plainworks-shape": "./src/cli.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@plainworks/std": "workspace:*",
+    "@plainworks/tsdown-config": "workspace:*",
+    "@plainworks/workspace": "workspace:*",
+    "typescript": "catalog:"
+  },
+  "devDependencies": {
+    "@plainworks/vitest-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "vitest": "catalog:"
+  }
+}

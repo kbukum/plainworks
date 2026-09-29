@@ -24,7 +24,7 @@
     "access": "public"
   },
   "bin": {
-    "create-plainworks": "./dist/bin.js"
+    "create-plainworks": "./dist/create-plainworks.js"
   },
   "files": [
     "dist",
@@ -34,15 +34,15 @@
     "build": "bun scripts/sync-versions.ts && bun scripts/bundle-examples.ts && tsdown",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
-    "lint": "biome check .",
-    "check-packaging": "publint --strict",
+    "check-packaging": "plainworks-release check-packaging",
     "smoke": "bun scripts/smoke.ts",
     "sync-versions": "bun scripts/sync-versions.ts"
   },
   "devDependencies": {
+    "@plainworks/tsdown-config": "workspace:*",
+    "@plainworks/vitest-config": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
-    "publint": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

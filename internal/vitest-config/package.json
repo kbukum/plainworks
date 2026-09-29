@@ -1,0 +1,23 @@
+{
+  "name": "@plainworks/vitest-config",
+  "version": "0.0.0",
+  "description": "Shared Vitest presets: source-resolved tests with an 80% coverage floor for packages and tools, built-output tests for apps.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage"
+  },
+  "dependencies": {
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "typescript": "catalog:"
+  }
+}

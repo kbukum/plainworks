@@ -1,16 +1,13 @@
 import { fileURLToPath } from "node:url"
-import { defineConfig } from "vitest/config"
+import { appTestConfig } from "@plainworks/vitest-config"
+import { mergeConfig } from "vitest/config"
 
-// Smoke tests assemble the published surfaces the way a consumer does. The server-side scenarios
-// (auth flow, mock-backend dispatch, neutral theme/read helpers) run in Node; the client scenarios
-// (account gate, task list, app-shell navigation) opt into jsdom per file via a
-// `// @vitest-environment jsdom` docblock. The app's tsconfig sets `jsx: preserve` for Next's SWC
-// compiler; overriding Vite's oxc transform to the automatic runtime is what compiles the TSX here.
-export default defineConfig({
+export default mergeConfig(appTestConfig(), {
+  // Next compiles JSX with SWC, so the app's tsconfig preserves it; the tests compile it with
+  // Vite's automatic runtime instead.
   oxc: { jsx: { runtime: "automatic" } },
-  // Every `src/server` module keeps its enforced `import "server-only"` tripwire; under Node that
-  // marker throws on import, so tests resolve it to an empty stub instead. The build-time boundary
-  // stays real — only the test run swaps the poison for a no-op.
+  // Every `src/server` module imports `server-only`, which throws outside a Next server build.
+  // Tests resolve it to an empty stub; the build-time boundary stays real.
   resolve: {
     alias: [
       {
@@ -18,12 +15,5 @@ export default defineConfig({
         replacement: fileURLToPath(new URL("./test/server-only.stub.ts", import.meta.url)),
       },
     ],
-  },
-  test: {
-    environment: "node",
-    // DOM tests that run axe and user-event can pass 5 s on a busy CI runner. The tests are
-    // deterministic, so the longer limit only guards against a hang; it never hides a failure.
-    testTimeout: 15_000,
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
   },
 })

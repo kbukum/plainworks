@@ -9,7 +9,7 @@ description: >-
 
 # Adding a package to plainworks
 
-plainworks packages are **born from a golden generator**, never hand-written — that is the structural guarantee that every package has identical, gate-passing `package.json`/`exports`/`tsconfig`/`tsdown`/`vitest`/`README`. Do not create package files by hand; drive the generator, then place the package in the layer map.
+plainworks packages are **born from a golden generator**, never hand-written. The template creates the human-owned files, then `plainworks-shape sync` derives `package.json` exports, files, side effects, scripts, and preset dev dependencies from the typed `tsdown.config.ts` build description. Do not create package files by hand; drive the generator, then place the package in the layer map.
 
 ## Step 1 — Name it: one concern, one plain word
 
@@ -42,6 +42,8 @@ Then install so the workspace picks it up:
 bun install
 ```
 
+If you add or rename a public subpath, edit `build.entry` in `tsdown.config.ts` and run `bun run sync-shape`. Never hand-edit `exports`, `files`, `sideEffects`, or the standard `build` / `typecheck` / `test` / `check-packaging` scripts.
+
 ## Step 4 — Wire it into the layer map
 
 The generated package is **not yet in the layer map**, so the boundary gate (correctly) forbids it from importing any other `@plainworks` package — it fails **closed**, never vacuously green. Add it to `internal/boundaries/layers.json` at its chosen layer, then run `bun run sync-layer-map` to regenerate the README, `docs/architecture.md`, and instructions copies. A freshly generated package imports nothing internal, so it stays gate-passing until you add real cross-package imports.
@@ -60,6 +62,7 @@ A UI package composes atoms from `@plainworks/elements/<name>` — never copy on
 
 ```bash
 bun install
+bun run check-shape
 bun run verify --filter=@plainworks/<name>
 bun run changeset          # add the release note
 ```
@@ -68,6 +71,7 @@ bun run changeset          # add the release note
 
 - [ ] Name is one plain concern-word; not `core`/`engine`/`foundation`/`utils`
 - [ ] Created via `bun run gen package` (no hand-rolled package files)
+- [ ] `bun run check-shape` is green; generated manifest fields were not hand-edited
 - [ ] `hasClient` chosen correctly; server `.` entry stays React/DOM-free
 - [ ] For a client package: components are accessible (WCAG 2.2 AA) and responsive; tests query by role, mock with MSW, and assert axe cleanliness
 - [ ] For a UI package: atoms consumed from `@plainworks/elements`, never copied or edited

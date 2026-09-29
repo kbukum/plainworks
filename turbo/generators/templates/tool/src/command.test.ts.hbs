@@ -1,0 +1,29 @@
+import { describe, expect, it } from "vitest"
+import { type CommandOutput, runCommand } from "./command"
+
+function recorder(): CommandOutput & { readonly text: () => string } {
+  let text = ""
+  return {
+    stdout: (chunk) => {
+      text += chunk
+    },
+    stderr: (chunk) => {
+      text += chunk
+    },
+    text: () => text,
+  }
+}
+
+describe("runCommand", () => {
+  it("runs with no arguments", () => {
+    const output = recorder()
+    expect(runCommand([], output)).toBe(0)
+    expect(output.text()).toContain("done")
+  })
+
+  it("rejects unexpected arguments with a usage error", () => {
+    const output = recorder()
+    expect(runCommand(["extra"], output)).toBe(2)
+    expect(output.text()).toContain("Usage: plainworks-{{name}}")
+  })
+})

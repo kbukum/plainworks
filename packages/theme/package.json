@@ -1,7 +1,7 @@
 {
   "name": "@plainworks/theme",
   "version": "0.1.0-alpha.1",
-  "description": "The host-independent design substrate for the plainworks UI family: semantic tokens as plain CSS and Tailwind utilities, color schemes + dark mode, the resolve\u2192hydrate theme runtime, and the `cn` class merger.",
+  "description": "The host-independent design substrate for the plainworks UI family: semantic tokens as plain CSS and Tailwind utilities, color schemes + dark mode, the resolve→hydrate theme runtime, and the `cn` class merger.",
   "type": "module",
   "sideEffects": [
     "**/*.css"
@@ -28,16 +28,20 @@
     "access": "public"
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "!src/**/*.test.*"
   ],
   "exports": {
     ".": {
+      "@plainworks/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./client": {
+      "@plainworks/source": "./src/client.ts",
       "types": "./dist/client.d.ts",
-      "import": "./dist/client.js"
+      "default": "./dist/client.js"
     },
     "./styles.css": "./dist/styles.css",
     "./tokens.css": "./dist/tokens.css"
@@ -46,8 +50,7 @@
     "build": "tsdown",
     "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run --coverage",
-    "lint": "biome check .",
-    "check-packaging": "publint --strict && attw --pack --profile esm-only --exclude-entrypoints @plainworks/theme/styles.css @plainworks/theme/tokens.css"
+    "check-packaging": "plainworks-release check-packaging"
   },
   "dependencies": {
     "@plainworks/std": "workspace:*",
@@ -69,9 +72,9 @@
     }
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "catalog:",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
+    "@plainworks/vitest-config": "workspace:*",
     "@testing-library/react": "catalog:",
     "@testing-library/user-event": "catalog:",
     "@types/node": "catalog:",
@@ -80,7 +83,6 @@
     "@vitest/coverage-v8": "catalog:",
     "axe-core": "catalog:",
     "jsdom": "catalog:",
-    "publint": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

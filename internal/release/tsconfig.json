@@ -1,8 +1,8 @@
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../tsconfig.tool.json",
   "compilerOptions": {
-    // A bun-run repository tool, not host-independent package source, so it opts back into Node.
-    "types": ["node"]
+    // Packing reads and writes tarballs through Bun's archive support.
+    "types": ["node", "bun"]
   },
   "include": ["src"]
 }

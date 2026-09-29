@@ -1,8 +1,6 @@
 import { runCodegen } from "./manifest"
 
-// Dev-only entry for `bun run --filter @plainworks/ui codegen`. Regenerates registry.json, the
-// tsdown entry map, and the package exports and files from disk.
+// Dev-only entry for `bun run --filter @plainworks/ui codegen`. Regenerates registry.json and the
+// tsdown build description from disk; `bun run sync-shape` then refreshes the package exports.
 runCodegen()
-process.stdout.write(
-  "ui codegen: wrote registry.json, tsdown.config.ts, and package exports and files\n",
-)
+process.stdout.write("ui codegen: wrote registry.json and tsdown.config.ts\n")

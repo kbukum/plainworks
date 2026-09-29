@@ -5,7 +5,6 @@ import { describe, expect, it } from "vitest"
 import { formatSource } from "./format"
 import {
   atomNames,
-  buildExports,
   buildRegistry,
   buildTsdownEntry,
   packageRoot,
@@ -49,11 +48,6 @@ describe("codegen stays in lock-step with disk (cannot drift)", () => {
     expect(buildRegistry(packageRoot)).toEqual(committed)
   })
 
-  it("re-derives the committed package exports map exactly", () => {
-    const pkg = JSON.parse(readFileSync(join(packageRoot, "package.json"), "utf8"))
-    expect(buildExports(atomNames(packageRoot))).toEqual(pkg.exports)
-  })
-
   it("gives every atom its own tsdown entry from its origin folder", () => {
     const sources = atomSources(packageRoot)
     const entry = buildTsdownEntry(sources)
@@ -74,10 +68,16 @@ describe("codegen stays in lock-step with disk (cannot drift)", () => {
     const committed = readFileSync(join(packageRoot, "tsdown.config.ts"), "utf8")
     expect(rendered).toBe(committed)
   })
+
+  it("ships the registry and its lock so the shadcn registry resolves from npm", () => {
+    expect(renderTsdownConfig(atomSources(packageRoot))).toContain(
+      'files: ["registry.json", "shadcn.lock.json"]',
+    )
+  })
 })
 
 describe("codegen orchestration writes every artifact from disk", () => {
-  it("regenerates registry.json, the manifest, the tsdown entries, and package exports", () => {
+  it("regenerates registry.json, the manifest, and the build description", () => {
     const root = mkdtempSync(join(tmpdir(), "pw-elements-codegen-"))
     try {
       mkdirSync(join(root, "src/shadcn"), { recursive: true })
@@ -87,7 +87,6 @@ describe("codegen orchestration writes every artifact from disk", () => {
         '"use client"\nexport const Button = () => null\n',
       )
       writeFileSync(join(root, "src/atoms/spinner.tsx"), '"use client"\nexport {}\n')
-      writeFileSync(join(root, "package.json"), `${JSON.stringify({ name: "x", exports: {} })}\n`)
 
       expect(runCodegen(root)).toEqual(["button", "spinner"])
 
@@ -95,11 +94,7 @@ describe("codegen orchestration writes every artifact from disk", () => {
       const tsdown = readFileSync(join(root, "tsdown.config.ts"), "utf8")
       expect(tsdown).toContain("src/shadcn/button.tsx")
       expect(tsdown).toContain("src/atoms/spinner.tsx")
-      const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"))
-      expect(pkg.exports["./button"]).toEqual({
-        types: "./dist/button.d.ts",
-        import: "./dist/button.js",
-      })
+      expect(tsdown).toContain('vendored: "src/shadcn"')
       const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"))
       expect(
         registry.items.map((item: { files: { path: string }[] }) => item.files[0]?.path),

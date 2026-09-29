@@ -1,16 +1,16 @@
 // @vitest-environment jsdom
 
-import { Button } from "@plainworks/elements/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@plainworks/elements/card"
-import { Input } from "@plainworks/elements/input"
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
+import { Button } from "@/shadcn/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/shadcn/card"
+import { Input } from "@/shadcn/input"
 
-// Proves the published per-atom subpaths resolve and compose accessibly — the exports map and the
-// `"use client"` per-atom entry, exercised the way a consumer imports them à la carte.
-describe("published atom subpaths", () => {
-  it("renders the à-la-carte recipe accessibly through the published subpaths", async () => {
+// Proves separately vendored atoms compose into an accessible form, the way a consumer combines
+// them à la carte. The packed exports map is proven by `check-packaging`.
+describe("atom composition", () => {
+  it("renders the à-la-carte recipe accessibly", async () => {
     const { container } = render(
       <Card aria-labelledby="adoption-title">
         <CardHeader>

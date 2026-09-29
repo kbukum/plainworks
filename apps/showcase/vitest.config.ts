@@ -1,18 +1,6 @@
-import { defineConfig } from "vitest/config"
+import { appTestConfig } from "@plainworks/vitest-config"
+import { mergeConfig } from "vitest/config"
 
-// Smoke tests assemble the published surfaces the way a consumer does. The SSR-response and
-// unified-stream scenarios run in Node; the hydration and client-navigation scenarios opt into
-// jsdom per file via a `// @vitest-environment jsdom` docblock. Vite's default (oxc) automatic JSX
-// runtime compiles the TSX, matching the app build.
-export default defineConfig({
-  test: {
-    environment: "node",
-    // DOM tests that run axe and user-event can pass 5 s on a busy CI runner. The tests are
-    // deterministic, so the longer limit only guards against a hang; it never hides a failure.
-    testTimeout: 15_000,
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
-    // The root gate runs every workspace test task concurrently. Keep this jsdom-heavy suite to
-    // one worker so CI does not starve async rendering and axe checks under that shared load.
-    maxWorkers: 1,
-  },
-})
+// The root gate runs every workspace's tests at once. This jsdom-heavy suite keeps to one worker so
+// the shared load does not starve async rendering and axe checks.
+export default mergeConfig(appTestConfig(), { test: { maxWorkers: 1 } })

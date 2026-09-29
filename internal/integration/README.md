@@ -10,11 +10,11 @@ turbo run test --filter @plainworks/integration
 
 ## How it is organized
 
-- **By concern, one scenario per file.** Concern folders live directly under the package (no `test/`, `smoke/`, or kind sub-layer — the whole package *is* integration by scope). The **filename is the scenario** it proves; **depth** (smoke → thorough) is a property of the file, not a folder.
-- Add a scenario by dropping a `<scenario>.test.ts` into the matching concern folder (e.g. `list/`). Add a concern by creating a new folder next to `list/`. The vitest `include` globs every `*/**/*.test.ts`, so no config change is needed.
+- **By concern, one scenario per file.** Concern folders live under `src/` (no `test/`, `smoke/`, or kind sub-layer — the whole package *is* integration by scope). The **filename is the scenario** it proves; **depth** (smoke → thorough) is a property of the file, not a folder.
+- Add a scenario by dropping a `<scenario>.test.ts` into the matching concern folder (e.g. `src/list/`). Add a concern by creating a new folder next to it. The shared app test config collects every `src/**/*.test.ts`, so no config change is needed.
 - Split tests into a **separate package** only when they need different machinery or scope. Keep real browser, server, or database e2e tests out of this integration package.
 
-### `list/` — the PostgREST list contract, assembled
+### `src/list/` — the PostgREST list contract, assembled
 
 | Scenario | What it proves |
 |---|---|

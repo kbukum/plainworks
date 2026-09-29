@@ -43,13 +43,14 @@ Standing, re-runnable development skills that encode this baseline live in [`ski
 - **Language:** TypeScript, pinned at **`^6.0.3`** in the catalog deliberately. See the TypeScript compiler boundary below. Strict, `isolatedDeclarations`, `moduleResolution: bundler`, ESM-only.
 - **Runtime / package manager:** **bun** (`bun@1.3.6`); Node `^22.12 || ^24 || >=26` (N / N-1 LTS matrix in CI).
 - **Task runner / caching:** **Turborepo** (`turbo`) — cache-correct, topological, affected-aware. Dev-only; zero consumer footprint.
-- **Build:** **tsdown** (ESM-only, per-module `"use client"` preserved, `react`/`react-dom` externalized as peers, ships `dist`), via the shared `@plainworks/tsdown-config` preset.
+- **Build:** **tsdown** (ESM-only, per-module `"use client"` preserved, `react`/`react-dom` externalized as peers, ships `dist` plus source maps), via the shared `@plainworks/tsdown-config` preset.
 - **Lint / format:** **Biome**.
 - **Layer boundaries + cycles:** **dependency-cruiser**, isolated in `@plainworks/boundaries`.
 - **Version sync (single catalog):** **Sherif** (fast CI gate) + **Syncpack** (catalog-aware fix/migrate).
-- **Tests / coverage:** **Vitest** (v8 coverage).
+- **Tests / coverage:** **Vitest** (v8 coverage) through `@plainworks/vitest-config`.
 - **Releases:** **Changesets**.
-- **Generator:** `@turbo/gen` via `bun run gen` — the golden package template.
+- **Workspace shape:** `@plainworks/shape` derives manifest fields, scripts, exports, files, and preset dependencies for every workspace profile.
+- **Generator:** `@turbo/gen` via `bun run gen` — the golden package and tool templates.
 
 ## Build, Test, and Lint
 
@@ -62,12 +63,15 @@ bun run verify --filter=@plainworks/<name>    # scope the package gates (repeata
 bun run verify --list                         # the gates and what each enforces
 bun run format                                # Biome safe fixes
 bun run format-comments                       # reflow over-width comment prose
+bun run check-shape                           # verify generated workspace manifests
+bun run sync-shape                            # rewrite derived workspace manifest fields
 bun run sync-layer-map                        # regenerate the layer-map docs from layers.json
 bun run gen package                           # scaffold a new @plainworks/* package from the golden template
+bun run gen tool                              # scaffold a new internal tool from the golden template
 bun run changeset                             # add a Changeset for the release
 ```
 
-The Definition of Done for every change is `verify` green, a Changeset, and the architecture invariants below. `verify` includes the vendored-atom lock check (`check-registry`); also run the `elements` tests when `theme` changes. Scope with turbo filters: `--filter=@plainworks/<name>` for one package, `--filter='...[origin/main]'` for the affected set.
+The Definition of Done for every change is `verify` green, a Changeset, and the architecture invariants below. `verify` includes the vendored-atom lock check (`check-registry`) and the generated workspace-shape check (`check-shape`); also run the `elements` tests when `theme` changes. Scope with turbo filters: `--filter=@plainworks/<name>` for one package, `--filter='...[origin/main]'` for the affected set.
 
 A change that alters what a user sees or does in an app also meets the **UI Definition of Done**. Run it in the app (today `apps/showcase`):
 
@@ -81,11 +85,22 @@ A new user-facing journey gets a flow in `apps/<app>/e2e/flows/` with `covers` g
 
 bun workspaces, three roots:
 
-- `packages/<name>/` — the published `@plainworks/*` packages. One concern, one plain word, the **same word everywhere** — no `core`, `engine`, `foundation`, or junk-drawer `utils`. Each is born from the golden generator so its `package.json`/`exports`/`tsconfig`/`tsdown`/`vitest` are identical.
-- `apps/<name>/` — examples/showcase and consuming apps (route tree stays app-local; never imported by a package).
-- `internal/<name>/` — dev-only tooling that is never published: the gates (`boundaries`, `bundle-exclusion`, `comment-format`, `verify`), repository tools (`release`), the build preset (`tsdown-config`), the demo domain (`demo`), and the cross-package suite (`integration`).
+- `packages/<name>/` — published `@plainworks/*` packages. One concern, one plain word, the **same word everywhere** — no `core`, `engine`, `foundation`, or junk-drawer `utils`. Each is born from the golden generator.
+- `apps/<name>/` — private reference hosts and examples. Route trees stay app-local and packages never import them.
+- `internal/<name>/` — dev-only tooling, private package fixtures, and cross-package tests that are never published.
 
-Every published package: `"type": "module"`, `"sideEffects": false`, a server-safe `.` export and (when interactive) a `./client` export, `"files": ["dist"]`, `react`/`react-dom` as `catalog:` peer ranges. Add a new package **only** through `bun run gen package` — never hand-roll one (see the `new-package` skill).
+Every workspace follows exactly one generated profile:
+
+| Profile | Workspaces | Shape |
+|---|---|---|
+| **package** | `packages/*` and built private packages such as `internal/demo` | `tsdown.config.ts` exports `build: PackageBuild`; `sync-shape` derives `exports`, `files`, `sideEffects`, scripts, and preset dev dependencies. |
+| **cli** | `create-plainworks` | Published command package with a bin build and packaging checks. |
+| **tool** | dev-only `internal/*` tools | `src/` with colocated tests, optional `src/cli.ts` bin named `plainworks-<dirname>` whose shebang runs Bun with the `@plainworks/source` condition, optional `src/index.ts` export, `tsconfig.json` extends `../../tsconfig.tool.json`, no root source files and no `test/` directory. |
+| **app** | `apps/*` and `internal/integration` | `tsconfig.json` extends `../../tsconfig.app.json`, tests use `appTestConfig`, and package tasks run against built package surfaces. |
+
+Do not hand-maintain derived manifest fields. Add a package subpath in `tsdown.config.ts` (`export const build: PackageBuild = { entry: { ... } }`, then `export default preset(build)`) and run `bun run sync-shape`. Per-workspace `lint` scripts are absent; root `bun run lint` runs Biome over the repository.
+
+Shared root tsconfigs match the profiles: `tsconfig.base.json` for packages, `tsconfig.tool.json` for source-run internal tools with Node types and `.ts` import specifiers, and `tsconfig.app.json` for apps and integration with DOM+Node types and dist resolution.
 
 ## Layer map
 
@@ -116,7 +131,7 @@ The strictness relaxations for vendored code (`tsconfig.shadcn.json`, the `src/s
 
 ## Code style
 
-- **ESM-only.** Correct `exports` / `types` / `files`; `dist` is built, never committed. `typecheck` is a **separate** script from `build` (`tsc --noEmit` vs `tsdown`).
+- **ESM-only.** Correct generated `exports` / `types` / `files`; `dist` is built, never committed. Packages ship `dist` plus `src` (tests excluded) so JavaScript and declaration source maps point at real TypeScript source. `typecheck` is a **separate** script from `build` (`tsc --noEmit` vs `tsdown`).
 - **Server/client split.** Per-module `"use client"` at the top of client-only modules; tsdown preserves it (`unbundle`). Never a global banner — it would poison the server entry. A server-only module must not be imported by a `"use client"` module.
 - **Typed, minimal public API.** No `any` in public surfaces; prefer `unknown` + narrowing, generics, `satisfies`, discriminated unions. Typed errors (a small error type / result), never thrown strings. Export a flat public surface; keep internals unexported.
 - **No import-time side effects, no module-level singletons.** Factories over globals; explicit adapter registration into an injected registry.

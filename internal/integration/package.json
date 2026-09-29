@@ -13,10 +13,11 @@
     "@plainworks/demo": "workspace:*",
     "@plainworks/http": "workspace:*",
     "@plainworks/query": "workspace:*",
-    "@plainworks/std": "workspace:*",
-    "@plainworks/testkit": "workspace:*"
+    "@plainworks/std": "workspace:*"
   },
   "devDependencies": {
+    "@plainworks/testkit": "workspace:*",
+    "@plainworks/vitest-config": "workspace:*",
     "@types/node": "catalog:",
     "msw": "catalog:",
     "typescript": "catalog:",

@@ -1,7 +1,6 @@
+import { memoryWorkspaceFiles } from "@plainworks/workspace"
 import { describe, expect, it } from "vitest"
-import { ReleaseToolError } from "../error"
 import { readPublishableWorkspaces } from "./manifest"
-import { memoryWorkspaceFiles } from "./memory-files"
 
 const root = JSON.stringify({ workspaces: ["packages/*", "apps/*"] })
 
@@ -40,33 +39,6 @@ describe("readPublishableWorkspaces", () => {
       },
       { dir: "packages/std", name: "@plainworks/std", version: "1.0.0", deps: [] },
     ])
-  })
-
-  it("rejects a workspace glob deeper than one level", () => {
-    const files = memoryWorkspaceFiles({ "package.json": JSON.stringify({ workspaces: ["a/**"] }) })
-    expect(() => readPublishableWorkspaces(files)).toThrow(ReleaseToolError)
-  })
-
-  it("fails when the root manifest is missing or has no workspaces", () => {
-    expect(() => readPublishableWorkspaces(memoryWorkspaceFiles({}))).toThrow(/package\.json/)
-    const noWorkspaces = memoryWorkspaceFiles({ "package.json": "{}" })
-    expect(() => readPublishableWorkspaces(noWorkspaces)).toThrow(/workspaces/)
-  })
-
-  it("names the manifest that is not valid JSON, keeping the parse error as the cause", () => {
-    const files = memoryWorkspaceFiles({
-      "package.json": root,
-      "packages/std/package.json": "{ nope",
-    })
-    let error: unknown
-    try {
-      readPublishableWorkspaces(files)
-    } catch (caught) {
-      error = caught
-    }
-    expect(error).toBeInstanceOf(ReleaseToolError)
-    expect(error).toHaveProperty("message", expect.stringContaining("packages/std/package.json"))
-    expect(error).toHaveProperty("cause", expect.any(SyntaxError))
   })
 
   it("fails a publishable package without a version", () => {

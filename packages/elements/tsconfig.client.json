@@ -7,15 +7,7 @@
   "compilerOptions": {
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "paths": {
-      "@/*": ["./src/*"],
-      // The published per-atom subpaths resolve to owned source during typecheck, so an adoption
-      // test can import `@plainworks/elements/button` before the package is built.
-      "@plainworks/elements/*": ["./src/shadcn/*", "./src/atoms/*"],
-      "@plainworks/testkit": ["../testkit/src"],
-      "@plainworks/testkit/client": ["../testkit/src/client/index.ts"],
-      "@plainworks/theme": ["../theme/src"],
-      "@plainworks/theme/client": ["../theme/src/client/index.ts"],
-      "@plainworks/*": ["../*/src"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/atoms"]

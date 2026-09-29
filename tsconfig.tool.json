@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  // The shared base for the dev-only tools under `internal/`. They run on Node or Bun, never in a
+  // consumer's host, so they see Node types in place of the host-independent shim packages use.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    // The build and test presets are loaded by Node's native type stripping, which resolves only
+    // explicit `.ts` specifiers, so every tool that compiles them must accept one.
+    "allowImportingTsExtensions": true
+  }
+}

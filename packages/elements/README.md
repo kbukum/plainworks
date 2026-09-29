@@ -59,7 +59,7 @@ flowchart LR
 | `registry:update <atom>` | Re-run the pipeline against current upstream, relock, and print a review diff. |
 | `registry:diff <atom>` | Advisory: show the locked atom versus current upstream. |
 | `registry:validate` | Offline check that `registry.json` is schema-correct, every file exists, and every atom matches its lock. |
-| `registry:codegen` | Re-derive `registry.json`, the `exports` map, the tsdown entries, and the `.` manifest from disk. |
+| `registry:codegen` | Re-derive `registry.json`, the tsdown `build.entry` map, and the `.` manifest from disk. |
 
 Run them with `bun run --filter @plainworks/elements <script>`.
 
@@ -83,11 +83,11 @@ Don't re-add a variant upstream doesn't ship; build it as a `ui` wrapper. An ups
 
 ### Type-checking vendored code
 
-Upstream code does not meet the kit's strictest compiler flags. `tsconfig.shadcn.json` relaxes only `isolatedDeclarations`, `exactOptionalPropertyTypes`, and unused-symbol checks for `src/shadcn`, and the build emits declarations with `tsc`. Consumers type against the built declarations, never the source. Biome turns off the rules upstream code doesn't meet (`noDoubleEquals`, `noUnusedImports`, and a few a11y lint rules upstream markup trips) for that folder alone. The a11y bar is still proven by the tests below.
+Upstream code does not meet the kit's strictest compiler flags. `tsconfig.shadcn.json` relaxes only `isolatedDeclarations`, `exactOptionalPropertyTypes`, and unused-symbol checks for `src/shadcn`, and the build emits declarations with `tsc`. Vendored entries resolve through built declarations, even inside the repo. Biome turns off the rules upstream code doesn't meet (`noDoubleEquals`, `noUnusedImports`, and a few a11y lint rules upstream markup trips) for that folder alone. The a11y bar is still proven by the tests below.
 
 ## Drift-proof by codegen
 
-`registry.json`, the package `exports`, the tsdown `entry` map, and `src/registry.ts` are all generated from the atom files in both folders — nothing is hand-maintained. A test re-derives them and asserts the committed artifacts match. After adding or removing an atom, run `registry:codegen`.
+`registry.json`, the tsdown `build.entry` map, and `src/registry.ts` are generated from the atom files in both folders. `plainworks-shape sync` derives the package `exports` from that build description. A test re-derives the committed artifacts and asserts they match. After adding or removing an atom, run `registry:codegen`, then `bun run sync-shape`.
 
 ## Accessibility
 

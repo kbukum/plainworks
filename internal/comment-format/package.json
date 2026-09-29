@@ -5,15 +5,17 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "check": "bun cli.ts --check ../../packages ../../apps ../../internal",
-    "write": "bun cli.ts --write ../../packages ../../apps ../../internal",
-    "verify": "bun verify.ts ../../packages ../../apps ../../internal",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --coverage"
   },
   "devDependencies": {
+    "@plainworks/vitest-config": "workspace:*",
     "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "bin": {
+    "plainworks-comment-format": "./src/cli.ts"
   }
 }

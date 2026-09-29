@@ -58,7 +58,8 @@ Don't re-add a variant (a tone, size, or state) that upstream dropped or never s
 
 ```bash
 bun run --filter @plainworks/elements registry:validate
-turbo run lint typecheck build test --filter=@plainworks/elements...   # elements and its dependents
+bun run lint
+turbo run typecheck build test --filter=@plainworks/elements...   # elements and its dependents
 (cd apps/showcase && bun run e2e e2e/atoms.spec.ts)                    # atoms browser gate
 ```
 

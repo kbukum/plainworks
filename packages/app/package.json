@@ -23,50 +23,57 @@
     "access": "public"
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "!src/**/*.test.*"
   ],
   "exports": {
     ".": {
+      "@plainworks/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./client": {
+      "@plainworks/source": "./src/client.ts",
       "types": "./dist/client.d.ts",
-      "import": "./dist/client.js"
+      "default": "./dist/client.js"
     },
     "./capabilities/auth": {
+      "@plainworks/source": "./src/capabilities/auth.ts",
       "types": "./dist/capabilities/auth.d.ts",
-      "import": "./dist/capabilities/auth.js"
+      "default": "./dist/capabilities/auth.js"
     },
     "./capabilities/query": {
+      "@plainworks/source": "./src/capabilities/query.ts",
       "types": "./dist/capabilities/query.d.ts",
-      "import": "./dist/capabilities/query.js"
+      "default": "./dist/capabilities/query.js"
     },
     "./capabilities/state": {
+      "@plainworks/source": "./src/capabilities/state.ts",
       "types": "./dist/capabilities/state.d.ts",
-      "import": "./dist/capabilities/state.js"
+      "default": "./dist/capabilities/state.js"
     },
     "./testing": {
+      "@plainworks/source": "./src/testing.ts",
       "types": "./dist/testing.d.ts",
-      "import": "./dist/testing.js"
+      "default": "./dist/testing.js"
     }
   },
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run --coverage",
-    "lint": "biome check .",
-    "check-packaging": "publint --strict && attw --pack --profile esm-only"
+    "check-packaging": "plainworks-release check-packaging"
   },
   "dependencies": {
     "@plainworks/std": "workspace:*"
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "catalog:",
     "@plainworks/auth": "workspace:*",
     "@plainworks/query": "workspace:*",
     "@plainworks/state": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
+    "@plainworks/vitest-config": "workspace:*",
     "@tanstack/query-core": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@testing-library/react": "catalog:",
@@ -77,7 +84,6 @@
     "@vitest/coverage-v8": "catalog:",
     "axe-core": "catalog:",
     "jsdom": "catalog:",
-    "publint": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "tsdown": "catalog:",

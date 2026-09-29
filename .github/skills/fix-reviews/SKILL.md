@@ -70,7 +70,8 @@ Run the smallest gates that cover the touched packages (see the [`validate`](../
 
 ```bash
 turbo run test --filter='...[origin/main]'
-turbo run lint typecheck build --filter=@plainworks/<name>
+bun run lint
+turbo run typecheck build --filter=@plainworks/<name>
 bun run check-boundaries && bun run check-versions
 ```
 

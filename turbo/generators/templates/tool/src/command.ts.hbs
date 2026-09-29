@@ -1,0 +1,17 @@
+/** Where a command writes its report. */
+export interface CommandOutput {
+  stdout(text: string): void
+  stderr(text: string): void
+}
+
+const USAGE = "Usage: plainworks-{{name}}\n"
+
+/** Runs the tool and returns its exit code: `0` on success, `2` on a usage error. */
+export function runCommand(args: readonly string[], output: CommandOutput): number {
+  if (args.length > 0) {
+    output.stderr(USAGE)
+    return 2
+  }
+  output.stdout("plainworks-{{name}}: done\n")
+  return 0
+}

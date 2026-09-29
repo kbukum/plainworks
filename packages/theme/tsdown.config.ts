@@ -1,12 +1,14 @@
-import { preset } from "@plainworks/tsdown-config"
+import { type PackageBuild, preset } from "@plainworks/tsdown-config"
 
-export default preset({
+export const build: PackageBuild = {
   entry: {
     index: "src/index.ts",
     client: "src/client.ts",
   },
-  copy: [
-    { from: "src/styles.css", to: "dist" },
-    { from: "src/tokens.css", to: "dist" },
-  ],
-})
+  assets: {
+    "styles.css": { from: "src/styles.css" },
+    "tokens.css": { from: "src/tokens.css" },
+  },
+}
+
+export default preset(build)

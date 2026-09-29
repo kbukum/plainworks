@@ -42,7 +42,8 @@ The shadcn atoms in `@plainworks/elements` are **not** a backend. They are **ven
 5. **Validate & release.**
 
 ```bash
-turbo run lint typecheck build test --filter=@plainworks/<package>
+bun run lint
+turbo run typecheck build test --filter=@plainworks/<package>
 bun run check-boundaries          # adapter imports only downward; seam stays lower
 bun run check-versions
 bun run changeset

@@ -1,7 +1,7 @@
 "use client"
 
-import { Callout } from "@plainworks/ui/feedback"
-import { Section } from "@plainworks/ui/page"
+import { Callout } from "@plainworks/ui/feedback/callout"
+import { Section } from "@plainworks/ui/layout/section"
 import type { ReactElement } from "react"
 import { Can, canManageAccount, useIdentity } from "./session"
 

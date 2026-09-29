@@ -1,5 +1,7 @@
 /**
  * Common handler utilities
  */
-export * from "./crud"
-export * from "./decode"
+export type { CrudHandlerConfig, MutationAuthorizer } from "./crud"
+export { createCrudHandlers } from "./crud"
+export type { FieldSpecFor, InputSpec } from "./decode"
+export { decodeInput } from "./decode"

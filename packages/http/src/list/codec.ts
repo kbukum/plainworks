@@ -1,4 +1,4 @@
-import { HttpError } from "../error"
+import { HttpError } from "../errors"
 
 /**
  * The REST-value escape codec — the round-trippable pair the list dialect uses so a filter value

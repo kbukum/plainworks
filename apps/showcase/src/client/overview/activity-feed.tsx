@@ -1,7 +1,9 @@
 "use client"
 
-import { DateValue, StatusBadge } from "@plainworks/ui/display"
-import { Callout, LoadingState } from "@plainworks/ui/feedback"
+import { DateValue } from "@plainworks/ui/display/date-value"
+import { StatusBadge } from "@plainworks/ui/display/status-badge"
+import { Callout } from "@plainworks/ui/feedback/callout"
+import { LoadingState } from "@plainworks/ui/feedback/loading-state"
 import { useQuery } from "@tanstack/react-query"
 import type { ReactElement } from "react"
 import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE, RECENT_ACTIVITY_PARAMS } from "../../app/constants"

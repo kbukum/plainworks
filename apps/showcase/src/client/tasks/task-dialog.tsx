@@ -1,7 +1,7 @@
 "use client"
 
 import type { Task } from "@plainworks/demo"
-import { Modal } from "@plainworks/ui/overlays"
+import { Modal } from "@plainworks/ui/overlays/modal"
 import type { ReactElement } from "react"
 import { TaskForm } from "./task-form"
 import type { TaskFormValues } from "./task-schema"

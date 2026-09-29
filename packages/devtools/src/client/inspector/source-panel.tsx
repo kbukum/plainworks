@@ -2,7 +2,7 @@
 
 import type { ErrorSnapshot } from "@plainworks/std"
 import { cn } from "@plainworks/theme"
-import { Callout } from "@plainworks/ui/feedback"
+import { Callout } from "@plainworks/ui/feedback/callout"
 import type { ReactElement } from "react"
 import {
   type SourceDescriptor,

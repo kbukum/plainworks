@@ -10,7 +10,7 @@ import type {
   StreamTransportFactory,
 } from "@plainworks/std/seam"
 import { assertDurationMs } from "../../duration"
-import { ChannelError } from "../../error"
+import { ChannelError } from "../../errors"
 import { resolveUrl, type UrlSource } from "../url"
 import {
   resolveGlobalSocketFactory,

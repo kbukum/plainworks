@@ -2,25 +2,36 @@ import { Button } from "@plainworks/elements/button"
 import { Input } from "@plainworks/elements/input"
 import type { ListFilter } from "@plainworks/std/list"
 import type { StandardSchemaV1 } from "@plainworks/std/seam"
-import { DataTable, type DataTableColumn } from "@plainworks/ui/data-table"
-import { DateValue, NumberValue, StatusBadge, type StatusTone } from "@plainworks/ui/display"
-import { Callout, EmptyState, ErrorState, LoadingState, Spinner } from "@plainworks/ui/feedback"
-import {
-  CheckboxField,
-  DateField,
-  Form,
-  FormSubmit,
-  NumberField,
-  SelectField,
-  SwitchField,
-  TextareaField,
-  TextField,
-} from "@plainworks/ui/forms"
-import { FilterBar, type FilterFieldDef, Pagination } from "@plainworks/ui/list"
-import { Breadcrumbs } from "@plainworks/ui/navigation"
-import { Drawer, Modal } from "@plainworks/ui/overlays"
-import { Page, PageHeader, Section as PageSection, Toolbar } from "@plainworks/ui/page"
-import { ThemeModeGroup, ThemeModeMenu } from "@plainworks/ui/theme"
+import { DataTable, type DataTableColumn } from "@plainworks/ui/data/data-table"
+import { FilterBar } from "@plainworks/ui/data/filter-bar"
+import type { FilterFieldDef } from "@plainworks/ui/data/filter-model"
+import { Pagination } from "@plainworks/ui/data/pagination"
+import { DateValue } from "@plainworks/ui/display/date-value"
+import { NumberValue } from "@plainworks/ui/display/number-value"
+import { StatusBadge, type StatusTone } from "@plainworks/ui/display/status-badge"
+import { Callout } from "@plainworks/ui/feedback/callout"
+import { EmptyState } from "@plainworks/ui/feedback/empty-state"
+import { ErrorState } from "@plainworks/ui/feedback/error-state"
+import { LoadingState } from "@plainworks/ui/feedback/loading-state"
+import { Spinner } from "@plainworks/ui/feedback/spinner"
+import { CheckboxField } from "@plainworks/ui/forms/checkbox-field"
+import { DateField } from "@plainworks/ui/forms/date-field"
+import { Form } from "@plainworks/ui/forms/form"
+import { FormSubmit } from "@plainworks/ui/forms/form-submit"
+import { NumberField } from "@plainworks/ui/forms/number-field"
+import { SelectField } from "@plainworks/ui/forms/select-field"
+import { SwitchField } from "@plainworks/ui/forms/switch-field"
+import { TextField } from "@plainworks/ui/forms/text-field"
+import { TextareaField } from "@plainworks/ui/forms/textarea-field"
+import { Page } from "@plainworks/ui/layout/page"
+import { PageHeader } from "@plainworks/ui/layout/page-header"
+import { Section as PageSection } from "@plainworks/ui/layout/section"
+import { Toolbar } from "@plainworks/ui/layout/toolbar"
+import { Breadcrumbs } from "@plainworks/ui/navigation/breadcrumbs"
+import { Drawer } from "@plainworks/ui/overlays/drawer"
+import { Modal } from "@plainworks/ui/overlays/modal"
+import { ThemeModeGroup } from "@plainworks/ui/theme/theme-mode-group"
+import { ThemeModeMenu } from "@plainworks/ui/theme/theme-mode-menu"
 import { type ReactElement, useState } from "react"
 import { Category, FIXED_DATE, Section } from "./frame"
 

@@ -42,20 +42,25 @@
       "types": "./dist/client.d.ts",
       "default": "./dist/client.js"
     },
-    "./client/scope": {
-      "@plainworks/source": "./src/client/scope/index.ts",
-      "types": "./dist/client/scope.d.ts",
-      "default": "./dist/client/scope.js"
+    "./web-storage": {
+      "@plainworks/source": "./src/adapters/web-storage.ts",
+      "types": "./dist/web-storage.d.ts",
+      "default": "./dist/web-storage.js"
     },
-    "./client/supplied": {
-      "@plainworks/source": "./src/client/supplied.ts",
-      "types": "./dist/client/supplied.d.ts",
-      "default": "./dist/client/supplied.js"
+    "./cookie": {
+      "@plainworks/source": "./src/adapters/cookie.ts",
+      "types": "./dist/cookie.d.ts",
+      "default": "./dist/cookie.js"
+    },
+    "./url": {
+      "@plainworks/source": "./src/adapters/url.ts",
+      "types": "./dist/url.d.ts",
+      "default": "./dist/url.js"
     }
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json",
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.adapters.json && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run --coverage",
     "check-packaging": "plainworks-release check-packaging"
   },

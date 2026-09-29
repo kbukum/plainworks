@@ -1,5 +1,5 @@
 import type { Order } from "@plainworks/demo"
-import type { StatusTone } from "@plainworks/ui/display"
+import type { StatusTone } from "@plainworks/ui/display/status-badge"
 import { ORDER_STATUSES } from "../../app/order-shape"
 import type { FacetOption } from "../catalog"
 

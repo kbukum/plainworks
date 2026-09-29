@@ -13,7 +13,7 @@ Vendored atoms — never hand-edited:
 Separation of concerns (the host-independence seam):
 
 - **Server-safe logic stays out of the client leaf.** Pure logic, types, schemas, and contracts live in the server-safe `.` graph (or `@plainworks/std`); the `"use client"` module holds only what genuinely needs the DOM/hooks. The barrel (`index.ts` / `client.ts`) re-exports only. A `"use client"` module must never import server-only auth/token-custody code.
-- **Non-DOM client hooks stay DOM-free (React-without-DOM bucket).** A `./client` hook that only needs React state/effects — `state`/`query`/`channel`/`auth` bindings — must not reach for `document`/`window`/`localStorage`, so it also runs under React Native / Expo. Only genuinely DOM-bound code (`ui` components, CSS, focus/measure) may touch those globals; that code is DOM-only and out of scope for RN. See `docs/architecture.md › Axis 2` (three entry buckets).
+- **`./client` stays DOM-free unless the package declares `dom`.** The `state`/`query`/`channel`/`auth`/`connect`/`app` clients compile without the DOM lib, so they also run under React Native / Expo. Browser behavior (storage, cookies, the URL, form posts) goes on an **adapter subpath named after what it does** (`state/web-storage`, `auth/form-post`), injected through a seam. Only packages whose product is browser UI (`theme`, `elements`, `ui`, `devtools`, `testkit`) declare `dom: true`. See `docs/architecture.md › Choose an entry point`.
 - **`"use client"` is per-module, at the top of the file** — tsdown preserves it; never a global banner (it would poison the server entry).
 
 Accessibility — WCAG 2.2 AA, non-negotiable:

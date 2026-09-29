@@ -1,5 +1,5 @@
 import type { User } from "@plainworks/demo"
-import type { StatusTone } from "@plainworks/ui/display"
+import type { StatusTone } from "@plainworks/ui/display/status-badge"
 import { USER_DEPARTMENTS, USER_ROLES, USER_STATUSES } from "../../app/user-shape"
 import type { FacetOption } from "../catalog"
 

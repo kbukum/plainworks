@@ -12,7 +12,7 @@ bun add @plainworks/state
 
 ## Runtime primitives
 
-The neutral `.` core (`createStore` and the facade) touches **no** host primitives at all — it is pure state, so it runs on every target runtime (server, edge, workers, RSC, browser, React Native). The `./client` bindings are the **React-without-DOM** bucket: the scoped-state hooks use React (`useSyncExternalStore`) only and reference no `document` / `window` / `localStorage`, so they run in a browser and under React Native / Expo alike. The host-backed **scope backends** that *do* touch the DOM (`persistentScope`, `sessionScope`, `cookieScope`, `urlScope`) live at the separate DOM-only `@plainworks/state/client/scope` subpath, so importing the hooks never drags a browser global into a native bundle. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives) for the three entry buckets.
+The neutral `.` core (`createStore` and the facade) touches **no** host primitives at all — it is pure state, so it runs on every target runtime (server, edge, workers, RSC, browser, React Native). The `./client` bindings are the **React-without-DOM** bucket: the scoped-state hooks use React (`useSyncExternalStore`) only and reference no `document` / `window` / `localStorage`, so they run in a browser and under React Native / Expo alike. The host-backed **scope backends** that *do* touch the DOM (`persistentScope`, `sessionScope`, `cookieScope`, `urlScope`) live on their own DOM adapter subpaths (`@plainworks/state/web-storage`, `@plainworks/state/cookie`, `@plainworks/state/url`), so importing the hooks never drags a browser global into a native bundle. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives) for the three entry buckets.
 
 ## Server-safe core (`.`)
 
@@ -76,10 +76,10 @@ function Counter() {
 
 `initialState` is shallow-merged over the initializer's state — right for plain-record state. For a non-record shape (array, class instance) or a deep merge, pass `mergeInitialState: (initial, serverState) => state` in the `createStoreContext` options so hydration preserves the shape.
 
-To supply your own store engine, import from the engine-free `./client/supplied` subpath and pass a per-request `store`. This subpath loads **no** default engine — nothing pulls Zustand into your graph, even in a native-ESM host without tree-shaking:
+To supply your own store engine, use `createSuppliedStoreContext` and pass a per-request `store`. It never calls the default engine, and the package is `"sideEffects": false`, so a bundler drops Zustand when you import only this binding:
 
 ```tsx
-import { createSuppliedStoreContext } from "@plainworks/state/client/supplied"
+import { createSuppliedStoreContext } from "@plainworks/state/client"
 
 const { Provider, useStore } = createSuppliedStoreContext<{ user: string }>()
 // <Provider store={myStore}><Profile /></Provider>  — the `store` prop is required
@@ -93,10 +93,10 @@ A **scope** answers *where a value lives* — in memory, `localStorage`, a cooki
 "use client"
 
 import { createScopedState } from "@plainworks/state/client"
-import { persistentScope } from "@plainworks/state/client/scope"
+import { persistentScope } from "@plainworks/state/web-storage"
 
 const useTheme = createScopedState<"light" | "dark">({
-  scope: persistentScope, // memoryScope is server-safe from "@plainworks/state"; the rest live in /client/scope
+  scope: persistentScope, // memoryScope is server-safe from "@plainworks/state"; the DOM scopes have adapter subpaths
   key: "theme",
   initial: "light",
 })
@@ -131,7 +131,8 @@ The Provider renders the seed first — matching the server, so **no hydration m
 ```tsx
 import { memoryScope } from "@plainworks/state" // server-safe scope
 import { createScopedObject } from "@plainworks/state/client" // DOM-free hooks
-import { cookieScope, persistentScope } from "@plainworks/state/client/scope" // DOM-only backends
+import { cookieScope } from "@plainworks/state/cookie" // DOM adapter
+import { persistentScope } from "@plainworks/state/web-storage" // DOM adapter
 
 export const usePrefs = createScopedObject({
   fields: {
@@ -175,13 +176,13 @@ const usePrefs = createScopedState({
 
 ### The scopes
 
-| Scope             | Backend          | Durable | Cross-tab | Sent to server | Notes                              |
-| ----------------- | ---------------- | ------- | --------- | -------------- | ---------------------------------- |
-| `memoryScope`     | in-memory store  | no      | no        | no             | server-safe; hydrates from SSR     |
-| `persistentScope` | `localStorage`   | yes     | yes       | no             | non-secret only                    |
-| `sessionScope`    | `sessionStorage` | yes     | no        | no             | per-tab                            |
-| `cookieScope`     | `document.cookie`| yes     | no        | **yes**        | ~4 KB cap; non-secret only         |
-| `urlScope`        | `?search` / `#`  | no      | no        | on navigation  | shareable, bookmarkable            |
+| Scope             | Import from                    | Backend           | Durable | Cross-tab | Sent to server | Notes                          |
+| ----------------- | ------------------------------ | ----------------- | ------- | --------- | -------------- | ------------------------------ |
+| `memoryScope`     | `@plainworks/state`            | in-memory store   | no      | no        | no             | server-safe; hydrates from SSR |
+| `persistentScope` | `@plainworks/state/web-storage`| `localStorage`    | yes     | yes       | no             | non-secret only                |
+| `sessionScope`    | `@plainworks/state/web-storage`| `sessionStorage`  | yes     | no        | no             | per-tab                        |
+| `cookieScope`     | `@plainworks/state/cookie`     | `document.cookie` | yes     | no        | **yes**        | ~4 KB cap; non-secret only     |
+| `urlScope`        | `@plainworks/state/url`        | `?search` / `#`   | no      | no        | on navigation  | shareable, bookmarkable        |
 
 **Never store a token or secret** in a client scope — every one is readable by any script on the origin, and a cookie is sent to the server on every request. The secret guard above enforces this structurally.
 

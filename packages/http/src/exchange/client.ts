@@ -29,7 +29,7 @@ import {
   type WebResponse,
 } from "@plainworks/std/web"
 import { type BodyCodec, jsonCodec } from "../codec"
-import { HttpError } from "../error"
+import { HttpError } from "../errors"
 import { authHeaderInterceptor, type HttpHandler, type HttpInterceptor } from "../interceptor"
 import { telemetryInterceptor } from "../interceptor/telemetry"
 import { assertSafeRequestUrl, buildUrl, type QueryParams } from "../url"

@@ -4,15 +4,13 @@ import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { cleanup, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it } from "vitest"
-import {
-  CheckboxField,
-  DateField,
-  NumberField,
-  SelectField,
-  SwitchField,
-  TextareaField,
-  TextField,
-} from "./fields"
+import { CheckboxField } from "./checkbox-field"
+import { DateField } from "./date-field"
+import { NumberField } from "./number-field"
+import { SelectField } from "./select-field"
+import { SwitchField } from "./switch-field"
+import { TextField } from "./text-field"
+import { TextareaField } from "./textarea-field"
 
 afterEach(cleanup)
 

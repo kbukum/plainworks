@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // The `./testing` profile: the shipped harness (`src/testing.ts` + `src/testing/`) renders through
+  // `@testing-library/react`, so it adds the DOM libs. No production module may import it (a
+  // boundary rule), so DOM never reaches the `.`, `./client`, or `./capabilities` graphs.
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
+  "include": ["src/testing.ts", "src/testing"]
+}

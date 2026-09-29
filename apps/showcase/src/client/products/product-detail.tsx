@@ -2,8 +2,9 @@
 
 import type { Product } from "@plainworks/demo"
 import { Badge } from "@plainworks/elements/badge"
-import { NumberValue, StatusBadge } from "@plainworks/ui/display"
-import { Modal } from "@plainworks/ui/overlays"
+import { NumberValue } from "@plainworks/ui/display/number-value"
+import { StatusBadge } from "@plainworks/ui/display/status-badge"
+import { Modal } from "@plainworks/ui/overlays/modal"
 import type { ReactElement, ReactNode } from "react"
 import { DISPLAY_LOCALE } from "../../app/constants"
 import { PRODUCT_STATUS_LABEL, PRODUCT_STATUS_TONE, productInStock } from "./product-fields"

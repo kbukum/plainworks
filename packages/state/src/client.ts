@@ -1,13 +1,26 @@
 "use client"
 
-// Client public entry for `@plainworks/state` — re-export-only barrel over the **DOM-free** client
-// concern modules (the scoped-state hooks + the store binding), never the server `.` barrel.
-// Keeping this entry DOM-free is deliberate: it is the React-without-DOM bucket (React
-// Native/Expo), so the host-backed *scope backends* (Web Storage, cookie, URL — which touch
-// `window`/`document`) live at the separate DOM-only `./client/scope` subpath, not here. The
-// per-module `"use client"` directive makes tsdown emit this (and only the client graph) as the
-// `./client` entry; the server `.` entry stays clean. The bring-your-own-store binding lives at the
-// engine-free `./client/supplied` subpath.
+// Client public entry for `@plainworks/state` — re-export-only barrel over the React bindings:
+// the default-engine store context, the bring-your-own-store context, and the scoped-state hooks.
+// It is React-without-DOM, so it runs on React Native/Expo as well as in the browser. The DOM scope
+// backends ship on their own adapter subpaths (`./web-storage`, `./cookie`, `./url`), never here.
+export type { SuppliedStoreContext, SuppliedStoreProviderProps } from "./client/binding"
+export { createSuppliedStoreContext } from "./client/binding"
 export type { StoreContext, StoreContextOptions, StoreProviderProps } from "./client/context"
 export { createStoreContext } from "./client/context"
-export * from "./client/scoped"
+export type {
+  FieldDescriptor,
+  ObjectPatch,
+  ScopedObjectActions,
+  ScopedObjectApi,
+  ScopedObjectConfig,
+  ScopedObjectProviderProps,
+  ScopedObjectSurface,
+  ScopedSetter,
+  ScopedStateActions,
+  ScopedStateApi,
+  ScopedStateConfig,
+  ScopedStateProviderProps,
+  ScopedStateSurface,
+} from "./client/scoped"
+export { createScopedObject, createScopedState } from "./client/scoped"

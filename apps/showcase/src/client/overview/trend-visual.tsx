@@ -1,7 +1,8 @@
 "use client"
 
 import type { RevenueChartData } from "@plainworks/demo"
-import { DateValue, NumberValue } from "@plainworks/ui/display"
+import { DateValue } from "@plainworks/ui/display/date-value"
+import { NumberValue } from "@plainworks/ui/display/number-value"
 import type { ReactElement } from "react"
 import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../app/constants"
 import { GrowthBadge } from "./growth-badge"

@@ -1,11 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
-  // Client-only project: the `./client` graph (`src/client.ts` + `src/client/`) is the sole surface
-  // allowed to touch the DOM, so it — and only it — layers the DOM libs on top of the base config.
-  // The server project (`tsconfig.src.json`) stays DOM-free and excludes this graph, so the `.`
-  // entry can never silently depend on a browser global.
-  "compilerOptions": {
-    "lib": ["ES2023", "DOM", "DOM.Iterable"]
-  },
-  "include": ["src/client.ts", "src/client"]
+  // Client project, but React-without-DOM: the `./client` bindings are pure React context and
+  // hooks, so they compile against the universal-web shim, never the DOM libs. That keeps
+  // `@plainworks/state/client` usable on React Native/Expo as well as in the browser.
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
+  "include": ["src/client.ts", "src/client", "../../types/universal-web.d.ts"]
 }

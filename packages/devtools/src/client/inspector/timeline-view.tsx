@@ -3,7 +3,7 @@
 import { Button } from "@plainworks/elements/button"
 import { Input } from "@plainworks/elements/input"
 import { NativeSelect, NativeSelectOption } from "@plainworks/elements/native-select"
-import { Toolbar } from "@plainworks/ui/page"
+import { Toolbar } from "@plainworks/ui/layout/toolbar"
 import { type ReactElement, useMemo, useState } from "react"
 import { type Severity, sourceKey } from "../../protocol"
 import type { DevtoolsClientPort } from "../../session"

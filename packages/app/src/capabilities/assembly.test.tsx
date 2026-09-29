@@ -2,7 +2,7 @@
 import { createAuthStore } from "@plainworks/auth"
 import { createQueryClient } from "@plainworks/query"
 import { QueryProvider } from "@plainworks/query/client"
-import { createSuppliedStoreContext } from "@plainworks/state/client/supplied"
+import { createSuppliedStoreContext } from "@plainworks/state/client"
 import { useQueryClient } from "@tanstack/react-query"
 import { cleanup, render, screen } from "@testing-library/react"
 import { createContext, createElement, type ReactNode, useContext } from "react"

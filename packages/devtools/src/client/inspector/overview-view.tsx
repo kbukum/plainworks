@@ -1,7 +1,8 @@
 "use client"
 
 import { Badge } from "@plainworks/elements/badge"
-import { Callout, EmptyState } from "@plainworks/ui/feedback"
+import { Callout } from "@plainworks/ui/feedback/callout"
+import { EmptyState } from "@plainworks/ui/feedback/empty-state"
 import type { ReactElement } from "react"
 import { sourceKey } from "../../protocol"
 import type { DevtoolsStoreState } from "../../store"

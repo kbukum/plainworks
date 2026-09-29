@@ -1,7 +1,7 @@
 "use client"
 
 import { useTheme } from "@plainworks/theme/client"
-import { ThemeModeGroup } from "@plainworks/ui/theme"
+import { ThemeModeGroup } from "@plainworks/ui/theme/theme-mode-group"
 import type { ReactElement } from "react"
 import { AccentPicker } from "./accent-picker"
 import { THEME_MODE_ICONS } from "./mode-icons"

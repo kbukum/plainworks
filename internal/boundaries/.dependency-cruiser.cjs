@@ -30,6 +30,10 @@ const path = require("node:path")
 // upward exception below (importing @plainworks/testkit); production source is not.
 const TEST_FILE = "\\.test\\.tsx?$"
 
+// A module in a package's `./testing` profile: the `src/testing.ts` entry or anything under
+// `src/testing/`.
+const TESTING_MODULE = "(^|/)packages/[^/]+/src/testing(\\.ts$|/)"
+
 // Repo root, resolved from this file so cwd (a package dir under `bun run --filter`) is irrelevant.
 const repoRoot = path.resolve(__dirname, "..", "..")
 
@@ -47,13 +51,13 @@ const LAYERS = Object.fromEntries(
 //   0  foundation   hooks (neutral stately + DOM) · client hooks
 //   1  general      layout · feedback · overlays · display · navigation · theme
 //   2  composites   forms · shell
-//   3  data         data-table · list
+//   3  data         data table · filter bar · pagination
 //
 // A concern folder may import only a STRICTLY LOWER band; a same-band sibling import (baseline
 // rule A: "a concern folder never imports a sibling concern") and an upward import are both
 // forbidden, so a piece shared across concerns sinks to a lower band instead of creating a
-// back-edge. `dir` is relative to `packages/ui/src/`. The re-export barrels (`index.ts`,
-// `client.ts`) sit OUTSIDE every concern folder, so they aggregate all concerns without tripping.
+// back-edge. `dir` is relative to `packages/ui/src/`. The neutral `index.ts` entry sits OUTSIDE
+// every concern folder; components are published one per subpath, so there is no aggregate barrel.
 // A concern folder absent from this table has no band; `unmappedUiConcernRules` below fails it
 // closed (it may import no other ui concern) so an unlisted folder never goes vacuously green.
 const UI_CONCERNS = {
@@ -68,8 +72,7 @@ const UI_CONCERNS = {
   theme: { band: 1, dir: "client/theme" },
   forms: { band: 2, dir: "client/forms" },
   shell: { band: 2, dir: "client/shell" },
-  "data-table": { band: 3, dir: "client/data-table" },
-  list: { band: 3, dir: "client/list" },
+  data: { band: 3, dir: "client/data" },
 }
 
 // Directory segments of every classified concern, split by location so the fail-closed catch-all
@@ -88,7 +91,7 @@ function unmappedUiConcernRules() {
   // Fail CLOSED for the concern bands, exactly as `unmapped-package-no-internal-imports` does for
   // the package layers. A concern folder that is NOT in UI_CONCERNS has no band, so none of the
   // generated `no-ui-upward-*` rules name it as a source — leaving it free to import a sibling, a
-  // higher band, or the aggregate barrel unchecked (the "vacuously green" hole one level down).
+  // higher band, or a re-exporting module unchecked (the "vacuously green" hole one level down).
   // These two rules close it: an unclassified concern folder (neutral `src/<x>/` or client
   // `src/client/<x>/`) may import NOTHING else under `packages/ui/src` until it is added to
   // UI_CONCERNS with a band. `$2` (its own folder) stays legal so intra-concern relative imports
@@ -123,9 +126,9 @@ function uiConcernRules() {
     // Fail CLOSED: forbid importing ANYTHING under packages/ui/src except this concern's own folder
     // and the concern folders in a strictly LOWER band. Listing only the higher/sibling concerns
     // would leave a hole — a foundation concern could reach a higher one transitively through the
-    // aggregate `client.ts`/`index.ts` barrel (or any uncategorized `src/` module that re-exports
-    // it). So a same-band sibling, an upward concern, a barrel, and a junk-drawer bridge are all
-    // rejected; a piece shared across concerns must sink to a lower band, not hide behind the barrel.
+    // top-level `index.ts` (or any uncategorized `src/` module that re-exports it). So a same-band
+    // sibling, an upward concern, a re-exporting module, and a junk-drawer bridge are all rejected;
+    // a piece shared across concerns must sink to a lower band, not hide behind a re-export.
     const allowed = [
       `(^|/)packages/ui/src/${dir}/`,
       ...Object.values(UI_CONCERNS)
@@ -229,6 +232,17 @@ const forbidden = [
     severity: "error",
     from: { path: "(^|/)packages/(?!testkit/)[^/]+/src/", pathNot: TEST_FILE },
     to: { path: "(^|/)packages/testkit/" },
+  },
+  {
+    // The `./testing` profile. A package's test-only helpers (`src/testing.ts` + `src/testing/`) may
+    // use Node or the DOM, so only tests — and the helpers themselves — may import them. Any other
+    // module doing so would pull test tooling into a shipped `.`, `./client`, or adapter graph.
+    name: "no-production-testing-import",
+    comment:
+      "Only *.test.ts(x) files and the ./testing helpers themselves may import a package's src/testing; production source must not ship test tooling.",
+    severity: "error",
+    from: { path: "(^|/)packages/[^/]+/src/", pathNot: [TEST_FILE, TESTING_MODULE] },
+    to: { path: TESTING_MODULE },
   },
   {
     // Token-custody quarantine. The server-only auth graph (`server.ts` + `server/**`) holds the

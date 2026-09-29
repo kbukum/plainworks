@@ -1,5 +1,5 @@
 import type { WebURL } from "@plainworks/std/web"
-import { HttpError } from "../error"
+import { HttpError } from "../errors"
 import { assertNoUrlCredentials, parseUrl } from "./guard"
 import { applyQuery, assertNoCredentialQuery, type QueryParams } from "./query"
 

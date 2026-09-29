@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { HttpError } from "../error"
+import { HttpError } from "../errors"
 import { buildUrl } from "./build"
 
 /** Capture the value a builder throws, failing the test if it unexpectedly succeeds. */

@@ -17,7 +17,7 @@ The authoritative baseline lives in [`../../copilot-instructions.md`](../../copi
 
 ## Run in a separate, clean-context agent — with a high-capability model
 
-**Always dispatch a review to a fresh reviewer with no shared session context**, and use a high-capability model (Claude Opus 4.8) — never inline in the session that wrote the code. A reviewer that "remembers" writing the change rationalizes it; an independent agent re-derives every judgment from the code and the principles. Hand it only the scope (diff or package/tree) and this skill. Then re-evaluate its findings before changing code.
+**Always dispatch a review to a fresh reviewer with no shared session context**, and use a high-capability model (GPT Sol, `gpt-6-sol`) — never inline in the session that wrote the code. A reviewer that "remembers" writing the change rationalizes it; an independent agent re-derives every judgment from the code and the principles. Hand it only the scope (diff or package/tree) and this skill. Then re-evaluate its findings before changing code.
 
 ## Scope: the blast radius, not just the diff
 

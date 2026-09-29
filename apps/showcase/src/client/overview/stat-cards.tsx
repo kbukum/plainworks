@@ -9,8 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@plainworks/elements/card"
-import { NumberValue } from "@plainworks/ui/display"
-import { LoadingState } from "@plainworks/ui/feedback"
+import { NumberValue } from "@plainworks/ui/display/number-value"
+import { LoadingState } from "@plainworks/ui/feedback/loading-state"
 import type { ReactElement, ReactNode } from "react"
 import { DISPLAY_LOCALE } from "../../app/constants"
 import { GrowthBadge } from "./growth-badge"

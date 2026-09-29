@@ -1,7 +1,7 @@
 "use client"
 
 import { buttonVariants } from "@plainworks/elements/button"
-import { Section } from "@plainworks/ui/page"
+import { Section } from "@plainworks/ui/layout/section"
 import Link from "next/link"
 import type { ReactElement } from "react"
 import { TASKS_PATH } from "../neutral/constants"

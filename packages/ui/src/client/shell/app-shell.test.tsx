@@ -4,7 +4,7 @@ import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it } from "vitest"
-import { NavList } from "../navigation"
+import { NavList } from "../navigation/nav-list"
 import { AppShell, type AppShellProps } from "./app-shell"
 
 afterEach(cleanup)

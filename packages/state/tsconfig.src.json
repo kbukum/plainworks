@@ -1,7 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
-  // Server project: the `.` entry must stay DOM-free, so the client graph (`src/client.ts` +
-  // `src/client/`) is excluded here and typechecked with DOM libs via `tsconfig.client.json`.
-  "exclude": ["src/client.ts", "src/client"],
+  // Server project: the neutral `.` surface, DOM-free with the universal-web shim. The React bindings
+  // (`src/client.ts` + `src/client/`) live in `tsconfig.client.json`, the DOM scope backends in
+  // `tsconfig.adapters.json`, and their DOM-backed tests in `tsconfig.test.json`. The neutral tests
+  // stay here, DOM-free.
+  "exclude": ["src/client.ts", "src/client", "src/adapters"],
   "include": ["src", "../../types/universal-web.d.ts"]
 }

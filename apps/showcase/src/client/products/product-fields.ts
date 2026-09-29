@@ -1,5 +1,5 @@
 import type { Product } from "@plainworks/demo"
-import type { StatusTone } from "@plainworks/ui/display"
+import type { StatusTone } from "@plainworks/ui/display/status-badge"
 import type { FacetOption } from "../catalog"
 
 const CATALOG_PRODUCT_STATUSES = [

@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Adapter project: the browser navigator (`./form-post`) drives `location` and `document`, so this
+  // project alone adds the DOM libs.
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "exclude": ["src/**/*.test.ts"],
+  "include": ["src/adapters"]
+}

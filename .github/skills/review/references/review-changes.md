@@ -4,7 +4,7 @@ Standing, re-runnable review of a **change set** in this repository — a branch
 
 ## Run this in a separate, clean-context agent — high-capability model
 
-**Always dispatch this review to a fresh reviewer agent with no shared session context**, using a high-capability model (Claude Opus 4.8). A reviewer that "remembers" writing the code rationalizes it; an independent agent re-derives every judgment from the diff and the principles. Re-evaluate its findings before changing code.
+**Always dispatch this review to a fresh reviewer agent with no shared session context**, using a high-capability model (GPT Sol, `gpt-6-sol`). A reviewer that "remembers" writing the code rationalizes it; an independent agent re-derives every judgment from the diff and the principles. Re-evaluate its findings before changing code.
 
 - Hand the reviewer agent: the diff (or base ref), this file, and the [`references/`](./) folder. Nothing else from the authoring session.
 - **Optional plan check.** If a plan/spec/issue exists, pass it in *as a scope checklist only* — "here is what this change set claimed to do; verify the diff actually did it, with tests." The plan defines intended scope; it never excuses a principle violation. If the diff diverges, report it; the baseline in [`../../../copilot-instructions.md`](../../../copilot-instructions.md) wins.

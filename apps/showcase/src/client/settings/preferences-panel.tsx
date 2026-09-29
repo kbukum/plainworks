@@ -1,7 +1,9 @@
 "use client"
 
 import type { UpdateSettingsInput } from "@plainworks/demo"
-import { Form, NumberField, SelectField } from "@plainworks/ui/forms"
+import { Form } from "@plainworks/ui/forms/form"
+import { NumberField } from "@plainworks/ui/forms/number-field"
+import { SelectField } from "@plainworks/ui/forms/select-field"
 import type { ReactElement } from "react"
 import { useToast } from "../feedback"
 import {

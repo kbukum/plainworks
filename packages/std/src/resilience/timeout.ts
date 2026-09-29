@@ -1,4 +1,4 @@
-import { PlainError } from "../error"
+import { PlainError } from "../errors"
 import type { WebAbortSignal } from "../web/types"
 
 /**

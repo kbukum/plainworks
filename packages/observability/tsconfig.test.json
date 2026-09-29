@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Test project for the adapter tests: they run under jsdom and drive DOM globals, so this project
+  // adds the DOM libs. The neutral tests stay in the DOM-free `tsconfig.src.json`.
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/adapters/**/*.test.ts"]
+}

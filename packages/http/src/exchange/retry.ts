@@ -1,5 +1,5 @@
 import { isRetryable, type RetryPolicy } from "@plainworks/std/resilience"
-import { HttpError } from "../error"
+import { HttpError } from "../errors"
 import { type HttpMethod, isIdempotentMethod } from "../method"
 
 /** Retry verdict from an error alone: an {@link HttpError} carries its own, else the shared classifier decides. */

@@ -1,6 +1,6 @@
 # `@plainworks/ui`
 
-Plainworks-authored composites built on the vendored atom set. The neutral entry contains pure theme resolution for SSR; interactive composites live behind explicit subpaths. The raw shadcn/Base-UI atoms themselves live in [`@plainworks/elements`](../elements/README.md) — `ui` composes them.
+Plainworks-authored composites built on the vendored atom set. Each component and hook has its own subpath, so you import only what a route uses. The neutral entry holds `asyncStatus`, which runs anywhere, including on the server. The raw shadcn/Base-UI atoms themselves live in [`@plainworks/elements`](../elements/README.md) — `ui` composes them.
 
 ## Quickstart
 
@@ -16,7 +16,8 @@ Then import atoms from `@plainworks/elements` and composites from `@plainworks/u
 
 ```tsx
 import { Button } from "@plainworks/elements/button"
-import { ThemeModeMenu, ThemeProvider } from "@plainworks/ui/theme"
+import { ThemeProvider } from "@plainworks/theme/client"
+import { ThemeModeMenu } from "@plainworks/ui/theme/theme-mode-menu"
 
 export function Header({ themeSource, serverTheme }) {
   return (
@@ -29,30 +30,30 @@ export function Header({ themeSource, serverTheme }) {
 }
 ```
 
-`ThemeSaveAlert` is your own small component that announces a failed save; see [Theme](#theme). The tokens, color schemes, and stylesheet are owned by [`@plainworks/theme`](../theme/README.md); `@plainworks/ui` re-exports the neutral theme surface for convenience and adds ready-made color-mode controls.
+`ThemeSaveAlert` is your own small component that announces a failed save; see [Theme](#theme). The tokens, color schemes, stylesheet, and `ThemeProvider` come from [`@plainworks/theme`](../theme/README.md); `@plainworks/ui` adds ready-made color-mode controls.
 
 ## Components
 
-The interactive composites live behind per-concern client subpaths, so you import only what a route uses. Each one is accessible and responsive by default and carries an axe test.
+Every component has its own subpath, `@plainworks/ui/<concern>/<component>`, so a route pulls in only what it renders. Each one is accessible and responsive by default and carries an axe test.
 
-| Import | You get |
-| --- | --- |
-| `@plainworks/ui/shell` | `AppShell` — the app frame: header, navigation rail or drawer, skip link, and main landmark |
-| `@plainworks/ui/page` | `Page`, `PageHeader`, `Section`, `Toolbar` — page structure with headings, widths, and spacing |
-| `@plainworks/ui/layout` | `Stack`, `Grid`, `Split` — fluid, container-first layout primitives |
-| `@plainworks/ui/feedback` | `LoadingState`, `EmptyState`, `ErrorState`, `AsyncState`, `Spinner`, `Callout` — region states and inline status |
-| `@plainworks/ui/display` | `DateValue`, `NumberValue`, `StatusBadge` — SSR-stable `Intl` formatting and toned status labels |
-| `@plainworks/ui/navigation` | `Breadcrumbs`, `NavList` — an accessible trail and a primary nav list that marks the current page |
-| `@plainworks/ui/overlays` | `Modal`, `Drawer` — labelled, controllable overlays; a drawer body scrolls on its own |
-| `@plainworks/ui/data-table` | `DataTable` — the controlled, sortable, selectable table exemplar |
-| `@plainworks/ui/list` | `Pagination`, `FilterBar` — controlled paging and filter building over `std/list` |
-| `@plainworks/ui/forms` | `Form`, the typed `*Field` set, `FormSubmit` — schema-validated forms on React 19 Actions |
+| Concern | Subpaths | You get |
+| --- | --- | --- |
+| `shell` | `app-shell` | The app frame: header, navigation rail or drawer, skip link, and main landmark |
+| `layout` | `page`, `page-header`, `section`, `toolbar`, `stack`, `grid`, `split` | Page structure plus fluid, container-first layout primitives |
+| `feedback` | `async-state`, `loading-state`, `empty-state`, `error-state`, `spinner`, `callout` | Region states and inline status |
+| `display` | `date-value`, `number-value`, `status-badge` | SSR-stable `Intl` formatting and toned status labels |
+| `navigation` | `breadcrumbs`, `nav-list` | An accessible trail and a primary nav list that marks the current page |
+| `overlays` | `modal`, `drawer` | Labelled, controllable overlays; a drawer body scrolls on its own |
+| `forms` | `form`, `form-submit`, `text-field`, `number-field`, `date-field`, `textarea-field`, `select-field`, `checkbox-field`, `switch-field`, `field` | Schema-validated forms on React 19 Actions |
+| `data` | `data-table`, `filter-bar`, `pagination` | A controlled table plus paging and filtering over `std/list` |
+| `theme` | `theme-mode-menu`, `theme-mode-group`, `theme-mode-options` | Color-mode controls |
+| `hooks` | `use-controllable-state`, `use-selection`, `use-disclosure`, `use-list-state`, `use-media-query`, `use-clipboard`, `use-keyboard-shortcuts` | Behaviour hooks |
 
 `AppShell` frames the whole app. Navigation sits in a rail on wide screens and in a drawer behind a menu button on narrow ones, measured by the shell's own width. It adds a skip link and a named main landmark, and moves focus to main when the page changes. The rail and drawer copies of the navigation can both be mounted, so give each a unique label based on `placement`. Pass `renderLink` to `NavList` to use your router's link.
 
 ```tsx
-import { NavList } from "@plainworks/ui/navigation"
-import { AppShell } from "@plainworks/ui/shell"
+import { NavList } from "@plainworks/ui/navigation/nav-list"
+import { AppShell } from "@plainworks/ui/shell/app-shell"
 
 <AppShell
   brand={<a href="/">Acme</a>}
@@ -75,7 +76,10 @@ import { AppShell } from "@plainworks/ui/shell"
 A page reads top-down: one `PageHeader`, then titled `Section`s. Each section is a labelled landmark, and each piece adapts to its own width, so it works in a sidebar or a full page.
 
 ```tsx
-import { Page, PageHeader, Section, Toolbar } from "@plainworks/ui/page"
+import { Page } from "@plainworks/ui/layout/page"
+import { PageHeader } from "@plainworks/ui/layout/page-header"
+import { Section } from "@plainworks/ui/layout/section"
+import { Toolbar } from "@plainworks/ui/layout/toolbar"
 
 <Page>
   <PageHeader title="Orders" actions={<Button>New order</Button>} />
@@ -90,7 +94,10 @@ Every async region shows exactly one state: loading, error, empty, or content. `
 
 ```tsx
 import { asyncStatus } from "@plainworks/ui"
-import { AsyncState, EmptyState, ErrorState, LoadingState } from "@plainworks/ui/feedback"
+import { AsyncState } from "@plainworks/ui/feedback/async-state"
+import { EmptyState } from "@plainworks/ui/feedback/empty-state"
+import { ErrorState } from "@plainworks/ui/feedback/error-state"
+import { LoadingState } from "@plainworks/ui/feedback/loading-state"
 
 <AsyncState
   status={asyncStatus({ pending: query.isPending, error: query.isError, empty: rows.length === 0 })}
@@ -103,7 +110,7 @@ import { AsyncState, EmptyState, ErrorState, LoadingState } from "@plainworks/ui
 ```
 
 ```tsx
-import { DataTable } from "@plainworks/ui/data-table"
+import { DataTable } from "@plainworks/ui/data/data-table"
 
 <DataTable
   columns={[
@@ -121,7 +128,9 @@ import { DataTable } from "@plainworks/ui/data-table"
 `Form` validates on submit with any Standard Schema validator and passes the validated value to `onSubmit`; each field wires its own label, description, and error state.
 
 ```tsx
-import { Form, TextField, FormSubmit } from "@plainworks/ui/forms"
+import { Form } from "@plainworks/ui/forms/form"
+import { FormSubmit } from "@plainworks/ui/forms/form-submit"
+import { TextField } from "@plainworks/ui/forms/text-field"
 
 <Form schema={signInSchema} onSubmit={signIn}>
   <TextField name="email" label="Email" />
@@ -133,7 +142,8 @@ import { Form, TextField, FormSubmit } from "@plainworks/ui/forms"
 `Pagination` and `FilterBar` are controlled: they emit the same `std/list` request shape your query already holds, so paging and filtering key the cache and hit the backend with one contract. `FilterBar` stacks its controls when narrow, announces how many filters apply, offers **Clear all**, and keeps keyboard focus in place as rows come and go.
 
 ```tsx
-import { Pagination, FilterBar } from "@plainworks/ui/list"
+import { FilterBar } from "@plainworks/ui/data/filter-bar"
+import { Pagination } from "@plainworks/ui/data/pagination"
 
 <FilterBar
   fields={[{ field: "status", label: "Status", type: "select", options: statusOptions }]}
@@ -145,16 +155,16 @@ import { Pagination, FilterBar } from "@plainworks/ui/list"
 
 ## Hooks
 
-Behaviour hooks ship from the client entry. The DOM-free stately hooks — `useControllableState`, `useSelection`, `useDisclosure`, `useListState` — are the controlled/uncontrolled foundation the composites are built on. The browser hooks — `useMediaQuery`, `useClipboard`, `useKeyboardShortcuts` — wrap DOM APIs with SSR-safe defaults and owned teardown.
+Each hook has its own `hooks/*` subpath. The DOM-free stately hooks — `useControllableState`, `useSelection`, `useDisclosure`, `useListState` — are the controlled/uncontrolled foundation the composites are built on. The browser hooks — `useMediaQuery`, `useClipboard`, `useKeyboardShortcuts` — wrap DOM APIs with SSR-safe defaults and owned teardown.
 
 ```tsx
-import { useSelection } from "@plainworks/ui/client"
-import { useClipboard } from "@plainworks/ui/hooks"
+import { useClipboard } from "@plainworks/ui/hooks/use-clipboard"
+import { useSelection } from "@plainworks/ui/hooks/use-selection"
 ```
 
 ## Theme
 
-Use `parseThemeCookie` and `resolveTheme` from the neutral `@plainworks/ui` entry (re-exported from `@plainworks/theme`) during SSR, then render the returned `htmlClass` on `<html>`. System mode adds no mode class, so the stylesheet follows the OS preference on the first paint. On the client, pass a caller-owned `StateSource<ThemePreference>` to `ThemeProvider`; a cookie scope from `@plainworks/state/client/scope` keeps the value server-readable without creating a singleton or using browser storage directly.
+Use `parseThemeCookie` and `resolveTheme` from `@plainworks/theme` during SSR, then render the returned `htmlClass` on `<html>`. System mode adds no mode class, so the stylesheet follows the OS preference on the first paint. On the client, pass a caller-owned `StateSource<ThemePreference>` to `ThemeProvider` from `@plainworks/theme/client`; `cookieScope` from `@plainworks/state/cookie` keeps the value server-readable without creating a singleton or using browser storage directly.
 
 Two controls set the color mode. `ThemeModeMenu` is a compact header menu; `ThemeModeGroup` is an inline Light / Dark / System button group for a settings page. Both take optional `icons` and `labels`, so the kit ships no icon set and no fixed copy.
 
@@ -164,14 +174,11 @@ A save can fail, for example when the cookie write is rejected. The selection th
 - `ThemeModeMenu` has no room for an inline message. **Render one app-level alert yourself**, or the failure is silent.
 
 ```tsx
-import { Callout } from "@plainworks/ui/feedback"
-import {
-  defaultThemeModeLabels,
-  ThemeModeGroup,
-  ThemeModeMenu,
-  ThemeProvider,
-  useTheme,
-} from "@plainworks/ui/theme"
+import { ThemeProvider, useTheme } from "@plainworks/theme/client"
+import { Callout } from "@plainworks/ui/feedback/callout"
+import { ThemeModeGroup } from "@plainworks/ui/theme/theme-mode-group"
+import { ThemeModeMenu } from "@plainworks/ui/theme/theme-mode-menu"
+import { defaultThemeModeLabels } from "@plainworks/ui/theme/theme-mode-options"
 
 function ThemeSaveAlert() {
   const { error } = useTheme()

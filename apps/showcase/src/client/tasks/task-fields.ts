@@ -1,7 +1,7 @@
 import { TASK_PRIORITIES, type Task } from "@plainworks/demo"
-import type { StatusTone } from "@plainworks/ui/display"
-import type { SelectFieldOption } from "@plainworks/ui/forms"
-import type { FilterFieldOption } from "@plainworks/ui/list"
+import type { FilterFieldOption } from "@plainworks/ui/data/filter-model"
+import type { StatusTone } from "@plainworks/ui/display/status-badge"
+import type { SelectFieldOption } from "@plainworks/ui/forms/select-field"
 import { TASK_STATUSES } from "../../app/task-shape"
 
 /** Human-readable label for each task status. */

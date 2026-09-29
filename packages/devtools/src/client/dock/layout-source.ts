@@ -1,7 +1,7 @@
 "use client"
 
 import { jsonSerializer } from "@plainworks/state"
-import { createWebStorageScope, type WebStorageLike } from "@plainworks/state/client/scope"
+import { createWebStorageScope, type WebStorageLike } from "@plainworks/state/web-storage"
 import { guardSchema, type StateSource } from "@plainworks/std/seam"
 import { type DevtoolsLayout, isDevtoolsLayout } from "./layout"
 

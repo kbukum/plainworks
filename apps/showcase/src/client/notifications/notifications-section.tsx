@@ -2,7 +2,9 @@
 
 import type { Notification } from "@plainworks/demo"
 import { asyncStatus } from "@plainworks/ui"
-import { AsyncState, ErrorState, LoadingState } from "@plainworks/ui/feedback"
+import { AsyncState } from "@plainworks/ui/feedback/async-state"
+import { ErrorState } from "@plainworks/ui/feedback/error-state"
+import { LoadingState } from "@plainworks/ui/feedback/loading-state"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import type { ReactElement } from "react"
 import { NOTIFICATION_LIST_PARAMS } from "../../app/constants"

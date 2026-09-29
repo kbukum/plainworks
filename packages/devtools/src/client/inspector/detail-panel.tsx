@@ -1,7 +1,8 @@
 "use client"
 
 import type { Json } from "@plainworks/std/encoding"
-import { Callout, Spinner } from "@plainworks/ui/feedback"
+import { Callout } from "@plainworks/ui/feedback/callout"
+import { Spinner } from "@plainworks/ui/feedback/spinner"
 import { type ReactElement, useEffect, useState } from "react"
 import type { SourceId } from "../../protocol"
 import type { DevtoolsClientPort, RequestError } from "../../session"

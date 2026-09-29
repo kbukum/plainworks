@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { HttpError } from "../error"
+import { HttpError } from "../errors"
 import { assertSafeRequestUrl } from "./guard"
 
 test("accepts a clean absolute URL", () => {

@@ -109,6 +109,7 @@ export function shapedBuilds(): Record<string, PackageBuild | CliBuild> {
     "packages/std": { entry: { index: "src/index.ts" } },
     "packages/ui": {
       entry: { index: "src/index.ts" },
+      dom: true,
       assets: { "styles.css": { generatedBy: "scripts/styles.ts" } },
       files: ["registry.json"],
     },

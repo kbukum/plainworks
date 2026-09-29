@@ -5,11 +5,10 @@ import ts from "typescript"
 import { expect, test } from "vitest"
 
 /**
- * Structural half of the portability gate. The sibling fixture test in `boundaries.test.ts` proves
- * the ES2023-only compile config *rejects* a neutral entry that names a DOM global. This test
- * proves the other half the step's "every package, fail closed" requirement needs: that every
- * package which claims host-independence is actually wired into that config and cannot silently opt
- * back out.
+ * Structural half of the portability gate. The fixture tests in `rules.test.ts` prove the
+ * ES2023-only compile config *rejects* a neutral entry or React Native-capable `./client` that
+ * names a DOM global. This test proves the other half, fail closed: every package that claims
+ * host-independence is actually wired into that config and cannot silently opt back out.
  *
  * A package declares itself host-independent by including the `types/universal-web.d.ts` shim in
  * its neutral (server `.`) project. That neutral project is `tsconfig.src.json` when a package
@@ -47,7 +46,18 @@ const EXPECTED_NEUTRAL = [
   "testkit",
   "auth",
   "app",
+  "observability",
 ] as const
+
+/**
+ * The packages whose React bindings must also run on React Native, so their `./client` project
+ * (`tsconfig.client.json`) holds to the same DOM-free profile as the neutral one: the shim, no DOM
+ * lib, and no ambient types. Browser code in these packages lives on a DOM adapter subpath instead.
+ * Listed explicitly so a package cannot drop out by deleting its client project — fail closed. The
+ * DOM-only packages (`theme`, `elements`, `ui`, `devtools`, `testkit`) declare `dom` in their build
+ * and are not here.
+ */
+const EXPECTED_NATIVE_CLIENT = ["state", "query", "channel", "auth", "connect", "app"] as const
 
 interface NeutralProject {
   /** The package declares host-independence by pulling in the universal-web shim. */
@@ -142,6 +152,19 @@ test("every expected host-independent package keeps the shim and an empty types 
       project?.domLibs ?? [],
       `@plainworks/${name} reopened a DOM lib=[${project?.domLibs.join(", ")}]`,
     ).toEqual([])
+  }
+})
+
+test("every React Native-capable package keeps its ./client project DOM-free", () => {
+  for (const name of EXPECTED_NATIVE_CLIENT) {
+    const path = join(packagesDir, name, "tsconfig.client.json")
+    expect(existsSync(path), `@plainworks/${name} is missing tsconfig.client.json`).toBe(true)
+    const project = inspectNeutralProject(path)
+    expect(project.includesShim, `@plainworks/${name}/client dropped the universal-web shim`).toBe(
+      true,
+    )
+    expect(project.domLibs, `@plainworks/${name}/client adds the DOM lib`).toEqual([])
+    expect(project.types, `@plainworks/${name}/client adds ambient types`).toEqual([])
   }
 })
 

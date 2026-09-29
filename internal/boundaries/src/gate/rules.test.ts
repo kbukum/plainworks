@@ -186,13 +186,13 @@ test("the app kernel importing ui trips the ui-free rule", async () => {
  * than separate packages, so their direction is enforced one band below the package layers: a
  * concern folder may import only a strictly lower band (`foundation → general → forms → data`), and
  * a sibling or upward concern import is rejected just like an upward package import. The rule is
- * fail-closed: it also blocks laundering an upward import through the aggregate `client.ts` barrel.
+ * fail-closed: it also blocks laundering an upward import through a top-level re-exporting module.
  * All three are proven from fixtures — `forms` (band 2) reaching UP into `data` (band 3) trips
  * `no-ui-upward-forms` and only it, the general sibling edge `layout → feedback` (both band 1)
  * trips `no-ui-upward-layout`, and a foundation `client-hooks` (band 0) reaching `data` THROUGH the
- * barrel trips `no-ui-upward-client-hooks` — proving neither a sideways, an upward, nor a
- * via-barrel edge slips through. The legal counterpart is proven too: `data` (band 3) importing the
- * lower `forms` (band 2) is the sanctioned downward direction and trips nothing.
+ * re-exporting module trips `no-ui-upward-client-hooks` — proving neither a sideways, an upward,
+ * nor a via-barrel edge slips through. The legal counterpart is proven too: `data` (band 3)
+ * importing the lower `forms` (band 2) is the sanctioned downward direction and trips nothing.
  */
 test("ui concern imports respect the internal foundation → general → forms → data order", async () => {
   const violations = await cruiseFixtures()
@@ -215,7 +215,7 @@ test("ui concern imports respect the internal foundation → general → forms �
   // The legal counterpart: `data` (band 3) importing the strictly-lower `forms` (band 2) is the
   // sanctioned downward direction; no rule may flag it, mirroring the `auth -> std` package check.
   const dataIntoForms = violations.filter((v) =>
-    v.from.endsWith("ui/src/client/data-table/uses-forms.ts"),
+    v.from.endsWith("ui/src/client/data/uses-forms.ts"),
   )
   expect(dataIntoForms).toEqual([])
 })
@@ -223,7 +223,7 @@ test("ui concern imports respect the internal foundation → general → forms �
 /**
  * Fail-closed for the concern bands, one level below the package fail-closed. A concern folder that
  * is NOT in UI_CONCERNS has no band, so none of the `no-ui-upward-*` rules name it as a source — it
- * would be free to import a sibling, a higher band, or the aggregate barrel. The catch-all rules
+ * would be free to import a sibling, a higher band, or a re-exporting module. The catch-all rules
  * close that hole in both concern locations. The fixtures prove it: an unmapped client concern
  * (`client/experimental`) and an unmapped neutral concern (`stately`) each reaching a mapped
  * concern trip only their dedicated rule, so an unlisted folder can never go vacuously green. The
@@ -292,6 +292,27 @@ test("test files may import testkit, but production source may not", async () =>
 })
 
 /**
+ * A package's `./testing` profile (`src/testing.ts` + `src/testing/`) holds test-only helpers that
+ * may lean on Node or the DOM. Tests may import it, and it may import itself, but no production
+ * module may — so the helpers never reach a shipped `.`, `./client`, or adapter graph.
+ */
+test("only tests may import a package's ./testing helpers", async () => {
+  const violations = await cruiseFixtures()
+  const production = violations.find(
+    (v) =>
+      v.from.endsWith("app/src/uses-testing.ts") && v.rule.name === "no-production-testing-import",
+  )
+  expect(production).toBeDefined()
+  const allowed = violations.filter(
+    (v) =>
+      v.from.endsWith("app/src/uses-testing.test.ts") ||
+      v.from.endsWith("app/src/testing.ts") ||
+      v.from.endsWith("app/src/testing/harness.ts"),
+  )
+  expect(allowed).toEqual([])
+})
+
+/**
  * The whole TS-AST toolchain (dependency-cruiser) can only parse on the TypeScript 6 Compiler API.
  * If someone bumps the catalog `typescript` to 7, dependency-cruiser silently stops extracting
  * dependencies and every layer rule goes green for the wrong reason. This asserts the catalog stays
@@ -355,5 +376,19 @@ test("the portability gate rejects a neutral entry referencing a DOM-only global
   const result = typechecksUnderGate("tsconfig.bad.json")
   expect(result.ok).toBe(false)
   // The failure names the offending DOM global, so the gate points at the real portability breach.
+  expect(result.output).toContain("document")
+})
+
+test("the React Native client profile compiles a React component that uses no DOM global", {
+  timeout: TSC_TIMEOUT_MS,
+}, () => {
+  expect(typechecksUnderGate("tsconfig.client-ok.json").ok).toBe(true)
+})
+
+test("the React Native client profile rejects a React component referencing a DOM-only global", {
+  timeout: TSC_TIMEOUT_MS,
+}, () => {
+  const result = typechecksUnderGate("tsconfig.client-bad.json")
+  expect(result.ok).toBe(false)
   expect(result.output).toContain("document")
 })

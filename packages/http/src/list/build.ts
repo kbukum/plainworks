@@ -1,5 +1,5 @@
 import type { FilterValue, ListFilter, ListQueryParams } from "@plainworks/std/list"
-import { HttpError } from "../error"
+import { HttpError } from "../errors"
 import type { QueryParams, QueryValue } from "../url"
 import { escapeListValue, escapeScalarValue } from "./codec"
 import { FILTER_OPERATOR_TOKENS } from "./operators"

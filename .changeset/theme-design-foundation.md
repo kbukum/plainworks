@@ -13,4 +13,4 @@ Give the theme a complete, accessible design foundation.
 - **Plain CSS entry.** `@plainworks/theme/tokens.css` works in any host without a Tailwind build.
 - **Class merging.** `cn` knows the new utilities, so `cn("text-heading text-primary")` keeps both classes.
 
-Breaking: `colorRoleVar` and `semanticRoleVar` are replaced by `themeVar(token)`. The unprefixed `--radius` property is now `--pw-radius`. `@plainworks/ui` re-exports the new names.
+Breaking: `colorRoleVar` and `semanticRoleVar` are replaced by `themeVar(token)`. The unprefixed `--radius` property is now `--pw-radius`.

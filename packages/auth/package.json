@@ -46,11 +46,16 @@
       "@plainworks/source": "./src/client.ts",
       "types": "./dist/client.d.ts",
       "default": "./dist/client.js"
+    },
+    "./form-post": {
+      "@plainworks/source": "./src/adapters/form-post.ts",
+      "types": "./dist/form-post.d.ts",
+      "default": "./dist/form-post.js"
     }
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json",
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.adapters.json && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run --coverage",
     "check-packaging": "plainworks-release check-packaging"
   },

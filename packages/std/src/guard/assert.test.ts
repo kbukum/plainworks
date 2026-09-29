@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { PlainError } from "../error"
+import { PlainError } from "../errors"
 import { assert, assertNever } from "./assert"
 
 describe("assert", () => {

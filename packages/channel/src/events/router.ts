@@ -1,6 +1,6 @@
 import { createBoundedQueue, type OverflowPolicy, QueueFullError } from "@plainworks/std/resilience"
 import { noopTelemetry, type PlainEvent, type Telemetry } from "@plainworks/std/seam"
-import { ChannelError } from "../error"
+import { ChannelError } from "../errors"
 import type { Channel } from "../lifecycle"
 import type { EventDecoder } from "./event"
 import type { EventSink } from "./sink"

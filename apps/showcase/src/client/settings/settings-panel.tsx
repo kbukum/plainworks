@@ -1,7 +1,7 @@
 "use client"
 
 import type { UpdateSettingsInput, UserSettings } from "@plainworks/demo"
-import { FormSubmit } from "@plainworks/ui/forms"
+import { FormSubmit } from "@plainworks/ui/forms/form-submit"
 import type { ReactElement } from "react"
 import type { SettingsMutationResult } from "./use-settings-mutation"
 

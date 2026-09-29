@@ -115,6 +115,49 @@ describe("checkShape", () => {
     ])
   })
 
+  it("keeps the DOM lib out of a package's shipped projects unless the package declares `dom`", async () => {
+    const dom = JSON.stringify({ compilerOptions: { lib: ["ES2023", "DOM"] } })
+    const files = repo({
+      "packages/std/tsconfig.json": dom,
+      "packages/std/tsconfig.adapters.json": dom,
+      "packages/std/tsconfig.test.json": dom,
+      "packages/ui/tsconfig.client.json": dom,
+    })
+    const builds = shapedBuilds()
+    expect((await messages(files, builds)).filter((m) => m.includes("DOM lib"))).toEqual([
+      "packages/std: tsconfig.json adds the DOM lib; a package without `dom` keeps DOM to its adapter, test, and tooling projects",
+    ])
+    builds["packages/ui"] = { entry: { index: "src/index.ts" } }
+    expect((await messages(files, builds)).filter((m) => m.includes("DOM lib"))).toContain(
+      "packages/ui: tsconfig.client.json adds the DOM lib; a package without `dom` keeps DOM to its adapter, test, and tooling projects",
+    )
+  })
+
+  it("compiles a `testing` entry in its own `tsconfig.testing.json` project", async () => {
+    const builds = shapedBuilds()
+    builds["packages/std"] = { entry: { index: "src/index.ts", testing: "src/testing.ts" } }
+    expect((await messages(repo(), builds)).filter((m) => m.includes("testing"))).toContain(
+      "packages/std: the `testing` entry needs its own tsconfig.testing.json project",
+    )
+    const withProject = repo({ "packages/std/tsconfig.testing.json": "{}" })
+    expect(
+      (await messages(withProject, builds)).filter((m) =>
+        m.includes("tsconfig.testing.json project"),
+      ),
+    ).toEqual([])
+  })
+
+  it("rejects an entry named after a host instead of what it does", async () => {
+    const builds = shapedBuilds()
+    builds["packages/std"] = {
+      entry: { index: "src/index.ts", browser: "src/browser.ts", "web/node": "src/web/node.ts" },
+    }
+    expect((await messages(repo(), builds)).filter((m) => m.includes("host"))).toEqual([
+      'packages/std: entry "browser" is named after a host; name an adapter after what it does (e.g. "web-storage")',
+      'packages/std: entry "web/node" is named after a host; name an adapter after what it does (e.g. "web-storage")',
+    ])
+  })
+
   it("requires the shared Vitest preset for the workspace's kind", async () => {
     const files = repo({
       "packages/std/vitest.config.ts": 'import { defineConfig } from "vitest/config"',

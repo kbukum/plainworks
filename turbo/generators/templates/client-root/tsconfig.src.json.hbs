@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
-  // Server project: the `.` entry must stay DOM-free, so the client graph (`src/client.ts` +
-  // `src/client/`) is excluded here and typechecked with DOM libs via `tsconfig.client.json`.
+  // Neutral project: the `.` entry and its tests stay DOM-free. The client graph (`src/client.ts` +
+  // `src/client/`) compiles in `tsconfig.client.json`, and its tests in `tsconfig.test.json`.
   "exclude": ["src/client.ts", "src/client"],
   "include": ["src", "../../types/universal-web.d.ts"]
 }

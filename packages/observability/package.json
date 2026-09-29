@@ -48,15 +48,15 @@
       "types": "./dist/vitals.d.ts",
       "default": "./dist/vitals.js"
     },
-    "./client": {
-      "@plainworks/source": "./src/client.ts",
-      "types": "./dist/client.d.ts",
-      "default": "./dist/client.js"
+    "./web-vitals": {
+      "@plainworks/source": "./src/adapters/web-vitals.ts",
+      "types": "./dist/web-vitals.d.ts",
+      "default": "./dist/web-vitals.js"
     }
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json",
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.adapters.json && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run --coverage",
     "check-packaging": "plainworks-release check-packaging"
   },

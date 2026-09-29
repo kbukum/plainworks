@@ -29,7 +29,7 @@ The in-memory session store custodies the access token (memory only — never `l
 
 ## Runtime primitives
 
-`@plainworks/auth`'s `.` entry is a **neutral** package touching no host globals, so it runs on every target runtime (Node, edge, RSC, React Native). The one non-universal primitive it needs — **Web Crypto** (`crypto.subtle` / `getRandomValues`, for PKCE and CSPRNG randomness) — is an injected seam (`AuthCrypto`) with a lazy platform default and a typed `auth/crypto-unavailable` error when a host lacks it. Cookie **minting**, the session-signing key, and the OIDC token exchange live on the server-quarantined `./server` entry, kept out of any `"use client"` graph. The React `useSession` hooks and login/logout navigation live on `./client` and carry only identity — never a token. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives) for the primitive contract.
+`@plainworks/auth`'s `.` entry is a **neutral** package touching no host globals, so it runs on every target runtime (Node, edge, RSC, React Native). The one non-universal primitive it needs — **Web Crypto** (`crypto.subtle` / `getRandomValues`, for PKCE and CSPRNG randomness) — is an injected seam (`AuthCrypto`) with a lazy platform default and a typed `auth/crypto-unavailable` error when a host lacks it. Cookie **minting**, the session-signing key, and the OIDC token exchange live on the server-quarantined `./server` entry, kept out of any `"use client"` graph. The React `useSession` hooks and the login/logout actions live on the DOM-free `./client` and carry only identity — never a token. The browser navigator they drive ships on the `./form-post` adapter subpath. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives) for the primitive contract.
 
 ## Adapters and the login flow
 
@@ -53,3 +53,13 @@ import { createRevocationRegistry } from "@plainworks/auth"
 ```
 
 On the browser, `./client` exposes `createSessionContext` (a `SessionProvider` + `useSession` / `useIdentity` / `useIsAuthenticated`) and `login` / `logout` that bounce to the BFF routes. Tokens never cross into this graph — a dependency-cruiser boundary rule proves it.
+
+`login` and `logout` take an injected `AuthNavigator`, so `./client` stays DOM-free and runs on React Native too. In a browser, pass `formPostNavigator`: it navigates with `location.assign`, logs out with a hidden-form POST, and reads the CSRF token from the `__Host-csrf` cookie. Use `createFormPostNavigator({ csrfCookieName })` when the server issues the cookie under another name.
+
+```tsx
+import { login, logout } from "@plainworks/auth/client"
+import { formPostNavigator } from "@plainworks/auth/form-post"
+
+login({ navigator: formPostNavigator, returnTo: "/tasks" })
+logout({ navigator: formPostNavigator })
+```

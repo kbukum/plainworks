@@ -1,6 +1,6 @@
 "use client"
 
-import type { ThemeModeIcons } from "@plainworks/ui/theme"
+import type { ThemeModeIcons } from "@plainworks/ui/theme/theme-mode-options"
 import { Monitor, Moon, Sun } from "lucide-react"
 
 /** The icons the color-mode menu shows; the kit ships none, so the host picks its icon set. */

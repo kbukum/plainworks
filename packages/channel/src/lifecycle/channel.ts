@@ -26,7 +26,7 @@ import type {
 import { type Clock, systemClock } from "@plainworks/std/time"
 import type { WebAbortController, WebAbortSignal } from "@plainworks/std/web"
 import { assertDurationMs } from "../duration"
-import { ChannelError } from "../error"
+import { ChannelError } from "../errors"
 import type { ChannelStatus } from "./status"
 
 const DEFAULT_CONNECT_TIMEOUT_MS = 30_000

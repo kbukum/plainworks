@@ -1,6 +1,6 @@
 import { recordTelemetry } from "@plainworks/testkit"
 import { expect, test } from "vitest"
-import { HttpError } from "../error"
+import { HttpError } from "../errors"
 import type { HttpRequest } from "../exchange/request"
 import type { HttpHandler } from "./handler"
 import { telemetryInterceptor } from "./telemetry"

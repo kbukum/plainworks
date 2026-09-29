@@ -3,7 +3,7 @@ import { guardSchema, unsafePassthrough } from "@plainworks/std/seam"
 import type { WebResponse } from "@plainworks/std/web"
 import { autoBackoffDelay, fakeAuthHeaderProvider, fakeFetch } from "@plainworks/testkit"
 import { expect, test } from "vitest"
-import { HttpError } from "../../error"
+import { HttpError } from "../../errors"
 import { createHttpClient } from "../client"
 import type { RequestInput } from "../request-input"
 

@@ -2,8 +2,10 @@
 
 import type { Order } from "@plainworks/demo"
 import { Button } from "@plainworks/elements/button"
-import type { DataTableColumn } from "@plainworks/ui/data-table"
-import { DateValue, NumberValue, StatusBadge } from "@plainworks/ui/display"
+import type { DataTableColumn } from "@plainworks/ui/data/data-table"
+import { DateValue } from "@plainworks/ui/display/date-value"
+import { NumberValue } from "@plainworks/ui/display/number-value"
+import { StatusBadge } from "@plainworks/ui/display/status-badge"
 import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../app/constants"
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from "./order-fields"
 

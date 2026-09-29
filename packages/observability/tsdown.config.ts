@@ -8,7 +8,7 @@ export const build: PackageBuild = {
     logging: "src/logging/index.ts",
     reporting: "src/reporting/index.ts",
     vitals: "src/vitals/index.ts",
-    client: "src/client.ts",
+    "web-vitals": "src/adapters/web-vitals.ts",
   },
 }
 

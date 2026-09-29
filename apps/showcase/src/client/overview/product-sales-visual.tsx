@@ -1,7 +1,7 @@
 "use client"
 
 import type { ProductSales } from "@plainworks/demo"
-import { NumberValue } from "@plainworks/ui/display"
+import { NumberValue } from "@plainworks/ui/display/number-value"
 import type { ReactElement } from "react"
 import { DISPLAY_LOCALE } from "../../app/constants"
 

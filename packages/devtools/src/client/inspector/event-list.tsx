@@ -1,7 +1,7 @@
 "use client"
 
 import { Badge } from "@plainworks/elements/badge"
-import { EmptyState } from "@plainworks/ui/feedback"
+import { EmptyState } from "@plainworks/ui/feedback/empty-state"
 import { type ReactElement, useState } from "react"
 import { type Severity, type SourceDescriptor, sourceKey } from "../../protocol"
 import type { RetentionEntry } from "../../retention"

@@ -4,7 +4,7 @@ Standing, whole-tree audit of plainworks, independent of any diff. Use it period
 
 ## Run this in a separate, clean-context agent — high-capability model
 
-Same rule as the change review: a fresh reviewer (Claude Opus 4.8), no shared session context, re-deriving every judgment from the code.
+Same rule as the change review: a fresh reviewer (GPT Sol, `gpt-6-sol`), no shared session context, re-deriving every judgment from the code.
 
 ## Scope
 

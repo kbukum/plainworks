@@ -6,6 +6,7 @@ import { formatSource } from "./format"
 import {
   buildRegistry,
   buildTsdownEntry,
+  CONCERNS,
   collectItemFiles,
   packageRoot,
   renderTsdownConfig,
@@ -13,23 +14,23 @@ import {
   scanDependencies,
 } from "./manifest"
 
-// Every `index.ts` barrel under `src/client` is a public concern that must be a build entry.
-// Reading this from disk — not the `CONCERNS` list codegen uses — is what makes the lock-step
-// check able to catch a concern folder someone forgot to register.
-function discoverClientBarrels(root: string): string[] {
-  const barrels: string[] = []
+// Every authored, non-test module under a concern folder, read from disk rather than from the
+// `CONCERNS` list codegen uses, so the lock-step check catches a module nobody declared.
+function discoverModules(root: string): string[] {
+  const modules: string[] = []
   const walk = (dir: string): void => {
     for (const entry of readdirSync(dir, { withFileTypes: true })) {
       const full = join(dir, entry.name)
       if (entry.isDirectory()) {
         walk(full)
-      } else if (entry.name === "index.ts") {
-        barrels.push(relative(root, full).split("\\").join("/"))
+      } else if (/\.tsx?$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) {
+        modules.push(relative(root, full).split("\\").join("/"))
       }
     }
   }
   walk(join(root, "src/client"))
-  return barrels.sort()
+  walk(join(root, "src/hooks"))
+  return modules.sort()
 }
 
 describe("dependency scan", () => {
@@ -59,13 +60,15 @@ describe("dependency scan", () => {
   })
 
   it("includes relative imports that escape the concern so an item installs self-contained", () => {
-    const files = collectItemFiles(packageRoot, "src/client/data-table")
-    expect(files).toContain("src/client/data-table/table.tsx")
-    // `table.tsx` imports `../../hooks`; that barrel and the hook modules behind it must ship
-    // with the item, or a shadcn install resolves `../../hooks` to nothing.
-    expect(files).toContain("src/hooks/index.ts")
+    const files = collectItemFiles(packageRoot, ["src/client/data"])
+    // A component folder inside the concern ships whole.
+    expect(files).toContain("src/client/data/data-table/table.tsx")
+    expect(files).toContain("src/client/data/data-table/columns.ts")
+    // `table.tsx` imports hooks and a feedback component from outside the concern; they must ship
+    // with the item, or a shadcn install resolves those imports to nothing.
     expect(files).toContain("src/hooks/use-selection.ts")
     expect(files).toContain("src/hooks/use-controllable-state.ts")
+    expect(files).toContain("src/client/feedback/empty-state.tsx")
   })
 })
 
@@ -86,14 +89,22 @@ describe("codegen stays in lock-step with disk (cannot drift)", () => {
     }
   })
 
-  it("names each entry after the subpath consumers import", () => {
-    expect(Object.keys(buildTsdownEntry())).toContain("theme")
-  })
-
-  it("gives the manifest and every concern a tsdown entry", () => {
+  it("publishes each component at a nested `<concern>/<component>` subpath", () => {
     const entry = buildTsdownEntry()
     expect(entry.index).toBe("src/index.ts")
-    expect(entry["data-table"]).toBe("src/client/data-table/index.ts")
+    expect(entry["layout/page"]).toBe("src/client/layout/page.tsx")
+    expect(entry["data/data-table"]).toBe("src/client/data/data-table/index.ts")
+    expect(entry["forms/text-field"]).toBe("src/client/forms/text-field.tsx")
+    expect(entry["hooks/use-disclosure"]).toBe("src/hooks/use-disclosure.ts")
+    expect(entry["hooks/use-clipboard"]).toBe("src/client/hooks/use-clipboard.ts")
+  })
+
+  it("ships no concern aggregate and no `client` aggregate", () => {
+    for (const key of Object.keys(buildTsdownEntry())) {
+      if (key === "index") continue
+      expect(key).toMatch(/^[a-z-]+\/[a-z-]+$/)
+    }
+    expect(buildTsdownEntry().client).toBeUndefined()
   })
 
   it("re-derives the committed tsdown.config.ts entry map exactly", () => {
@@ -106,13 +117,23 @@ describe("codegen stays in lock-step with disk (cannot drift)", () => {
     expect(renderTsdownConfig()).toContain('files: ["registry.json"]')
   })
 
-  it("gives every client concern barrel on disk a build entry (independent of the CONCERNS list)", () => {
-    const barrels = discoverClientBarrels(packageRoot)
-    // Guard the guard: disk discovery must actually find concerns, never pass on an empty set.
-    expect(barrels.length).toBeGreaterThan(0)
-    const entrySources = new Set(Object.values(buildTsdownEntry()))
-    for (const barrel of barrels) {
-      expect(entrySources.has(barrel)).toBe(true)
+  it("declares every authored module as a published component or an internal one", () => {
+    const modules = discoverModules(packageRoot)
+    // Guard the guard: disk discovery must actually find modules, never pass on an empty set.
+    expect(modules.length).toBeGreaterThan(0)
+    const published = new Set(Object.values(buildTsdownEntry()))
+    const internal = new Set(
+      CONCERNS.flatMap((concern) => concern.internal ?? []).map((path) => `src/${path}`),
+    )
+    const componentFolders = [...published]
+      .filter((source) => source.endsWith("/index.ts"))
+      .map((source) => source.slice(0, -"index.ts".length))
+    for (const module of modules) {
+      const declared =
+        published.has(module) ||
+        internal.has(module) ||
+        componentFolders.some((folder) => module.startsWith(folder))
+      expect(declared, `${module} is neither published nor declared internal`).toBe(true)
     }
   })
 })
@@ -121,37 +142,24 @@ describe("codegen orchestration writes every artifact from disk", () => {
   it("regenerates registry.json and the build description", () => {
     const root = mkdtempSync(join(tmpdir(), "pw-ui-codegen-"))
     try {
-      // `runCodegen` scans every registry concern folder, so the fixture stands each one up with a
-      // single authored file; `layout` is the one asserted in detail.
-      const registryDirs = [
-        "src/client/layout",
-        "src/client/feedback",
-        "src/client/overlays",
-        "src/client/display",
-        "src/client/navigation",
-        "src/client/data-table",
-        "src/client/forms",
-        "src/client/list",
-        "src/client/page",
-        "src/client/shell",
-      ]
-      for (const dir of registryDirs) {
-        mkdirSync(join(root, dir), { recursive: true })
-        writeFileSync(join(root, `${dir}/index.ts`), 'export * from "./part"\n')
-        writeFileSync(
-          join(root, `${dir}/part.tsx`),
-          '"use client"\nexport const Part = () => null\n',
-        )
+      // `runCodegen` resolves every declared module and scans every registry concern folder, so the
+      // fixture stands each module up as one authored file; `layout` is the one asserted in detail.
+      for (const concern of CONCERNS) {
+        for (const module of concern.modules) {
+          const file = join(root, `src/${concern.dirs[0]}/${module}.tsx`)
+          mkdirSync(join(file, ".."), { recursive: true })
+          writeFileSync(file, '"use client"\nexport const Part = () => null\n')
+        }
       }
       writeFileSync(
-        join(root, "src/client/layout/part.tsx"),
+        join(root, "src/client/layout/stack.tsx"),
         '"use client"\nimport { Button } from "@plainworks/elements/button"\nexport const Stack = () => Button\n',
       )
 
       runCodegen(root)
 
       expect(readFileSync(join(root, "tsdown.config.ts"), "utf8")).toContain(
-        "src/client/layout/index.ts",
+        '"layout/stack": "src/client/layout/stack.tsx"',
       )
       const registry = JSON.parse(readFileSync(join(root, "registry.json"), "utf8"))
       const layout = registry.items.find((item: { name: string }) => item.name === "layout")

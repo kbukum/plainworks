@@ -1,7 +1,7 @@
 "use client"
 
 import { createScopedObject } from "@plainworks/state/client"
-import { persistentScope } from "@plainworks/state/client/scope"
+import { persistentScope } from "@plainworks/state/web-storage"
 import { isOneOf } from "@plainworks/std"
 import type { StandardSchemaV1 } from "@plainworks/std/seam"
 import { MOTION_VALUES, type MotionPreference } from "./settings-fields"

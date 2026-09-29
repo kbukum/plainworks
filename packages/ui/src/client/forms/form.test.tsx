@@ -6,10 +6,10 @@ import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { Field } from "./field"
-import { TextField } from "./fields"
 import { Form } from "./form"
 import type { FormValues } from "./form-data"
 import { FormSubmit } from "./form-submit"
+import { TextField } from "./text-field"
 
 afterEach(cleanup)
 

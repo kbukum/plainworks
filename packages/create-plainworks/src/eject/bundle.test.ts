@@ -52,7 +52,10 @@ beforeEach(() => {
   writeJson(join(appDir, "turbo.json"), { extends: ["//"] })
   writeText(join(appDir, "vitest.config.ts"), "export default {}\n")
   writeText(join(appDir, ".gitignore"), "/.next/\n")
-  writeText(join(appDir, "src", "page.tsx"), 'import { Button } from "@plainworks/ui/client"\n')
+  writeText(
+    join(appDir, "src", "page.tsx"),
+    'import { Callout } from "@plainworks/ui/feedback/callout"\n',
+  )
   writeText(join(appDir, "src", "page.test.tsx"), "// test\n")
   writeText(join(appDir, "test", "stub.ts"), "export {}\n")
 })

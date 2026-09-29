@@ -1,6 +1,8 @@
 import { type PackageBuild, preset } from "@plainworks/tsdown-config"
 
 export const build: PackageBuild = {
+  // A DOM-only package: its inspector dock renders into the browser DOM.
+  dom: true,
   entry: {
     index: "src/index.ts",
     client: "src/client.ts",

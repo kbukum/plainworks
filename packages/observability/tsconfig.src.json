@@ -1,7 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
-  // Server project: the `.` entry must stay DOM-free, so the client graph (`src/client.ts` +
-  // `src/client/`) is excluded here and typechecked with DOM libs via `tsconfig.client.json`.
-  "exclude": ["src/client.ts", "src/client"],
+  // Neutral project: every concern entry, DOM-free with the universal-web shim. The browser Web
+  // Vitals collector (`./web-vitals`) lives in `tsconfig.adapters.json` and its jsdom test in
+  // `tsconfig.test.json`.
+  "exclude": ["src/adapters"],
   "include": ["src", "../../types/universal-web.d.ts"]
 }

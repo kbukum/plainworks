@@ -1,4 +1,4 @@
-import { PlainError } from "../error"
+import { PlainError } from "../errors"
 import { isPositiveInteger } from "../guard"
 import type { RandomSource } from "../random"
 import { systemRandom } from "../random"

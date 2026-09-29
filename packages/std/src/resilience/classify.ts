@@ -1,4 +1,4 @@
-import { PlainError } from "../errors"
+import { PlainError } from "../error"
 
 /**
  * Shared failure taxonomy: map any failure (an HTTP status or a thrown value) to a category and a

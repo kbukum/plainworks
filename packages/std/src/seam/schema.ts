@@ -1,4 +1,4 @@
-import { err, ok, type Result } from "../result"
+import { err, ok, type Result } from "../error"
 
 /**
  * A Standard Schema v1 validator — the community-standard validation contract implemented by Zod,

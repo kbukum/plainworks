@@ -18,6 +18,8 @@ export type {
 } from "./schema"
 export { guardSchema, unsafePassthrough, validateWithSchema } from "./schema"
 export type { StateCapabilities, StateSerializer, StateSource } from "./state"
+export type { ReconcilerReport, StateReconciler } from "./state-reconciler"
+export { createSourceReconciler } from "./state-reconciler"
 export type {
   StreamFrame,
   StreamTransport,

@@ -1,4 +1,4 @@
-import { PlainError } from "./errors"
+import { PlainError } from "./plain-error"
 
 /** A successful result carrying its value. */
 export interface Ok<T> {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest"
+import { createSeededRandom } from "../random"
 import { base64urlDecode, base64urlEncode } from "./base64url"
-import { createSeededRandom } from "./random"
 
 const encoder = new TextEncoder()
 

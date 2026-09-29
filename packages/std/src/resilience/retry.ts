@@ -1,4 +1,4 @@
-import { PlainError } from "../errors"
+import { PlainError } from "../error"
 import type { RandomSource } from "../random"
 import { systemRandom } from "../random"
 import type { WebAbortSignal } from "../web"

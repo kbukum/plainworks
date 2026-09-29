@@ -8,7 +8,7 @@ Use this reference to decide **where code belongs**, **which hosts can run it**,
 2. Keep the package in its assigned layer.
 3. Import only from a strictly lower layer.
 4. Define a shared seam in the lowest consuming layer and implement it higher.
-5. Put React or browser behavior behind `./client`; keep `.` neutral.
+5. Keep `.` neutral. Put React bindings behind `./client` and browser behavior on a named adapter subpath.
 
 <!-- layer-map:diagram -->
 ```mermaid
@@ -45,23 +45,37 @@ The workspace has three roots and four generated profiles. `bun run check-shape`
 | **tool** | dev-only `internal/*` tools | Source lives under `src/`, tests are colocated, optional `src/cli.ts` exposes `plainworks-<dirname>` and runs Bun with the `@plainworks/source` condition (so a tool imports `@plainworks/*` from source with no build), and `tsconfig.json` extends `../../tsconfig.tool.json`. |
 | **app** | `apps/*` and `internal/integration` | `tsconfig.json` extends `../../tsconfig.app.json`, tests use `appTestConfig`, and tasks resolve built package surfaces. |
 
-Published packages ship ESM, expose a server-safe `.`, and add `./client` only when needed. Their manifests are generated from the typed `PackageBuild` description exported by `tsdown.config.ts`, and React dependencies stay catalog-managed peers.
+Published packages ship ESM, expose a server-safe `.`, and add other [entries](#choose-an-entry-point) only when needed. Their manifests are generated from the typed `PackageBuild` description exported by `tsdown.config.ts`, and React dependencies stay catalog-managed peers.
 
 The root tsconfigs mirror those profiles: `tsconfig.base.json` typechecks host-neutral packages, `tsconfig.tool.json` typechecks source-run internal tools with Node types, and `tsconfig.app.json` typechecks apps and integration suites against built package surfaces.
 
 ## Choose an entry point
 
-plainworks separates code by runtime requirement rather than framework.
+plainworks separates code by runtime requirement rather than framework. Every package uses the same small set of entry kinds, so an import path tells you where the code can run.
 
-| Entry | Runtime contract | Typical hosts |
-|---|---|---|
-| **Neutral `.`** | No React, DOM global, Node builtin, or framework assumption. | Node, Bun, Deno, edge runtimes, workers, React Server Components, and React Native with required polyfills. |
-| **Client `./client`** | React bindings or browser behavior. Browser-only modules carry `"use client"`. | Browser SPAs, client components, and Electron renderers. |
-| **Server `./server`** | Server-only behavior that must stay out of client graphs. | BFFs and server runtimes. |
+| Entry | What it holds | Where it runs | Example |
+|---|---|---|---|
+| **`.`** | The package's everyday vocabulary. No React, DOM global, Node builtin, or framework. | Anywhere: Node, Bun, Deno, edge, workers, React Server Components, React Native. | `@plainworks/std` |
+| **Concern subpath** | One concern of a package that holds several, named after its folder. | Same as `.`. | `@plainworks/std/time`, `@plainworks/http/list` |
+| **`./client`** | React bindings. DOM-free unless the package declares `dom`. | React hosts, including React Native for DOM-free clients. | `@plainworks/state/client` |
+| **`./server`** | Server-only code, such as token custody. It never enters a `"use client"` graph. | BFFs and server runtimes. | `@plainworks/auth/server` |
+| **Adapter subpath** | One host-specific implementation of a seam, named after what it does. | Hosts that have that primitive. | `@plainworks/state/web-storage`, `@plainworks/auth/form-post` |
+| **Component subpath** | One UI component or hook. | Browsers. | `@plainworks/ui/forms/text-field` |
+| **Integration subpath** | Wiring to another plainworks package. | Wherever both packages run. | `@plainworks/app/capabilities/query`, `@plainworks/devtools/query` |
+| **Asset** | A stylesheet or other file. | Bundlers. | `@plainworks/theme/styles.css` |
+| **`./testing`** | Test-only helpers. Only tests may import them. | Test runners. | `@plainworks/app/testing` |
 
-React Native can use DOM-free hooks from packages such as `state`, `query`, `channel`, and `auth`. DOM UI and browser storage do not belong in its graph.
+A few rules keep the vocabulary honest, and the gates enforce each one.
 
-Workers inject SSE because they do not provide `EventSource`. Electron renderers use the DOM client entry but must keep BFF-managed tokens in memory rather than browser storage. React Native hosts inject missing cryptography, storage, or streaming primitives.
+- **Named exports only.** A barrel lists every name it re-exports; `export *` fails lint. Each name has exactly one import path.
+- **Everyday names in `.`, concerns on subpaths.** A package that spans several concerns keeps `.` for its prelude and puts each concern on its own subpath. Shared typed errors live in `src/errors/`; an error that belongs to one concern stays with it.
+- **DOM is opt-in.** A package declares `dom: true` in `tsdown.config.ts` only when its product is browser UI (`theme`, `elements`, `ui`, `devtools`, `testkit`). Everywhere else the DOM lib is allowed only in adapter, test, and tooling projects.
+- **Adapters say what they do.** An entry is never named after a host (`dom`, `browser`, `node`). `testkit/browser`, the real-browser test harness, is the one exception.
+- **Test helpers stay out of shipped code.** `./testing` compiles in its own `tsconfig.testing.json` project, and a boundary rule stops production modules from importing it.
+
+React Native imports `./client` from `state`, `query`, `channel`, `auth`, `connect`, and `app`. Those clients compile without the DOM lib, and fixtures in `@plainworks/boundaries` prove it. DOM UI and browser adapters stay out of its graph.
+
+Workers inject SSE because they do not provide `EventSource`. Electron renderers use the browser entries but must keep BFF-managed tokens in memory rather than browser storage. React Native hosts inject missing cryptography, storage, or streaming primitives.
 
 ### Runtime primitives
 

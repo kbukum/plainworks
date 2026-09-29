@@ -6,9 +6,11 @@ import { fakeStateSource } from "@plainworks/testkit"
 import type { ReactNode } from "react"
 import { renderToString } from "react-dom/server"
 import { describe, expect, test } from "vitest"
+import { cookieScope } from "../../adapters/cookie"
+import { urlScope } from "../../adapters/url"
+import { persistentScope, sessionScope } from "../../adapters/web-storage"
 import { memoryScope } from "../../scope/memory"
 import type { Scope, SourceSpec } from "../../scope/seam"
-import { cookieScope, persistentScope, sessionScope, urlScope } from "../scope"
 import { createScopedState } from "./scoped-state"
 
 interface Prefs {

@@ -1,6 +1,6 @@
 "use client"
 
-import { ErrorState } from "@plainworks/ui/feedback"
+import { ErrorState } from "@plainworks/ui/feedback/error-state"
 import type { ReactElement } from "react"
 import { LOGIN_PATH } from "../neutral/constants"
 

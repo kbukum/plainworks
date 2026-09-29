@@ -1,4 +1,4 @@
-import { PlainError } from "../error"
+import { PlainError } from "../errors"
 
 /** The subset of the Web Crypto API this module needs, resolved from the host at call time. */
 interface RandomUuidSource {

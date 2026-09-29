@@ -2,7 +2,7 @@
 
 import { Badge } from "@plainworks/elements/badge"
 import { Button } from "@plainworks/elements/button"
-import { Drawer } from "@plainworks/ui/overlays"
+import { Drawer } from "@plainworks/ui/overlays/drawer"
 import { SlidersHorizontal } from "lucide-react"
 import type { ReactElement, ReactNode } from "react"
 

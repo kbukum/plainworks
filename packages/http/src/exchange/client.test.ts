@@ -10,7 +10,7 @@ import {
   recordTelemetry,
 } from "@plainworks/testkit"
 import { expect, test, vi } from "vitest"
-import { HttpError } from "../error"
+import { HttpError } from "../errors"
 import type { HttpInterceptor } from "../interceptor"
 import { createHttpClient } from "./client"
 

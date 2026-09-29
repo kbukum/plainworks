@@ -1,5 +1,5 @@
 import { StateSourceError } from "@plainworks/state"
-import type { WebStorageLike } from "@plainworks/state/client/scope"
+import type { WebStorageLike } from "@plainworks/state/web-storage"
 import { describe, expect, it, vi } from "vitest"
 import { createDevtoolsLayoutSource, DEVTOOLS_LAYOUT_KEY } from "./layout-source"
 

@@ -3,7 +3,7 @@
 // React binding on `./client`. The wire seam the transports implement is `@plainworks/std/seam`.
 // Re-export-only barrel. No React or DOM imports, so the `.` entry runs anywhere (Node, edge,
 // workers, RSC).
-export { ChannelError, type ChannelErrorKind } from "./error"
+export { ChannelError, type ChannelErrorKind } from "./errors"
 export {
   type Channel,
   type ChannelOptions,

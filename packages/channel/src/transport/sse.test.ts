@@ -10,7 +10,7 @@ import type {
   WebResponse,
 } from "@plainworks/std/web"
 import { describe, expect, test } from "vitest"
-import { ChannelError } from "../error"
+import { ChannelError } from "../errors"
 import { createSseTransport } from "./sse"
 
 /** A `WebResponse`-shaped SSE response whose body is the concatenated chunks. */

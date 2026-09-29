@@ -12,7 +12,7 @@ import {
   seededRandom,
 } from "@plainworks/testkit"
 import { beforeEach, describe, expect, test, vi } from "vitest"
-import { ChannelError } from "../error"
+import { ChannelError } from "../errors"
 import { type Channel, type ChannelOptions, createChannel } from "./channel"
 import type { ChannelStatus } from "./status"
 

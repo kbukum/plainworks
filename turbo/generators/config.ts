@@ -115,6 +115,11 @@ export default function generator(plop: PlopTypes.NodePlopAPI): void {
             path: "packages/{{name}}/tsconfig.client.json",
             templateFile: "templates/client-root/tsconfig.client.json.hbs",
           },
+          {
+            type: "add",
+            path: "packages/{{name}}/tsconfig.test.json",
+            templateFile: "templates/client-root/tsconfig.test.json.hbs",
+          },
         )
       }
       actions.push(syncShapeAction(plop, "packages"))

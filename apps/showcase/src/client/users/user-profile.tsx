@@ -3,8 +3,9 @@
 import type { User } from "@plainworks/demo"
 import { Avatar, AvatarFallback } from "@plainworks/elements/avatar"
 import { Badge } from "@plainworks/elements/badge"
-import { DateValue, StatusBadge } from "@plainworks/ui/display"
-import { Modal } from "@plainworks/ui/overlays"
+import { DateValue } from "@plainworks/ui/display/date-value"
+import { StatusBadge } from "@plainworks/ui/display/status-badge"
+import { Modal } from "@plainworks/ui/overlays/modal"
 import type { ReactElement, ReactNode } from "react"
 import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../app/constants"
 import {

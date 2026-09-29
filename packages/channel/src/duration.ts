@@ -1,6 +1,6 @@
 import { getErrorMessage } from "@plainworks/std"
 import { assertTimerMs } from "@plainworks/std/resilience"
-import { ChannelError } from "./error"
+import { ChannelError } from "./errors"
 
 /**
  * Reject a timing option a host timer would silently coerce (NaN/negative/overflow), as a typed

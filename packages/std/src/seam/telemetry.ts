@@ -1,4 +1,4 @@
-import { createErrorSnapshot } from "../error"
+import { createErrorSnapshot } from "../errors"
 import { type RedactOptions, redact } from "../privacy"
 
 /** A value an attribute may carry — the primitive types OpenTelemetry accepts. */

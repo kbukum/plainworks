@@ -11,9 +11,11 @@ import {
   TableHeader,
   TableRow,
 } from "@plainworks/elements/table"
-import { DateValue, NumberValue, StatusBadge } from "@plainworks/ui/display"
-import { Callout } from "@plainworks/ui/feedback"
-import { Modal } from "@plainworks/ui/overlays"
+import { DateValue } from "@plainworks/ui/display/date-value"
+import { NumberValue } from "@plainworks/ui/display/number-value"
+import { StatusBadge } from "@plainworks/ui/display/status-badge"
+import { Callout } from "@plainworks/ui/feedback/callout"
+import { Modal } from "@plainworks/ui/overlays/modal"
 import { type ReactElement, useId } from "react"
 import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../app/constants"
 import { Can, canManageOrders } from "../session"

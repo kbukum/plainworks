@@ -8,7 +8,7 @@ import {
   type SettingsLanguage,
   type SettingsTimezone,
 } from "@plainworks/demo"
-import type { SelectFieldOption } from "@plainworks/ui/forms"
+import type { SelectFieldOption } from "@plainworks/ui/forms/select-field"
 
 export {
   SETTINGS_ITEMS_PER_PAGE_MAX as ITEMS_PER_PAGE_MAX,

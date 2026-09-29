@@ -13,8 +13,8 @@ export type PackageAsset =
  */
 export interface PackageBuild {
   /**
-   * Entry points by public subpath: `index` is the `.` entry, and `client` or `client/scope` is
-   * published as `./client` or `./client/scope`. The key is also the `dist` file name.
+   * Entry points by public subpath: `index` is the `.` entry, and `client` or `web-storage` is
+   * published as `./client` or `./web-storage`. The key is also the `dist` file name.
    */
   readonly entry: Readonly<Record<string, string>>
   /** Non-JS files the package exports, by their `dist` file name (e.g. `styles.css`). */
@@ -32,6 +32,12 @@ export interface PackageBuild {
   readonly vendored?: string
   /** Published files beyond `dist` and `src`, such as a `registry.json` manifest. */
   readonly files?: readonly string[]
+  /**
+   * Declares a DOM-only package (`theme`, `elements`, `ui`, `devtools`, `testkit`), whose `.` and
+   * `./client` projects may add the DOM lib. Every other package keeps DOM to its adapter, test,
+   * and tooling projects, so its `./client` also runs on React Native.
+   */
+  readonly dom?: true
 }
 
 /** A `tsdown.config.ts` build description that breaks the shape every package shares. */
@@ -50,7 +56,7 @@ export function assertPackageBuild(build: PackageBuild): void {
   for (const [key, source] of Object.entries(build.entry)) {
     if (!SUBPATH.test(key) || key.endsWith("/index")) {
       throw new BuildShapeError(
-        `The entry "${key}" is not a public subpath; name it the way consumers import it (e.g. "client/scope").`,
+        `The entry "${key}" is not a public subpath; name it the way consumers import it (e.g. "web-storage").`,
       )
     }
     if (!source.startsWith("src/")) {

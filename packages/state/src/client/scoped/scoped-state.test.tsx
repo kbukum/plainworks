@@ -8,11 +8,11 @@ import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ReactNode } from "react"
 import { afterEach, describe, expect, test, vi } from "vitest"
+import { cookieScope } from "../../adapters/cookie"
+import { persistentScope, sessionScope } from "../../adapters/web-storage"
 import { StateError } from "../../errors"
 import { memoryScope } from "../../scope/memory"
 import type { Scope, SourceSpec } from "../../scope/seam"
-import { cookieScope } from "../scope/cookie"
-import { persistentScope, sessionScope } from "../scope/web-storage"
 import { createScopedState } from "./scoped-state"
 
 interface Prefs {

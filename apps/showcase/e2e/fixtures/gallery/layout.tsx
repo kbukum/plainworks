@@ -1,4 +1,6 @@
-import { Grid, Split, Stack } from "@plainworks/ui/layout"
+import { Grid } from "@plainworks/ui/layout/grid"
+import { Split } from "@plainworks/ui/layout/split"
+import { Stack } from "@plainworks/ui/layout/stack"
 import type { ReactElement } from "react"
 import { Box, Category, Section } from "./frame"
 

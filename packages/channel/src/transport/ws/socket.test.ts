@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "vitest"
-import { ChannelError } from "../../error"
+import { ChannelError } from "../../errors"
 import { resolveGlobalSocketFactory, SOCKET_OPEN, type WebSocketLike } from "./socket"
 
 const originalWebSocket = (globalThis as { WebSocket?: unknown }).WebSocket

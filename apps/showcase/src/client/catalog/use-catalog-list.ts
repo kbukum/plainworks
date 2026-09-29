@@ -1,7 +1,7 @@
 "use client"
 
 import type { ListFilter, ListQueryParams, SortDirection } from "@plainworks/std/list"
-import type { DataTableSort } from "@plainworks/ui/data-table"
+import type { DataTableSort } from "@plainworks/ui/data/data-table"
 import { useMemo, useState } from "react"
 
 /**

@@ -1,7 +1,10 @@
 "use client"
 
 import type { UpdateSettingsInput } from "@plainworks/demo"
-import { DateField, Form, TextareaField, TextField } from "@plainworks/ui/forms"
+import { DateField } from "@plainworks/ui/forms/date-field"
+import { Form } from "@plainworks/ui/forms/form"
+import { TextField } from "@plainworks/ui/forms/text-field"
+import { TextareaField } from "@plainworks/ui/forms/textarea-field"
 import type { ReactElement } from "react"
 import { useToast } from "../feedback"
 import { PanelActions, type SettingsPanelProps } from "./settings-panel"

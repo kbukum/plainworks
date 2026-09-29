@@ -1,6 +1,6 @@
 import type { ListQueryParams } from "@plainworks/std/list"
 import { describe, expect, it } from "vitest"
-import { HttpError } from "../error"
+import { HttpError } from "../errors"
 import { buildUrl } from "../url"
 import { buildListQuery } from "./build"
 

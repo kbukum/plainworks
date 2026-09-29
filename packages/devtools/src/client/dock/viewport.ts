@@ -1,6 +1,6 @@
 "use client"
 
-import { useMediaQuery } from "@plainworks/ui/hooks"
+import { useMediaQuery } from "@plainworks/ui/hooks/use-media-query"
 import { useSyncExternalStore } from "react"
 import type { DockViewport } from "./layout"
 

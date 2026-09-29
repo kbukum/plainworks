@@ -1,4 +1,4 @@
-import { PlainError } from "../error"
+import { PlainError } from "../errors"
 import { isNonNegativeInteger, isPositiveInteger } from "../guard"
 import { utf8ByteLength } from "./utf8"
 

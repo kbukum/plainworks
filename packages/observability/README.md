@@ -20,7 +20,7 @@ Each concern has its own import path, and none locks you into a vendor.
 | `@plainworks/observability/logging` | `createLogger` and `createConsoleLogger`: a structured logger that redacts every record. |
 | `@plainworks/observability/reporting` | `createErrorReporter`: one seam that fans errors out to the backends you register. |
 | `@plainworks/observability/vitals` | The DOM-free Web Vitals shapes and `rateWebVital`. |
-| `@plainworks/observability/client` | `observeWebVitals`, the browser collector. |
+| `@plainworks/observability/web-vitals` | `observeWebVitals`, the browser collector. |
 
 **Telemetry for every transport.** Build one `Telemetry` and pass it to each transport that accepts it, such as the HTTP client. Operations and events land in your logger, named after OpenTelemetry conventions.
 
@@ -55,7 +55,7 @@ reporter.report(error, { severity: "error", tags: { route: "/orders" } })
 **Web Vitals.** The browser collector sends measurements to an injected callback.
 
 ```ts
-import { observeWebVitals } from "@plainworks/observability/client"
+import { observeWebVitals } from "@plainworks/observability/web-vitals"
 
 // In a client effect — the returned teardown flushes and disconnects.
 const stop = observeWebVitals((metric) => log.info("web-vital", { ...metric }))
@@ -63,4 +63,4 @@ const stop = observeWebVitals((metric) => log.info("web-vital", { ...metric }))
 
 ## Runtime primitives
 
-The neutral entries (everything except `./client`) are host-free. The console logger resolves the host console only when it writes its first record, and consumers can inject another console. The `./client` collector uses an injectable `PerformanceObserver` and becomes an inert no-op when the runtime does not provide one. See [`docs/architecture.md › Axis 2`](../../docs/architecture.md) for the runtime model.
+The neutral entries (everything except `./web-vitals`) are host-free. The console logger resolves the host console only when it writes its first record, and consumers can inject another console. The `./web-vitals` collector uses an injectable `PerformanceObserver` and becomes an inert no-op when the runtime does not provide one. See [`docs/architecture.md › Axis 2`](../../docs/architecture.md) for the runtime model.

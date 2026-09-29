@@ -3,14 +3,18 @@
   "extends": ["//"],
   "tasks": {
     "test": {
-      // The portability test compiles every package's neutral project (`tsconfig.src.json`, or
-      // `tsconfig.json` for a single-project package) from outside this package, so those configs
-      // bust the cache too.
+      // The portability test reads every package's neutral and client projects, and the entries
+      // test compiles every package's public entries from source, so those files bust the cache
+      // too.
       "inputs": [
         "$TURBO_DEFAULT$",
         "!**/*.md",
         "$TURBO_ROOT$/packages/*/tsconfig.json",
-        "$TURBO_ROOT$/packages/*/tsconfig.src.json"
+        "$TURBO_ROOT$/packages/*/tsconfig.src.json",
+        "$TURBO_ROOT$/packages/*/tsconfig.client.json",
+        "$TURBO_ROOT$/packages/*/package.json",
+        "$TURBO_ROOT$/packages/*/src/**",
+        "!$TURBO_ROOT$/packages/*/src/**/*.test.{ts,tsx}"
       ]
     }
   }

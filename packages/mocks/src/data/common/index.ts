@@ -1,6 +1,9 @@
 /**
  * Common data utilities
  */
-export * from "./factory"
-export * from "./sources"
-export * from "./store"
+export type { EntityFactory, EntityFactoryConfig } from "./factory"
+export { createEntityFactory } from "./factory"
+export type { FixtureSources, ReloadableFixtureSources } from "./sources"
+export { createFixtureSources, createReloadableFixtureSources } from "./sources"
+export type { EntityStore } from "./store"
+export { createStore } from "./store"

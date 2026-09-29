@@ -2,12 +2,12 @@
 // only (no host), so it is provable without a browser.
 
 import { describe, expect, test } from "vitest"
+import { cookieScope } from "../../adapters/cookie"
+import { urlScope } from "../../adapters/url"
+import { persistentScope, sessionScope } from "../../adapters/web-storage"
 import { StateConfigError } from "../../errors"
 import { memoryScope } from "../../scope/memory"
 import type { Scope } from "../../scope/seam"
-import { cookieScope } from "../scope/cookie"
-import { urlScope } from "../scope/url"
-import { persistentScope, sessionScope } from "../scope/web-storage"
 import { createScopedObject } from "./scoped-object"
 import { createScopedState } from "./scoped-state"
 

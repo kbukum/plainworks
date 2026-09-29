@@ -4,8 +4,8 @@
 // imports, so the `.` entry runs anywhere (Node, edge, RSC).
 export type { BodyCodec, EncodedBody, JsonCodecOptions } from "./codec"
 export { createJsonCodec, DEFAULT_MAX_BODY_BYTES, jsonCodec } from "./codec"
-export type { HttpErrorKind } from "./error"
-export { HttpError, isHttpError } from "./error"
+export type { HttpErrorKind } from "./errors"
+export { HttpError, isHttpError } from "./errors"
 export type {
   HttpClient,
   HttpClientOptions,

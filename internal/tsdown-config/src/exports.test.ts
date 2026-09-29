@@ -5,7 +5,7 @@ describe("renderExports", () => {
   it("maps each entry to source for the repo and to dist for everyone else", () => {
     expect(
       renderExports({
-        entry: { index: "src/index.ts", "client/scope": "src/client/scope/index.ts" },
+        entry: { index: "src/index.ts", "web-storage": "src/adapters/web-storage.ts" },
       }),
     ).toEqual({
       ".": {
@@ -13,10 +13,10 @@ describe("renderExports", () => {
         types: "./dist/index.d.ts",
         default: "./dist/index.js",
       },
-      "./client/scope": {
-        "@plainworks/source": "./src/client/scope/index.ts",
-        types: "./dist/client/scope.d.ts",
-        default: "./dist/client/scope.js",
+      "./web-storage": {
+        "@plainworks/source": "./src/adapters/web-storage.ts",
+        types: "./dist/web-storage.d.ts",
+        default: "./dist/web-storage.js",
       },
     })
   })

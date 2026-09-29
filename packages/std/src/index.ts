@@ -2,7 +2,7 @@
 // Typed errors and `Result`, plus the guards and assertions that narrow untrusted `unknown`.
 // Each concern module is its own subpath (`@plainworks/std/web`, `@plainworks/std/time`) and is
 // never re-exported here, so the import path names the concern. Re-export-only barrel.
-export type { Err, ErrorSnapshot, Ok, PlainErrorOptions, Result } from "./error"
+export type { Err, ErrorSnapshot, Ok, PlainErrorOptions, Result } from "./errors"
 export {
   createErrorSnapshot,
   ensureError,
@@ -14,7 +14,7 @@ export {
   PlainError,
   unwrap,
   unwrapOr,
-} from "./error"
+} from "./errors"
 export {
   assert,
   assertNever,

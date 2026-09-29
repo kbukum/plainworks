@@ -11,9 +11,10 @@ import { MOTION_OPTIONS, type MotionPreference } from "./settings-fields"
  * applying instantly and persisting to this browser. Each choice is a labelled radio with a
  * description, so the group is keyboard-operable and screen-reader clear.
  *
- * Kit-promotion decision: `@plainworks/ui/forms` ships no `RadioGroupField` yet, so this composes
- * the `@plainworks/elements` radio atoms app-locally. If a second surface needs a radio group, this
- * is the candidate to promote into the kit's forms concern alongside the other field wrappers.
+ * Kit-promotion decision: the `@plainworks/ui` forms concern ships no `RadioGroupField` yet, so
+ * this composes the `@plainworks/elements` radio atoms app-locally. If a second surface needs a
+ * radio group, this is the candidate to promote into the kit's forms concern alongside the other
+ * field wrappers.
  */
 export function MotionControl(): ReactElement {
   const motion = useLocalPreferences((state) => state.motion)

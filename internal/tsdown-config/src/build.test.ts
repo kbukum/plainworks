@@ -5,7 +5,7 @@ describe("assertPackageBuild", () => {
   it("accepts an index entry, subpath entries, and assets named after their file", () => {
     expect(() =>
       assertPackageBuild({
-        entry: { index: "src/index.ts", "client/scope": "src/client/scope/index.ts" },
+        entry: { index: "src/index.ts", "web-storage": "src/adapters/web-storage.ts" },
         assets: { "styles.css": { from: "src/styles.css" } },
       }),
     ).not.toThrow()

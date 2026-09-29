@@ -4,8 +4,8 @@ import type { User } from "@plainworks/demo"
 import { Avatar, AvatarFallback } from "@plainworks/elements/avatar"
 import { Badge } from "@plainworks/elements/badge"
 import { Button } from "@plainworks/elements/button"
-import type { DataTableColumn } from "@plainworks/ui/data-table"
-import { StatusBadge } from "@plainworks/ui/display"
+import type { DataTableColumn } from "@plainworks/ui/data/data-table"
+import { StatusBadge } from "@plainworks/ui/display/status-badge"
 import {
   USER_ROLE_LABEL,
   USER_STATUS_LABEL,

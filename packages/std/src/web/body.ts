@@ -1,4 +1,4 @@
-import { PlainError } from "../error"
+import { PlainError } from "../errors"
 import { isPositiveInteger } from "../guard"
 import { NetworkError } from "../resilience/classify"
 import { AbortError } from "../resilience/timeout"

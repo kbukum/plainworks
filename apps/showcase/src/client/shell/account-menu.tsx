@@ -1,6 +1,7 @@
 "use client"
 
 import { logout } from "@plainworks/auth/client"
+import { formPostNavigator } from "@plainworks/auth/form-post"
 import { Avatar, AvatarFallback } from "@plainworks/elements/avatar"
 import { buttonVariants } from "@plainworks/elements/button"
 import {
@@ -58,7 +59,9 @@ export function AccountMenu(): ReactElement {
           </DropdownMenuItem>
         </Can>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => logout()}>Log out</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => logout({ navigator: formPostNavigator })}>
+          Log out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

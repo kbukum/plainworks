@@ -8,7 +8,7 @@ export {
   RpcError,
   type RpcErrorCode,
   type RpcErrorInit,
-} from "./error"
+} from "./errors"
 export {
   type ConnectProtocol,
   type CreateConnectTransportOptions,

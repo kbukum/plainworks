@@ -52,6 +52,9 @@
         "useImportType": "error",
         "noParameterAssign": "error"
       },
+      "performance": {
+        "noReExportAll": "error"
+      },
       "suspicious": {
         "noExplicitAny": "error",
         "noConsole": { "level": "error", "options": { "allow": ["warn", "error"] } }

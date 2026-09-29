@@ -4,8 +4,8 @@
 
 Compose whole pages and async regions from `ui`.
 
-- New `@plainworks/ui/page`: `Page`, `PageHeader`, `Section`, and `Toolbar` give pages one heading order, width, and spacing, and adapt to their container.
-- New region states in `@plainworks/ui/feedback`: `LoadingState`, `EmptyState`, `ErrorState`, and `AsyncState`, so every region shows exactly one state and errors always offer a recovery control. `asyncStatus` picks the state and ships from the server-safe `@plainworks/ui` entry.
+- New `Page`, `PageHeader`, `Section`, and `Toolbar` under `@plainworks/ui/layout/*` give pages one heading order, width, and spacing, and adapt to their container.
+- New region states under `@plainworks/ui/feedback/*`: `LoadingState`, `EmptyState`, `ErrorState`, and `AsyncState`, so every region shows exactly one state and errors always offer a recovery control. `asyncStatus` picks the state and ships from the server-safe `@plainworks/ui` entry.
 - `DataTable` moves low-priority columns into a per-row details disclosure on narrow containers, so no value is lost, and long values wrap instead of widening the table. New `nowrap`, `showCaption`, and `empty` props.
 - `FilterBar` stacks controls when narrow, announces how many filters apply, adds **Clear all**, and keeps keyboard focus in place when rows are added or removed.
 

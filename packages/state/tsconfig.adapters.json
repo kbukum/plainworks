@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Adapter project: the DOM scope backends (`./web-storage`, `./cookie`, `./url`) default to the
+  // host `localStorage`, `document.cookie`, and `location`, so this project alone adds the DOM libs.
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "exclude": ["src/**/*.test.ts"],
+  "include": ["src/adapters"]
+}

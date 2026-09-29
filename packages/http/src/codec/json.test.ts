@@ -1,7 +1,7 @@
 import { AbortError } from "@plainworks/std/resilience"
 import type { WebReadableStreamDefaultReader, WebResponse } from "@plainworks/std/web"
 import { expect, test } from "vitest"
-import { HttpError } from "../error"
+import { HttpError } from "../errors"
 import { createJsonCodec, jsonCodec } from "./json"
 
 /** A minimal {@link WebResponse} whose body is driven by a hand-built reader, for stream-path tests. */

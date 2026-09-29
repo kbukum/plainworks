@@ -1,5 +1,5 @@
 import type { PlainEvent, StreamFrame } from "@plainworks/std/seam"
-import { ChannelError } from "../error"
+import { ChannelError } from "../errors"
 
 /**
  * Decode a raw {@link StreamFrame} into a typed {@link PlainEvent}, or return `undefined` to drop

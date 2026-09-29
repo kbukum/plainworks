@@ -1,5 +1,5 @@
 import type { Notification } from "@plainworks/demo"
-import type { StatusTone } from "@plainworks/ui/display"
+import type { StatusTone } from "@plainworks/ui/display/status-badge"
 import { CircleAlert, CircleCheck, Info, type LucideIcon, TriangleAlert } from "lucide-react"
 
 /** Presentation for one notification type: its icon, its accessible type label, and a badge tone. */

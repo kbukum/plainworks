@@ -14,6 +14,7 @@
   "devDependencies": {
     "@plainworks/vitest-config": "workspace:*",
     "@types/node": "catalog:",
+    "@types/react": "catalog:",
     "dependency-cruiser": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

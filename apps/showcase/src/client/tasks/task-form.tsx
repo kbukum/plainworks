@@ -2,15 +2,13 @@
 
 import type { Task } from "@plainworks/demo"
 import { Button } from "@plainworks/elements/button"
-import { Callout } from "@plainworks/ui/feedback"
-import {
-  DateField,
-  Form,
-  FormSubmit,
-  SelectField,
-  TextareaField,
-  TextField,
-} from "@plainworks/ui/forms"
+import { Callout } from "@plainworks/ui/feedback/callout"
+import { DateField } from "@plainworks/ui/forms/date-field"
+import { Form } from "@plainworks/ui/forms/form"
+import { FormSubmit } from "@plainworks/ui/forms/form-submit"
+import { SelectField } from "@plainworks/ui/forms/select-field"
+import { TextField } from "@plainworks/ui/forms/text-field"
+import { TextareaField } from "@plainworks/ui/forms/textarea-field"
 import type { ReactElement } from "react"
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from "./task-fields"
 import { type TaskFormValues, taskFormSchema } from "./task-schema"

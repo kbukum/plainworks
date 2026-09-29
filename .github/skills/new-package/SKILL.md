@@ -34,7 +34,7 @@ bun run gen package
 
 Or non-interactively (as CI does): `bun run gen package --args <name> "<description>" <true|false>`.
 
-Answer `hasClient: true` only when the package has genuinely interactive React that must run client-side (hooks, DOM). A pure server-safe capability (`std`, most of `channel`/`auth` cores) is `false` — it ships only the `.` entry. `hasClient: true` adds the `./client` export, a `"use client"` module, jsdom test env, and `react`/`react-dom` `catalog:` peers.
+Answer `hasClient: true` only when the package ships React bindings. The generated `./client` is DOM-free, so it also runs on React Native; put browser behavior on an adapter subpath (see [`new-backend`](../new-backend/SKILL.md)), or declare `dom: true` in `tsdown.config.ts` when the package's product is browser UI. A pure server-safe capability (`std`, most of `channel`/`auth` cores) is `false` — it ships only the `.` entry. `hasClient: true` adds the `./client` export, a `"use client"` module, jsdom test env, and `react`/`react-dom` `catalog:` peers.
 
 Then install so the workspace picks it up:
 

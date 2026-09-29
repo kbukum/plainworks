@@ -51,7 +51,10 @@ beforeEach(() => {
     devDependencies: { typescript: "catalog:" },
   })
   writeJson(join(appDir, "tsconfig.json"), { extends: "../../tsconfig.app.json" })
-  writeSource(join(appDir, "src", "page.tsx"), 'import { Button } from "@plainworks/ui/client"\n')
+  writeSource(
+    join(appDir, "src", "page.tsx"),
+    'import { Callout } from "@plainworks/ui/feedback/callout"\n',
+  )
   writeSource(join(appDir, "src", "neutral", "local.ts"), 'import { x } from "../page"\n')
 })
 

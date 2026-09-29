@@ -1,10 +1,9 @@
 "use client"
 
-export type { Sensitivity } from "../../scope/sensitivity"
 // Re-export-only barrel for the unified scoped-state surface — the callable `use`-prefixed hook.
-// Both factories return the same shape (a single value is the degenerate composite); the
-// host-backed scope backends live in the sibling `../scope` barrel, the neutral `memory` scope +
-// serializers in `.`.
+// Both factories return the same shape (a single value is the degenerate composite). The neutral
+// `memory` scope, the serializers, and `Sensitivity` live in `.`; the host-backed scopes live on
+// the adapter subpaths.
 export type {
   FieldDescriptor,
   ObjectPatch,

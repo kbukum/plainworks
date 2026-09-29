@@ -2,7 +2,7 @@
 
 import { Button } from "@plainworks/elements/button"
 import type { StateSource } from "@plainworks/std/seam"
-import { Section } from "@plainworks/ui/page"
+import { Section } from "@plainworks/ui/layout/section"
 import { Pause, Play } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import { type LiveTasks, useLiveTasks } from "./live-stream"

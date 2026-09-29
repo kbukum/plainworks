@@ -61,7 +61,7 @@
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.test.json",
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.test.json && tsc --noEmit -p tsconfig.testing.json",
     "test": "vitest run --coverage",
     "check-packaging": "plainworks-release check-packaging"
   },

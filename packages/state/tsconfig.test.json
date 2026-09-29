@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Test project for the client and adapter tests: they render with jsdom and drive DOM globals, so
+  // this project adds the DOM libs. The client and adapter projects exclude tests, and the neutral
+  // tests stay in the DOM-free `tsconfig.src.json`, so DOM never reaches a neutral graph.
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/client/**/*.test.ts", "src/client/**/*.test.tsx", "src/adapters/**/*.test.ts"]
+}

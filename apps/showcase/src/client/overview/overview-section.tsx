@@ -2,7 +2,10 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@plainworks/elements/card"
 import { asyncStatus } from "@plainworks/ui"
-import { AsyncState, EmptyState, ErrorState, LoadingState } from "@plainworks/ui/feedback"
+import { AsyncState } from "@plainworks/ui/feedback/async-state"
+import { EmptyState } from "@plainworks/ui/feedback/empty-state"
+import { ErrorState } from "@plainworks/ui/feedback/error-state"
+import { LoadingState } from "@plainworks/ui/feedback/loading-state"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { type ReactElement, useState } from "react"
 import { REVENUE_TREND_DAYS } from "../../app/constants"

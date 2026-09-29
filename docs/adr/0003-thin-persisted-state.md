@@ -8,7 +8,7 @@ Persisting UI state to storage invites scope creep toward a full offline/sync en
 
 ## Decision
 
-Persisted state stays **thin**: it routes a scoped value to a storage backend and reads it back, with versioning and migration on read so a stored shape can evolve safely (`state/client/scope/persisted-source`, with an `envelope` carrying the version). It does not grow a sync or offline engine.
+Persisted state stays **thin**: it routes a scoped value to a storage backend and reads it back, with versioning and migration on read so a stored shape can evolve safely (`state/scope/persisted-source`, with an `envelope` carrying the version). It does not grow a sync or offline engine.
 
 ## Consequences
 

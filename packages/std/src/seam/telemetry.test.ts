@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { PlainError } from "../error"
+import { PlainError } from "../errors"
 import { noopTelemetry, toTelemetryFailure } from "./telemetry"
 
 describe("noopTelemetry", () => {

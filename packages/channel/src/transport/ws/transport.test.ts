@@ -1,7 +1,7 @@
 import type { AuthHeaders, StreamFrame, StreamTransportContext } from "@plainworks/std/seam"
 import { flushMicrotasks, manualDelay } from "@plainworks/testkit"
 import { describe, expect, test } from "vitest"
-import { ChannelError } from "../../error"
+import { ChannelError } from "../../errors"
 import { SOCKET_OPEN, type WebSocketConnectInit, type WebSocketLike } from "./socket"
 import { createWsTransport } from "./transport"
 

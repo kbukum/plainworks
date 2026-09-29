@@ -165,6 +165,8 @@ export function renderTsdownConfig(sources: readonly AtomSource[]): string {
     "  entry: {",
     entries,
     "  },",
+    "  // A DOM-only package: its client components render into the browser DOM.",
+    "  dom: true,",
     "  // tsdown has no CSS pipeline, so the Tailwind-source stylesheet is copied verbatim.",
     '  assets: { "styles.css": { from: "src/styles.css" } },',
     "  // The shadcn registry points at the atom sources, and the lock pins them to upstream.",

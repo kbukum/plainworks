@@ -4,21 +4,30 @@ import { fileURLToPath } from "node:url"
 import { formatSource } from "./format"
 
 // The tsdown build description and the shadcn `registry.json` are generated from the `CONCERNS`
-// manifest below: it declares each published concern, its build entry, and its registry
-// classification. A `registry` concern's authored folder is the only thing scanned on disk, for
-// that item's files and dependencies. `codegen` writes the outputs, and a test asserts re-deriving
-// them produces no change. The package `exports` and `files` follow from the build description
-// through `bun run sync-shape`, like every other package.
+// manifest below. Each concern lists its published modules, and every module becomes its own
+// `@plainworks/ui/<concern>/<module>` subpath, so an import names exactly one component and there
+// is no aggregate to pull in the rest. A `registry` concern also becomes one shadcn item, built by
+// scanning its folders for files and dependencies. `codegen` writes the outputs, and a test asserts
+// re-deriving them produces no change. The package `exports` and `files` follow from the build
+// description through `bun run sync-shape`, like every other package.
 
 export const packageRoot: string = fileURLToPath(new URL("../../", import.meta.url))
 
-/** A published entry: a build `source`, or a registry `dir` scanned for its files and deps. */
-interface Concern {
-  /** The public subpath under the package, e.g. `data-table` for `@plainworks/ui/data-table`. */
-  subpath: string
-  source?: string
-  dir?: string
-  registry?: string
+/** A published concern: its folders, the modules it publishes, and its registry classification. */
+export interface Concern {
+  /** The first subpath segment, e.g. `forms` for `@plainworks/ui/forms/text-field`. */
+  readonly name: string
+  /** The folders under `src/` holding the concern's modules. */
+  readonly dirs: readonly string[]
+  /**
+   * The published modules, each resolved in `dirs` as `<module>.ts(x)` or a `<module>/index.ts`
+   * component folder, and each published at `<name>/<module>`.
+   */
+  readonly modules: readonly string[]
+  /** Helper modules (paths under `src/`) that stay private to the concern's components. */
+  readonly internal?: readonly string[]
+  /** The shadcn item type; a concern without it publishes entries but is not a copyable item. */
+  readonly registry?: "ui"
 }
 
 /** A source file's imports split into npm deps and sibling registry deps. */
@@ -50,24 +59,85 @@ export interface Registry {
   items: RegistryItem[]
 }
 
-// The public entries. `source` is the module tsdown builds; when a concern is `registry`,
-// its `dir` (a folder of authored source) is scanned for that shadcn item's files and dependencies.
-// `registry` is the shadcn item type; a concern without it is a plain published entry (an aggregate
-// barrel or a re-export wrapper) that ships in the package but is not a standalone copyable item.
-const CONCERNS: readonly Concern[] = [
-  { subpath: "client", source: "src/client.ts" },
-  { subpath: "hooks", source: "src/client/hooks/index.ts" },
-  { subpath: "layout", dir: "src/client/layout", registry: "ui" },
-  { subpath: "feedback", dir: "src/client/feedback", registry: "ui" },
-  { subpath: "overlays", dir: "src/client/overlays", registry: "ui" },
-  { subpath: "display", dir: "src/client/display", registry: "ui" },
-  { subpath: "navigation", dir: "src/client/navigation", registry: "ui" },
-  { subpath: "data-table", dir: "src/client/data-table", registry: "ui" },
-  { subpath: "forms", dir: "src/client/forms", registry: "ui" },
-  { subpath: "list", dir: "src/client/list", registry: "ui" },
-  { subpath: "page", dir: "src/client/page", registry: "ui" },
-  { subpath: "shell", dir: "src/client/shell", registry: "ui" },
-  { subpath: "theme", source: "src/client/theme/index.ts" },
+export const CONCERNS: readonly Concern[] = [
+  {
+    name: "hooks",
+    dirs: ["hooks", "client/hooks"],
+    modules: [
+      "use-controllable-state",
+      "use-disclosure",
+      "use-list-state",
+      "use-selection",
+      "use-clipboard",
+      "use-keyboard-shortcuts",
+      "use-media-query",
+    ],
+  },
+  {
+    name: "layout",
+    dirs: ["client/layout"],
+    modules: ["stack", "grid", "split", "page", "page-header", "section", "toolbar"],
+    internal: ["client/layout/gap.ts"],
+    registry: "ui",
+  },
+  {
+    name: "feedback",
+    dirs: ["client/feedback"],
+    modules: ["async-state", "callout", "empty-state", "error-state", "loading-state", "spinner"],
+    registry: "ui",
+  },
+  {
+    name: "overlays",
+    dirs: ["client/overlays"],
+    modules: ["drawer", "modal"],
+    internal: ["client/overlays/body.tsx"],
+    registry: "ui",
+  },
+  {
+    name: "display",
+    dirs: ["client/display"],
+    modules: ["date-value", "number-value", "status-badge"],
+    registry: "ui",
+  },
+  {
+    name: "navigation",
+    dirs: ["client/navigation"],
+    modules: ["breadcrumbs", "nav-list"],
+    registry: "ui",
+  },
+  {
+    name: "theme",
+    dirs: ["client/theme"],
+    modules: ["theme-mode-group", "theme-mode-menu", "theme-mode-options"],
+    registry: "ui",
+  },
+  {
+    name: "forms",
+    dirs: ["client/forms"],
+    modules: [
+      "form",
+      "form-context",
+      "form-data",
+      "form-submit",
+      "field",
+      "text-field",
+      "number-field",
+      "date-field",
+      "textarea-field",
+      "select-field",
+      "checkbox-field",
+      "switch-field",
+    ],
+    internal: ["client/forms/field-props.ts"],
+    registry: "ui",
+  },
+  { name: "shell", dirs: ["client/shell"], modules: ["app-shell"], registry: "ui" },
+  {
+    name: "data",
+    dirs: ["client/data"],
+    modules: ["data-table", "filter-bar", "filter-model", "pagination", "pagination-range"],
+    registry: "ui",
+  },
 ]
 
 // react is a peer and a relative specifier is a file already shipped inside the same concern —
@@ -76,8 +146,20 @@ const CONCERNS: readonly Concern[] = [
 // packages without requiring source import rewriting by the shadcn CLI.
 const NON_DEPENDENCY = /^(react|react-dom)(\/|$)|^\.\.?\//
 
-function concernSource(concern: Concern): string {
-  return concern.source ?? `${concern.dir}/index.ts`
+// The package-relative source of one published module: a `<module>.ts(x)` file or a `<module>/`
+// component folder with an `index.ts` barrel, found in exactly one of the concern's folders.
+function moduleSource(root: string, concern: Concern, module: string): string {
+  const found = concern.dirs.flatMap((dir) =>
+    [`${module}.ts`, `${module}.tsx`, `${module}/index.ts`]
+      .map((file) => `src/${dir}/${file}`)
+      .filter((path) => existsSync(join(root, path))),
+  )
+  if (found.length !== 1) {
+    throw new Error(
+      `ui concern "${concern.name}" module "${module}" must resolve to exactly one source; found ${found.length}.`,
+    )
+  }
+  return found[0] as string
 }
 
 // Every `from "<specifier>"` in a source file, deduped in source order.
@@ -124,18 +206,17 @@ export function scanDependencies(source: string): DependencyScan {
   }
 }
 
-// The authored source files of a concern folder — every module except the re-export barrel and the
-// tests — sorted for stable codegen.
+// The authored source files of a concern folder, component folders included — every module except
+// the tests — sorted for stable codegen.
 function concernFiles(root: string, dir: string): string[] {
-  return readdirSync(join(root, dir))
+  return readdirSync(join(root, dir), { recursive: true, encoding: "utf8" })
     .filter(
       (entry) =>
         (entry.endsWith(".ts") || entry.endsWith(".tsx")) &&
         !entry.endsWith(".test.ts") &&
-        !entry.endsWith(".test.tsx") &&
-        entry !== "index.ts",
+        !entry.endsWith(".test.tsx"),
     )
-    .map((entry) => `${dir}/${entry}`)
+    .map((entry) => `${dir}/${entry.split("\\").join("/")}`)
     .sort()
 }
 
@@ -153,13 +234,13 @@ function resolveRelativeImport(root: string, fromFile: string, specifier: string
 }
 
 /**
- * Every source file a shadcn registry item must ship to install cleanly: the concern folder's own
- * modules plus the transitive closure of the relative imports that escape it (a shared hook, a
- * sibling type). Without this, an item that imports `../../hooks` would install with an unresolved
- * module. Sorted and deduped for stable codegen.
+ * Every source file a shadcn registry item must ship to install cleanly: the concern folders' own
+ * modules plus the transitive closure of the relative imports that escape them (a shared hook, a
+ * lower-band component). Without this, an item that imports `../../hooks/use-selection` would
+ * install with an unresolved module. Sorted and deduped for stable codegen.
  */
-export function collectItemFiles(root: string, dir: string): string[] {
-  const seen = new Set(concernFiles(root, dir))
+export function collectItemFiles(root: string, dirs: readonly string[]): string[] {
+  const seen = new Set(dirs.flatMap((dir) => concernFiles(root, dir)))
   const queue = [...seen]
   while (queue.length > 0) {
     const file = queue.shift()
@@ -175,14 +256,14 @@ export function collectItemFiles(root: string, dir: string): string[] {
   return [...seen].sort()
 }
 
-/** One shadcn registry item for a concern folder, keys ordered for stable codegen. */
+/** One shadcn registry item for a concern's folders, keys ordered for stable codegen. */
 export function buildRegistryItem(
   name: string,
-  dir: string,
+  dirs: readonly string[],
   type: string,
   root: string = packageRoot,
 ): RegistryItem {
-  const files = collectItemFiles(root, dir)
+  const files = collectItemFiles(root, dirs)
   const dependencies = new Set<string>()
   const registryDependencies = new Set<string>()
   for (const file of files) {
@@ -207,36 +288,48 @@ export function buildRegistry(root: string = packageRoot): Registry {
     $schema: "https://ui.shadcn.com/schema/registry.json",
     name: "plainworks-ui",
     homepage: "https://github.com/kbukum/plainworks",
-    items: CONCERNS.filter((concern) => concern.registry !== undefined).map((concern) => {
-      if (concern.dir === undefined || concern.registry === undefined) {
-        throw new Error(`registry concern ${concern.subpath} must declare a dir and registry type.`)
-      }
-      return buildRegistryItem(concern.subpath, concern.dir, `registry:${concern.registry}`, root)
-    }),
+    items: CONCERNS.flatMap((concern) =>
+      concern.registry === undefined
+        ? []
+        : [
+            buildRegistryItem(
+              concern.name,
+              concern.dirs.map((dir) => `src/${dir}`),
+              `registry:${concern.registry}`,
+              root,
+            ),
+          ],
+    ),
   }
 }
 
-/** The tsdown entry map: the neutral manifest and each concern entry. */
-export function buildTsdownEntry(): Record<string, string> {
+/** The tsdown entry map: the neutral `index` entry and one `<concern>/<module>` entry per module. */
+export function buildTsdownEntry(root: string = packageRoot): Record<string, string> {
   const entry: Record<string, string> = { index: "src/index.ts" }
-  for (const concern of CONCERNS) entry[concern.subpath] = concernSource(concern)
+  for (const concern of CONCERNS) {
+    for (const module of concern.modules) {
+      entry[`${concern.name}/${module}`] = moduleSource(root, concern, module)
+    }
+  }
   return entry
 }
 
-export function renderTsdownConfig(): string {
-  const entries = Object.entries(buildTsdownEntry())
+export function renderTsdownConfig(root: string = packageRoot): string {
+  const entries = Object.entries(buildTsdownEntry(root))
     .map(([key, value]) => `    ${JSON.stringify(key)}: ${JSON.stringify(value)},`)
     .join("\n")
   return `${[
     'import { type PackageBuild, preset } from "@plainworks/tsdown-config"',
     "",
     "// Generated by `bun run --filter @plainworks/ui codegen` — do not edit the entry map by hand.",
-    "// Each concern is its own entry so consumers tree-shake to what they import; the neutral",
-    "// `index` entry stays free of the client graph.",
+    "// Each component is its own `<concern>/<module>` entry, so an import loads only that component;",
+    "// the neutral `index` entry stays free of the client graph.",
     "export const build: PackageBuild = {",
     "  entry: {",
     entries,
     "  },",
+    "  // A DOM-only package: its client components render into the browser DOM.",
+    "  dom: true,",
     "  // tsdown has no CSS pipeline, so the Tailwind-source stylesheet is copied verbatim.",
     '  assets: { "styles.css": { from: "src/styles.css" } },',
     "  // The shadcn registry points at authored `src` files, so it ships beside them.",
@@ -257,6 +350,6 @@ export function runCodegen(root: string = packageRoot): void {
   )
   writeFileSync(
     join(root, "tsdown.config.ts"),
-    formatSource(renderTsdownConfig(), "tsdown.config.ts"),
+    formatSource(renderTsdownConfig(root), "tsdown.config.ts"),
   )
 }

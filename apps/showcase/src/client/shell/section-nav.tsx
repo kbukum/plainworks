@@ -1,6 +1,6 @@
 "use client"
 
-import { NavList } from "@plainworks/ui/navigation"
+import { NavList } from "@plainworks/ui/navigation/nav-list"
 import type { ReactElement } from "react"
 import { SECTIONS, sectionForPath } from "../../app/navigation"
 import { routerLinkRender, useRouter } from "../router"

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { HttpError } from "../error"
+import { HttpError } from "../errors"
 import { escapeListValue, escapeScalarValue, parseDelimitedList, unescapeValue } from "./codec"
 
 describe("REST value codec round-trip", () => {

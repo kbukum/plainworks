@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { ChannelError } from "../error"
+import { ChannelError } from "../errors"
 import { resolveUrl } from "./url"
 
 const signal = new AbortController().signal

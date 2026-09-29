@@ -3,7 +3,7 @@
 import { Button, buttonVariants } from "@plainworks/elements/button"
 import { cn } from "@plainworks/theme"
 import { type ReactElement, type ReactNode, useEffect, useRef, useState } from "react"
-import { Drawer } from "../overlays"
+import { Drawer } from "../overlays/drawer"
 
 /** Every user-facing string of the {@link AppShell}, injected so it ships no fixed copy. */
 export interface AppShellLabels {

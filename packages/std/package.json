@@ -33,6 +33,42 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./encoding": {
+      "types": "./dist/encoding.d.ts",
+      "import": "./dist/encoding.js"
+    },
+    "./list": {
+      "types": "./dist/list.d.ts",
+      "import": "./dist/list.js"
+    },
+    "./pipeline": {
+      "types": "./dist/pipeline.d.ts",
+      "import": "./dist/pipeline.js"
+    },
+    "./privacy": {
+      "types": "./dist/privacy.d.ts",
+      "import": "./dist/privacy.js"
+    },
+    "./random": {
+      "types": "./dist/random.d.ts",
+      "import": "./dist/random.js"
+    },
+    "./resilience": {
+      "types": "./dist/resilience.d.ts",
+      "import": "./dist/resilience.js"
+    },
+    "./seam": {
+      "types": "./dist/seam.d.ts",
+      "import": "./dist/seam.js"
+    },
+    "./time": {
+      "types": "./dist/time.d.ts",
+      "import": "./dist/time.js"
+    },
+    "./web": {
+      "types": "./dist/web.d.ts",
+      "import": "./dist/web.js"
     }
   },
   "scripts": {

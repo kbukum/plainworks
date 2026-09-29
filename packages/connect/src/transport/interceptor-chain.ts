@@ -1,5 +1,7 @@
 import type { Interceptor } from "@connectrpc/connect"
-import type { AuthHeaderProvider, Delay, RandomSource } from "@plainworks/std"
+import type { RandomSource } from "@plainworks/std/random"
+import type { Delay } from "@plainworks/std/resilience"
+import type { AuthHeaderProvider } from "@plainworks/std/seam"
 import { authHeaderInterceptor } from "../interceptor/auth-header"
 import { type ConnectRetryPolicy, resilienceInterceptor } from "../interceptor/resilience"
 import { originGuardInterceptor } from "./origin-guard"

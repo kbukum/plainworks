@@ -1,4 +1,4 @@
-import type { WebAbortSignal } from "@plainworks/std"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { HttpResponse, http } from "msw"
 import { setupServer } from "msw/node"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"

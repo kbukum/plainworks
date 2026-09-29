@@ -1,4 +1,4 @@
-import type { WebURL } from "@plainworks/std"
+import type { WebURL } from "@plainworks/std/web"
 
 /**
  * How much of a sanitized URL is retained: the full `scheme://host/path` or the path alone. Use

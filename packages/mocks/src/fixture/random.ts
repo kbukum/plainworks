@@ -1,13 +1,11 @@
 /**
- * Random data generation helpers. The canonical seeded PRNG lives in `@plainworks/std`
- * (re-exported here); these helpers draw from an injected {@link RandomSource} so mock fixtures
- * are reproducible from a seed and parallel mock servers never share a sequence.
+ * Random data generation helpers. They draw from an injected {@link RandomSource} (build one with
+ * `createSeededRandom` from `@plainworks/std/random`), so mock fixtures are reproducible from a
+ * seed and parallel mock servers never share a sequence.
  */
 
-import type { RandomSource } from "@plainworks/std"
-
-export type { RandomSource } from "@plainworks/std"
-export { createSeededRandom } from "@plainworks/std"
+import { isNonNegativeInteger } from "@plainworks/std"
+import type { RandomSource } from "@plainworks/std/random"
 
 /** Integer in the inclusive range `[min, max]`. */
 export function randomInt(rng: RandomSource, min: number, max: number): number {
@@ -35,7 +33,7 @@ export function randomElement<T>(rng: RandomSource, array: readonly T[]): T {
 
 /** Pick `count` distinct elements (unbiased partial Fisher–Yates shuffle). */
 export function randomElements<T>(rng: RandomSource, array: readonly T[], count: number): T[] {
-  if (!Number.isInteger(count) || count < 0) {
+  if (!isNonNegativeInteger(count)) {
     throw new RangeError("randomElements requires a non-negative integer count")
   }
   const shuffled = [...array]

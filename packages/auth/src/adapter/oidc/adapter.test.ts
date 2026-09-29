@@ -1,4 +1,4 @@
-import { systemClock } from "@plainworks/std"
+import { systemClock } from "@plainworks/std/time"
 import { createMockIdp, manualClock } from "@plainworks/testkit"
 import { describe, expect, test } from "vitest"
 import { defaultAuthCrypto } from "../../crypto"

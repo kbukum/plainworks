@@ -121,7 +121,11 @@ describe("createObservabilitySource", () => {
   })
 
   it("coalesces a burst of logs while keeping counts exact", () => {
-    const { port, instrumentation } = setup({ instance: "web", logIntervalMs: 1000, now: () => 0 })
+    const { port, instrumentation } = setup({
+      instance: "web",
+      logIntervalMs: 1000,
+      clock: { now: () => 0 },
+    })
     instrumentation.logSink(logRecord({ message: "a" }))
     instrumentation.logSink(logRecord({ message: "b" }))
     instrumentation.logSink(logRecord({ message: "c" }))
@@ -215,10 +219,12 @@ describe("createObservabilitySource", () => {
     const { instrumentation } = setup({
       instance: "web",
       logIntervalMs: 0,
-      now: () => {
-        // Force the tee's own bookkeeping to throw; a devtools fault must never escape the sink.
-        if (failed) throw new Error("clock fault")
-        return 0
+      clock: {
+        now: () => {
+          // Force the tee's own bookkeeping to throw; a devtools fault must never escape the sink.
+          if (failed) throw new Error("clock fault")
+          return 0
+        },
       },
     })
     failed = true
@@ -246,7 +252,7 @@ describe("createObservabilitySource", () => {
       const instrumentation = createObservabilitySource({
         instance: "web",
         logIntervalMs: 1000,
-        now: () => 0,
+        clock: { now: () => 0 },
       })
       instrumentation.logSink(logRecord({ message: "before-a" }))
       instrumentation.logSink(logRecord({ message: "before-b" }))
@@ -274,10 +280,12 @@ describe("createObservabilitySource", () => {
       const instrumentation = createObservabilitySource({
         instance: "web",
         logIntervalMs: 1000,
-        now: () => {
-          clockCalls += 1
-          if (clockCalls > 4) throw new Error("clock failed")
-          return 0
+        clock: {
+          now: () => {
+            clockCalls += 1
+            if (clockCalls > 4) throw new Error("clock failed")
+            return 0
+          },
         },
       })
       instrumentation.source.connect(observer, undefined as never)

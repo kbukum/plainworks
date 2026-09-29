@@ -1,5 +1,5 @@
 import { Code, ConnectError } from "@connectrpc/connect"
-import { isRetryable } from "@plainworks/std"
+import { isRetryable } from "@plainworks/std/resilience"
 
 /**
  * Connect codes safe to retry for an idempotent call: `unavailable` (the server told the client to

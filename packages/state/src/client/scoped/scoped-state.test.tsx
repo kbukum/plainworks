@@ -2,7 +2,7 @@
 // Client tests opt into jsdom per file; the package default stays `node` so the server-safe `.`
 // entry can never lean on DOM globals unnoticed.
 
-import type { StateSource } from "@plainworks/std"
+import type { StateSource } from "@plainworks/std/seam"
 import { asyncStateSource } from "@plainworks/testkit"
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"

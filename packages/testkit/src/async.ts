@@ -1,3 +1,4 @@
+import { isNonNegativeInteger } from "@plainworks/std"
 /**
  * An externally-controlled promise: hand `promise` to the code under test, then resolve or reject
  * it from the test at the exact moment you want. Essential for exercising in-flight async paths —
@@ -30,7 +31,7 @@ export function deferred<T>(): Deferred<T> {
  * 10) — it never waits indefinitely and never advances real time.
  */
 export async function flushMicrotasks(turns = 10): Promise<void> {
-  if (!Number.isSafeInteger(turns) || turns < 0) {
+  if (!isNonNegativeInteger(turns)) {
     throw new RangeError("flushMicrotasks requires a non-negative safe-integer turn bound")
   }
   for (let i = 0; i < turns; i++) {

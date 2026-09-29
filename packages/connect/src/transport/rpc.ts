@@ -1,6 +1,9 @@
 import type { Interceptor, Transport } from "@connectrpc/connect"
 import { createConnectTransport, createGrpcWebTransport } from "@connectrpc/connect-web"
-import type { AuthHeaderProvider, Delay, RandomSource, WebFetch } from "@plainworks/std"
+import type { RandomSource } from "@plainworks/std/random"
+import type { Delay } from "@plainworks/std/resilience"
+import type { AuthHeaderProvider } from "@plainworks/std/seam"
+import type { WebFetch } from "@plainworks/std/web"
 import type { ConnectRetryPolicy } from "../interceptor/resilience"
 import { buildInterceptorChain } from "./interceptor-chain"
 

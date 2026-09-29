@@ -1,7 +1,7 @@
 // Default `node` environment: proves the surface renders on the server with no host and that two
 // concurrent requests never share state — the SSR-safety guarantee, verified without a browser.
 
-import type { StateSource } from "@plainworks/std"
+import type { StateSource } from "@plainworks/std/seam"
 import { fakeStateSource } from "@plainworks/testkit"
 import type { ReactNode } from "react"
 import { renderToString } from "react-dom/server"

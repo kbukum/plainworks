@@ -11,7 +11,8 @@
  * module scope, so two mock servers cannot observe or reset each other.
  */
 
-import { type Clock, isRecord } from "@plainworks/std"
+import { isRecord } from "@plainworks/std"
+import type { Clock } from "@plainworks/std/time"
 import { type HttpHandler, HttpResponse, http } from "msw"
 import { type LatencyController, MAX_LATENCY_MS } from "../latency"
 import { MAX_REQUEST_LOG_SIZE } from "./limits"

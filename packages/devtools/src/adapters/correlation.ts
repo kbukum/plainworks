@@ -1,4 +1,4 @@
-import type { WebAbortSignal } from "@plainworks/std"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import type { Severity } from "../protocol"
 
 /**

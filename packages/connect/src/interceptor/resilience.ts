@@ -6,21 +6,20 @@ import {
   type StreamRequest,
   type UnaryRequest,
 } from "@connectrpc/connect"
+import type { RandomSource } from "@plainworks/std/random"
 import {
   AbortError,
   combineSignals,
   type Delay,
-  type RandomSource,
   type RetryDeps,
   RetryError,
   type RetryPolicy,
   runWithRetry,
   systemDelay,
   TimeoutError,
-  type WebAbortController,
-  type WebAbortSignal,
   withTimeout,
-} from "@plainworks/std"
+} from "@plainworks/std/resilience"
+import type { WebAbortController, WebAbortSignal } from "@plainworks/std/web"
 import { isConnectRetryable } from "./retry-classification"
 
 /**

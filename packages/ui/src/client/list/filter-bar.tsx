@@ -10,7 +10,7 @@ import {
   isListOperator,
   isPresenceOperator,
   type ListFilter,
-} from "@plainworks/std"
+} from "@plainworks/std/list"
 import { cn } from "@plainworks/theme"
 import { type ReactElement, useEffect, useRef, useState } from "react"
 import {

@@ -1,10 +1,6 @@
 import { TASK_PRIORITIES, type Task } from "@plainworks/demo"
-import {
-  AbortError,
-  type StreamFrame,
-  type StreamTransport,
-  type StreamTransportFactory,
-} from "@plainworks/std"
+import { AbortError } from "@plainworks/std/resilience"
+import type { StreamFrame, StreamTransport, StreamTransportFactory } from "@plainworks/std/seam"
 import { TASK_STATUSES } from "../../app/task-shape"
 import { LIVE_EVENT } from "./live-tasks"
 

@@ -1,4 +1,5 @@
-import type { EventSink, PlainEvent, StateSource, WebAbortSignal } from "@plainworks/std"
+import type { EventSink, PlainEvent, StateSource } from "@plainworks/std/seam"
+import type { WebAbortSignal } from "@plainworks/std/web"
 
 /**
  * Fold a decoded event and the slot's current value into its next value. Returning the current

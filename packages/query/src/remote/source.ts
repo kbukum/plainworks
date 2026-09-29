@@ -1,4 +1,4 @@
-import type { StateCapabilities, StateSource } from "@plainworks/std"
+import type { StateCapabilities, StateSource } from "@plainworks/std/seam"
 import {
   hashKey,
   type QueryCacheNotifyEvent,

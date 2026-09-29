@@ -43,7 +43,7 @@ function renderRail(overrides: Partial<Parameters<typeof DiagnosticsRail>[0]> = 
       failures={new Map()}
       indicators={[indicator(http, "2 in flight", "info", 1_000, "http")]}
       droppedAggregate={0}
-      now={() => 1_000}
+      clock={{ now: () => 1_000 }}
       staleAfterMs={500}
       tickMs={0}
       onOpen={onOpen}
@@ -73,14 +73,14 @@ describe("DiagnosticsRail", () => {
   })
 
   it("announces stale values", () => {
-    renderRail({ now: () => 10_000 })
+    renderRail({ clock: { now: () => 10_000 } })
     expect(screen.getByRole("button", { name: /HTTP: 2 in flight \(stale\)/ })).toBeTruthy()
   })
 
   it("fades into staleness as the freshness clock ticks", () => {
     vi.useFakeTimers()
     let current = 1_000
-    renderRail({ now: () => current, tickMs: 250 })
+    renderRail({ clock: { now: () => current }, tickMs: 250 })
     expect(screen.queryByRole("button", { name: /stale/ })).toBeNull()
     current = 2_000
     act(() => {

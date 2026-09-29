@@ -1,4 +1,4 @@
-import type { AuthHeaders, Identity } from "@plainworks/std"
+import type { AuthHeaders, Identity } from "@plainworks/std/seam"
 import type { AuthAdapter, AuthAdapterDeps, AuthenticateRequest } from "../seam"
 import { APIKEY_ADAPTER_KIND, type ApiKeyAdapterConfig } from "./config"
 

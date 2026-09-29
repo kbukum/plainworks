@@ -3,7 +3,7 @@ import type {
   StateCapabilities,
   StateSerializer,
   StateSource,
-} from "@plainworks/std"
+} from "@plainworks/std/seam"
 
 /**
  * A persisted value's **schema-evolution** story: the current integer `version` a write stamps, and

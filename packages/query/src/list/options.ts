@@ -1,9 +1,5 @@
-import type {
-  CursorResult,
-  ListQueryParams,
-  PaginatedResult,
-  WebAbortSignal,
-} from "@plainworks/std"
+import type { CursorResult, ListQueryParams, PaginatedResult } from "@plainworks/std/list"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import type { QueryFunctionContext, QueryKey } from "@tanstack/query-core"
 import {
   type InfiniteListKeyOptions,

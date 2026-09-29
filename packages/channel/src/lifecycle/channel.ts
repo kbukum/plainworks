@@ -1,30 +1,29 @@
+import { getErrorMessage, isNonNegativeInteger } from "@plainworks/std"
+import { type RandomSource, systemRandom } from "@plainworks/std/random"
 import {
   AbortError,
-  type AuthHeaderProvider,
-  type AuthHeaders,
   type BackoffPolicy,
-  type Clock,
   classifyStatus,
   combineSignals,
   type Delay,
   defaultBackoff,
-  getErrorMessage,
   isRetryable,
-  type Listener,
-  type RandomSource,
   RetryError,
   runWithRetry,
   StatusError,
-  type StreamFrame,
-  type StreamTransportFactory,
-  type Subscription,
-  systemClock,
   systemDelay,
-  systemRandom,
   TimeoutError,
-  type WebAbortController,
-  type WebAbortSignal,
-} from "@plainworks/std"
+} from "@plainworks/std/resilience"
+import type {
+  AuthHeaderProvider,
+  AuthHeaders,
+  Listener,
+  StreamFrame,
+  StreamTransportFactory,
+  Subscription,
+} from "@plainworks/std/seam"
+import { type Clock, systemClock } from "@plainworks/std/time"
+import type { WebAbortController, WebAbortSignal } from "@plainworks/std/web"
 import { assertDurationMs } from "../duration"
 import { ChannelError } from "../error"
 import type { ChannelStatus } from "./status"
@@ -132,7 +131,7 @@ export function createChannel(options: ChannelOptions): Channel {
     delay = systemDelay,
   } = options
 
-  if (!Number.isInteger(maxRetries) || maxRetries < 0) {
+  if (!isNonNegativeInteger(maxRetries)) {
     throw ChannelError.config("maxRetries must be an integer >= 0")
   }
   assertDurationMs("connectTimeoutMs", connectTimeoutMs)

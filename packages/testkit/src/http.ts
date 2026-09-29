@@ -1,4 +1,4 @@
-import type { WebFetch, WebRequestInit, WebResponse } from "@plainworks/std"
+import type { WebFetch, WebRequestInit, WebResponse } from "@plainworks/std/web"
 
 /**
  * One queued result for {@link fakeFetch}: a response to resolve, an error to reject with, or

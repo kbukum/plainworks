@@ -1,4 +1,5 @@
-import type { AuthHeaderProvider, BackoffPolicy } from "@plainworks/std"
+import type { BackoffPolicy } from "@plainworks/std/resilience"
+import type { AuthHeaderProvider } from "@plainworks/std/seam"
 import {
   type FakeStreamTransport,
   fakeAuthHeaderProvider,

@@ -12,7 +12,7 @@ import {
   CommandShortcut,
 } from "@plainworks/elements/command"
 import { Kbd, KbdGroup } from "@plainworks/elements/kbd"
-import { AbortError } from "@plainworks/std"
+import { AbortError } from "@plainworks/std/resilience"
 import { cn } from "@plainworks/theme"
 import { useTheme } from "@plainworks/theme/client"
 import { Moon, Search, Sun } from "lucide-react"

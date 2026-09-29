@@ -11,7 +11,7 @@ import {
   type UnaryRequest,
   type UnaryResponse,
 } from "@connectrpc/connect"
-import type { WebAbortSignal, WebHeadersInit } from "@plainworks/std"
+import type { WebAbortSignal, WebHeadersInit } from "@plainworks/std/web"
 
 /** Shared options for the interceptor request builders. */
 export interface FakeRequestOptions {

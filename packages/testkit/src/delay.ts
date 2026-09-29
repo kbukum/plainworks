@@ -1,4 +1,5 @@
-import { AbortError, type Delay, type WebAbortSignal } from "@plainworks/std"
+import { AbortError, type Delay } from "@plainworks/std/resilience"
+import type { WebAbortSignal } from "@plainworks/std/web"
 
 /** A single not-yet-elapsed wait registered on a {@link ManualDelay}. */
 export interface PendingDelay {

@@ -1,4 +1,6 @@
-import { type Clock, isRecord, redact, systemClock } from "@plainworks/std"
+import { isRecord } from "@plainworks/std"
+import { redact } from "@plainworks/std/privacy"
+import { type Clock, systemClock } from "@plainworks/std/time"
 
 /** Severity of a log record, ordered `debug < info < warn < error`. */
 export type LogLevel = "debug" | "info" | "warn" | "error"

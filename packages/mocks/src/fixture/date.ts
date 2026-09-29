@@ -4,7 +4,7 @@
  * clock directly.
  */
 
-import type { Clock } from "@plainworks/std"
+import type { Clock } from "@plainworks/std/time"
 
 /** Current time as an ISO timestamp. */
 export function nowISOString(clock: Clock): string {

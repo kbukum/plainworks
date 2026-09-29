@@ -2,7 +2,7 @@
 
 import { Input } from "@plainworks/elements/input"
 import { Label } from "@plainworks/elements/label"
-import type { ListFilter } from "@plainworks/std"
+import type { ListFilter } from "@plainworks/std/list"
 import { type ReactElement, useId } from "react"
 
 /** Props for {@link PriceRange}. Controlled through the shared catalog filter set. */

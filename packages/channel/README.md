@@ -49,7 +49,7 @@ A channel moves through `idle → connecting → open → reconnecting → closi
 
 ## Transports
 
-A transport is a `StreamTransportFactory` injected into `createChannel`. The core never imports a wire global — it calls the factory. The transport contract (`StreamTransport`, `StreamFrame`, and friends) is a neutral, host-independent seam owned by `@plainworks/std`; `channel` re-exports it for convenience.
+A transport is a `StreamTransportFactory` injected into `createChannel`. The core never imports a wire global — it calls the factory. The transport contract (`StreamTransport`, `StreamFrame`, and friends) is a neutral, host-independent seam owned by `@plainworks/std/seam`; `channel` re-exports it for convenience.
 
 ### SSE — `createSseTransport`
 

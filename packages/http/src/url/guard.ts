@@ -1,4 +1,4 @@
-import type { WebURL } from "@plainworks/std"
+import type { WebURL } from "@plainworks/std/web"
 import { HttpError } from "../error"
 import { assertNoCredentialQuery } from "./query"
 

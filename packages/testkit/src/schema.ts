@@ -3,7 +3,7 @@ import {
   type StandardSchemaResult,
   type StandardSchemaV1,
   guardSchema as stdGuardSchema,
-} from "@plainworks/std"
+} from "@plainworks/std/seam"
 
 /** Options shared by the schema fakes. */
 export interface FakeSchemaOptions {

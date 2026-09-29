@@ -154,7 +154,7 @@ function harness(
       await capture(run.dir, env, baseScenario)
     },
     serve: async () => void lines.push("serving"),
-    now: () => (clock += 1000),
+    clock: { now: () => (clock += 1000) },
     print: (line) => void lines.push(line),
   }
   const report = async (): Promise<FlowReport> => {

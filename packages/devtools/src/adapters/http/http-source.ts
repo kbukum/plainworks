@@ -1,6 +1,8 @@
 import { type HttpInterceptor, isHttpError } from "@plainworks/http"
-import { redact, type WebAbortSignal, type WebHeaders } from "@plainworks/std"
-import type { Json } from "../../privacy"
+import type { Json } from "@plainworks/std/encoding"
+import { redact } from "@plainworks/std/privacy"
+import { type Clock, systemClock } from "@plainworks/std/time"
+import type { WebAbortSignal, WebHeaders } from "@plainworks/std/web"
 import { assertPositiveCapacity } from "../../retention/capacity"
 import type { Source, SourceHandle } from "../../source"
 import {
@@ -25,8 +27,8 @@ export interface HttpSourceOptions {
   readonly instance: string
   /** Display label; defaults to `HTTP <instance>`. */
   readonly label?: string
-  /** Clock for event and indicator timestamps. Defaults to `Date.now`. */
-  readonly now?: () => number
+  /** Clock for event and indicator timestamps. Defaults to `systemClock`. */
+  readonly clock?: Clock
   /**
    * Header names (case-insensitive) captured — from the request and the response — into on-demand
    * detail. **Metadata is the default**: with no allowlist, no header ever leaves the boundary and
@@ -66,7 +68,7 @@ const DEFAULT_DETAIL_CAPACITY = 50
  * interceptor is a safe no-op until then.
  */
 export function createHttpSource(options: HttpSourceOptions): HttpInstrumentation {
-  const now = options.now ?? Date.now
+  const clock = options.clock ?? systemClock
   const relay = createObserverRelay()
   const correlator = createCorrelator("http")
   const allow = options.captureHeaders?.map((name) => name.toLowerCase())
@@ -81,7 +83,7 @@ export function createHttpSource(options: HttpSourceOptions): HttpInstrumentatio
       id: "http",
       label: options.label ?? `HTTP ${options.instance}`,
       ...tally.readout("request"),
-      updatedAt: now(),
+      updatedAt: clock.now(),
       target: "http",
     })
   }
@@ -100,7 +102,7 @@ export function createHttpSource(options: HttpSourceOptions): HttpInstrumentatio
   }
 
   const interceptor = createHttpInterceptor({
-    now,
+    clock,
     relay,
     correlator,
     allow,
@@ -134,7 +136,7 @@ export function createHttpSource(options: HttpSourceOptions): HttpInstrumentatio
 }
 
 interface InterceptorDeps {
-  readonly now: () => number
+  readonly clock: Clock
   readonly relay: ObserverRelay
   readonly correlator: Correlator
   readonly allow: readonly string[] | undefined
@@ -144,7 +146,7 @@ interface InterceptorDeps {
 }
 
 function createHttpInterceptor(deps: InterceptorDeps): HttpInterceptor {
-  const { now, relay, correlator, allow, tally, indicate, rememberDetail } = deps
+  const { clock, relay, correlator, allow, tally, indicate, rememberDetail } = deps
   return (next) => async (request) => {
     const id = correlator.next()
     const method = request.method
@@ -156,7 +158,7 @@ function createHttpInterceptor(deps: InterceptorDeps): HttpInterceptor {
     // the response or error the caller is owed — the request outcome is produced entirely by
     // `next(request)`, never by the instrumentation around it.
     observeSafely(relay, () => {
-      startedAt = now()
+      startedAt = clock.now()
       tally.start()
       relay.emit({
         kind: "http.request",
@@ -175,7 +177,7 @@ function createHttpInterceptor(deps: InterceptorDeps): HttpInterceptor {
       const outcome = classifyThrow(error, request.signal)
       tally.settle(outcome)
       observeSafely(relay, () => {
-        const endedAt = now()
+        const endedAt = clock.now()
         const durationMs = endedAt - observedStartedAt
         const summary: Json = {
           id,
@@ -205,7 +207,7 @@ function createHttpInterceptor(deps: InterceptorDeps): HttpInterceptor {
       const outcome: ExchangeOutcome = response.ok ? "ok" : "error"
       tally.settle(outcome)
       observeSafely(relay, () => {
-        const endedAt = now()
+        const endedAt = clock.now()
         const durationMs = endedAt - observedStartedAt
         const bytes = contentLength(response.headers)
         const summary: Json = {

@@ -4,7 +4,7 @@ import {
   isListOperator,
   isPresenceOperator,
   type ListFilter,
-} from "@plainworks/std"
+} from "@plainworks/std/list"
 
 /** The editor a filter field renders for its value, which also drives value coercion. */
 export type FilterFieldType = "text" | "number" | "select"

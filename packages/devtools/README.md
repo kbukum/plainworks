@@ -22,6 +22,7 @@ Put **all devtools imports, including instrumentation and CSS**, in a developmen
 // devtools.ts
 import "@plainworks/devtools/styles.css"
 import { mountDevtools } from "@plainworks/devtools/client"
+import { systemClock } from "@plainworks/std/time"
 
 export function startInspector(): () => void {
   const { dispose } = mountDevtools({
@@ -32,7 +33,7 @@ export function startInspector(): () => void {
         connect(observer) {
           observer.indicate({
             id: "mode", label: "Runtime", value: "development", severity: "info",
-            updatedAt: Date.now(), target: "host",
+            updatedAt: systemClock.now(), target: "host",
           })
           return { dispose() {} }
         },

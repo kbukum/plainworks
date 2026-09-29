@@ -54,7 +54,7 @@ describe("createStateSource", () => {
     const { port } = setup({
       store,
       instance: "cart",
-      now: () => 1_000,
+      clock: { now: () => 1_000 },
       intervalMs: 0,
       snapshot: (state) => state,
     })
@@ -73,7 +73,7 @@ describe("createStateSource", () => {
       const { port } = setup({
         store,
         instance: "cart",
-        now: () => current,
+        clock: { now: () => current },
         intervalMs: 250,
         snapshot: (state) => state,
       })
@@ -96,7 +96,7 @@ describe("createStateSource", () => {
     const { port } = setup({
       store,
       instance: "cart",
-      now: () => 1_000,
+      clock: { now: () => 1_000 },
       intervalMs: 0,
       snapshot: (state) => ({ items: state.items }),
     })
@@ -110,7 +110,7 @@ describe("createStateSource", () => {
     const { port } = setup({
       store,
       instance: "cart",
-      now: () => 1_000,
+      clock: { now: () => 1_000 },
       intervalMs: 0,
       snapshot: (state) => state,
     })
@@ -131,7 +131,7 @@ describe("createStateSource", () => {
     const { port } = setup({
       store,
       instance: "cart",
-      now: () => 1_000,
+      clock: { now: () => 1_000 },
       intervalMs: 0,
       snapshot: (state) => state,
     })
@@ -156,7 +156,7 @@ describe("createStateSource", () => {
     const { port } = setup({
       store,
       instance: "cart",
-      now: () => 1_000,
+      clock: { now: () => 1_000 },
       intervalMs: 0,
       snapshot: (state) => ({ items: state.items }),
     })
@@ -185,7 +185,7 @@ describe("createStateSource", () => {
       createStateSource({
         store,
         instance: "cart",
-        now: () => 1_000,
+        clock: { now: () => 1_000 },
         intervalMs: 0,
         snapshot: (state) => state,
       }),
@@ -205,7 +205,7 @@ describe("createStateSource", () => {
       createStateSource({
         store,
         instance: "cart",
-        now: () => 1_000,
+        clock: { now: () => 1_000 },
         intervalMs: 0,
         snapshot: () => {
           throw new Error("schema exploded")
@@ -231,7 +231,7 @@ describe("createStateSource", () => {
     const { port } = setup({
       store,
       instance: "cart",
-      now: () => 1_000,
+      clock: { now: () => 1_000 },
       intervalMs: 0,
       snapshot: (state) => {
         if (broken) throw new Error("schema exploded")

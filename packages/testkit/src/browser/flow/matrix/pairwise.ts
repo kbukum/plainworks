@@ -1,3 +1,4 @@
+import { isPositiveInteger } from "@plainworks/std"
 /**
  * Sample rows over axes of `sizes` values so every pair of values across every two axes appears in
  * at least one row (all-pairs testing). Most layout defects come from one value or from two values
@@ -9,7 +10,7 @@
  * empty axis.
  */
 export function samplePairwise(sizes: readonly number[]): number[][] {
-  if (sizes.some((size) => !Number.isInteger(size) || size < 1)) {
+  if (sizes.some((size) => !isPositiveInteger(size))) {
     throw new RangeError("Every pairwise axis needs at least one value")
   }
   if (sizes.length < 2) {

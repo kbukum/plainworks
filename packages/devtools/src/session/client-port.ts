@@ -1,14 +1,8 @@
-import {
-  type ErrorSnapshot,
-  err,
-  ok,
-  PlainError,
-  type Result,
-  type Subscription,
-  type WebAbortSignal,
-} from "@plainworks/std"
+import { type ErrorSnapshot, err, ok, PlainError, type Result } from "@plainworks/std"
+import type { Json } from "@plainworks/std/encoding"
+import type { Subscription } from "@plainworks/std/seam"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import type { BridgePort } from "../bridge"
-import type { Json } from "../privacy"
 import {
   type DevtoolsMessage,
   PROTOCOL_VERSION,

@@ -2,7 +2,10 @@ import type { CommandDescriptor, Source, SourceHandle, SourceObserver } from "@p
 import { sanitizeHttpUrl } from "@plainworks/devtools/http"
 import type { HttpClient } from "@plainworks/http"
 import type { MockControlClient, RequestLogEntry } from "@plainworks/mocks"
-import { assertTimerMs, combineSignals, isRecord, type WebAbortSignal } from "@plainworks/std"
+import { isPositiveInteger, isRecord } from "@plainworks/std"
+import { assertTimerMs, combineSignals } from "@plainworks/std/resilience"
+import { type Clock, systemClock } from "@plainworks/std/time"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { REQUEST_TARGETS, type RequestTarget, runRequestProbe } from "./request-probe"
 
 /** Stable identity of the app-owned demo-backend source. */
@@ -32,8 +35,8 @@ export interface MockSourceOptions {
   readonly client: HttpClient
   /** Display label; defaults to `Demo backend`. */
   readonly label?: string
-  /** Clock for indicator and event timestamps. Defaults to `Date.now`. */
-  readonly now?: () => number
+  /** Clock for indicator and event timestamps. Defaults to `systemClock`. */
+  readonly clock?: Clock
   /** Poll cadence for the control plane in milliseconds; `0` reads once on connect (tests). */
   readonly pollIntervalMs?: number
   /** Recorded requests retained for on-demand detail before the oldest is evicted. Defaults to 100. */
@@ -69,11 +72,11 @@ const COMMANDS: readonly CommandDescriptor[] = [
  * loop and clears retained detail.
  */
 export function createMockSource(options: MockSourceOptions): Source {
-  const now = options.now ?? Date.now
+  const clock = options.clock ?? systemClock
   const pollIntervalMs = options.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS
   const detailCapacity = options.detailCapacity ?? DEFAULT_DETAIL_CAPACITY
   assertTimerMs(pollIntervalMs)
-  if (!Number.isSafeInteger(detailCapacity) || detailCapacity <= 0) {
+  if (!isPositiveInteger(detailCapacity)) {
     throw new RangeError("Mock detail capacity must be a positive safe integer.")
   }
 
@@ -102,7 +105,7 @@ export function createMockSource(options: MockSourceOptions): Source {
           label: "Mock errors",
           value: snapshot.errorEnabled ? "on" : "off",
           severity: snapshot.errorEnabled ? "warn" : "ok",
-          updatedAt: now(),
+          updatedAt: clock.now(),
           target: "mock",
         })
         observer.indicate({
@@ -110,7 +113,7 @@ export function createMockSource(options: MockSourceOptions): Source {
           label: "Mock latency",
           value: `${snapshot.latencyMs} ms`,
           severity: snapshot.latencyMs > 0 ? "info" : "ok",
-          updatedAt: now(),
+          updatedAt: clock.now(),
           target: "mock",
         })
         observer.indicate({
@@ -118,7 +121,7 @@ export function createMockSource(options: MockSourceOptions): Source {
           label: "Mock requests",
           value: String(snapshot.requests.length),
           severity: "info",
-          updatedAt: now(),
+          updatedAt: clock.now(),
           target: "mock",
         })
         for (const request of snapshot.requests.slice(-detailCapacity)) {
@@ -129,7 +132,7 @@ export function createMockSource(options: MockSourceOptions): Source {
             kind: "mock.request",
             label: `${request.method} ${path}`,
             severity: "ok",
-            at: now(),
+            at: clock.now(),
             summary: { method: request.method, path },
             detail: request.id,
           })
@@ -175,7 +178,7 @@ export function createMockSource(options: MockSourceOptions): Source {
           return Promise.resolve(record)
         },
         async runCommand(commandId: string, input, commandSignal): Promise<unknown> {
-          const value = await runMockCommand(options, commandId, input, commandSignal, now)
+          const value = await runMockCommand(options, commandId, input, commandSignal, clock)
           if (signal.aborted) return value
           if (commandId === "clear-log" || commandId === "reset-data") {
             records.clear()
@@ -183,7 +186,7 @@ export function createMockSource(options: MockSourceOptions): Source {
               kind: "mock.log-cleared",
               label: "Request log cleared",
               severity: "info",
-              at: now(),
+              at: clock.now(),
             })
           }
           await refresh(true)
@@ -218,7 +221,7 @@ async function runMockCommand(
   commandId: string,
   input: unknown,
   signal: WebAbortSignal,
-  now: () => number,
+  clock: Clock,
 ): Promise<unknown> {
   switch (commandId) {
     case "toggle-error": {
@@ -238,9 +241,9 @@ async function runMockCommand(
       await control.reset(signal)
       return { reset: true }
     case "probe-read":
-      return probe(client, "GET", input, signal, now)
+      return probe(client, "GET", input, signal, clock)
     case "probe-write":
-      return probe(client, "POST", input, signal, now)
+      return probe(client, "POST", input, signal, clock)
     default:
       throw new Error(`Unknown command ${commandId}.`)
   }
@@ -252,14 +255,14 @@ async function probe(
   method: RequestTarget["method"],
   input: unknown,
   signal: WebAbortSignal,
-  now: () => number,
+  clock: Clock,
 ): Promise<unknown> {
   const path = stringField(input, "path")
   const target = REQUEST_TARGETS.find((entry) => entry.method === method && entry.path === path)
   if (target === undefined) {
     throw new Error(`${method} ${path} is not an allowlisted probe target.`)
   }
-  const result = await runRequestProbe(client, target, now, signal)
+  const result = await runRequestProbe(client, target, clock, signal)
   return {
     status: result.status ?? null,
     durationMs: result.durationMs,

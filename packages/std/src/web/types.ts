@@ -93,11 +93,11 @@ export interface WebResponse {
 
 /**
  * The `ReadableStreamDefaultReader` members a bounded body reader uses to pull and cancel bytes.
- * The done result's `value` is optional (`value?: undefined`) to mirror the platform reader
- * exactly, so a native `ReadableStreamDefaultReader` is structurally assignable.
+ * The done result's `value` is optional and may be `undefined`, the widest shape the DOM and Node
+ * readers declare, so a native `ReadableStreamDefaultReader` is structurally assignable.
  */
 export interface WebReadableStreamDefaultReader<R = unknown> {
-  read(): Promise<{ done: false; value: R } | { done: true; value?: undefined }>
+  read(): Promise<{ done: false; value: R } | { done: true; value?: R | undefined }>
   cancel(reason?: unknown): Promise<void>
   releaseLock(): void
 }

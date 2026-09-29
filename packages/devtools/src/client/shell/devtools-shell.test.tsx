@@ -145,7 +145,7 @@ describe("DevtoolsShell", () => {
       updatedAt: 1_000,
       target: "http",
     })
-    render(<Host session={session} layoutSource={fakeStateSource()} now={() => 1_000} />)
+    render(<Host session={session} layoutSource={fakeStateSource()} clock={{ now: () => 1_000 }} />)
     await user.click(screen.getByRole("button", { name: "HTTP: 2 in flight" }))
     expect(screen.getByRole("tab", { name: "http" }).getAttribute("aria-selected")).toBe("true")
   })

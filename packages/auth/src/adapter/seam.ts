@@ -1,4 +1,6 @@
-import type { AuthHeaders, Clock, Identity, WebAbortSignal } from "@plainworks/std"
+import type { AuthHeaders, Identity } from "@plainworks/std/seam"
+import type { Clock } from "@plainworks/std/time"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import type { AuthCrypto } from "../crypto"
 import type { TokenSet } from "../session"
 import type { ApiKeyAdapterConfig } from "./apikey/config"

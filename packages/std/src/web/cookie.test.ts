@@ -5,8 +5,8 @@ import {
   isCookiePath,
   MAX_COOKIE_BYTES,
   parseCookieHeader,
+  readCookie,
   serializeCookieAttributes,
-  utf8ByteLength,
 } from "./cookie"
 
 describe("cookie name token", () => {
@@ -35,22 +35,6 @@ describe("cookie path", () => {
     expect(isCookiePath("/has space")).toBe(false)
     expect(isCookiePath("/has;semi")).toBe(false)
     expect(isCookiePath("/has,comma")).toBe(false)
-  })
-})
-
-describe("utf8 byte length", () => {
-  test("counts ASCII, 2-, 3-, and 4-byte code points like TextEncoder", () => {
-    const encoder = new TextEncoder()
-    for (const sample of ["theme", "café", "€uro", "😀 emoji", "a\u00e9\u20ac\u{1f600}z"]) {
-      expect(utf8ByteLength(sample)).toBe(encoder.encode(sample).length)
-    }
-  })
-
-  test("counts a lone surrogate as the 3-byte replacement, matching TextEncoder", () => {
-    const encoder = new TextEncoder()
-    for (const sample of ["\ud83d", "a\ud83dz", "\udc00", "\ud83d\ud83d"]) {
-      expect(utf8ByteLength(sample)).toBe(encoder.encode(sample).length)
-    }
   })
 })
 
@@ -114,5 +98,25 @@ describe("parse cookie header", () => {
 
   test("returns an empty map for an empty header", () => {
     expect(parseCookieHeader("").size).toBe(0)
+  })
+})
+
+describe("read cookie", () => {
+  test("returns one cookie's raw value", () => {
+    expect(readCookie("theme=dark; session=abc%20d", "session")).toBe("abc%20d")
+  })
+
+  test("returns undefined when the cookie is absent or the header is empty", () => {
+    expect(readCookie("theme=dark", "session")).toBeUndefined()
+    expect(readCookie("", "session")).toBeUndefined()
+  })
+
+  test("never matches a name that is only a prefix of another", () => {
+    expect(readCookie("session_old=stale; session=fresh", "session")).toBe("fresh")
+    expect(readCookie("session_old=stale", "session")).toBeUndefined()
+  })
+
+  test("keeps the first occurrence of a duplicated name", () => {
+    expect(readCookie("theme=first; theme=second", "theme")).toBe("first")
   })
 })

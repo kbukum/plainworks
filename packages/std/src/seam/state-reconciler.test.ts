@@ -3,7 +3,7 @@
 // no React — to prove the three races it exists to close: out-of-order reads, a local write racing
 // an in-flight read, and an external removal.
 
-import type { StateSource } from "@plainworks/std"
+import type { StateSource } from "@plainworks/std/seam"
 import { describe, expect, test } from "vitest"
 import { AbortError } from "../resilience"
 import type { WebAbortSignal } from "../web"

@@ -1,4 +1,4 @@
-import { NetworkError, type RetryPolicy } from "@plainworks/std"
+import { NetworkError, type RetryPolicy } from "@plainworks/std/resilience"
 import { expect, test } from "vitest"
 import { HttpError } from "../error"
 import { isHttpRetryable, parseRetryAfterMs, resolveRetryPolicy, retryAfterOf } from "./retry"

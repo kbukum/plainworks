@@ -1,4 +1,5 @@
-import { isErr, isOk, type WebAbortSignal } from "@plainworks/std"
+import { isErr, isOk } from "@plainworks/std"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { deferred, flushMicrotasks } from "@plainworks/testkit"
 import { describe, expect, it, vi } from "vitest"
 import { type Bridge, createMemoryBridge } from "../bridge"

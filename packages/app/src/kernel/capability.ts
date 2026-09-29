@@ -1,4 +1,4 @@
-import type { WebAbortSignal, WebHeaders } from "@plainworks/std"
+import type { WebAbortSignal, WebHeaders } from "@plainworks/std/web"
 
 /** A value the composition layer accepts either synchronously or as a promise. */
 export type Awaitable<T> = T | Promise<T>

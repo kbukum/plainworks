@@ -1,7 +1,8 @@
 import { PlainError } from "../error"
+import { isPositiveInteger } from "../guard"
 import type { RandomSource } from "../random"
 import { systemRandom } from "../random"
-import type { WebAbortSignal } from "../web"
+import type { WebAbortSignal } from "../web/types"
 import type { BackoffPolicy } from "./backoff"
 import { assertBackoffPolicy, nextBackoff } from "./backoff"
 import { isRetryable as defaultIsRetryable } from "./classify"
@@ -66,7 +67,7 @@ export async function runWithRetry<T>(
   policy: RetryPolicy,
   deps: RetryDeps = {},
 ): Promise<T> {
-  if (!Number.isInteger(policy.maxAttempts) || policy.maxAttempts < 1) {
+  if (!isPositiveInteger(policy.maxAttempts)) {
     throw new RangeError("RetryPolicy.maxAttempts must be an integer >= 1")
   }
   assertBackoffPolicy(policy.backoff)

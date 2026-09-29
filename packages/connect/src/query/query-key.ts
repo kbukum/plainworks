@@ -1,7 +1,7 @@
 import type { DescMessage, DescMethodUnary, MessageInitShape } from "@bufbuild/protobuf"
 import type { Transport } from "@connectrpc/connect"
 import { type ConnectQueryKey, createConnectQueryKey } from "@connectrpc/connect-query-core"
-import type { WebHeadersInit } from "@plainworks/std"
+import type { WebHeadersInit } from "@plainworks/std/web"
 import type { SkipToken } from "@tanstack/query-core"
 
 /** Inputs for {@link createQueryKey}. */

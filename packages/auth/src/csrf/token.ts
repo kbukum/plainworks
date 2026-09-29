@@ -1,4 +1,5 @@
-import { base64urlEncode } from "@plainworks/std"
+import { isPositiveInteger } from "@plainworks/std"
+import { base64urlEncode } from "@plainworks/std/encoding"
 import type { AuthCrypto } from "../crypto"
 import { constantTimeEqual } from "../crypto/constant-time"
 import { AuthError } from "../errors"
@@ -59,10 +60,10 @@ function bindingMessage(binding: string, random: string): string {
  */
 export function createCsrf(config: CsrfConfig): CsrfProtection {
   const byteLength = config.byteLength ?? DEFAULT_TOKEN_BYTES
-  if (!Number.isInteger(byteLength) || byteLength < MIN_TOKEN_BYTES) {
+  if (!isPositiveInteger(byteLength) || byteLength < MIN_TOKEN_BYTES) {
     throw new AuthError(
       "auth/config",
-      `csrf byteLength must be an integer of at least ${MIN_TOKEN_BYTES} bytes, got ${byteLength}`,
+      `csrf byteLength must be a safe integer of at least ${MIN_TOKEN_BYTES} bytes, got ${byteLength}`,
     )
   }
   return {

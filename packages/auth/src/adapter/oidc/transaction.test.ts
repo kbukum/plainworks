@@ -1,4 +1,5 @@
-import { base64urlEncode, type Clock } from "@plainworks/std"
+import { base64urlEncode } from "@plainworks/std/encoding"
+import type { Clock } from "@plainworks/std/time"
 import { describe, expect, it } from "vitest"
 import { hmacSessionSigner } from "../../server/hmac-signer"
 import { signPayload } from "../../signer/signed-payload"

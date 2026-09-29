@@ -1,4 +1,5 @@
-import type { PlainEvent, StateSource, WebAbortSignal } from "@plainworks/std"
+import type { PlainEvent, StateSource } from "@plainworks/std/seam"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { fakeStateSource, fakeStreamTransport, flushMicrotasks } from "@plainworks/testkit"
 import { describe, expect, test, vi } from "vitest"
 import { createChannel } from "../lifecycle"

@@ -1,11 +1,6 @@
-import {
-  createErrorSnapshot,
-  isRecord,
-  type RedactOptions,
-  redact,
-  type WebHeaders,
-  type WebURL,
-} from "@plainworks/std"
+import { createErrorSnapshot, isRecord } from "@plainworks/std"
+import { type RedactOptions, redact } from "@plainworks/std/privacy"
+import type { WebHeaders, WebURL } from "@plainworks/std/web"
 import type { HttpRequest } from "../exchange/request"
 import type { HttpInterceptor } from "./handler"
 

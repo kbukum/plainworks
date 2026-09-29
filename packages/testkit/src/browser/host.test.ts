@@ -71,7 +71,7 @@ function fakeHost(script: {
     sleep: async (ms) => {
       clock += ms
     },
-    now: () => clock,
+    clock: { now: () => clock },
   }
   return { runtime, requests, signals, spawned, exit: resolveExit }
 }

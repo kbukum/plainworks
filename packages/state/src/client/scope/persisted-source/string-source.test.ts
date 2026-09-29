@@ -2,7 +2,7 @@
 // so its serialize/write/clear failure paths — every one mapped to a typed StateSourceError with
 // the cause preserved — are exercised directly, without a host.
 
-import type { StandardSchemaV1, StateCapabilities, StateSerializer } from "@plainworks/std"
+import type { StandardSchemaV1, StateCapabilities, StateSerializer } from "@plainworks/std/seam"
 import { describe, expect, test } from "vitest"
 import { StateConfigError, StateSourceError } from "../../../errors"
 import { decodeEnvelope, encodeEnvelope } from "./envelope"

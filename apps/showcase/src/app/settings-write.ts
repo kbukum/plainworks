@@ -5,7 +5,7 @@
 
 import type { UpdateSettingsInput, UserSettings } from "@plainworks/demo"
 import type { createHttpClient } from "@plainworks/http"
-import type { WebAbortSignal } from "@plainworks/std"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { SETTINGS_MUTATION_HEADER, SETTINGS_MUTATION_HEADER_VALUE } from "./constants"
 import { settingsEnvelopeSchema } from "./settings-shape"
 

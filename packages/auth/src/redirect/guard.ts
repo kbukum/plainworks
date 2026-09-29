@@ -1,4 +1,4 @@
-import type { RedirectSignal } from "@plainworks/std"
+import type { RedirectSignal } from "@plainworks/std/seam"
 import type { SessionSnapshot } from "../session"
 import { sanitizeReturnTo } from "./sanitize"
 

@@ -1,4 +1,5 @@
-import type { EventSink, PlainEvent, WebAbortSignal } from "@plainworks/std"
+import type { EventSink, PlainEvent } from "@plainworks/std/seam"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import type { InvalidateQueryFilters, QueryClient, QueryKey, Updater } from "@tanstack/query-core"
 import { invalidateCache, writeQueryData } from "./routing"
 

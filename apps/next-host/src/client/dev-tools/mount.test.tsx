@@ -2,7 +2,7 @@
 
 import { type Channel, createChannel } from "@plainworks/channel"
 import { createQueryClient } from "@plainworks/query"
-import type { Subscription } from "@plainworks/std"
+import type { Subscription } from "@plainworks/std/seam"
 import { fakeStreamTransport } from "@plainworks/testkit"
 import { describe, expect, it, vi } from "vitest"
 import { mountNextHostDevtools } from "./mount"

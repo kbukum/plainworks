@@ -1,4 +1,5 @@
-import { type Clock, systemClock } from "@plainworks/std"
+import { isPositiveInteger } from "@plainworks/std"
+import { type Clock, systemClock } from "@plainworks/std/time"
 import { AuthError } from "../errors"
 import type { RevocationCheck, SessionEnvelope } from "./envelope"
 
@@ -56,7 +57,7 @@ export function createRevocationRegistry<Value = unknown>(
 ): RevocationRegistry<Value> {
   const clock = options.clock ?? systemClock
   const maxEntries = options.maxEntries ?? DEFAULT_MAX_ENTRIES
-  if (!Number.isInteger(maxEntries) || maxEntries <= 0) {
+  if (!isPositiveInteger(maxEntries)) {
     throw new AuthError(
       "auth/config",
       `revocation registry maxEntries must be a positive integer, got ${maxEntries}`,

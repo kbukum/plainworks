@@ -1,4 +1,4 @@
-import type { Json } from "../privacy"
+import type { Json } from "@plainworks/std/encoding"
 import type { Severity } from "./severity"
 
 /**

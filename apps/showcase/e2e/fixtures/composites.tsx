@@ -2,7 +2,7 @@ import "../../src/client/styles.css"
 
 import { Button } from "@plainworks/elements/button"
 import { Input } from "@plainworks/elements/input"
-import type { ListFilter } from "@plainworks/std"
+import type { ListFilter } from "@plainworks/std/list"
 import { DataTable, type DataTableColumn } from "@plainworks/ui/data-table"
 import { EmptyState, ErrorState, LoadingState } from "@plainworks/ui/feedback"
 import { FilterBar, type FilterFieldDef } from "@plainworks/ui/list"

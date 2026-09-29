@@ -1,5 +1,5 @@
 import { Code, ConnectError, type Interceptor } from "@connectrpc/connect"
-import { isSensitiveKey } from "@plainworks/std"
+import { isSensitiveKey } from "@plainworks/std/privacy"
 import { injectedAuthHeadersKey } from "../interceptor/auth-header"
 
 /**

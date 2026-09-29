@@ -1,4 +1,4 @@
-import type { Listener, Subscription } from "@plainworks/std"
+import type { Listener, Subscription } from "@plainworks/std/seam"
 
 /**
  * A minimal in-memory emitter implementing the plainworks subscription seam ({@link Listener} +

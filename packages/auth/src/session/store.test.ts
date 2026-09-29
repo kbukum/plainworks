@@ -1,4 +1,5 @@
-import type { Identity, WebAbortSignal } from "@plainworks/std"
+import type { Identity } from "@plainworks/std/seam"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { deferred, flushMicrotasks, manualClock, manualDelay } from "@plainworks/testkit"
 import { describe, expect, test, vi } from "vitest"
 import { createAuthStore, type TokenSet } from "./store"

@@ -1,4 +1,4 @@
-import type { Subscription } from "@plainworks/std"
+import type { Subscription } from "@plainworks/std/seam"
 import { describe, expect, it, vi } from "vitest"
 import type { DevtoolsMessage, SourceDescriptor, SourceEvent, SourceId } from "../protocol"
 import type { RetentionEntry } from "../retention"

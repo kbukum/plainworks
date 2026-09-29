@@ -1,4 +1,6 @@
-import type { RetryPolicy, StandardSchemaV1, WebAbortSignal, WebHeadersInit } from "@plainworks/std"
+import type { RetryPolicy } from "@plainworks/std/resilience"
+import type { StandardSchemaV1 } from "@plainworks/std/seam"
+import type { WebAbortSignal, WebHeadersInit } from "@plainworks/std/web"
 import type { HttpMethod } from "../method"
 import type { QueryParams } from "../url"
 

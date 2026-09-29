@@ -1,4 +1,4 @@
-import type { Subscription } from "@plainworks/std"
+import type { Subscription } from "@plainworks/std/seam"
 
 /** One end of a bridge: post frames outward, subscribe to frames arriving from the other end. */
 export interface BridgePort {

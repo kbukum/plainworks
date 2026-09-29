@@ -5,7 +5,7 @@
  * fixtures only.
  */
 
-import { createSeededRandom } from "@plainworks/std"
+import { createSeededRandom } from "@plainworks/std/random"
 
 export interface SeededRandom {
   /** Next float in the half-open range `[0, 1)`. */

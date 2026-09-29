@@ -6,7 +6,9 @@
 
 import type { DashboardStats, ProductSales, RevenueChartData } from "@plainworks/demo"
 import type { createHttpClient } from "@plainworks/http"
-import { guardSchema, isRecord, type WebAbortSignal } from "@plainworks/std"
+import { isRecord } from "@plainworks/std"
+import { guardSchema } from "@plainworks/std/seam"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import type { QueryFunctionContext, QueryKey } from "@tanstack/react-query"
 import {
   OVERVIEW_STATS_KEY,

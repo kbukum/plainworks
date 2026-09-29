@@ -1,4 +1,4 @@
-import type { AuthorizationRequest, Identity } from "@plainworks/std"
+import type { AuthorizationRequest, Identity } from "@plainworks/std/seam"
 import { describe, expect, test } from "vitest"
 import { createAllowListPolicy, requireClaim } from "./policy"
 

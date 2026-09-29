@@ -1,5 +1,14 @@
-import { err, hasProperty, isNonEmptyString, isRecord, ok, type Result } from "@plainworks/std"
-import { isJson } from "../privacy"
+import {
+  err,
+  hasProperty,
+  isNonEmptyString,
+  isNonNegativeInteger,
+  isPositiveInteger,
+  isRecord,
+  ok,
+  type Result,
+} from "@plainworks/std"
+import { isJson } from "@plainworks/std/encoding"
 import { ProtocolError } from "./error"
 import type { DevtoolsMessage, DevtoolsRequest, MessageEnvelope, RequestEnvelope } from "./message"
 import { isSeverity } from "./severity"
@@ -79,7 +88,7 @@ function checkMessage(
     case "event":
       return requireAll(message, [
         () => requireSourceId(message, "message"),
-        () => requirePositiveInteger(message, "seq", "message"),
+        () => requirePositiveField(message, "seq", "message"),
         () => requireEvent(message),
       ])
     case "indicator":
@@ -247,13 +256,12 @@ function requireErrorSnapshot<T extends Record<string, unknown>>(
   return malformed(slot, `Field '${key}' must be a serializable error snapshot.`)
 }
 
-function requirePositiveInteger<T extends Record<string, unknown>>(
+function requirePositiveField<T extends Record<string, unknown>>(
   value: T,
   key: string,
   slot: "message" | "request",
 ): Result<T, ProtocolError> {
-  const candidate = value[key]
-  return typeof candidate === "number" && Number.isInteger(candidate) && candidate > 0
+  return isPositiveInteger(value[key])
     ? ok(value)
     : malformed(slot, `Field '${key}' must be a positive integer.`)
 }
@@ -263,8 +271,7 @@ function requireNonNegativeInteger<T extends Record<string, unknown>>(
   key: string,
   slot: "message" | "request",
 ): Result<T, ProtocolError> {
-  const candidate = value[key]
-  return typeof candidate === "number" && Number.isInteger(candidate) && candidate >= 0
+  return isNonNegativeInteger(value[key])
     ? ok(value)
     : malformed(slot, `Field '${key}' must be a non-negative integer.`)
 }

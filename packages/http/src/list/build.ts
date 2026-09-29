@@ -1,4 +1,4 @@
-import type { FilterValue, ListFilter, ListQueryParams } from "@plainworks/std"
+import type { FilterValue, ListFilter, ListQueryParams } from "@plainworks/std/list"
 import { HttpError } from "../error"
 import type { QueryParams, QueryValue } from "../url"
 import { escapeListValue, escapeScalarValue } from "./codec"

@@ -1,3 +1,4 @@
+import { isNonNegativeInteger } from "../guard"
 import type { RandomSource } from "../random"
 import { systemRandom } from "../random"
 
@@ -67,7 +68,7 @@ export function nextBackoff(
   previousMs?: number,
 ): number {
   assertBackoffPolicy(policy)
-  if (!Number.isInteger(attempt) || attempt < 0) {
+  if (!isNonNegativeInteger(attempt)) {
     throw new RangeError("nextBackoff requires a non-negative integer attempt")
   }
   if (previousMs !== undefined && !Number.isFinite(previousMs)) {

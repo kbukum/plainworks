@@ -26,7 +26,7 @@ describe("createQuerySource", () => {
 
   it("emits a lifecycle event for a successful fetch", async () => {
     const client = new QueryClient()
-    const { port } = setup({ client, instance: "main", now: () => 1_000 })
+    const { port } = setup({ client, instance: "main", clock: { now: () => 1_000 } })
     await client.fetchQuery({ queryKey: ["tasks"], queryFn: async () => ["a"] })
     const kinds = port.snapshot().events.map((entry) => entry.event.kind)
     expect(kinds).toContain("query.success")
@@ -37,7 +37,7 @@ describe("createQuerySource", () => {
 
   it("emits the fetch and success lifecycle events directly, without collapsing terminals", async () => {
     const client = new QueryClient()
-    const { port } = setup({ client, instance: "main", now: () => 1_000 })
+    const { port } = setup({ client, instance: "main", clock: { now: () => 1_000 } })
     await client.fetchQuery({ queryKey: ["tasks"], queryFn: async () => ["a"] })
     const kinds = port.snapshot().events.map((entry) => entry.event.kind)
     expect(kinds).toContain("query.fetch")
@@ -46,7 +46,7 @@ describe("createQuerySource", () => {
 
   it("keeps terminal events of concurrent queries instead of coalescing them away", async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const { port } = setup({ client, instance: "main", now: () => 1_000 })
+    const { port } = setup({ client, instance: "main", clock: { now: () => 1_000 } })
     await Promise.all([
       client.fetchQuery({ queryKey: ["a"], queryFn: async () => 1 }),
       client.fetchQuery({ queryKey: ["b"], queryFn: async () => 2 }),
@@ -72,7 +72,7 @@ describe("createQuerySource", () => {
 
   it("uses safe key labels and opaque detail tokens to protect sensitive query keys", async () => {
     const client = new QueryClient()
-    const { port } = setup({ client, instance: "main", now: () => 1_000 })
+    const { port } = setup({ client, instance: "main", clock: { now: () => 1_000 } })
     await client.fetchQuery({
       queryKey: ["users", { secretToken: "super-secret" }],
       queryFn: async () => ({ id: 1 }),
@@ -90,7 +90,7 @@ describe("createQuerySource", () => {
     const { port } = setup({
       client,
       instance: "main",
-      now: () => 1_000,
+      clock: { now: () => 1_000 },
       keyLabel: (key) => `custom-${Array.isArray(key) ? key[0] : key}`,
     })
     await client.fetchQuery({ queryKey: ["items"], queryFn: async () => [] })
@@ -100,7 +100,7 @@ describe("createQuerySource", () => {
 
   it("emits an error event for a failed fetch", async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const { port } = setup({ client, instance: "main", now: () => 1_000 })
+    const { port } = setup({ client, instance: "main", clock: { now: () => 1_000 } })
     await client
       .fetchQuery({
         queryKey: ["broken"],
@@ -116,7 +116,7 @@ describe("createQuerySource", () => {
 
   it("masks non-Error thrown values in events and on-demand detail", async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const { port } = setup({ client, instance: "main", now: () => 1_000 })
+    const { port } = setup({ client, instance: "main", clock: { now: () => 1_000 } })
     await client
       .fetchQuery({
         queryKey: ["broken"],
@@ -137,7 +137,7 @@ describe("createQuerySource", () => {
 
   it("emits mutation start on execution, not on cache insertion, then success", async () => {
     const client = new QueryClient()
-    const { port } = setup({ client, instance: "main", now: () => 1_000 })
+    const { port } = setup({ client, instance: "main", clock: { now: () => 1_000 } })
     const mutation = client.getMutationCache().build(client, {
       mutationKey: ["createTask"],
       mutationFn: async () => "done",
@@ -155,7 +155,7 @@ describe("createQuerySource", () => {
 
   it("publishes an aggregate health indicator without serializing the cache", async () => {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-    const { port } = setup({ client, instance: "main", now: () => 1_000 })
+    const { port } = setup({ client, instance: "main", clock: { now: () => 1_000 } })
     await client.fetchQuery({ queryKey: ["tasks"], queryFn: async () => ["a"] })
     await client
       .fetchQuery({
@@ -178,7 +178,7 @@ describe("createQuerySource", () => {
       defaultOptions: { queries: { staleTime: Number.POSITIVE_INFINITY } },
     })
     let clock = 1_000
-    const { port } = setup({ client, instance: "main", now: () => clock })
+    const { port } = setup({ client, instance: "main", clock: { now: () => clock } })
     await client.fetchQuery({ queryKey: ["tasks"], queryFn: async () => ["a"] })
     const indicatorAt = () =>
       port.snapshot().indicators.find((entry) => entry.indicator.id === "queries")?.indicator
@@ -200,7 +200,7 @@ describe("createQuerySource", () => {
 
   it("resolves a query's full state on demand, sanitized by the session", async () => {
     const client = new QueryClient()
-    const { port } = setup({ client, instance: "main", now: () => 1_000 })
+    const { port } = setup({ client, instance: "main", clock: { now: () => 1_000 } })
     await client.fetchQuery({
       queryKey: ["profile"],
       queryFn: async () => ({ name: "Ada", token: "secret-token-value" }),
@@ -223,7 +223,7 @@ describe("createQuerySource", () => {
     const client = new QueryClient()
     const session = createDevtoolsSession()
     const registration = session.registerSource(
-      createQuerySource({ client, instance: "main", now: () => 1_000 }),
+      createQuerySource({ client, instance: "main", clock: { now: () => 1_000 } }),
     )
     const port = session.connect()
     registration.unsubscribe()
@@ -236,7 +236,9 @@ describe("createQuerySource", () => {
     const session = createDevtoolsSession()
     const healthy = fakeSource({ kind: "state", instance: "cart" }, { label: "Cart" })
     session.registerSource(healthy)
-    session.registerSource(createQuerySource({ client, instance: "main", now: () => 1_000 }))
+    session.registerSource(
+      createQuerySource({ client, instance: "main", clock: { now: () => 1_000 } }),
+    )
     const port = session.connect()
     client.getQueryCache().getAll = () => {
       throw new Error("cache corrupted")
@@ -254,7 +256,7 @@ describe("createQuerySource", () => {
     const { port } = setup({
       client,
       instance: "main",
-      now: () => 1_000,
+      clock: { now: () => 1_000 },
       keyLabel: () => {
         throw new Error("label blew up")
       },
@@ -267,7 +269,7 @@ describe("createQuerySource", () => {
 
   it("reuses one opaque detail id across a query's refetches", async () => {
     const client = new QueryClient()
-    const { port } = setup({ client, instance: "main", now: () => 1_000 })
+    const { port } = setup({ client, instance: "main", clock: { now: () => 1_000 } })
     await client.fetchQuery({ queryKey: ["tasks"], queryFn: async () => 1 })
     await client.refetchQueries({ queryKey: ["tasks"] })
     const detailIds = new Set(
@@ -285,7 +287,7 @@ describe("createQuerySource", () => {
     const { port } = setup({
       client,
       instance: "main",
-      now: () => 1_000,
+      clock: { now: () => 1_000 },
       keyLabel: (key) => {
         if (broken) throw new Error("label blew up")
         return Array.isArray(key) ? String(key[0]) : "query"

@@ -1,4 +1,4 @@
-import { base64urlDecode, base64urlEncode } from "@plainworks/std"
+import { base64urlDecode, base64urlEncode } from "@plainworks/std/encoding"
 import { type AuthCrypto, defaultAuthCrypto } from "../crypto"
 import { constantTimeEqual } from "../crypto/constant-time"
 import { AuthError } from "../errors"

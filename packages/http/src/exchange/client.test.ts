@@ -1,11 +1,7 @@
-import {
-  guardSchema,
-  RetryError,
-  type RetryPolicy,
-  TimeoutError,
-  unsafePassthrough,
-  type WebResponse,
-} from "@plainworks/std"
+import { RetryError, type RetryPolicy, TimeoutError } from "@plainworks/std/resilience"
+import { guardSchema, unsafePassthrough } from "@plainworks/std/seam"
+import { fixedClock } from "@plainworks/std/time"
+import type { WebResponse } from "@plainworks/std/web"
 import {
   autoBackoffDelay,
   fakeAuthHeaderProvider,
@@ -213,6 +209,29 @@ test("honors a Retry-After hint on a 429 before the next attempt", async () => {
 
   expect(calls.length).toBe(2)
   expect(waits).toContain(1000)
+})
+
+test("reads an HTTP-date Retry-After against the injected clock", async () => {
+  const { fetch } = fakeFetch([
+    jsonResponse({}, 503, { "retry-after": "Thu, 01 Jan 2026 00:00:02 GMT" }),
+    jsonResponse({ ok: true }),
+  ])
+  const { delay, waits } = autoBackoffDelay()
+  const client = createHttpClient({
+    baseUrl: "https://api.test",
+    fetch,
+    delay,
+    clock: fixedClock("2026-01-01T00:00:00Z"),
+    retry: {
+      maxAttempts: 2,
+      backoff: { baseMs: 10, maxMs: 5000, factor: 2, jitter: "none" },
+      idempotent: true,
+    },
+  })
+
+  await client.request({ path: "widgets" })
+
+  expect(waits).toContain(2000)
 })
 
 test("refuses a credential-shaped query parameter before any fetch", async () => {

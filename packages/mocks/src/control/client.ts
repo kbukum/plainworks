@@ -1,4 +1,5 @@
-import { isRecord, PlainError, type WebAbortSignal } from "@plainworks/std"
+import { isNonNegativeInteger, isRecord, PlainError } from "@plainworks/std"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { MAX_LATENCY_MS } from "../latency"
 import { MAX_REQUEST_LOG_SIZE } from "./limits"
 import { MOCK_CONTROL_PATHS } from "./paths"
@@ -118,9 +119,7 @@ function stateOf(body: unknown, path: string): InternalState {
     !isRecord(data) ||
     typeof data.globalError !== "boolean" ||
     !isLatency(data.globalDelay) ||
-    typeof data.requestCount !== "number" ||
-    !Number.isSafeInteger(data.requestCount) ||
-    data.requestCount < 0
+    !isNonNegativeInteger(data.requestCount)
   ) {
     throw new MockControlError(path, { cause: body })
   }

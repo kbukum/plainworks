@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
 import { pathToFileURL } from "node:url"
+import { systemClock } from "@plainworks/std/time"
 import { type Browser, chromium } from "@playwright/test"
 import { FLOW_RUN_ENV, nodeArtifactStore } from "../flow/report/artifacts"
 import { browserGateUse, GATE_ORIGIN_ENV } from "../gate"
@@ -139,7 +140,7 @@ export function createNodeUiCaptureRuntime(
     },
     serve: () => serveWarmHost(config),
     renderSheet,
-    now: () => Date.now(),
+    clock: systemClock,
     print: printLine,
     close: async () => {
       if (browser !== undefined) await (await browser).close()

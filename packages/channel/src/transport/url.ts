@@ -1,4 +1,4 @@
-import type { WebAbortSignal } from "@plainworks/std"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { ChannelError } from "../error"
 
 /** What an async {@link UrlSource} provider receives: the attempt's cancellation signal. */

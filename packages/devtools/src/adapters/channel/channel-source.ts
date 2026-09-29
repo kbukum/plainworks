@@ -1,6 +1,8 @@
 import type { Channel, ChannelOptions, ChannelStatus } from "@plainworks/channel"
-import { assertTimerMs, type StreamFrame, type Subscription } from "@plainworks/std"
-import type { Json } from "../../privacy"
+import type { Json } from "@plainworks/std/encoding"
+import { assertTimerMs } from "@plainworks/std/resilience"
+import type { StreamFrame, Subscription } from "@plainworks/std/seam"
+import { type Clock, systemClock } from "@plainworks/std/time"
 import type { Severity } from "../../protocol"
 import { createEventSampler, type EventSampler } from "../../retention"
 import type { Source, SourceHandle } from "../../source"
@@ -18,8 +20,8 @@ export interface ChannelSourceOptions {
   readonly instance: string
   /** Display label; defaults to `Channel <instance>`. */
   readonly label?: string
-  /** Clock for event and indicator timestamps. Defaults to `Date.now`. */
-  readonly now?: () => number
+  /** Clock for event and indicator timestamps. Defaults to `systemClock`. */
+  readonly clock?: Clock
   /**
    * Coalescing interval for per-frame events, in milliseconds. A high-frequency stream collapses to
    * one frame event per interval while the running count stays exact; lifecycle transitions are
@@ -67,7 +69,7 @@ const DEFAULT_FRAME_INTERVAL_MS = 250
  * default — never the frame `data`.
  */
 export function createChannelSource(options: ChannelSourceOptions): ChannelInstrumentation {
-  const now = options.now ?? Date.now
+  const clock = options.clock ?? systemClock
   const label = options.label ?? `Channel ${options.instance}`
   const relay = createObserverRelay()
   const frameIntervalMs = options.frameIntervalMs ?? DEFAULT_FRAME_INTERVAL_MS
@@ -88,7 +90,7 @@ export function createChannelSource(options: ChannelSourceOptions): ChannelInstr
       label,
       value: describeState(state),
       severity: statusSeverity(state.status),
-      updatedAt: now(),
+      updatedAt: clock.now(),
       target: "channel",
     })
   }
@@ -103,7 +105,7 @@ export function createChannelSource(options: ChannelSourceOptions): ChannelInstr
         kind: "channel.status",
         label: `Channel ${status}`,
         severity: statusSeverity(status),
-        at: now(),
+        at: clock.now(),
         summary: { status, reconnects: state.reconnects },
       })
       indicate()
@@ -117,7 +119,7 @@ export function createChannelSource(options: ChannelSourceOptions): ChannelInstr
         kind: "channel.error",
         label: `Channel error: ${kind}`,
         severity: "error",
-        at: now(),
+        at: clock.now(),
         summary: { kind },
       })
       indicate()
@@ -165,7 +167,7 @@ export function createChannelSource(options: ChannelSourceOptions): ChannelInstr
         mode: "coalesce",
         onEmit: (event) => observeSafely(relay, () => relay.emit(event)),
         onError: (error) => observeSafely(relay, () => relay.fail(error)),
-        now,
+        clock,
       })
       const frames = channel.onAny((frame) => {
         state.frames += 1
@@ -176,7 +178,7 @@ export function createChannelSource(options: ChannelSourceOptions): ChannelInstr
             kind: "channel.event",
             label: `Event ${frame.type}`,
             severity: "info",
-            at: now(),
+            at: clock.now(),
             summary: summarizeFrame(metadata),
           })
           indicate()

@@ -2,6 +2,7 @@ import "@plainworks/devtools/styles.css"
 
 import type { Source, SourceObserver } from "@plainworks/devtools"
 import { mountDevtools } from "@plainworks/devtools/client"
+import { fixedClock } from "@plainworks/std/time"
 import { useEffect, useState } from "react"
 import { createRoot } from "react-dom/client"
 
@@ -95,7 +96,7 @@ function createFixtureRuntime() {
     sessionOptions: LARGE
       ? { retention: { perSource: 120, aggregate: 500 } }
       : { retention: { perSource: 3, aggregate: 3 } },
-    now: () => 1_000,
+    clock: fixedClock(1_000),
     tickMs: 0,
     railMaxVisible: 2,
   })

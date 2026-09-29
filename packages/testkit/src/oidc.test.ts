@@ -1,11 +1,12 @@
-import { base64urlEncode } from "@plainworks/std"
+import { base64urlEncode } from "@plainworks/std/encoding"
+import { fixedClock } from "@plainworks/std/time"
 import { importJWK, type JWK, jwtVerify } from "jose"
 import { describe, expect, it } from "vitest"
 import { createMockIdp, type MockIdpOptions } from "./oidc"
 
 // A stable millisecond clock so token `iat`/`exp` and minted identifiers are deterministic.
 const FIXED_NOW = 1_700_000_000_000
-const clock = () => FIXED_NOW
+const clock = fixedClock(FIXED_NOW)
 
 async function challengeFor(verifier: string): Promise<string> {
   const subtle = (
@@ -43,7 +44,7 @@ function tokenRequest(params: Record<string, string>) {
 }
 
 async function build(options: MockIdpOptions = {}) {
-  return createMockIdp({ now: clock, ...options })
+  return createMockIdp({ clock, ...options })
 }
 
 async function readJson(response: { json(): Promise<unknown> }): Promise<Record<string, unknown>> {

@@ -12,44 +12,33 @@ bun add @plainworks/std
 
 ## What's inside
 
-The source is grouped by concern, one folder each: `error`, `guard`, `resilience`, `pipeline`, `privacy`, `random`, `time`, `encoding`, `list`, `seam`, and `web`. Everything is exported flat from the `.` entry.
+Like a language's standard library, `std` has a small **prelude** and a set of **modules**. The prelude, `@plainworks/std`, holds what every module needs: typed errors, `Result`, guards and assertions. Each concern is a module on its own subpath, so the import says what you're using: `import { readBoundedText } from "@plainworks/std/web"`. Every name has exactly one import path.
 
-- **Errors** — `PlainError` (typed base that preserves `cause` and carries a `kind` discriminant), `ensureError`, `getErrorMessage`, and `createErrorSnapshot` (an inert copy that is safe to log).
-- **Result** — `Result<T, E>` with `ok` / `err` / `isOk` / `isErr` / `unwrap` / `unwrapOr`.
-- **Guards** — `isDefined`, `isRecord`, `isNonEmptyString`, `hasProperty`.
-- **Assertions** — `assert`, `assertNever`.
-- **Resilience** — one shared failure taxonomy and the drivers built on it:
-  - `classifyStatus` / `classifyError` / `isRetryable` — map an HTTP status or thrown value to a retry disposition; `NetworkError` (transport-wrapped network failure) and `StatusError` (status-carrying HTTP failure) are the typed shapes it classifies.
-  - `nextBackoff` / `defaultBackoff` — bounded exponential backoff with `none` / `full` / `decorrelated` jitter.
-  - `withTimeout` / `TimeoutError`, `createDeadline` / `combineSignals` / `AbortError`, `systemDelay` — per-attempt budgets (retryable) vs. overall deadlines (fatal).
-  - `runWithRetry` / `RetryError` — policy-driven retries for idempotent operations only.
-  - `createBoundedQueue` — bounded FIFO hand-off with explicit overflow policy and bounded, cancellable consumers.
-- **Pipeline** — `composeInterceptors` / `pipeValues`, the generic handler/interceptor combinators.
-- **Redaction** — `redact`, structural secret stripping for safe logging.
-- **Randomness** — `systemRandom` and seedable `createSeededRandom` for deterministic tests.
-- **Ids and time** — `randomId` / `idempotencyKey` (Web Crypto UUID), `systemClock` + the `Clock` seam.
-- **Encoding** — `base64urlEncode` / `base64urlDecode`.
-- **Cookies** — `parseCookieHeader`, `serializeCookieAttributes`, and the name, path, and size checks.
-- **List contract** — the protocol-independent list-read shapes: the typed request (`ListQueryParams`, the `ListFilter` discriminated union, the `FilterOperator` operator vocabulary) and the response envelopes (`PaginatedResult`, `CursorResult`, `PageInfo`, `CursorInfo`, `Facets`). A transport maps them to its own wire dialect (`@plainworks/http` owns the PostgREST/Supabase REST one); `query` derives cache keys from the same abstract params.
-- **Shared seams** — the single source of truth higher layers implement:
-  - `AuthHeaderProvider` / `AuthHeaders` — the header-only auth seam.
-  - `PlainEvent` / `Listener` / `Subscription` — the event and teardown shapes.
-  - `StateSource` and `createSourceReconciler` — the async state-source seam and the reconciler that keeps reads and writes in order.
-  - `StandardSchemaV1` — the [Standard Schema](https://standardschema.dev) validation seam (owned structurally, so any Zod/Valibot/ArkType schema fits without a dependency), with `validateWithSchema` (validation → `Result`) and the audited `unsafePassthrough<T>()` opt-out. `http` turns an untrusted decoded `unknown` into a typed value through it.
-- **Web-platform types** — self-contained structural types (`WebFetch`, `WebResponse`, `WebHeaders`, `WebRequestInit`, `WebAbortSignal`, `WebURL`, `WebReadableStream`, `WebTextDecoder`, …) that let a neutral package name `fetch`/`Headers`/`Response`/`URL` in its public API and ship a `.d.ts` that typechecks standalone against the ES lib — no DOM or `@types/node` dependency imposed on consumers.
+| Import | What it gives you |
+|---|---|
+| `std` (prelude) | `PlainError` (a typed base that keeps `cause` and a `kind`), `ensureError`, `getErrorMessage`, `createErrorSnapshot` (safe to log), `Result` with `ok` / `err` / `isOk` / `isErr` / `unwrap` / `unwrapOr`, the guards `isDefined` / `isRecord` / `isNonEmptyString` / `hasProperty` / `isOneOf` / `isPositiveInteger` / `isNonNegativeInteger`, and `assert` / `assertNever`. |
+| `std/resilience` | One failure taxonomy (`classifyError`, `classifyStatus`, `NetworkError`, `StatusError`), bounded jittered backoff, `withTimeout` and deadlines, `runWithRetry` for idempotent calls, and `createBoundedQueue`. |
+| `std/pipeline` | `composeInterceptors` and `pipeValues`. |
+| `std/privacy` | `redact` and `isSensitiveKey`, for stripping secrets before logging. |
+| `std/random` | `systemRandom`, seedable `createSeededRandom` for tests, `randomId` and `idempotencyKey`. |
+| `std/time` | The `Clock` seam with `systemClock` and `fixedClock`, and `parseTimestamp`. An API that reads time takes `clock?: Clock`, never a bare `now` function. |
+| `std/encoding` | base64url, `utf8ByteLength`, and JSON: the `Json` type, `isJson`, `stringifyJson` (throws `JsonEncodeError` instead of dropping values), `escapeJsonForHtml`, and `toBoundedJson` for capped diagnostic copies. |
+| `std/web` | Body reads under a byte cap (`readBoundedBytes`, `readBoundedText`, `PayloadTooLargeError`), cookie parsing (`readCookie`, `parseCookieHeader`), `resolveFetch`, and the self-contained `Web*` platform types (`WebFetch`, `WebHeaders`, `WebAbortSignal`, …) that let a neutral package name `fetch` or `Headers` in its API. |
+| `std/list` | The protocol-independent list contract: `ListQueryParams`, the `ListFilter` union and operator vocabulary, and the `PaginatedResult` / `CursorResult` envelopes. `@plainworks/http` owns the REST wire dialect. |
+| `std/seam` | The shared seams higher layers implement: `AuthHeaderProvider`, the event shapes (`PlainEvent`, `Listener`, `Subscription`), `StateSource` with `createSourceReconciler`, and the [Standard Schema](https://standardschema.dev) seam with `validateWithSchema`. |
 
 ## Runtime primitives
 
-`std` is a **neutral (`.`)** package — no React, no DOM, no Node builtins — so it runs on every target runtime (server, edge, workers, RSC, browser, React Native). It touches only **universal** platform primitives directly (`AbortController` / `AbortSignal`, `TextDecoder`, and the WHATWG value types it models as the self-contained `Web*` structural contract). Its one host-resolved primitive, `crypto.randomUUID` (backing `randomId`), is resolved lazily at call time and throws a typed `std/unsupported` error when the runtime lacks it — never an import-time host assumption. `Math.random` backs the non-cryptographic `systemRandom` seam. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives) for the universal-vs-injected primitive contract.
+`std` is a **neutral** package — no React, no DOM, no Node builtins — so it runs on every target runtime (server, edge, workers, RSC, browser, React Native). It touches only **universal** platform primitives directly (`AbortController` / `AbortSignal`, `TextDecoder`, and the WHATWG value types it models as the self-contained `Web*` structural contract). Its host-resolved primitives are looked up lazily at call time, never on import: `crypto.randomUUID` (backing `randomId`) throws a typed `std/unsupported` error when the runtime lacks it, and `resolveFetch` falls back to the platform `fetch` only when no `fetch` is injected. `Math.random` backs the non-cryptographic `systemRandom` seam. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives) for the universal-vs-injected primitive contract.
 
 ## Usage
 
 ```ts
-import { type Result, err, ok, PlainError } from "@plainworks/std"
+import { err, isPositiveInteger, ok, PlainError, type Result } from "@plainworks/std"
 
 function parsePort(raw: string): Result<number> {
   const port = Number(raw)
-  if (!Number.isInteger(port) || port < 1 || port > 65_535) {
+  if (!isPositiveInteger(port) || port > 65_535) {
     return err(new PlainError("config/port", `not a valid port: ${raw}`))
   }
   return ok(port)
@@ -65,7 +54,7 @@ import {
   runWithRetry,
   StatusError,
   withTimeout,
-} from "@plainworks/std"
+} from "@plainworks/std/resilience"
 
 async function getUser(id: string): Promise<unknown> {
   return runWithRetry(
@@ -94,7 +83,7 @@ async function getUser(id: string): Promise<unknown> {
 Strip secrets before anything reaches a log sink. Redaction is defense-in-depth, not data minimization — log an allowlisted set of fields you know are safe rather than a whole request, and let `redact` catch a stray credential that slips in:
 
 ```ts
-import { redact } from "@plainworks/std"
+import { redact } from "@plainworks/std/privacy"
 
 logger.info(
   redact({

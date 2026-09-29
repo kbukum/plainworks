@@ -1,5 +1,5 @@
 import { Code, ConnectError, type Interceptor, type UnaryRequest } from "@connectrpc/connect"
-import { TimeoutError } from "@plainworks/std"
+import { TimeoutError } from "@plainworks/std/resilience"
 import { describe, expect, it } from "vitest"
 import { createDevtoolsSession } from "../../session"
 import type { SourceObserver } from "../../source"
@@ -72,7 +72,7 @@ describe("createConnectSource", () => {
 
   it("correlates a unary call by service/method and preserves the response", async () => {
     let clock = 100
-    const { port, interceptor } = setup({ instance: "api", now: () => clock })
+    const { port, interceptor } = setup({ instance: "api", clock: { now: () => clock } })
     const next: Next = async () => {
       clock = 130
       return unaryResponse()
@@ -282,9 +282,11 @@ describe("createConnectSource", () => {
     const { source, interceptor } = createConnectSource({
       instance: "api",
       messageIntervalMs: 100,
-      now: () => {
-        clockCalls += 1
-        return 1
+      clock: {
+        now: () => {
+          clockCalls += 1
+          return 1
+        },
       },
     })
     const subscription = session.registerSource(source)
@@ -358,8 +360,10 @@ describe("createConnectSource", () => {
   it("still executes a unary call when the diagnostics clock throws", async () => {
     const { interceptor } = createConnectSource({
       instance: "api",
-      now: () => {
-        throw new Error("clock down")
+      clock: {
+        now: () => {
+          throw new Error("clock down")
+        },
       },
     })
     let called = false
@@ -376,9 +380,11 @@ describe("createConnectSource", () => {
     let failClock = false
     const { port, interceptor } = setup({
       instance: "api",
-      now: () => {
-        if (failClock) throw new Error("clock down")
-        return 1
+      clock: {
+        now: () => {
+          if (failClock) throw new Error("clock down")
+          return 1
+        },
       },
     })
     const next: Next = async () => {
@@ -424,10 +430,12 @@ describe("createConnectSource", () => {
     const { interceptor } = createConnectSource({
       instance: "api",
       messageIntervalMs: 1,
-      now: () => {
-        clockCalls += 1
-        if (clockCalls > 1) throw new Error("clock down")
-        return 1
+      clock: {
+        now: () => {
+          clockCalls += 1
+          if (clockCalls > 1) throw new Error("clock down")
+          return 1
+        },
       },
     })
     async function* messages() {

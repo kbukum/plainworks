@@ -1,6 +1,6 @@
 "use client"
 
-import type { Authorizer } from "@plainworks/std"
+import type { Authorizer } from "@plainworks/std/seam"
 import { type ReactNode, useEffect, useState } from "react"
 import type { SessionContext } from "./session-context"
 

@@ -1,4 +1,5 @@
-import { type Clock, systemClock } from "@plainworks/std"
+import { isPositiveInteger } from "@plainworks/std"
+import { type Clock, systemClock } from "@plainworks/std/time"
 import { constantTimeEqual } from "../../crypto/constant-time"
 import { AuthError } from "../../errors"
 
@@ -57,7 +58,7 @@ interface TokenEntry {
 }
 
 function requirePositiveInt(value: number, field: string): void {
-  if (!Number.isInteger(value) || value <= 0) {
+  if (!isPositiveInteger(value)) {
     throw new AuthError(
       "auth/config",
       `refresh token store ${field} must be a positive integer, got ${value}`,

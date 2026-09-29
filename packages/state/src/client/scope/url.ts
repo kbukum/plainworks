@@ -1,6 +1,6 @@
 "use client"
 
-import type { StateCapabilities, StateSource } from "@plainworks/std"
+import type { StateCapabilities, StateSource } from "@plainworks/std/seam"
 import { StateSourceError } from "../../errors"
 import type { Scope, SourceSpec } from "../../scope/seam"
 import { createStringSource, type StringBackend } from "./persisted-source"

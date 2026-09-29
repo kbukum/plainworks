@@ -1,4 +1,4 @@
-import type { StateSerializer } from "@plainworks/std"
+import type { StateSerializer } from "@plainworks/std/seam"
 import { StateSourceError } from "../errors"
 
 /**

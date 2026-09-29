@@ -6,6 +6,7 @@
 // with `defineProvider`) joined by the same `id` — so the tests drive the real split. Deliberately
 // NOT re-exported from `./testing`: these are test scaffolding, not shipped surface.
 import { isRecord } from "@plainworks/std"
+import { readCookie } from "@plainworks/std/web"
 import { createContext, createElement, type ReactNode, useContext } from "react"
 import { type ClientCapability, defineProvider } from "../client/capability"
 import { AppConfigError } from "../errors"
@@ -24,17 +25,9 @@ export interface FakeCapability<Resolved> {
 }
 
 /** Read a single cookie value from a request's `Cookie` header — the fakes' server-resolve helper. */
-function readCookie(context: CapabilityResolveContext, name: string): string | undefined {
-  const header = context.headers.get("cookie")
-  if (header === null) {
-    return undefined
-  }
-  for (const part of header.split("; ")) {
-    if (part.startsWith(`${name}=`)) {
-      return decodeURIComponent(part.slice(name.length + 1))
-    }
-  }
-  return undefined
+function readRequestCookie(context: CapabilityResolveContext, name: string): string | undefined {
+  const raw = readCookie(context.headers.get("cookie") ?? "", name)
+  return raw === undefined ? undefined : decodeURIComponent(raw)
 }
 
 /** The theme fake's resolved shape: the class a host would render onto `<html>` before hydration. */
@@ -62,7 +55,7 @@ export function fakeThemeCapability(dependsOn?: readonly string[]): FakeCapabili
     resolve: defineCapability<FakeTheme>({
       id: "theme",
       resolve: (context) => ({
-        className: readCookie(context, "theme") === "dark" ? "dark" : "light",
+        className: readRequestCookie(context, "theme") === "dark" ? "dark" : "light",
       }),
     }),
     provider: defineProvider({
@@ -117,7 +110,7 @@ export function fakeSessionCapability(dependsOn?: readonly string[]): FakeCapabi
     resolve: defineCapability<FakeSession>({
       id: "session",
       resolve: (context) => {
-        const name = readCookie(context, "session")
+        const name = readRequestCookie(context, "session")
         return name === undefined
           ? { status: "unauthenticated", name: null }
           : { status: "authenticated", name }

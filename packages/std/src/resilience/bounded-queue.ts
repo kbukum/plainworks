@@ -1,5 +1,6 @@
 import { PlainError } from "../error"
-import type { WebAbortSignal } from "../web"
+import { isPositiveInteger } from "../guard"
+import type { WebAbortSignal } from "../web/types"
 import { AbortError } from "./timeout"
 
 /**
@@ -65,11 +66,11 @@ export function createBoundedQueue<T>(
   capacity: number,
   options: { overflow?: OverflowPolicy; maxWaiters?: number } = {},
 ): BoundedQueue<T> {
-  if (!Number.isInteger(capacity) || capacity < 1) {
+  if (!isPositiveInteger(capacity)) {
     throw new RangeError("createBoundedQueue requires an integer capacity >= 1")
   }
   const maxWaiters = options.maxWaiters ?? capacity
-  if (!Number.isInteger(maxWaiters) || maxWaiters < 1) {
+  if (!isPositiveInteger(maxWaiters)) {
     throw new RangeError("createBoundedQueue requires an integer maxWaiters >= 1")
   }
   const overflow = options.overflow ?? "drop-oldest"

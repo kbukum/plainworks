@@ -1,3 +1,4 @@
+import { fixedClock } from "@plainworks/std/time"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { createMockApi } from "../api"
 import { createMockServer } from "../server"
@@ -5,7 +6,7 @@ import { taskPriorityRank, type UserSettings } from "../types"
 
 // Fresh, isolated mock graph per suite; latency stays disabled (0 ms) so no real timers run, and a
 // fixed clock keeps every generated timestamp independent of when the suite runs.
-const api = createMockApi({ clock: { now: () => Date.parse("2026-01-15T12:00:00.000Z") } })
+const api = createMockApi({ clock: fixedClock("2026-01-15T12:00:00.000Z") })
 const server = createMockServer(api)
 const base = "http://localhost"
 

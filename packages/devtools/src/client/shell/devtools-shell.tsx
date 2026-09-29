@@ -2,7 +2,8 @@
 
 import { Button } from "@plainworks/elements/button"
 import { Kbd } from "@plainworks/elements/kbd"
-import type { StateSource } from "@plainworks/std"
+import type { StateSource } from "@plainworks/std/seam"
+import { type Clock, systemClock } from "@plainworks/std/time"
 import { cn } from "@plainworks/theme"
 import { useKeyboardShortcuts } from "@plainworks/ui/hooks"
 import { Bug } from "lucide-react"
@@ -48,8 +49,8 @@ export interface DevtoolsShellProps {
   readonly staleAfterMs?: number
   /** Freshness re-poll cadence in milliseconds; `0` freezes the clock. Defaults to 1000. */
   readonly tickMs?: number
-  /** Injected clock shared by every view. Defaults to `Date.now`. */
-  readonly now?: () => number
+  /** Clock shared by every view. Defaults to `systemClock`. */
+  readonly clock?: Clock
   /** Rail entries shown before overflow. Defaults to 4. */
   readonly railMaxVisible?: number
 }
@@ -74,7 +75,7 @@ export function DevtoolsShell({
   reserveSpace = true,
   staleAfterMs = 10_000,
   tickMs = 1_000,
-  now = Date.now,
+  clock = systemClock,
   railMaxVisible = 4,
 }: DevtoolsShellProps): ReactElement {
   const { port, store, state } = useDevtoolsConnection(session)
@@ -131,7 +132,7 @@ export function DevtoolsShell({
           failures={state.failures}
           indicators={state.indicators}
           droppedAggregate={state.droppedAggregate}
-          now={now}
+          clock={clock}
           staleAfterMs={staleAfterMs}
           tickMs={tickMs}
           maxVisible={railMaxVisible}

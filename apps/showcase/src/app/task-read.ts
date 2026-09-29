@@ -12,7 +12,9 @@ import {
   listQueryOptions,
   type PaginatedResult,
 } from "@plainworks/query"
-import { guardSchema, isPaginatedResult, type WebAbortSignal } from "@plainworks/std"
+import { isPaginatedResult } from "@plainworks/std/list"
+import { guardSchema } from "@plainworks/std/seam"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { TASKS_RESOURCE } from "./constants"
 import { isTask } from "./task-shape"
 

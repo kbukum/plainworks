@@ -1,28 +1,33 @@
+import { isErr } from "@plainworks/std"
+import { composeInterceptors } from "@plainworks/std/pipeline"
+import type { RedactOptions } from "@plainworks/std/privacy"
+import { type RandomSource, systemRandom } from "@plainworks/std/random"
 import {
-  type AuthHeaderProvider,
-  composeInterceptors,
   type Delay,
-  type InferSchemaOutput,
-  isErr,
-  type RandomSource,
-  type RedactOptions,
   type RetryDeps,
   RetryError,
   type RetryPolicy,
   runWithRetry,
-  type StandardSchemaV1,
   systemDelay,
-  systemRandom,
   TimeoutError,
+  withTimeout,
+} from "@plainworks/std/resilience"
+import {
+  type AuthHeaderProvider,
+  type InferSchemaOutput,
+  type StandardSchemaV1,
   validateWithSchema,
+} from "@plainworks/std/seam"
+import { type Clock, systemClock } from "@plainworks/std/time"
+import {
+  resolveFetch,
   type WebAbortSignal,
   type WebBodyInit,
+  type WebFetch,
   type WebHeaders,
   type WebHeadersInit,
-  type WebRequestInit,
   type WebResponse,
-  withTimeout,
-} from "@plainworks/std"
+} from "@plainworks/std/web"
 import { type BodyCodec, jsonCodec } from "../codec"
 import { HttpError } from "../error"
 import {
@@ -39,9 +44,6 @@ import { createResourceMethods, type ResourceMethods } from "./resource"
 import type { HttpResponse } from "./response"
 import { parseRetryAfterMs, resolveRetryPolicy } from "./retry"
 
-/** The `fetch` shape the client depends on — injectable so tests drive the boundary without a network. */
-export type FetchLike = (input: string, init?: WebRequestInit) => Promise<WebResponse>
-
 const DEFAULT_TIMEOUT_MS = 30_000
 
 /** Construction options for {@link createHttpClient}. */
@@ -51,7 +53,7 @@ export interface HttpClientOptions {
   /** Default headers merged into every request (a per-request header wins on conflict). */
   readonly headers?: WebHeadersInit
   /** Override the `fetch` implementation; defaults to the global `fetch`. */
-  readonly fetch?: FetchLike
+  readonly fetch?: WebFetch
   /** Header-only credential seam; when set, its headers are injected on every attempt. */
   readonly authProvider?: AuthHeaderProvider
   /** Extra interceptors, ordered outermost-first, run between logging and auth injection. */
@@ -70,8 +72,8 @@ export interface HttpClientOptions {
   readonly delay?: Delay
   /** Injectable jitter source for deterministic retry tests; defaults to the system RNG. */
   readonly random?: RandomSource
-  /** Injectable clock (ms) for deterministic `Retry-After` date parsing; defaults to `Date.now`. */
-  readonly now?: () => number
+  /** Clock for `Retry-After` date parsing; defaults to `systemClock`. */
+  readonly clock?: Clock
 }
 
 /**
@@ -102,11 +104,15 @@ export interface HttpClient extends ResourceMethods {
  * holds no module-level state and performs no work until a request is made.
  */
 export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
-  const fetchImpl = options.fetch ?? resolveGlobalFetch()
+  const fetchImpl = resolveFetch(options.fetch, () =>
+    HttpError.network({
+      message: "No global fetch is available; pass options.fetch to createHttpClient.",
+    }),
+  )
   const codec = options.codec ?? jsonCodec
   const delay = options.delay ?? systemDelay
   const random = options.random ?? systemRandom
-  const now = options.now ?? (() => Date.now())
+  const clock = options.clock ?? systemClock
 
   const interceptors: HttpInterceptor[] = []
   if (options.observability !== undefined) {
@@ -189,7 +195,7 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
           // typed failure whether the transport produced it or an interceptor short-circuited with
           // one — a status error can never slip past by bypassing the terminal handler.
           if (!response.ok) {
-            const retryAfterMs = parseRetryAfterMs(response.headers.get("retry-after"), now())
+            const retryAfterMs = parseRetryAfterMs(response.headers.get("retry-after"), clock.now())
             const statusOptions: { retryAfterMs?: number; cause?: unknown } = { cause: response }
             if (retryAfterMs !== undefined) {
               statusOptions.retryAfterMs = retryAfterMs
@@ -295,7 +301,7 @@ function unwrapRetryError(error: unknown): unknown {
  * calls the transport — mapping a non-abort transport failure to a typed network error.
  */
 function makeTerminal(
-  fetchImpl: FetchLike,
+  fetchImpl: WebFetch,
   expectedOrigin: string,
   outbound: { url: string },
 ): HttpHandler {
@@ -350,15 +356,6 @@ function assertNoCrossOriginCredentialLeak(
 /** The origin of an already-validated absolute URL string. */
 function originOf(rawUrl: string): string {
   return new URL(rawUrl).origin
-}
-
-function resolveGlobalFetch(): FetchLike {
-  if (typeof fetch !== "function") {
-    throw HttpError.network({
-      message: "No global fetch is available; pass options.fetch to createHttpClient.",
-    })
-  }
-  return (input, init) => fetch(input, init)
 }
 
 function isAbort(value: unknown): boolean {

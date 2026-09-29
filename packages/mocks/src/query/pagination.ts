@@ -2,7 +2,7 @@
  * Pagination utilities
  */
 
-import type { PageInfo } from "@plainworks/std"
+import type { PageInfo } from "@plainworks/std/list"
 
 /** Requested page parameters. */
 export interface PaginationParams {

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import type { ListFilter } from "@plainworks/std"
+import type { ListFilter } from "@plainworks/std/list"
 import { act, renderHook } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { useCatalogList } from "./use-catalog-list"

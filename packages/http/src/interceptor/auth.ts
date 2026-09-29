@@ -1,4 +1,4 @@
-import type { AuthContext, AuthHeaderProvider } from "@plainworks/std"
+import type { AuthContext, AuthHeaderProvider } from "@plainworks/std/seam"
 import type { HttpInterceptor } from "./handler"
 
 /**

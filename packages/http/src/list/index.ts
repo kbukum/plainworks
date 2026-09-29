@@ -19,7 +19,7 @@ export type {
   PresenceFilter,
   ScalarFilter,
   SortDirection,
-} from "@plainworks/std"
+} from "@plainworks/std/list"
 export { buildListQuery } from "./build"
 export { escapeListValue, escapeScalarValue, parseDelimitedList, unescapeValue } from "./codec"
 export {

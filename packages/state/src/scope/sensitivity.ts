@@ -1,4 +1,4 @@
-import type { StateCapabilities } from "@plainworks/std"
+import type { StateCapabilities } from "@plainworks/std/seam"
 import { StateConfigError } from "../errors"
 import type { Scope } from "./seam"
 

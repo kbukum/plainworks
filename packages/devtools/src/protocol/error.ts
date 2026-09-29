@@ -11,8 +11,9 @@ export type ProtocolErrorKind =
   | "devtools/command-input-unsupported"
 
 /**
- * A typed protocol failure. Raised (or returned in an {@link @plainworks/std!Err}) when an envelope
- * cannot be trusted — an incompatible version, a malformed shape, or a non-serializable command
- * input. The offending value is preserved as `cause` for diagnosis, never logged by the protocol.
+ * A typed protocol failure. Raised (or returned in an {@link @plainworks/std!Err}) when an
+ * envelope cannot be trusted — an incompatible version, a malformed shape, or a non-serializable
+ * command input. The offending value is preserved as `cause` for diagnosis, never logged by the
+ * protocol.
  */
 export class ProtocolError extends PlainError<ProtocolErrorKind> {}

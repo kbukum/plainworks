@@ -1,4 +1,5 @@
-import type { Identity, WebAbortSignal } from "@plainworks/std"
+import type { Identity } from "@plainworks/std/seam"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { AuthError } from "../../errors"
 
 /** The registry kind under which the API-key adapter registers. */

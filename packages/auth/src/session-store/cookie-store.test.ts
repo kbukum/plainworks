@@ -1,4 +1,4 @@
-import type { StandardSchemaV1, StateSource } from "@plainworks/std"
+import type { StandardSchemaV1, StateSource } from "@plainworks/std/seam"
 import { manualClock } from "@plainworks/testkit"
 import { describe, expect, test } from "vitest"
 import { AuthError } from "../errors"

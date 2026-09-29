@@ -5,7 +5,8 @@
  * timestamps from an injected `Clock`.
  */
 
-import { type Clock, createSeededRandom, type RandomSource, systemClock } from "@plainworks/std"
+import { createSeededRandom, type RandomSource } from "@plainworks/std/random"
+import { type Clock, systemClock } from "@plainworks/std/time"
 
 /** Everything a data factory needs to generate deterministic fixtures. */
 export interface FixtureSources {

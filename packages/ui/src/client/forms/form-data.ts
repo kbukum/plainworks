@@ -1,6 +1,6 @@
 "use client"
 
-import type { StandardSchemaIssue } from "@plainworks/std"
+import type { StandardSchemaIssue } from "@plainworks/std/seam"
 import { type FieldErrors, FORM_ERROR_KEY } from "./form-context"
 
 /** The plain, serializable value a form field contributes — a single string or a repeated set. */

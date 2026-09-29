@@ -2,7 +2,7 @@
 
 import { createQueryClient } from "@plainworks/query"
 import { QueryProvider } from "@plainworks/query/client"
-import type { StreamFrame } from "@plainworks/std"
+import type { StreamFrame } from "@plainworks/std/seam"
 import { fakeStreamTransport } from "@plainworks/testkit"
 import { render, waitFor } from "@testing-library/react"
 import type { ReactElement } from "react"

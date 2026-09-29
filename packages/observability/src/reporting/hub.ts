@@ -1,11 +1,6 @@
-import {
-  type Clock,
-  createErrorSnapshot,
-  isRecord,
-  PlainError,
-  redact,
-  systemClock,
-} from "@plainworks/std"
+import { createErrorSnapshot, isRecord, PlainError } from "@plainworks/std"
+import { redact } from "@plainworks/std/privacy"
+import { type Clock, systemClock } from "@plainworks/std/time"
 import type {
   ErrorReporter,
   ReportContext,

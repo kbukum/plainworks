@@ -1,10 +1,10 @@
 "use client"
 
-import type { Json } from "@plainworks/devtools"
 import { Button } from "@plainworks/elements/button"
 import { Field, FieldLabel } from "@plainworks/elements/field"
 import { NativeSelect, NativeSelectOption } from "@plainworks/elements/native-select"
 import { isRecord } from "@plainworks/std"
+import type { Json } from "@plainworks/std/encoding"
 import { type ReactElement, useState } from "react"
 import { REQUEST_TARGETS, type RequestTarget } from "./request-probe"
 

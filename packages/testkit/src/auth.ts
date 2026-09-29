@@ -1,4 +1,5 @@
-import type { AuthContext, AuthHeaderProvider, AuthHeaders, WebAbortSignal } from "@plainworks/std"
+import type { AuthContext, AuthHeaderProvider, AuthHeaders } from "@plainworks/std/seam"
+import type { WebAbortSignal } from "@plainworks/std/web"
 
 /** Controls for the fake built by {@link fakeAuthHeaderProvider}. */
 export interface FakeAuthProvider {

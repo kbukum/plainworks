@@ -2,7 +2,7 @@
 
 import { jsonSerializer, memoryScope } from "@plainworks/state"
 import { cookieScope } from "@plainworks/state/client/scope"
-import type { StateSource } from "@plainworks/std"
+import type { StateSource } from "@plainworks/std/seam"
 import type { ThemePreference } from "@plainworks/theme"
 import { LIVE_TASKS_SLOT_KEY, THEME_COOKIE } from "../neutral/constants"
 import type { LiveTasks } from "./live-stream"

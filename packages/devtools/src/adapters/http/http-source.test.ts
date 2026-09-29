@@ -1,5 +1,5 @@
 import { createHttpClient, HttpError } from "@plainworks/http"
-import type { WebRequestInit, WebResponse } from "@plainworks/std"
+import type { WebRequestInit, WebResponse } from "@plainworks/std/web"
 import { describe, expect, it } from "vitest"
 import { createDevtoolsSession } from "../../session"
 import type { SourceObserver } from "../../source"
@@ -49,7 +49,7 @@ describe("createHttpSource", () => {
 
   it("correlates a successful request start with its completion and preserves the response", async () => {
     let clock = 1_000
-    const { port, client } = setup({ instance: "api", now: () => clock }, async () => {
+    const { port, client } = setup({ instance: "api", clock: { now: () => clock } }, async () => {
       clock = 1_040
       return new Response(JSON.stringify({ ok: true }), {
         status: 200,
@@ -153,8 +153,10 @@ describe("createHttpSource", () => {
     const { client } = setup(
       {
         instance: "api",
-        now: () => {
-          throw new Error("clock down")
+        clock: {
+          now: () => {
+            throw new Error("clock down")
+          },
         },
       },
       async () => {
@@ -173,9 +175,11 @@ describe("createHttpSource", () => {
     const { port, client } = setup(
       {
         instance: "api",
-        now: () => {
-          if (failClock) throw new Error("clock down")
-          return 1
+        clock: {
+          now: () => {
+            if (failClock) throw new Error("clock down")
+            return 1
+          },
         },
       },
       async () => {
@@ -194,13 +198,16 @@ describe("createHttpSource", () => {
 
   it("classifies a caller cancellation as canceled, not a failure", async () => {
     const controller = new AbortController()
-    const { port, client } = setup({ instance: "api", now: () => 5 }, async (_input, init) => {
-      return await new Promise<WebResponse>((_resolve, reject) => {
-        const abortError = Object.assign(new Error("aborted"), { name: "AbortError" })
-        init?.signal?.addEventListener("abort", () => reject(abortError))
-        controller.abort()
-      })
-    })
+    const { port, client } = setup(
+      { instance: "api", clock: { now: () => 5 } },
+      async (_input, init) => {
+        return await new Promise<WebResponse>((_resolve, reject) => {
+          const abortError = Object.assign(new Error("aborted"), { name: "AbortError" })
+          init?.signal?.addEventListener("abort", () => reject(abortError))
+          controller.abort()
+        })
+      },
+    )
     await expect(
       client.request({ path: "/tasks", signal: controller.signal as never }),
     ).rejects.toMatchObject({ name: "AbortError" })
@@ -237,7 +244,7 @@ describe("createHttpSource", () => {
 
   it("classifies a per-attempt timeout as a timeout, not a cancellation", async () => {
     const session = createDevtoolsSession()
-    const { source, interceptor } = createHttpSource({ instance: "api", now: () => 7 })
+    const { source, interceptor } = createHttpSource({ instance: "api", clock: { now: () => 7 } })
     session.registerSource(source)
     const port = session.connect()
     const client = createHttpClient({
@@ -269,7 +276,7 @@ describe("createHttpSource", () => {
   it("settles a timed-out attempt once when fetch ignores abort and resolves later", async () => {
     let resolveFetch: ((response: WebResponse) => void) | undefined
     const session = createDevtoolsSession()
-    const { source, interceptor } = createHttpSource({ instance: "api", now: () => 7 })
+    const { source, interceptor } = createHttpSource({ instance: "api", clock: { now: () => 7 } })
     session.registerSource(source)
     const port = session.connect()
     const client = createHttpClient({

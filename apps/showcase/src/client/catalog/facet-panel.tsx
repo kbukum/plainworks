@@ -1,7 +1,7 @@
 "use client"
 
 import { Checkbox } from "@plainworks/elements/checkbox"
-import type { Facets, ListFilter } from "@plainworks/std"
+import type { Facets, ListFilter } from "@plainworks/std/list"
 import type { ReactElement } from "react"
 
 /** One selectable value within a facet field — its wire value and its human label. */

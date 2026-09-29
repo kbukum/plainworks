@@ -1,16 +1,14 @@
-import {
-  type Clock,
-  type InferSchemaOutput,
-  isCookieNameToken,
-  MAX_COOKIE_BYTES,
-  type StandardSchemaV1,
-  type StateCapabilities,
-  type StateSource,
-  type Subscription,
-  serializeCookieAttributes,
-  systemClock,
-  utf8ByteLength,
-} from "@plainworks/std"
+import { isNonNegativeInteger, isPositiveInteger } from "@plainworks/std"
+import { utf8ByteLength } from "@plainworks/std/encoding"
+import type {
+  InferSchemaOutput,
+  StandardSchemaV1,
+  StateCapabilities,
+  StateSource,
+  Subscription,
+} from "@plainworks/std/seam"
+import { type Clock, systemClock } from "@plainworks/std/time"
+import { isCookieNameToken, MAX_COOKIE_BYTES, serializeCookieAttributes } from "@plainworks/std/web"
 import { AuthError } from "../errors"
 import type { SessionSigner } from "../signer/seam"
 import { decodeSession, encodeSession, type RevocationCheck, type SessionCodec } from "./envelope"
@@ -103,25 +101,19 @@ export function createCookieSessionStore<Schema extends StandardSchemaV1>(
     ...(config.maxAgeSeconds === undefined ? {} : { maxAgeSeconds: config.maxAgeSeconds }),
     ...(config.isRevoked === undefined ? {} : { isRevoked: config.isRevoked }),
   }
-  if (!Number.isInteger(codec.ttlSeconds) || codec.ttlSeconds <= 0) {
+  if (!isPositiveInteger(codec.ttlSeconds)) {
     throw new AuthError(
       "auth/config",
       `session ttlSeconds must be a positive integer, got ${codec.ttlSeconds}`,
     )
   }
-  if (
-    config.clockSkewSeconds !== undefined &&
-    (!Number.isInteger(config.clockSkewSeconds) || config.clockSkewSeconds < 0)
-  ) {
+  if (config.clockSkewSeconds !== undefined && !isNonNegativeInteger(config.clockSkewSeconds)) {
     throw new AuthError(
       "auth/config",
       `session clockSkewSeconds must be a non-negative integer, got ${config.clockSkewSeconds}`,
     )
   }
-  if (
-    config.maxAgeSeconds !== undefined &&
-    (!Number.isInteger(config.maxAgeSeconds) || config.maxAgeSeconds <= 0)
-  ) {
+  if (config.maxAgeSeconds !== undefined && !isPositiveInteger(config.maxAgeSeconds)) {
     throw new AuthError(
       "auth/config",
       `session maxAgeSeconds must be a positive integer, got ${config.maxAgeSeconds}`,

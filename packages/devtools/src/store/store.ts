@@ -1,4 +1,5 @@
-import type { ErrorSnapshot, Subscription } from "@plainworks/std"
+import { type ErrorSnapshot, isPositiveInteger } from "@plainworks/std"
+import type { Subscription } from "@plainworks/std/seam"
 import { type SourceDescriptor, type SourceId, sourceKey } from "../protocol"
 import type { RetentionEntry } from "../retention"
 import type { DevtoolsClientPort, DevtoolsSnapshot, IndicatorEntry } from "../session/client-port"
@@ -79,7 +80,7 @@ export function createDevtoolsStore(
   options: DevtoolsStoreOptions = {},
 ): DevtoolsStore {
   const capacity = options.capacity ?? DEFAULT_CAPACITY
-  if (!Number.isSafeInteger(capacity) || capacity <= 0) {
+  if (!isPositiveInteger(capacity)) {
     throw new RangeError("Store capacity must be a positive safe integer.")
   }
   const listeners = new Set<() => void>()

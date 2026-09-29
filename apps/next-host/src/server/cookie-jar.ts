@@ -5,7 +5,7 @@
 import "server-only"
 
 import type { ServerSessionJar } from "@plainworks/auth/server"
-import { parseCookieHeader } from "@plainworks/std"
+import { parseCookieHeader } from "@plainworks/std/web"
 
 /** A cookie jar over a request plus the buffered outbound `Set-Cookie` strings to apply. */
 export interface RequestJar {

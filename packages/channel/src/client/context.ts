@@ -1,6 +1,6 @@
 "use client"
 
-import type { StreamFrame } from "@plainworks/std"
+import type { StreamFrame } from "@plainworks/std/seam"
 import {
   createContext,
   createElement,

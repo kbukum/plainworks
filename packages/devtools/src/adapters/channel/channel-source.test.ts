@@ -1,5 +1,5 @@
 import type { Channel, ChannelOptions, ChannelStatus } from "@plainworks/channel"
-import type { StreamFrame } from "@plainworks/std"
+import type { StreamFrame } from "@plainworks/std/seam"
 import { describe, expect, it, vi } from "vitest"
 import { createDevtoolsSession } from "../../session"
 import { type ChannelSourceOptions, createChannelSource } from "./channel-source"
@@ -171,7 +171,7 @@ describe("createChannelSource", () => {
     const { port, instrumentation } = setup({
       instance: "feed",
       frameIntervalMs: 10_000,
-      now: () => 1,
+      clock: { now: () => 1 },
     })
     const channel = fakeChannel("open")
     const subscription = instrumentation.observe(channel)

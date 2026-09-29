@@ -3,6 +3,7 @@
  */
 
 import type { FixtureSources, LatencyController } from "@plainworks/mocks"
+import { isPositiveInteger } from "@plainworks/std"
 import { type HttpHandler, HttpResponse, http } from "msw"
 import {
   createDashboardStats,
@@ -23,7 +24,7 @@ const MAX_TOP_PRODUCTS = 100
 function parseCount(value: string | null, defaultValue: number, max: number): number | null {
   if (value === null || value === "") return defaultValue
   const parsed = Number(value)
-  if (!Number.isInteger(parsed) || parsed < 1 || parsed > max) return null
+  if (!isPositiveInteger(parsed) || parsed > max) return null
   return parsed
 }
 

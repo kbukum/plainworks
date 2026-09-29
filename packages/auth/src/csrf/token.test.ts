@@ -84,7 +84,7 @@ describe("createCsrf verify", () => {
 
 describe("createCsrf configuration", () => {
   test("rejects invalid or insufficient byteLength with auth/config error", () => {
-    for (const byteLength of [0, -1, 15, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+    for (const byteLength of [0, -1, 15, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 2 ** 53]) {
       expect(() => createCsrf({ signer, crypto, byteLength })).toThrow(AuthError)
       try {
         createCsrf({ signer, crypto, byteLength })

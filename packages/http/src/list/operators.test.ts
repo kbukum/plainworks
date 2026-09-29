@@ -1,4 +1,4 @@
-import type { FilterOperator } from "@plainworks/std"
+import type { FilterOperator } from "@plainworks/std/list"
 import { describe, expect, it } from "vitest"
 import {
   FILTER_OPERATOR_TOKENS,

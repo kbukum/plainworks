@@ -1,14 +1,14 @@
 "use client"
 
+import { utf8ByteLength } from "@plainworks/std/encoding"
+import type { StateCapabilities, StateSource } from "@plainworks/std/seam"
 import {
   isCookieNameToken,
   isCookiePath,
   MAX_COOKIE_BYTES,
-  type StateCapabilities,
-  type StateSource,
+  readCookie,
   serializeCookieAttributes,
-  utf8ByteLength,
-} from "@plainworks/std"
+} from "@plainworks/std/web"
 import { StateSourceError } from "../../errors"
 import type { Scope, SourceSpec } from "../../scope/seam"
 import { createStringSource, type StringBackend } from "./persisted-source"
@@ -68,14 +68,9 @@ function resolveHostJar(): CookieJar {
   }
 }
 
-function readCookie(jar: CookieJar, key: string): string | null {
-  const prefix = `${key}=`
-  for (const part of jar.read().split("; ")) {
-    if (part.startsWith(prefix)) {
-      return decodeURIComponent(part.slice(prefix.length))
-    }
-  }
-  return null
+function readJarCookie(jar: CookieJar, key: string): string | null {
+  const raw = readCookie(jar.read(), key)
+  return raw === undefined ? null : decodeURIComponent(raw)
 }
 
 function cookieAttributes(options: CookieScopeOptions): string {
@@ -127,7 +122,7 @@ export function createCookieScope(options: CookieScopeOptions = {}): Scope {
         )
       }
       const backend: StringBackend = {
-        read: () => readCookie(jar(), spec.key),
+        read: () => readJarCookie(jar(), spec.key),
         write: (raw) => {
           const entry = `${spec.key}=${encodeURIComponent(raw)}; ${attributes}`
           const bytes = utf8ByteLength(entry)

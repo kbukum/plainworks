@@ -1,5 +1,6 @@
 import { type HttpClient, isHttpError } from "@plainworks/http"
-import type { WebAbortSignal } from "@plainworks/std"
+import type { Clock } from "@plainworks/std/time"
+import type { WebAbortSignal } from "@plainworks/std/web"
 
 /** A request target deliberately exposed by the inspector. */
 export interface RequestTarget {
@@ -32,10 +33,10 @@ export const REQUEST_TARGETS: readonly RequestTarget[] = [
 export async function runRequestProbe(
   client: HttpClient,
   target: RequestTarget,
-  now: () => number,
+  clock: Clock,
   signal?: WebAbortSignal,
 ): Promise<RequestProbeResult> {
-  const startedAt = now()
+  const startedAt = clock.now()
   try {
     const response = await client.request({
       method: target.method,
@@ -44,13 +45,13 @@ export async function runRequestProbe(
     })
     return {
       status: response.status,
-      durationMs: Math.max(0, Math.round(now() - startedAt)),
+      durationMs: Math.max(0, Math.round(clock.now() - startedAt)),
       error: undefined,
     }
   } catch (cause) {
     return {
       status: isHttpError(cause) ? cause.status : undefined,
-      durationMs: Math.max(0, Math.round(now() - startedAt)),
+      durationMs: Math.max(0, Math.round(clock.now() - startedAt)),
       error: cause instanceof Error ? cause.message : "The request failed.",
     }
   }

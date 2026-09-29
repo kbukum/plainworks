@@ -1,13 +1,9 @@
-import {
-  createErrorSnapshot,
-  type ErrorSnapshot,
-  isRecord,
-  PlainError,
-  type Subscription,
-  type WebAbortController,
-} from "@plainworks/std"
+import { createErrorSnapshot, type ErrorSnapshot, isRecord, PlainError } from "@plainworks/std"
+import type { Json } from "@plainworks/std/encoding"
+import type { Subscription } from "@plainworks/std/seam"
+import type { WebAbortController } from "@plainworks/std/web"
 import { type Bridge, createMemoryBridge } from "../bridge"
-import { type Json, type SanitizeOptions, sanitize } from "../privacy"
+import { type SanitizeOptions, sanitize } from "../privacy"
 import {
   type DevtoolsMessage,
   PROTOCOL_VERSION,

@@ -40,14 +40,12 @@ export type { FilterCondition, FilterOperator, FilterQuery } from "./filter"
 export { parseApiParams } from "./filter"
 // Fixture-generation primitives: seeded randomness plus id and date helpers.
 export {
-  createSeededRandom,
   daysAgo,
   daysFromNow,
   formatDate,
   generateId,
   generateUUID,
   nowISOString,
-  type RandomSource,
   randomBoolean,
   randomElement,
   randomElements,

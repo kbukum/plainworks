@@ -1,5 +1,5 @@
 import type { Scope, SourceSpec } from "@plainworks/state"
-import type { StateSource } from "@plainworks/std"
+import type { StateSource } from "@plainworks/std/seam"
 import type { QueryClient, QueryKey } from "@tanstack/query-core"
 import { createRemoteSource, REMOTE_CAPABILITIES } from "./source"
 

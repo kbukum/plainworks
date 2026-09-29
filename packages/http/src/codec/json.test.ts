@@ -1,4 +1,5 @@
-import { AbortError, type WebReadableStreamDefaultReader, type WebResponse } from "@plainworks/std"
+import { AbortError } from "@plainworks/std/resilience"
+import type { WebReadableStreamDefaultReader, WebResponse } from "@plainworks/std/web"
 import { expect, test } from "vitest"
 import { HttpError } from "../error"
 import { createJsonCodec, jsonCodec } from "./json"
@@ -42,6 +43,15 @@ test("maps a cyclic value to a fatal encode error instead of throwing a raw Type
     expect(error).toBeInstanceOf(HttpError)
     expect((error as HttpError).kind).toBe("http/encode")
   }
+})
+
+test("maps a nested function or non-finite number to a fatal encode error", () => {
+  expect(() => jsonCodec.encode({ run: () => 1 })).toThrow(HttpError)
+  expect(() => jsonCodec.encode([Number.NaN])).toThrow(HttpError)
+})
+
+test("leaves out an undefined property, as JSON does", () => {
+  expect(jsonCodec.encode({ a: 1, b: undefined }).body).toBe('{"a":1}')
 })
 
 test("maps a BigInt value to a fatal encode error", () => {

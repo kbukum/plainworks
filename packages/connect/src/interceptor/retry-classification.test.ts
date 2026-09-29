@@ -1,5 +1,5 @@
 import { Code, ConnectError } from "@connectrpc/connect"
-import { AbortError, TimeoutError } from "@plainworks/std"
+import { AbortError, TimeoutError } from "@plainworks/std/resilience"
 import { describe, expect, test } from "vitest"
 import { isConnectRetryable } from "./retry-classification"
 

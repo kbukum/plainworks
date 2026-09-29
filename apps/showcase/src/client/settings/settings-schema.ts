@@ -3,7 +3,8 @@ import {
   decodeSettingsProfileUpdate,
   type UpdateSettingsInput,
 } from "@plainworks/demo"
-import { isRecord, type StandardSchemaV1 } from "@plainworks/std"
+import { isRecord } from "@plainworks/std"
+import type { StandardSchemaV1 } from "@plainworks/std/seam"
 
 // The panel forms submit through the kit `Form`, so each field arrives as a string (or, for a
 // checkbox/switch, is present as `"on"` when on and absent when off). Each schema below decodes one

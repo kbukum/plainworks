@@ -3,13 +3,12 @@
 // stays a thin per-attempt adapter. An optional app-level heartbeat sends a periodic ping through
 // the injected `Delay` seam so a NAT/proxy keeps the connection alive; the server's pong is an
 // ordinary inbound frame that resets the core's idle-read timer.
-import {
-  type Delay,
-  type StreamTransport,
-  type StreamTransportContext,
-  type StreamTransportFactory,
-  systemDelay,
-} from "@plainworks/std"
+import { type Delay, systemDelay } from "@plainworks/std/resilience"
+import type {
+  StreamTransport,
+  StreamTransportContext,
+  StreamTransportFactory,
+} from "@plainworks/std/seam"
 import { assertDurationMs } from "../../duration"
 import { ChannelError } from "../../error"
 import { resolveUrl, type UrlSource } from "../url"

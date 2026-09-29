@@ -1,4 +1,5 @@
-import { assertTimerMs, getErrorMessage } from "@plainworks/std"
+import { getErrorMessage } from "@plainworks/std"
+import { assertTimerMs } from "@plainworks/std/resilience"
 import { ChannelError } from "./error"
 
 /**

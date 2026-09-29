@@ -1,4 +1,5 @@
-import { base64urlDecode, type Clock } from "@plainworks/std"
+import { base64urlDecode } from "@plainworks/std/encoding"
+import type { Clock } from "@plainworks/std/time"
 import { AuthError } from "../../errors"
 import type { SessionSigner } from "../../signer/seam"
 import { signPayload } from "../../signer/signed-payload"

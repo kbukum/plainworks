@@ -1,4 +1,4 @@
-import type { WebHeaders } from "@plainworks/std"
+import type { WebHeaders } from "@plainworks/std/web"
 
 /** A successful response with its body decoded (and optionally validated) to `T`. */
 export interface HttpResponse<T> {

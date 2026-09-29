@@ -1,10 +1,10 @@
-import {
-  AbortError,
-  type StreamFrame,
-  type StreamTransport,
-  type StreamTransportContext,
-  type StreamTransportFactory,
-} from "@plainworks/std"
+import { AbortError } from "@plainworks/std/resilience"
+import type {
+  StreamFrame,
+  StreamTransport,
+  StreamTransportContext,
+  StreamTransportFactory,
+} from "@plainworks/std/seam"
 
 /**
  * One connection attempt captured from a {@link fakeStreamTransport}: the

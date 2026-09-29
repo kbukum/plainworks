@@ -1,4 +1,4 @@
-import type { StateCapabilities, StateSource } from "@plainworks/std"
+import type { StateCapabilities, StateSource } from "@plainworks/std/seam"
 
 // Sensible defaults for a fake local, in-memory backend: synchronous, client-owned, transient.
 const DEFAULT_CAPABILITIES: StateCapabilities = {

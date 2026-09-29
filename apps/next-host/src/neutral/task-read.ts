@@ -11,15 +11,10 @@ import {
   listQueryOptions,
   type PaginatedResult,
 } from "@plainworks/query"
-import {
-  guardSchema,
-  isAbsentOr,
-  isNonEmptyString,
-  isOneOf,
-  isPaginatedResult,
-  isRecord,
-  type WebAbortSignal,
-} from "@plainworks/std"
+import { isAbsentOr, isNonEmptyString, isOneOf, isRecord } from "@plainworks/std"
+import { isPaginatedResult } from "@plainworks/std/list"
+import { guardSchema } from "@plainworks/std/seam"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { TASKS_RESOURCE } from "./constants"
 import type { Task } from "./task"
 

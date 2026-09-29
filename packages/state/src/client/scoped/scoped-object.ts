@@ -1,12 +1,13 @@
 "use client"
 
+import { AbortError } from "@plainworks/std/resilience"
 import type {
   StandardSchemaV1,
   StateReconciler,
   StateSerializer,
   StateSource,
-} from "@plainworks/std"
-import { AbortError, createSourceReconciler } from "@plainworks/std"
+} from "@plainworks/std/seam"
+import { createSourceReconciler } from "@plainworks/std/seam"
 import type { ReactNode } from "react"
 import { type StateFieldFailure, StateSourceError } from "../../errors"
 import type { PersistedVersioning, Scope } from "../../scope/seam"

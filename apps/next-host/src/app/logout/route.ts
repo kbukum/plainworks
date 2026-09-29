@@ -3,11 +3,12 @@
 // a cross-site navigation cannot force a logout. The cleared cookie rides back on the redirect
 // home.
 
+import { PayloadTooLargeError } from "@plainworks/std/web"
 import { NextResponse } from "next/server"
 import { redirectWithCookies } from "../../server/bff-redirect"
 import { requestJar } from "../../server/cookie-jar"
 import { hostAuth } from "../../server/identity-provider"
-import { PayloadTooLargeError, payloadTooLarge, readBoundedText } from "../../server/request-body"
+import { payloadTooLarge, readFormBody } from "../../server/request-body"
 
 export const dynamic = "force-dynamic"
 
@@ -16,7 +17,7 @@ export async function POST(request: Request): Promise<Response> {
   const { jar, cookies } = requestJar(request)
   let body: string
   try {
-    body = await readBoundedText(request)
+    body = await readFormBody(request)
   } catch (error) {
     if (error instanceof PayloadTooLargeError) {
       return payloadTooLarge()

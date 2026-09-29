@@ -19,15 +19,10 @@ import {
   type ServerSession,
   type ServerSessionJar,
 } from "@plainworks/auth/server"
-import {
-  guardSchema,
-  isAbsentOr,
-  isRecord,
-  parseCookieHeader,
-  type StandardSchemaV1,
-  systemClock,
-  type WebFetch,
-} from "@plainworks/std"
+import { isAbsentOr, isRecord } from "@plainworks/std"
+import { guardSchema, type StandardSchemaV1 } from "@plainworks/std/seam"
+import { systemClock } from "@plainworks/std/time"
+import { parseCookieHeader, type WebFetch } from "@plainworks/std/web"
 import { AUTH_CAPABILITY_ID, LOGIN_PATH } from "../neutral/constants"
 
 /** The value persisted in the signed session cookie — identity only, never a token. */

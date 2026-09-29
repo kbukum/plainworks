@@ -1,4 +1,5 @@
-import { createBoundedQueue, type OverflowPolicy, type PlainEvent } from "@plainworks/std"
+import { createBoundedQueue, type OverflowPolicy } from "@plainworks/std/resilience"
+import type { PlainEvent } from "@plainworks/std/seam"
 import { ChannelError } from "../error"
 import type { Channel } from "../lifecycle"
 import type { EventDecoder } from "./event"

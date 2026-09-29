@@ -44,9 +44,9 @@ export interface StateSourceErrorOptions extends PlainErrorOptions {
 }
 
 /**
- * A scoped-state **backend** failure — a {@link import("@plainworks/std").StateSource} could not
- * read, write, or (de)serialize its value: a corrupt persisted string that fails to parse, a Web
- * Storage quota rejection, or a cookie that exceeds its size budget. Carries its own `kind`
+ * A scoped-state **backend** failure — a {@link import("@plainworks/std/seam").StateSource} could
+ * not read, write, or (de)serialize its value: a corrupt persisted string that fails to parse, a
+ * Web Storage quota rejection, or a cookie that exceeds its size budget. Carries its own `kind`
  * (`state/source`), distinct from the provider/config errors, and preserves the underlying `cause`,
  * so an untrusted persisted value never escapes as a fabricated result or a swallowed write.
  *

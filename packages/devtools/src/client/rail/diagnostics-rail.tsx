@@ -1,6 +1,7 @@
 "use client"
 
 import type { ErrorSnapshot } from "@plainworks/std"
+import type { Clock } from "@plainworks/std/time"
 import { cn } from "@plainworks/theme"
 import type { ReactElement } from "react"
 import type { Severity, SourceDescriptor } from "../../protocol"
@@ -18,8 +19,8 @@ export interface DiagnosticsRailProps {
   readonly indicators: readonly IndicatorEntry[]
   /** Host-reported aggregate dropped-event count, surfaced as a warning entry when above zero. */
   readonly droppedAggregate: number
-  /** Injected clock for staleness; the shell passes its own so every view agrees. */
-  readonly now: () => number
+  /** Clock for staleness; the shell passes its own so every view agrees. */
+  readonly clock: Clock
   /** Age in milliseconds after which an indicator reads as stale. */
   readonly staleAfterMs: number
   /** Freshness re-poll cadence in milliseconds; `0` freezes the clock (tests). Defaults to 1000. */
@@ -58,13 +59,13 @@ export function DiagnosticsRail({
   failures,
   indicators,
   droppedAggregate,
-  now,
+  clock,
   staleAfterMs,
   tickMs = 1_000,
   maxVisible = 4,
   onOpen,
 }: DiagnosticsRailProps): ReactElement | null {
-  const current = useNow(now, tickMs)
+  const current = useNow(clock, tickMs)
   const entries = buildRailEntries({
     sources,
     failures,

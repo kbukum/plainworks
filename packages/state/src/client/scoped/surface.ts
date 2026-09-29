@@ -1,6 +1,6 @@
 "use client"
 
-import { AbortError } from "@plainworks/std"
+import { AbortError } from "@plainworks/std/resilience"
 import { createContext, createElement, type ReactNode, useContext, useEffect, useRef } from "react"
 import { StateError } from "../../errors"
 import type { Store } from "../../store"

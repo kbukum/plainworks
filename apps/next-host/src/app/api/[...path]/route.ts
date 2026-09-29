@@ -4,8 +4,9 @@
 // browser query. A real deployment swaps this route for the actual API origin; nothing above it
 // changes.
 
+import { PayloadTooLargeError } from "@plainworks/std/web"
 import { demoBackend } from "../../../server/backend"
-import { boundedRequest, PayloadTooLargeError, payloadTooLarge } from "../../../server/request-body"
+import { boundedRequest, payloadTooLarge } from "../../../server/request-body"
 
 export const dynamic = "force-dynamic"
 

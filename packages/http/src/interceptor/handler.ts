@@ -1,4 +1,5 @@
-import type { Handler, Interceptor, WebResponse } from "@plainworks/std"
+import type { Handler, Interceptor } from "@plainworks/std/pipeline"
+import type { WebResponse } from "@plainworks/std/web"
 import type { HttpRequest } from "../exchange/request"
 
 /** The terminal step of the request pipeline: turn an {@link HttpRequest} into a `Response`. */

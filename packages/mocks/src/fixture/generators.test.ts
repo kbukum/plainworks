@@ -1,9 +1,9 @@
-import type { Clock } from "@plainworks/std"
+import { createSeededRandom } from "@plainworks/std/random"
+import type { Clock } from "@plainworks/std/time"
 import { describe, expect, it } from "vitest"
 import { daysAgo, daysFromNow, formatDate, nowISOString } from "./date"
 import { generateId, generateUUID } from "./id"
 import {
-  createSeededRandom,
   randomBoolean,
   randomElement,
   randomElements,

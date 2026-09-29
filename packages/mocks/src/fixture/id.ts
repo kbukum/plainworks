@@ -4,7 +4,7 @@
  * security-sensitive sink) — and reuse the canonical `std` owner instead of a bespoke generator.
  */
 
-import { randomId } from "@plainworks/std"
+import { randomId } from "@plainworks/std/random"
 
 /** Generate a unique id with an optional prefix (e.g. `user_a1b2c3`), via Web Crypto. */
 export function generateId(prefix = ""): string {

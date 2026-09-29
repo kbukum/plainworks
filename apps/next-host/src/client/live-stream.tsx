@@ -9,13 +9,9 @@ import {
 } from "@plainworks/channel"
 import { createChannelContext } from "@plainworks/channel/client"
 import { createQueryEventSink } from "@plainworks/query"
-import {
-  AbortError,
-  createSourceReconciler,
-  isRecord,
-  type PlainEvent,
-  type StateSource,
-} from "@plainworks/std"
+import { isRecord } from "@plainworks/std"
+import { AbortError } from "@plainworks/std/resilience"
+import { createSourceReconciler, type PlainEvent, type StateSource } from "@plainworks/std/seam"
 import { useQueryClient } from "@tanstack/react-query"
 import { type ReactElement, type ReactNode, useEffect, useState } from "react"
 

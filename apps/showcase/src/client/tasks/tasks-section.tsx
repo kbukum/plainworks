@@ -3,7 +3,7 @@
 import type { Task } from "@plainworks/demo"
 import { Button } from "@plainworks/elements/button"
 import type { ListFilter, ListQueryParams } from "@plainworks/query"
-import type { StreamTransportFactory } from "@plainworks/std"
+import type { StreamTransportFactory } from "@plainworks/std/seam"
 import type { DataTableSort } from "@plainworks/ui/data-table"
 import { DataTable } from "@plainworks/ui/data-table"
 import { ErrorState } from "@plainworks/ui/feedback"

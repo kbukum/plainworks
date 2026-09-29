@@ -1,4 +1,4 @@
-import { base64urlDecode, base64urlEncode } from "@plainworks/std"
+import { base64urlDecode, base64urlEncode } from "@plainworks/std/encoding"
 import type { SessionSigner } from "./seam"
 
 const encoder = new TextEncoder()

@@ -9,7 +9,7 @@ import type {
   MutationAuthorizer,
 } from "@plainworks/mocks"
 import { createCrudHandlers, type InputSpec } from "@plainworks/mocks"
-import type { Clock } from "@plainworks/std"
+import type { Clock } from "@plainworks/std/time"
 import { type HttpHandler, HttpResponse, http } from "msw"
 import type { CreateNotificationInput, Notification } from "../types"
 

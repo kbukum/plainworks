@@ -9,6 +9,7 @@ import {
 import { panelPropsFor } from "@plainworks/devtools/client"
 import { createHttpClient, type HttpClient } from "@plainworks/http"
 import { createMockControlClient, type MockControlClient } from "@plainworks/mocks"
+import { fixedClock } from "@plainworks/std/time"
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -50,7 +51,12 @@ function Harness({ port }: { readonly port: DevtoolsClientPort }): ReactElement 
 function setup(client: HttpClient) {
   const session = createDevtoolsSession()
   session.registerSource(
-    createMockSource({ control: controlOf(client), client, pollIntervalMs: 0, now: () => 1_000 }),
+    createMockSource({
+      control: controlOf(client),
+      client,
+      pollIntervalMs: 0,
+      clock: fixedClock(1_000),
+    }),
   )
   const port = session.connect()
   return { session, port }

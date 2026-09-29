@@ -1,3 +1,4 @@
+import { type Clock, systemClock } from "@plainworks/std/time"
 import type {
   Mutation,
   MutationCacheNotifyEvent,
@@ -20,8 +21,8 @@ export interface QuerySourceOptions {
   readonly instance: string
   /** Display label; defaults to `Query <instance>`. */
   readonly label?: string
-  /** Clock for event and indicator timestamps. Defaults to `Date.now`. */
-  readonly now?: () => number
+  /** Clock for event and indicator timestamps. Defaults to `systemClock`. */
+  readonly clock?: Clock
   /**
    * Safe label projection for query and mutation keys. Prevents sensitive parameters or IDs
    * in query keys from leaking into event labels. Defaults to extracting the primary key segment
@@ -51,7 +52,7 @@ const CACHE_STATE_EVENTS: ReadonlySet<QueryCacheNotifyEvent["type"]> = new Set([
  * events.
  */
 export function createQuerySource(options: QuerySourceOptions): Source {
-  const now = options.now ?? Date.now
+  const clock = options.clock ?? systemClock
   const keyLabel = options.keyLabel ?? defaultKeyLabel
 
   return {
@@ -82,7 +83,7 @@ export function createQuerySource(options: QuerySourceOptions): Source {
 
       const indicate = (): void => {
         try {
-          observer.indicate(queriesIndicator(options.client, now(), options.instance))
+          observer.indicate(queriesIndicator(options.client, clock.now(), options.instance))
           observer.recover()
         } catch (error) {
           observer.fail(error)
@@ -96,7 +97,7 @@ export function createQuerySource(options: QuerySourceOptions): Source {
         if (!CACHE_STATE_EVENTS.has(event.type)) return
         if (event.type === "removed") forgetQuery(event.query)
         try {
-          const summary = summarizeQueryEvent(event, now(), keyLabel, detailIdFor)
+          const summary = summarizeQueryEvent(event, clock.now(), keyLabel, detailIdFor)
           if (summary !== null) observer.emit(summary)
         } catch (error) {
           observer.fail(error)
@@ -106,7 +107,7 @@ export function createQuerySource(options: QuerySourceOptions): Source {
       }
       const onMutationEvent = (event: MutationCacheNotifyEvent): void => {
         try {
-          const summary = summarizeMutationEvent(event, now(), keyLabel)
+          const summary = summarizeMutationEvent(event, clock.now(), keyLabel)
           if (summary !== null) observer.emit(summary)
         } catch (error) {
           observer.fail(error)

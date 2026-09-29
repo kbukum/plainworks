@@ -1,4 +1,4 @@
-import type { WebAbortSignal, WebBodyInit, WebResponse } from "@plainworks/std"
+import type { WebAbortSignal, WebBodyInit, WebResponse } from "@plainworks/std/web"
 
 /** An encoded request body plus the content type the codec serialized it as. */
 export interface EncodedBody {

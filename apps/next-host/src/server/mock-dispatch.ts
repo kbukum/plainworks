@@ -29,7 +29,7 @@ import {
   randomElements,
   randomInt,
 } from "@plainworks/mocks"
-import { type Clock, systemClock } from "@plainworks/std"
+import { type Clock, systemClock } from "@plainworks/std/time"
 import type { CreateTaskInput, Task } from "../neutral/task"
 
 /** One MSW request handler, as produced by the `@plainworks/mocks` builders. */

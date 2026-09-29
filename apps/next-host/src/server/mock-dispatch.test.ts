@@ -1,5 +1,5 @@
-import { createHttpClient, type FetchLike } from "@plainworks/http"
-import type { WebResponse } from "@plainworks/std"
+import { createHttpClient } from "@plainworks/http"
+import type { WebFetch, WebResponse } from "@plainworks/std/web"
 import { describe, expect, it } from "vitest"
 import { TASK_LIST_PARAMS } from "../neutral/constants"
 import { readTaskPage } from "../neutral/task-read"
@@ -86,8 +86,8 @@ describe("neutral server read over the mock backend", () => {
     // The HTTP client's `fetch` seam speaks the universal shim `WebResponse`; the mock backend's
     // `dispatch` returns the host's structurally identical global `Response`, so cross the nominal
     // seam here the way the app crosses MSW's branded I/O.
-    const routeThroughBackend: FetchLike = (input) =>
-      backend.dispatch(new Request(input)) as unknown as Promise<WebResponse>
+    const routeThroughBackend: WebFetch = (input) =>
+      backend.dispatch(new Request(String(input))) as unknown as Promise<WebResponse>
     const client = createHttpClient({ baseUrl: ORIGIN, fetch: routeThroughBackend })
     const page = await readTaskPage(client, TASK_LIST_PARAMS)
     expect(page.data.length).toBeGreaterThan(0)

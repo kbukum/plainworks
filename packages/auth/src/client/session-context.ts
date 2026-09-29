@@ -1,7 +1,7 @@
 "use client"
 
 import { createStoreContext, type StoreContext } from "@plainworks/state/client"
-import type { Identity } from "@plainworks/std"
+import type { Identity } from "@plainworks/std/seam"
 import { createElement, type ReactNode } from "react"
 import type { SessionSnapshot } from "../session"
 

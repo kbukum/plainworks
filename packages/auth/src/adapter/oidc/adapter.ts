@@ -1,17 +1,15 @@
+import { base64urlEncode } from "@plainworks/std/encoding"
+import { combineSignals, createDeadline, raceAbort } from "@plainworks/std/resilience"
+import type { AuthHeaders } from "@plainworks/std/seam"
+import type { Clock } from "@plainworks/std/time"
 import {
-  type AuthHeaders,
-  base64urlEncode,
-  type Clock,
-  combineSignals,
-  createDeadline,
-  raceAbort,
+  resolveFetch,
   type WebAbortController,
   type WebAbortSignal,
   type WebBodyInit,
-  type WebFetch,
   type WebResponse,
   type WebURLSearchParams,
-} from "@plainworks/std"
+} from "@plainworks/std/web"
 import * as oauth from "oauth4webapi"
 import type { AuthCrypto } from "../../crypto"
 import { AuthError } from "../../errors"
@@ -60,23 +58,6 @@ interface DiscoveredProvider {
   readonly verifier: JwtVerifier
 }
 
-/**
- * Resolve the runtime `fetch` lazily — never at import time — so the module has no import-time I/O.
- */
-function resolveFetch(configured: WebFetch | undefined): WebFetch {
-  if (configured !== undefined) {
-    return configured
-  }
-  const candidate = (globalThis as { fetch?: WebFetch }).fetch
-  if (typeof candidate !== "function") {
-    throw new AuthError(
-      "auth/config",
-      "no global fetch is available; inject an oidc `fetch` for this runtime",
-    )
-  }
-  return candidate
-}
-
 function bearerFrom(headers: AuthHeaders | undefined): string | undefined {
   if (headers === undefined) {
     return undefined
@@ -113,7 +94,15 @@ export function oidcAdapter(
   const crypto: AuthCrypto = deps.crypto
   const clock: Clock = deps.clock
   const signer: SessionSigner = validated.signer
-  const fetchImpl = resolveFetch(validated.fetch)
+  // Resolved lazily, inside the factory, so importing the module does no I/O.
+  const fetchImpl = resolveFetch(
+    validated.fetch,
+    () =>
+      new AuthError(
+        "auth/config",
+        "no global fetch is available; inject an oidc `fetch` for this runtime",
+      ),
+  )
   const scopes = validated.scopes ?? DEFAULT_SCOPES
   const scope = scopes.includes("openid") ? scopes.join(" ") : ["openid", ...scopes].join(" ")
   const algorithms = validated.idTokenSigningAlgs ?? DEFAULT_ALGS

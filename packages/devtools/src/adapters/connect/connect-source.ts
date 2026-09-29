@@ -1,6 +1,8 @@
 import { Code, ConnectError, type Interceptor } from "@connectrpc/connect"
 import { mapConnectError, type RpcErrorCode } from "@plainworks/connect"
-import { assertTimerMs, type WebAbortSignal } from "@plainworks/std"
+import { assertTimerMs } from "@plainworks/std/resilience"
+import { type Clock, systemClock } from "@plainworks/std/time"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { createEventSampler } from "../../retention"
 import type { Source, SourceHandle } from "../../source"
 import {
@@ -23,8 +25,8 @@ export interface ConnectSourceOptions {
   readonly instance: string
   /** Display label; defaults to `RPC <instance>`. */
   readonly label?: string
-  /** Clock for event and indicator timestamps. Defaults to `Date.now`. */
-  readonly now?: () => number
+  /** Clock for event and indicator timestamps. Defaults to `systemClock`. */
+  readonly clock?: Clock
   /**
    * Coalescing interval for a streaming call's per-message events, in milliseconds. A busy stream
    * collapses to one message event per interval; the open and close events are always emitted.
@@ -59,7 +61,7 @@ const DEFAULT_MESSAGE_INTERVAL_MS = 250
  * untouched.
  */
 export function createConnectSource(options: ConnectSourceOptions): ConnectInstrumentation {
-  const now = options.now ?? Date.now
+  const clock = options.clock ?? systemClock
   const relay = createObserverRelay()
   const correlator = createCorrelator("rpc")
   const messageIntervalMs = options.messageIntervalMs ?? DEFAULT_MESSAGE_INTERVAL_MS
@@ -72,13 +74,13 @@ export function createConnectSource(options: ConnectSourceOptions): ConnectInstr
       id: "rpc",
       label: options.label ?? `RPC ${options.instance}`,
       ...tally.readout("call"),
-      updatedAt: now(),
+      updatedAt: clock.now(),
       target: "connect",
     })
   }
 
   const interceptor = createConnectInterceptor({
-    now,
+    clock,
     relay,
     correlator,
     tally,
@@ -108,7 +110,7 @@ export function createConnectSource(options: ConnectSourceOptions): ConnectInstr
 }
 
 interface InterceptorDeps {
-  readonly now: () => number
+  readonly clock: Clock
   readonly relay: ObserverRelay
   readonly correlator: Correlator
   readonly tally: ExchangeTally
@@ -118,7 +120,7 @@ interface InterceptorDeps {
 }
 
 function createConnectInterceptor(deps: InterceptorDeps): Interceptor {
-  const { now, relay, correlator, tally, indicate, messageIntervalMs, activeStreams } = deps
+  const { clock, relay, correlator, tally, indicate, messageIntervalMs, activeStreams } = deps
   return (next) => async (request) => {
     const id = correlator.next()
     const service = request.service.typeName
@@ -128,7 +130,7 @@ function createConnectInterceptor(deps: InterceptorDeps): Interceptor {
     // Every observation runs through `observeSafely`, so a timeline fault can never replace the
     // response or error the caller is owed — the outcome comes from `next(request)` alone.
     observeSafely(relay, () => {
-      startedAt = now()
+      startedAt = clock.now()
       tally.start()
       relay.emit({
         kind: request.stream ? "rpc.stream.open" : "rpc.request",
@@ -146,7 +148,7 @@ function createConnectInterceptor(deps: InterceptorDeps): Interceptor {
       const observedStartedAt = startedAt
       tally.settle(outcome)
       observeSafely(relay, () => {
-        const endedAt = now()
+        const endedAt = clock.now()
         const durationMs = endedAt - observedStartedAt
         relay.emit({
           kind: settleKind(outcome),
@@ -189,7 +191,7 @@ function createConnectInterceptor(deps: InterceptorDeps): Interceptor {
         service,
         method,
         startedAt,
-        now,
+        clock,
         relay,
         tally,
         indicate,
@@ -206,7 +208,7 @@ interface StreamContext {
   readonly service: string
   readonly method: string
   readonly startedAt: number
-  readonly now: () => number
+  readonly clock: Clock
   readonly relay: ObserverRelay
   readonly tally: ExchangeTally
   readonly indicate: () => void
@@ -233,7 +235,7 @@ function trackStream<T>(source: AsyncIterable<T>, ctx: StreamContext): AsyncIter
     mode: "coalesce",
     onEmit: (event) => observeSafely(ctx.relay, () => ctx.relay.emit(event)),
     onError: (error) => observeSafely(ctx.relay, () => ctx.relay.fail(error)),
-    now: ctx.now,
+    clock: ctx.clock,
   })
   const rpc = `${ctx.service}/${ctx.method}`
   let active = true
@@ -257,7 +259,7 @@ function trackStream<T>(source: AsyncIterable<T>, ctx: StreamContext): AsyncIter
     ctx.tally.settle(outcome)
     observeSafely(ctx.relay, () => {
       sampler.flush()
-      const endedAt = ctx.now()
+      const endedAt = ctx.clock.now()
       const durationMs = endedAt - ctx.startedAt
       ctx.relay.emit({
         kind: streamCloseKind(outcome),
@@ -312,7 +314,7 @@ function trackStream<T>(source: AsyncIterable<T>, ctx: StreamContext): AsyncIter
                   kind: "rpc.stream.message",
                   label: `stream ${rpc} · ${count} message${count === 1 ? "" : "s"}`,
                   severity: "info",
-                  at: ctx.now(),
+                  at: ctx.clock.now(),
                   summary: {
                     id: ctx.id,
                     service: ctx.service,

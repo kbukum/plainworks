@@ -24,7 +24,7 @@ import {
   type MockControl,
   type ReloadableFixtureSources,
 } from "@plainworks/mocks"
-import { type Clock, systemClock } from "@plainworks/std"
+import { type Clock, systemClock } from "@plainworks/std/time"
 import type { HttpHandler } from "msw"
 import { createContentFactory } from "./data/content"
 import { createNotificationFactory } from "./data/notifications"

@@ -1,5 +1,6 @@
 import { Code, ConnectError } from "@connectrpc/connect"
-import { PlainError, type WebHeaders } from "@plainworks/std"
+import { PlainError } from "@plainworks/std"
+import type { WebHeaders } from "@plainworks/std/web"
 
 /**
  * Stable, transport-agnostic RPC error code — the gRPC/Connect code set as snake_case string

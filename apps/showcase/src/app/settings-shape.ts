@@ -4,7 +4,8 @@
 
 import type { SettingsNotifications, SettingsPrivacy, UserSettings } from "@plainworks/demo"
 import { isSettingsPreferences, isSettingsProfile } from "@plainworks/demo"
-import { guardSchema, isNonEmptyString, isRecord } from "@plainworks/std"
+import { isNonEmptyString, isRecord } from "@plainworks/std"
+import { guardSchema } from "@plainworks/std/seam"
 
 function isNotifications(value: unknown): value is SettingsNotifications {
   return (

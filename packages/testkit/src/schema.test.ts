@@ -1,4 +1,4 @@
-import { validateWithSchema } from "@plainworks/std"
+import { validateWithSchema } from "@plainworks/std/seam"
 import { expect, test } from "vitest"
 import { fakeSchema, guardSchema } from "./schema"
 

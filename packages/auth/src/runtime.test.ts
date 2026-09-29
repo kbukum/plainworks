@@ -1,4 +1,4 @@
-import type { AuthContext, Identity } from "@plainworks/std"
+import type { AuthContext, Identity } from "@plainworks/std/seam"
 import { manualClock } from "@plainworks/testkit"
 import { describe, expect, test, vi } from "vitest"
 import type { AuthAdapter } from "./adapter"

@@ -1,4 +1,6 @@
-import { isRecord, raceAbort } from "@plainworks/std"
+import { getErrorMessage, isRecord } from "@plainworks/std"
+import { escapeJsonForHtml, stringifyJson } from "@plainworks/std/encoding"
+import { raceAbort } from "@plainworks/std/resilience"
 import { AppConfigError } from "../errors"
 import type { AnyCapability, CapabilityResolveContext } from "./capability"
 
@@ -55,61 +57,22 @@ export async function resolveCapabilities(
   return { capabilities: Object.fromEntries(entries) }
 }
 
-// Characters that are inert inside a JSON string but hostile when that JSON is embedded in an HTML
-// `<script>` block: `<` (and thus `</script>`) can terminate the element, and U+2028/U+2029 are raw
-// line terminators that break a JavaScript string literal. Escaping them to their `\uXXXX` form
-// keeps the payload a valid, identical JSON value while making it safe to inline.
-const HTML_UNSAFE = /[<>&\u2028\u2029]/g
-const HTML_ESCAPES: Readonly<Record<string, string>> = {
-  "<": "\\u003c",
-  ">": "\\u003e",
-  "&": "\\u0026",
-  "\u2028": "\\u2028",
-  "\u2029": "\\u2029",
-}
-
-// `JSON.stringify` treats a resolver's contract violations as success: it silently drops an
-// `undefined`/function/symbol property (turning a resolved capability into an absent client slice)
-// and throws a *native* `TypeError` on a `BigInt` or a circular value, bypassing the typed error
-// API. This replacer intercepts every non-JSON value and raises a typed `AppConfigError` instead,
-// so serialization either round-trips faithfully or fails loudly with an actionable message.
-function rejectNonJson(_key: string, value: unknown): unknown {
-  const type = typeof value
-  if (type === "undefined" || type === "function" || type === "symbol" || type === "bigint") {
-    throw new AppConfigError(
-      `Could not serialize the app snapshot: a resolved value of type "${type}" is not JSON-serializable.`,
-    )
-  }
-  return value
-}
-
 /**
  * Serialize a snapshot for transport, safe to inline in server-rendered markup — the **serialize**
- * half of the contract. A resolver returning a non-JSON value (a function, `undefined`, a `BigInt`,
- * a circular reference) violates its contract, so serialization fails with a typed
- * {@link AppConfigError} rather than silently dropping the value or leaking a native `TypeError`.
- * The result escapes the HTML-hostile characters so an embedded `</script>` in a resolved value
- * cannot break out of the script element (an XSS vector).
+ * half of the contract. A resolver returning a value JSON can't hold faithfully (a function,
+ * `undefined`, a `BigInt`, a cycle) violates its contract, so serialization fails with a typed
+ * {@link AppConfigError} that keeps the std `JsonEncodeError` as its cause, rather than silently
+ * dropping the value. The result escapes HTML-hostile characters so an embedded `</script>` in a
+ * resolved value cannot break out of the script element (an XSS vector).
  */
 export function serializeSnapshot(snapshot: AppSnapshot): string {
-  let json: string | undefined
   try {
-    json = JSON.stringify(snapshot, rejectNonJson)
+    return escapeJsonForHtml(stringifyJson(snapshot))
   } catch (cause) {
-    if (cause instanceof AppConfigError) {
-      throw cause
-    }
-    throw new AppConfigError(
-      "Could not serialize the app snapshot: a resolved value is not JSON.",
-      {
-        cause,
-      },
-    )
+    throw new AppConfigError(`Could not serialize the app snapshot: ${getErrorMessage(cause)}`, {
+      cause,
+    })
   }
-  if (json === undefined) {
-    throw new AppConfigError("Could not serialize the app snapshot: a resolved value is not JSON.")
-  }
-  return json.replace(HTML_UNSAFE, (char) => HTML_ESCAPES[char] ?? char)
 }
 
 /**

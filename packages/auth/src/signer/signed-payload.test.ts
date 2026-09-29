@@ -1,4 +1,4 @@
-import { base64urlEncode } from "@plainworks/std"
+import { base64urlEncode } from "@plainworks/std/encoding"
 import { describe, expect, it } from "vitest"
 import { hmacSessionSigner } from "../server/hmac-signer"
 import { signPayload, verifyPayload } from "./signed-payload"

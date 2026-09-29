@@ -1,6 +1,6 @@
 // Default `node` environment: the secret guard is capability-only (no host), so it is provable here
 // without a browser — the same guard the client scoped composer and auth's TMB fallback reuse.
-import type { StateCapabilities } from "@plainworks/std"
+import type { StateCapabilities } from "@plainworks/std/seam"
 import { describe, expect, test } from "vitest"
 import { StateConfigError } from "../errors"
 import { memoryScope } from "./memory"

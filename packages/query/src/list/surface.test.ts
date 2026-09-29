@@ -1,4 +1,4 @@
-import type * as std from "@plainworks/std"
+import type * as std from "@plainworks/std/list"
 import { describe, expect, expectTypeOf, it } from "vitest"
 import type {
   CursorInfo,

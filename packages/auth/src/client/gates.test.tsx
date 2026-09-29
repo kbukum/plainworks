@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { Authorizer, Decision, Identity } from "@plainworks/std"
+import type { Authorizer, Decision, Identity } from "@plainworks/std/seam"
 import { type Deferred, deferred } from "@plainworks/testkit"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"

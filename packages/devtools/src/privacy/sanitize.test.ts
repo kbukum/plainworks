@@ -1,5 +1,6 @@
+import { isJson } from "@plainworks/std/encoding"
 import { describe, expect, it } from "vitest"
-import { isJson, sanitize } from "./sanitize"
+import { sanitize } from "./sanitize"
 
 describe("sanitize", () => {
   it("returns primitives unchanged", () => {
@@ -39,10 +40,10 @@ describe("sanitize", () => {
     expect(result.self).toBe("[Circular]")
   })
 
-  it("truncates collections beyond maxItems and reports the overflow", () => {
+  it("bounds collections after redaction applies its item cap", () => {
     const result = sanitize([1, 2, 3, 4, 5], { maxItems: 2 }) as unknown[]
     expect(result.slice(0, 2)).toEqual([1, 2])
-    expect(result[result.length - 1]).toBe("[+3 more]")
+    expect(result[result.length - 1]).toBe("[+1 more]")
   })
 
   it("does not inspect collection entries beyond maxItems", () => {
@@ -60,6 +61,21 @@ describe("sanitize", () => {
     expect(invoked).toBe(false)
   })
 
+  it("marks getters without invoking them", () => {
+    let invoked = false
+    const value: Record<string, unknown> = { visible: true }
+    Object.defineProperty(value, "computed", {
+      enumerable: true,
+      get() {
+        invoked = true
+        return "******"
+      },
+    })
+
+    expect(sanitize(value)).toEqual({ visible: true, computed: "[Getter]" })
+    expect(invoked).toBe(false)
+  })
+
   it("neutralizes functions and unsupported values", () => {
     const result = sanitize({ fn: () => 1, big: 10n, when: new Date(0) }) as Record<string, unknown>
     expect(result.fn).toBe("[Function]")
@@ -70,6 +86,11 @@ describe("sanitize", () => {
   it("replaces an oversized payload with a marker", () => {
     const big = { blob: "x".repeat(200) }
     expect(sanitize(big, { maxBytes: 32 })).toBe("[Truncated]")
+  })
+
+  it("counts maxBytes as UTF-8 bytes", () => {
+    expect(sanitize({ blob: "🙂🙂🙂" }, { maxBytes: 18 })).toBe("[Truncated]")
+    expect(sanitize({ blob: "abc" }, { maxBytes: 18 })).toEqual({ blob: "abc" })
   })
 
   it("caps traversal depth", () => {

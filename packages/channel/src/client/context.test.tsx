@@ -1,7 +1,7 @@
 // @vitest-environment jsdom Client tests opt into jsdom per file; the package default stays `node`
 //   so the server-safe `.` entry can never lean on DOM globals unnoticed.
 
-import type { StreamFrame } from "@plainworks/std"
+import type { StreamFrame } from "@plainworks/std/seam"
 import { fakeStreamTransport } from "@plainworks/testkit"
 import { act, cleanup, render, renderHook, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"

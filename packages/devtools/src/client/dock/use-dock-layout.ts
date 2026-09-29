@@ -1,6 +1,8 @@
 "use client"
 
-import { AbortError, createSourceReconciler, ensureError, type StateSource } from "@plainworks/std"
+import { ensureError } from "@plainworks/std"
+import { AbortError } from "@plainworks/std/resilience"
+import { createSourceReconciler, type StateSource } from "@plainworks/std/seam"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   type DevtoolsDockSide,

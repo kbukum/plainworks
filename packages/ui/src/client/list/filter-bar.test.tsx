@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import type { ListFilter } from "@plainworks/std"
+import type { ListFilter } from "@plainworks/std/list"
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { act, cleanup, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"

@@ -21,15 +21,10 @@ import {
   type ServerSession,
   type ServerSessionJar,
 } from "@plainworks/auth/server"
-import {
-  guardSchema,
-  isAbsentOr,
-  isRecord,
-  parseCookieHeader,
-  type StandardSchemaV1,
-  systemClock,
-  type WebFetch,
-} from "@plainworks/std"
+import { isAbsentOr, isRecord } from "@plainworks/std"
+import { guardSchema, type StandardSchemaV1 } from "@plainworks/std/seam"
+import { systemClock } from "@plainworks/std/time"
+import { parseCookieHeader, readCookie, type WebFetch } from "@plainworks/std/web"
 import { AUTH_CAPABILITY_ID, LOGIN_PATH, SESSION_COOKIE, SESSION_COOKIE_NAME } from "./constants"
 
 /** The value persisted in the signed session cookie — identity only, never a token. */
@@ -78,7 +73,7 @@ export function showcaseSessionCodec(
 export function showcaseSessionReader(signingKey: Uint8Array): ReadShowcaseSession {
   const codec = showcaseSessionCodec(signingKey)
   return async (cookieHeader) => {
-    const raw = parseCookieHeader(cookieHeader).get(SESSION_COOKIE)
+    const raw = readCookie(cookieHeader, SESSION_COOKIE)
     if (raw === undefined) {
       return ANONYMOUS_AUTH
     }

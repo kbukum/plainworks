@@ -1,11 +1,7 @@
-import {
-  type AuthHeaderProvider,
-  type Clock,
-  type Delay,
-  type Identity,
-  systemClock,
-  type WebAbortSignal,
-} from "@plainworks/std"
+import type { Delay } from "@plainworks/std/resilience"
+import type { AuthHeaderProvider, Identity } from "@plainworks/std/seam"
+import { type Clock, systemClock } from "@plainworks/std/time"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import {
   type AuthAdapter,
   type AuthAdapterConfig,

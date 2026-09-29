@@ -4,6 +4,8 @@
  * secret. Pure and structural — returns a redacted copy, never mutating the input.
  */
 
+import { isNonNegativeInteger } from "../guard"
+
 /** Options for {@link redact}. */
 export interface RedactOptions {
   /** Extra sensitive key names (case-insensitive substring match) beyond the built-in set. */
@@ -144,10 +146,10 @@ export function redact(value: unknown, options: RedactOptions = {}): unknown {
   const mask = options.mask ?? "[REDACTED]"
   const maxDepth = options.maxDepth ?? 6
   const maxItems = options.maxItems ?? Number.MAX_SAFE_INTEGER
-  if (!Number.isInteger(maxDepth) || maxDepth < 0) {
+  if (!isNonNegativeInteger(maxDepth)) {
     throw new RangeError("redact requires maxDepth to be a non-negative integer")
   }
-  if (!Number.isSafeInteger(maxItems) || maxItems < 0) {
+  if (!isNonNegativeInteger(maxItems)) {
     throw new RangeError("redact requires maxItems to be a non-negative safe integer")
   }
   const seen = new WeakSet<object>()

@@ -1,8 +1,10 @@
 "use client"
 
-import type { DevtoolsClientPort, Json, SourceId } from "@plainworks/devtools"
+import type { DevtoolsClientPort, SourceId } from "@plainworks/devtools"
 import type { SourcePanelProps } from "@plainworks/devtools/client"
-import { isRecord, type WebAbortSignal } from "@plainworks/std"
+import { isRecord } from "@plainworks/std"
+import type { Json } from "@plainworks/std/encoding"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { type ReactElement, useEffect, useRef, useState } from "react"
 import { MockControls } from "./mock-controls"
 import { MOCK_STATE_REF, type MockState } from "./mock-source"

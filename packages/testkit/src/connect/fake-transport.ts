@@ -6,7 +6,8 @@ import type {
 } from "@bufbuild/protobuf"
 import type { ConnectRouter, MethodImpl, Transport } from "@connectrpc/connect"
 import { createRouterTransport } from "@connectrpc/connect"
-import { PlainError, type WebHeaders } from "@plainworks/std"
+import { PlainError } from "@plainworks/std"
+import type { WebHeaders } from "@plainworks/std/web"
 
 /**
  * A unary responder: return the response init, or throw a `ConnectError` to fail the call. This is

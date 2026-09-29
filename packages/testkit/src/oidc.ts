@@ -1,4 +1,6 @@
-import { base64urlEncode, type WebFetch, type WebResponse } from "@plainworks/std"
+import { base64urlEncode } from "@plainworks/std/encoding"
+import { type Clock, systemClock } from "@plainworks/std/time"
+import type { WebFetch, WebResponse } from "@plainworks/std/web"
 import { exportJWK, generateKeyPair, SignJWT } from "jose"
 
 /**
@@ -27,8 +29,8 @@ export interface MockIdpOptions {
    * drives the nonce-mismatch (replay) failure path. Omit for correct, request-bound behaviour.
    */
   readonly idTokenNonceOverride?: string
-  /** Injected millisecond clock for token `iat`/`exp`; defaults to `Date.now`. */
-  readonly now?: () => number
+  /** Clock for token `iat`/`exp` and minted ids; defaults to `systemClock`. */
+  readonly clock?: Clock
 }
 
 /** The callback the provider would redirect the user agent back to after a successful authorization. */
@@ -123,7 +125,7 @@ export async function createMockIdp(options: MockIdpOptions = {}): Promise<MockI
   const subject = options.subject ?? DEFAULT_SUBJECT
   const alg = options.alg ?? "RS256"
   const accessTtl = options.accessTokenTtlSeconds ?? DEFAULT_ACCESS_TTL_SECONDS
-  const now = options.now ?? Date.now
+  const clock = options.clock ?? systemClock
   const extraClaims = options.claims ?? {}
 
   const { publicKey, privateKey } = await generateKeyPair(alg, { extractable: true })
@@ -137,14 +139,14 @@ export async function createMockIdp(options: MockIdpOptions = {}): Promise<MockI
   let counter = 0
   const mint = (prefix: string): string => {
     counter += 1
-    return `${prefix}-${counter}-${now()}`
+    return `${prefix}-${counter}-${clock.now()}`
   }
 
   async function signToken(
     extra: Readonly<Record<string, unknown>>,
     ttlSeconds: number,
   ): Promise<string> {
-    const nowSeconds = Math.floor(now() / 1000)
+    const nowSeconds = Math.floor(clock.now() / 1000)
     return new SignJWT({ ...extraClaims, ...extra })
       .setProtectedHeader({ alg, kid: currentKid })
       .setJti(mint("jti"))

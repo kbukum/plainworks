@@ -49,6 +49,9 @@
       // barrel so dependency-cruiser resolves the subpath and can enforce that no `"use client"` graph
       // imports it (the server/client custody boundary).
       "@plainworks/auth/server": ["./packages/auth/src/server.ts"],
+      // `std` concern modules are subpaths (`@plainworks/std/web`); the generic rule below would send
+      // them to a nonexistent `packages/std/web/src`. The prelude `@plainworks/std` uses the generic rule.
+      "@plainworks/std/*": ["./packages/std/src/*/index.ts"],
       "@plainworks/*": ["./packages/*/src"]
     }
   }

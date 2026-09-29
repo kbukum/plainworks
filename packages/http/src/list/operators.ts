@@ -7,7 +7,7 @@
  * URL.
  */
 
-import type { FilterOperator } from "@plainworks/std"
+import type { FilterOperator } from "@plainworks/std/list"
 
 /** The `field=<token>` operator serialization: the PostgREST token this REST dialect emits per operator. */
 export const FILTER_OPERATOR_TOKENS: Readonly<Record<FilterOperator, string>> = {

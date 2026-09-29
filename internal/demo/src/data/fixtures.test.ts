@@ -1,4 +1,5 @@
 import { createFixtureSources, createStore } from "@plainworks/mocks"
+import { fixedClock } from "@plainworks/std/time"
 import { describe, expect, it } from "vitest"
 import {
   createDashboardStats,
@@ -46,7 +47,7 @@ describe("entity factory (tasks)", () => {
   })
 
   it("same seed reproduces the same content", () => {
-    const fixed = { now: () => Date.parse("2026-01-15T12:00:00.000Z") }
+    const fixed = fixedClock("2026-01-15T12:00:00.000Z")
     const a = createTaskFactory(createFixtureSources(5, "tasks", fixed)).create()
     const b = createTaskFactory(createFixtureSources(5, "tasks", fixed)).create()
     // With the same seed and a fixed clock the whole fixture is identical — id included.

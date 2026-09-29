@@ -1,4 +1,4 @@
-import type { AuthorizationRequest, Authorizer, Identity } from "@plainworks/std"
+import type { AuthorizationRequest, Authorizer, Identity } from "@plainworks/std/seam"
 
 /**
  * A single allow rule evaluated against a request. Returns `true` to permit it. A rule that throws

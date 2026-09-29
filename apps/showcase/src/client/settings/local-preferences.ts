@@ -2,7 +2,8 @@
 
 import { createScopedObject } from "@plainworks/state/client"
 import { persistentScope } from "@plainworks/state/client/scope"
-import { isOneOf, type StandardSchemaV1 } from "@plainworks/std"
+import { isOneOf } from "@plainworks/std"
+import type { StandardSchemaV1 } from "@plainworks/std/seam"
 import { MOTION_VALUES, type MotionPreference } from "./settings-fields"
 
 // The one genuinely device-local UI preference the hub owns: how much motion to show. Unlike the

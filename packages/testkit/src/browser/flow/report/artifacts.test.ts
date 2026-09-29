@@ -1,3 +1,4 @@
+import { fixedClock } from "@plainworks/std/time"
 import { describe, expect, it } from "vitest"
 import { FlowError } from "../errors"
 import {
@@ -57,8 +58,8 @@ describe("flowArtifactPaths", () => {
 describe("flow runs", () => {
   it("starts a run in a time-ordered directory and never reuses one", async () => {
     const { store } = memoryStore()
-    const first = await startFlowRun({ root: "/art", now: () => NOW, store })
-    const second = await startFlowRun({ root: "/art", now: () => NOW, store })
+    const first = await startFlowRun({ root: "/art", clock: fixedClock(NOW), store })
+    const second = await startFlowRun({ root: "/art", clock: fixedClock(NOW), store })
     expect(first.id).toBe("2026-01-15T12-00-00-000Z")
     expect(first.dir).toBe("/art/runs/2026-01-15T12-00-00-000Z")
     expect(second.id).toBe("2026-01-15T12-00-00-000Z-1")
@@ -81,7 +82,7 @@ describe("flow runs", () => {
 
   it("merges every entry into report.json and report.md, and points latest at the run", async () => {
     const { store, files, links } = memoryStore()
-    const run = await startFlowRun({ root: "/art", now: () => NOW, store })
+    const run = await startFlowRun({ root: "/art", clock: fixedClock(NOW), store })
     const writer = openFlowRun(run.dir, store)
     await writer.write(
       flowArtifactPaths.entry("b-flow", "desktop"),
@@ -92,7 +93,7 @@ describe("flow runs", () => {
       JSON.stringify(entry("a-flow", "mobile")),
     )
 
-    const report = await finish({ root: "/art", run, now: () => NOW, store })
+    const report = await finish({ root: "/art", run, clock: fixedClock(NOW), store })
     expect(report).toMatchObject({
       schemaVersion: 1,
       runId: run.id,
@@ -106,8 +107,8 @@ describe("flow runs", () => {
 
   it("collects without writing, so the owner can add to the report before publishing", async () => {
     const { store, files } = memoryStore()
-    const run = await startFlowRun({ root: "/art", now: () => NOW, store })
-    const report = await collectFlowRun({ run, now: () => NOW, store })
+    const run = await startFlowRun({ root: "/art", clock: fixedClock(NOW), store })
+    const report = await collectFlowRun({ run, clock: fixedClock(NOW), store })
     expect(report.runs).toEqual([])
     expect(files.has(`${run.dir}/report.json`)).toBe(false)
     await publishFlowRun({
@@ -121,9 +122,11 @@ describe("flow runs", () => {
 
   it("rejects a malformed entry instead of merging it", async () => {
     const { store } = memoryStore()
-    const run = await startFlowRun({ root: "/art", now: () => NOW, store })
+    const run = await startFlowRun({ root: "/art", clock: fixedClock(NOW), store })
     await openFlowRun(run.dir, store).write("entries/x--desktop.json", '{"flow": 1}')
-    await expect(finish({ root: "/art", run, now: () => NOW, store })).rejects.toMatchObject({
+    await expect(
+      finish({ root: "/art", run, clock: fixedClock(NOW), store }),
+    ).rejects.toMatchObject({
       kind: "flow/report",
     })
   })
@@ -132,7 +135,11 @@ describe("flow runs", () => {
     const { store, dirs } = memoryStore()
     const runs = []
     for (let minute = 0; minute < 4; minute++) {
-      const run = await startFlowRun({ root: "/art", now: () => NOW + minute * 60_000, store })
+      const run = await startFlowRun({
+        root: "/art",
+        clock: fixedClock(NOW + minute * 60_000),
+        store,
+      })
       await openFlowRun(run.dir, store).write("flows/f/desktop/01-a/v.png", "x".repeat(10))
       runs.push(run)
     }
@@ -141,7 +148,7 @@ describe("flow runs", () => {
     await finish({
       root: "/art",
       run: last,
-      now: () => NOW,
+      clock: fixedClock(NOW),
       store,
       retention: { keepRuns: 2, maxBytes: 1_000_000 },
     })

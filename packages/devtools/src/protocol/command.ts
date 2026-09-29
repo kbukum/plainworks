@@ -1,5 +1,5 @@
 import { err, ok, type Result } from "@plainworks/std"
-import { isJson, type Json } from "../privacy"
+import { isJson, type Json } from "@plainworks/std/encoding"
 import { ProtocolError } from "./error"
 
 /**

@@ -1,4 +1,4 @@
-import type { WebHeaders, WebHeadersInit } from "@plainworks/std"
+import type { WebHeaders, WebHeadersInit } from "@plainworks/std/web"
 import type { HttpMethod } from "./http-method"
 
 /** Methods that are idempotent by definition — safe to retry because repeating them has no extra effect. */

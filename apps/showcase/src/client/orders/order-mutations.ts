@@ -2,7 +2,7 @@
 
 import type { Order } from "@plainworks/demo"
 import { optimisticUpdate, type PaginatedResult, writeQueryData } from "@plainworks/query"
-import type { ListQueryParams } from "@plainworks/std"
+import type { ListQueryParams } from "@plainworks/std/list"
 import type { QueryKey } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
 import { useCallback, useEffect, useRef, useState } from "react"

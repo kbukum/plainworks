@@ -1,4 +1,5 @@
-import { isSensitiveKey, type WebURL } from "@plainworks/std"
+import { isSensitiveKey } from "@plainworks/std/privacy"
+import type { WebURL } from "@plainworks/std/web"
 import { HttpError } from "../error"
 
 /** A single query-parameter value. */

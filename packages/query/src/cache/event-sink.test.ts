@@ -1,4 +1,5 @@
-import type { PlainEvent, WebAbortSignal } from "@plainworks/std"
+import type { PlainEvent } from "@plainworks/std/seam"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { QueryObserver } from "@tanstack/query-core"
 import { describe, expect, it, vi } from "vitest"
 import { createQueryClient } from "../query-client"

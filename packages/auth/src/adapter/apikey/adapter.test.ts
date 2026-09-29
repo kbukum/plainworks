@@ -1,5 +1,5 @@
-import type { Identity } from "@plainworks/std"
-import { systemClock } from "@plainworks/std"
+import type { Identity } from "@plainworks/std/seam"
+import { systemClock } from "@plainworks/std/time"
 import { describe, expect, test, vi } from "vitest"
 import { defaultAuthCrypto } from "../../crypto"
 import { AuthError } from "../../errors"

@@ -12,13 +12,13 @@ bun add @plainworks/http
 
 ## Runtime primitives
 
-`http` is a **neutral (`.`)** package. It names the **universal** WHATWG value primitives directly — `Headers`, `URL` / `URLSearchParams`, `Response`, `TextDecoder`, `AbortController` — typed through the `std` `Web*` contract, so it imposes no DOM or Node types on a consumer. Its one **non-universal** primitive is `fetch`: an **injected seam** (`options.fetch`, a `FetchLike` narrowing of the `std` `WebFetch` contract) that defaults to the host's platform `fetch` and raises a typed `http/network` error when no `fetch` exists. No DOM or Node global is referenced, so it runs on server, edge, workers, RSC, the browser, and React Native. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives) for the universal-vs-injected primitive contract.
+`http` is a **neutral (`.`)** package. It names the **universal** WHATWG value primitives directly — `Headers`, `URL` / `URLSearchParams`, `Response`, `TextDecoder`, `AbortController` — typed through the `std` `Web*` contract, so it imposes no DOM or Node types on a consumer. Its one **non-universal** primitive is `fetch`: an **injected seam** (`options.fetch`, the `std` `WebFetch` contract) that defaults to the host's platform `fetch` and raises a typed `http/network` error when no `fetch` exists. No DOM or Node global is referenced, so it runs on server, edge, workers, RSC, the browser, and React Native. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives) for the universal-vs-injected primitive contract.
 
 ## Server-safe core (`.`)
 
 `createHttpClient` is a **factory**, never a module-level singleton — every call returns an isolated client with its own base URL, interceptors, and retry policy, so nothing leaks across SSR requests. It depends only on the platform `fetch` (injectable via `options.fetch` for tests), so the package pulls in no DOM or Node types and stays host-independent.
 
-The default path takes the platform `fetch` with no injection and no cast. To swap it — a test double, an instrumentation or auth wrapper — pass `options.fetch` as a function written to the `WebFetch` contract (`(input, init) => Promise<WebResponse>` from `@plainworks/std`); that is the natural wrapper shape and needs no cast. A DOM/undici `fetch` is not *directly* assignable to the host-independent seam (its `RequestInit` names DOM-only shapes the kit refuses to depend on), so forward it through a one-line `WebFetch` function rather than passing it raw.
+The default path takes the platform `fetch` with no injection and no cast. To swap it — a test double, an instrumentation or auth wrapper — pass `options.fetch` as a function written to the `WebFetch` contract (`(input, init) => Promise<WebResponse>` from `@plainworks/std/web`); that is the natural wrapper shape and needs no cast. A DOM/undici `fetch` is not *directly* assignable to the host-independent seam (its `RequestInit` names DOM-only shapes the kit refuses to depend on), so forward it through a one-line `WebFetch` function rather than passing it raw.
 
 ```ts
 import { createHttpClient } from "@plainworks/http"
@@ -61,7 +61,7 @@ await client.delete("/users/42")
 **Idempotency-key writes.** `GET`/`PUT`/`DELETE` are idempotent and retried by the client policy automatically. `POST`/`PATCH` are **never** auto-retried — a partial success must not be duplicated — unless you supply an idempotency key, which is sent as the `Idempotency-Key` header **and** marks the write retry-eligible so the shared retry driver may repeat it. This is safe **only if the target endpoint honors the header and dedupes the repeats server-side**; against a server that ignores it, an auto-retried write can duplicate a partial success, so enable it only for endpoints that guarantee idempotency-key support:
 
 ```ts
-import { idempotencyKey } from "@plainworks/std"
+import { idempotencyKey } from "@plainworks/std/random"
 
 const key = idempotencyKey() // generate once per logical write, reuse across retries
 await client.post("/orders", { body: { sku: "abc" }, idempotencyKey: key })
@@ -69,7 +69,7 @@ await client.post("/orders", { body: { sku: "abc" }, idempotencyKey: key })
 
 ### Validation seam
 
-The response body crosses a trust boundary, so it is decoded to `unknown` and never silently cast to a caller-chosen `T`. Pass a `schema` — any [Standard Schema](https://standardschema.dev) validator (Zod, Valibot, ArkType, …) — and the client validates the decoded body and infers the response type from it; a validation failure raises a fatal `http/validate` error that preserves the issues as `cause`. Omit `schema` and `data` is the raw `unknown` for you to narrow. To opt explicitly out of validation — "I trust this wire" — pass `unsafePassthrough<T>()` from `@plainworks/std`; the unchecked cast then lives at that one audited call site, never as a hidden default. The seam is reusable: any transport layered on this client validates its payloads through the same `std` contract.
+The response body crosses a trust boundary, so it is decoded to `unknown` and never silently cast to a caller-chosen `T`. Pass a `schema` — any [Standard Schema](https://standardschema.dev) validator (Zod, Valibot, ArkType, …) — and the client validates the decoded body and infers the response type from it; a validation failure raises a fatal `http/validate` error that preserves the issues as `cause`. Omit `schema` and `data` is the raw `unknown` for you to narrow. To opt explicitly out of validation — "I trust this wire" — pass `unsafePassthrough<T>()` from `@plainworks/std/seam`; the unchecked cast then lives at that one audited call site, never as a hidden default. The seam is reusable: any transport layered on this client validates its payloads through the same `std` contract.
 
 ### Interceptors
 

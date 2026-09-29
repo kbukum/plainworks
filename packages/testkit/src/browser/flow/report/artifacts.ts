@@ -10,6 +10,7 @@ import {
   writeFile,
 } from "node:fs/promises"
 import { posix } from "node:path"
+import { type Clock, systemClock } from "@plainworks/std/time"
 import { FlowError } from "../errors"
 import { renderFlowReportMarkdown } from "./markdown"
 import { parseFlowDeviceReport } from "./parse"
@@ -104,11 +105,11 @@ const MAX_RUN_ID_ATTEMPTS = 100
  */
 export async function startFlowRun(options: {
   readonly root: string
-  readonly now?: () => number
+  readonly clock?: Clock
   readonly store?: ArtifactStore
 }): Promise<FlowRun> {
   const store = options.store ?? nodeArtifactStore
-  const stamp = new Date((options.now ?? Date.now)()).toISOString().replace(/[:.]/g, "-")
+  const stamp = new Date((options.clock ?? systemClock).now()).toISOString().replace(/[:.]/g, "-")
   for (let attempt = 0; attempt < MAX_RUN_ID_ATTEMPTS; attempt++) {
     const id = attempt === 0 ? stamp : `${stamp}-${attempt}`
     const dir = posix.join(options.root, "runs", id)
@@ -147,7 +148,7 @@ export function openFlowRun(dir: string, store: ArtifactStore = nodeArtifactStor
  */
 export async function collectFlowRun(options: {
   readonly run: FlowRun
-  readonly now?: () => number
+  readonly clock?: Clock
   readonly store?: ArtifactStore
 }): Promise<FlowReport> {
   const store = options.store ?? nodeArtifactStore
@@ -169,7 +170,7 @@ export async function collectFlowRun(options: {
   return {
     schemaVersion: FLOW_REPORT_SCHEMA_VERSION,
     runId: run.id,
-    createdAt: new Date((options.now ?? Date.now)()).toISOString(),
+    createdAt: new Date((options.clock ?? systemClock).now()).toISOString(),
     summary: summarizeFlowRuns(runs),
     runs,
   }

@@ -1,4 +1,5 @@
-import type { WebFetch } from "@plainworks/std"
+import { isNonNegativeInteger, isPositiveInteger } from "@plainworks/std"
+import type { WebFetch } from "@plainworks/std/web"
 import { AuthError } from "../../errors"
 import type { SessionSigner } from "../../signer/seam"
 import type { RefreshTokenStore } from "./refresh-store"
@@ -161,11 +162,7 @@ export function validateOidcAdapterConfig(config: unknown): OidcAdapterConfig {
     throw new AuthError("auth/config", "OIDC adapter config `fetch` must be a function")
   }
   if (candidate.timeoutMs !== undefined) {
-    if (
-      typeof candidate.timeoutMs !== "number" ||
-      !Number.isInteger(candidate.timeoutMs) ||
-      candidate.timeoutMs <= 0
-    ) {
+    if (!isPositiveInteger(candidate.timeoutMs)) {
       throw new AuthError(
         "auth/config",
         "OIDC adapter config `timeoutMs` must be a positive integer",
@@ -173,11 +170,7 @@ export function validateOidcAdapterConfig(config: unknown): OidcAdapterConfig {
     }
   }
   if (candidate.cooldownDurationMs !== undefined) {
-    if (
-      typeof candidate.cooldownDurationMs !== "number" ||
-      !Number.isInteger(candidate.cooldownDurationMs) ||
-      candidate.cooldownDurationMs < 0
-    ) {
+    if (!isNonNegativeInteger(candidate.cooldownDurationMs)) {
       throw new AuthError(
         "auth/config",
         "OIDC adapter config `cooldownDurationMs` must be a non-negative integer",

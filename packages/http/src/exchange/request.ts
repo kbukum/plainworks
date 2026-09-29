@@ -1,4 +1,4 @@
-import type { WebAbortSignal, WebBodyInit, WebHeaders, WebRequestInit } from "@plainworks/std"
+import type { WebAbortSignal, WebBodyInit, WebHeaders, WebRequestInit } from "@plainworks/std/web"
 import type { HttpMethod } from "../method"
 
 /**

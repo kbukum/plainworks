@@ -1,6 +1,6 @@
 "use client"
 
-import { parseCookieHeader } from "@plainworks/std"
+import { readCookie } from "@plainworks/std/web"
 import { sanitizeReturnTo } from "../redirect"
 
 /**
@@ -31,12 +31,11 @@ const browserNavigate: AuthNavigate = (url) => {
   location.assign(url)
 }
 
-function readCookie(name: string): string | undefined {
+function readDocumentCookie(name: string): string | undefined {
   if (typeof document === "undefined" || typeof document.cookie !== "string") {
     return undefined
   }
-  const jar = parseCookieHeader(document.cookie)
-  const raw = jar.get(name)
+  const raw = readCookie(document.cookie, name)
   if (raw === undefined) {
     return undefined
   }
@@ -129,8 +128,8 @@ export function logout(options: LogoutOptions = {}): void {
   const target = sanitizeReturnTo(options.logoutPath, DEFAULT_LOGOUT_PATH)
   const csrfToken =
     options.csrfToken ??
-    readCookie(options.csrfCookieName ?? DEFAULT_CSRF_COOKIE_NAME) ??
-    readCookie("csrf") ??
+    readDocumentCookie(options.csrfCookieName ?? DEFAULT_CSRF_COOKIE_NAME) ??
+    readDocumentCookie("csrf") ??
     ""
   submit(target, { csrf: csrfToken })
 }

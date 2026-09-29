@@ -2,7 +2,7 @@
 
 import { jsonSerializer } from "@plainworks/state"
 import { createWebStorageScope, type WebStorageLike } from "@plainworks/state/client/scope"
-import { guardSchema, type StateSource } from "@plainworks/std"
+import { guardSchema, type StateSource } from "@plainworks/std/seam"
 import { type DevtoolsLayout, isDevtoolsLayout } from "./layout"
 
 /** The Web Storage key the default layout source persists under. */

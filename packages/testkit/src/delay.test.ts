@@ -1,4 +1,5 @@
-import { AbortError, type WebAbortSignal } from "@plainworks/std"
+import { AbortError } from "@plainworks/std/resilience"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { describe, expect, test } from "vitest"
 import { autoBackoffDelay, manualDelay } from "./delay"
 

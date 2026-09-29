@@ -1,5 +1,5 @@
-import type { WebAbortSignal } from "@plainworks/std"
-import type { Json } from "./privacy"
+import type { Json } from "@plainworks/std/encoding"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import type { CommandDescriptor, SourceEvent, SourceId, StatusIndicator } from "./protocol"
 
 /**
@@ -23,7 +23,7 @@ export interface SourceObserver {
 /**
  * The live side of a connected source, returned from {@link Source.connect}. Detail and command
  * resolution are optional — a read-only source that exposes neither is the default. Both receive an
- * {@link @plainworks/std!WebAbortSignal} so the session can cancel a request or tear the source
+ * {@link @plainworks/std/web!WebAbortSignal} so the session can cancel a request or tear the source
  * down.
  */
 export interface SourceHandle {

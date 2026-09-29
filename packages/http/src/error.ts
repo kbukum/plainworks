@@ -1,9 +1,6 @@
-import {
-  classifyStatus,
-  type FailureCategory,
-  PlainError,
-  type StandardSchemaIssue,
-} from "@plainworks/std"
+import { PlainError } from "@plainworks/std"
+import { classifyStatus, type FailureCategory } from "@plainworks/std/resilience"
+import type { StandardSchemaIssue } from "@plainworks/std/seam"
 
 /** Discriminants for every failure the client raises, so a caller can branch on the failure kind. */
 export type HttpErrorKind =

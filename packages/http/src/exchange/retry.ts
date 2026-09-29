@@ -1,4 +1,4 @@
-import { isRetryable, type RetryPolicy } from "@plainworks/std"
+import { isRetryable, type RetryPolicy } from "@plainworks/std/resilience"
 import { HttpError } from "../error"
 import { type HttpMethod, isIdempotentMethod } from "../method"
 

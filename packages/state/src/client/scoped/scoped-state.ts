@@ -1,7 +1,7 @@
 "use client"
 
-import type { StandardSchemaV1, StateSerializer, StateSource } from "@plainworks/std"
-import { createSourceReconciler } from "@plainworks/std"
+import type { StandardSchemaV1, StateSerializer, StateSource } from "@plainworks/std/seam"
+import { createSourceReconciler } from "@plainworks/std/seam"
 import type { ReactNode } from "react"
 import type { PersistedVersioning, Scope } from "../../scope/seam"
 import { assertScopeAllowsSensitivity, type Sensitivity } from "../../scope/sensitivity"

@@ -1,12 +1,13 @@
 "use client"
 
+import { isPositiveInteger } from "@plainworks/std"
 import type {
   StandardSchemaV1,
   StateCapabilities,
   StateSerializer,
   StateSource,
-} from "@plainworks/std"
-import { validateWithSchema } from "@plainworks/std"
+} from "@plainworks/std/seam"
+import { validateWithSchema } from "@plainworks/std/seam"
 import { StateConfigError, StateSourceError } from "../../../errors"
 import type { PersistedVersioning } from "../../../scope/seam"
 import { decodeEnvelope, encodeEnvelope } from "./envelope"
@@ -58,10 +59,7 @@ export function createStringSource<Value>(params: {
   readonly medium: string
 }): StateSource<Value> {
   const { capabilities, serializer, backend, schema, versioning, medium } = params
-  if (
-    versioning !== undefined &&
-    !(Number.isSafeInteger(versioning.version) && versioning.version > 0)
-  ) {
+  if (versioning !== undefined && !isPositiveInteger(versioning.version)) {
     // The contract promises a positive integer version. Reject a bad one at construction — a `0`
     // would make an unwrapped legacy payload look current and skip migration, and a
     // `NaN`/fractional value corrupts the stamped frame — rather than silently mis-versioning

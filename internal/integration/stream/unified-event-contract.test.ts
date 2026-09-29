@@ -6,7 +6,7 @@ import {
   type StateProjection,
 } from "@plainworks/channel"
 import { createQueryClient, createQueryEventSink } from "@plainworks/query"
-import type { PlainEvent } from "@plainworks/std"
+import type { PlainEvent } from "@plainworks/std/seam"
 import {
   fakeStateSource,
   fakeStreamTransport,

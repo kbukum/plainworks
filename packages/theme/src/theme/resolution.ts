@@ -1,4 +1,4 @@
-import { parseCookieHeader } from "@plainworks/std"
+import { readCookie } from "@plainworks/std/web"
 
 export const COLOR_SCHEMES = [
   "neutral",
@@ -65,7 +65,7 @@ export function parseThemeCookie(
   cookieName = "theme",
   fallback: ThemePreference = DEFAULT_THEME,
 ): ThemePreference {
-  const raw = parseCookieHeader(cookieHeader).get(cookieName)
+  const raw = readCookie(cookieHeader, cookieName)
   if (raw === undefined) {
     return fallback
   }

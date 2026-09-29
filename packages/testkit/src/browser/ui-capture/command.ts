@@ -1,4 +1,5 @@
 import { posix } from "node:path"
+import type { Clock } from "@plainworks/std/time"
 import { FlowError } from "../flow/errors"
 import type { MatrixPresetName } from "../flow/matrix/presets"
 import {
@@ -72,7 +73,7 @@ export interface UiCaptureRuntime {
   readonly serve: () => Promise<void>
   /** Renders contact sheets to PNG. Without one, sheets stay HTML. */
   readonly renderSheet?: SheetRenderer
-  readonly now: () => number
+  readonly clock: Clock
   readonly print: (line: string) => void
   readonly signal?: AbortSignal
 }
@@ -123,7 +124,7 @@ async function capture(
     [FLOW_SUITE_ENV.preset]: args.preset,
     [FLOW_SUITE_ENV.mode]: "capture",
   }
-  const run = await startFlowRun({ root: config.root, store, now: runtime.now })
+  const run = await startFlowRun({ root: config.root, store, clock: runtime.clock })
   const writer = openFlowRun(run.dir, store)
   const publish = async (report: FlowReport): Promise<void> => {
     await publishFlowRun({
@@ -136,7 +137,7 @@ async function capture(
   }
 
   if (selection.flows.length === 0) {
-    const report = await collectFlowRun({ run, store, now: runtime.now })
+    const report = await collectFlowRun({ run, store, clock: runtime.clock })
     await publish({ ...report, selection })
     runtime.print("ui:capture pass: no changed file affects a flow, so nothing ran.")
     printReportPath(runtime, run)
@@ -156,7 +157,7 @@ async function capture(
     log: posix.join(run.dir, "playwright.log"),
     ...(signal === undefined ? {} : { signal }),
   })
-  const collected = await collectFlowRun({ run, store, now: runtime.now })
+  const collected = await collectFlowRun({ run, store, clock: runtime.clock })
 
   if (collected.runs.length < expected) {
     await publish({ ...collected, selection })
@@ -347,7 +348,7 @@ async function resolveBase(
       env: suiteEnv,
       ...(runtime.signal === undefined ? {} : { signal: runtime.signal }),
     })
-    const captured = await collectFlowRun({ run, store, now: runtime.now })
+    const captured = await collectFlowRun({ run, store, clock: runtime.clock })
     if (captured.runs.length === 0) {
       throw new UiCaptureError("base", `The base at ${commit.slice(0, 12)} captured no flow runs`)
     }
@@ -356,7 +357,7 @@ async function resolveBase(
   } else {
     runtime.print(`Reusing the captured base at ${commit.slice(0, 12)} (${name}).`)
   }
-  await recordBaseUse(store, dir, { commit, ref: name, usedAt: runtime.now() })
+  await recordBaseUse(store, dir, { commit, ref: name, usedAt: runtime.clock.now() })
   await evictBases(store, config.root, {
     inUse: key,
     ...(config.keepBases === undefined ? {} : { keep: config.keepBases }),

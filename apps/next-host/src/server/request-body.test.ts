@@ -1,5 +1,6 @@
+import { PayloadTooLargeError } from "@plainworks/std/web"
 import { describe, expect, it } from "vitest"
-import { boundedRequest, PayloadTooLargeError, readBoundedText } from "./request-body"
+import { boundedRequest, readFormBody } from "./request-body"
 
 // The bounded readers cap an attacker-controlled body before buffering: an oversized payload is
 // rejected with `PayloadTooLargeError` (the route maps it to 413) rather than draining unbounded
@@ -9,13 +10,13 @@ function postRequest(body: string): Request {
   return new Request("http://next-host.test/logout", { method: "POST", body })
 }
 
-describe("readBoundedText", () => {
+describe("readFormBody", () => {
   it("returns the full body when under the cap", async () => {
-    expect(await readBoundedText(postRequest("csrf=token"), 64)).toBe("csrf=token")
+    expect(await readFormBody(postRequest("csrf=token"), 64)).toBe("csrf=token")
   })
 
   it("throws PayloadTooLargeError past the cap", async () => {
-    await expect(readBoundedText(postRequest("x".repeat(128)), 16)).rejects.toBeInstanceOf(
+    await expect(readFormBody(postRequest("x".repeat(128)), 16)).rejects.toBeInstanceOf(
       PayloadTooLargeError,
     )
   })

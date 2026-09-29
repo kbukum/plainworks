@@ -1,4 +1,5 @@
-import type { StreamFrame, StreamTransportContext, WebAbortSignal } from "@plainworks/std"
+import type { StreamFrame, StreamTransportContext } from "@plainworks/std/seam"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { describe, expect, test } from "vitest"
 import { fakeStreamTransport } from "./channel"
 

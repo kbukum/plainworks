@@ -5,8 +5,9 @@ import type {
   WebVitalMetric,
   WebVitalReporter,
 } from "@plainworks/observability"
-import { assertTimerMs } from "@plainworks/std"
-import type { Json } from "../../privacy"
+import type { Json } from "@plainworks/std/encoding"
+import { assertTimerMs } from "@plainworks/std/resilience"
+import { type Clock, systemClock } from "@plainworks/std/time"
 import type { Severity } from "../../protocol"
 import { createEventSampler } from "../../retention"
 import { assertPositiveCapacity } from "../../retention/capacity"
@@ -22,8 +23,8 @@ export interface ObservabilitySourceOptions {
   readonly instance: string
   /** Display label; defaults to `Observability <instance>`. */
   readonly label?: string
-  /** Clock for event and indicator timestamps. Defaults to `Date.now`. */
-  readonly now?: () => number
+  /** Clock for event and indicator timestamps. Defaults to `systemClock`. */
+  readonly clock?: Clock
   /**
    * Coalescing interval for high-frequency logs, in milliseconds. A burst collapses to one log
    * event per interval while the running counts stay exact. Defaults to 250; `0` emits every log.
@@ -69,7 +70,7 @@ const DEFAULT_DETAIL_CAPACITY = 50
 export function createObservabilitySource(
   options: ObservabilitySourceOptions,
 ): ObservabilityInstrumentation {
-  const now = options.now ?? Date.now
+  const clock = options.clock ?? systemClock
   const label = options.label ?? `Observability ${options.instance}`
   const relay = createObserverRelay()
   const allow = options.captureLogFields
@@ -88,7 +89,7 @@ export function createObservabilitySource(
     // a delayed emission would otherwise escape as an uncaught timer error — isolate it here too.
     onEmit: (event) => observeSafely(relay, () => relay.emit(event)),
     onError: (error) => observeSafely(relay, () => relay.fail(error)),
-    now,
+    clock,
   })
 
   function indicateLogs(): void {
@@ -97,7 +98,7 @@ export function createObservabilitySource(
       label: `${label} · logs`,
       value: `${counts.logs} log${counts.logs === 1 ? "" : "s"}${counts.logErrors > 0 ? ` · ${counts.logErrors} error` : ""}`,
       severity: counts.logErrors > 0 ? "error" : "ok",
-      updatedAt: now(),
+      updatedAt: clock.now(),
       target: "observability",
     })
   }
@@ -158,7 +159,7 @@ export function createObservabilitySource(
           label: `${label} · reports`,
           value: `${counts.reports} reported`,
           severity: counts.reports > 0 ? "warn" : "ok",
-          updatedAt: now(),
+          updatedAt: clock.now(),
           target: "observability",
         })
         relay.recover()
@@ -172,7 +173,7 @@ export function createObservabilitySource(
         kind: "vital",
         label: `${metric.name} ${formatVital(metric)} (${metric.rating})`,
         severity: vitalSeverity(metric.rating),
-        at: now(),
+        at: clock.now(),
         summary: { name: metric.name, value: metric.value, rating: metric.rating },
       })
       relay.indicate({
@@ -180,7 +181,7 @@ export function createObservabilitySource(
         label: metric.name,
         value: `${formatVital(metric)} · ${metric.rating}`,
         severity: vitalSeverity(metric.rating),
-        updatedAt: now(),
+        updatedAt: clock.now(),
         target: "observability",
       })
       relay.recover()

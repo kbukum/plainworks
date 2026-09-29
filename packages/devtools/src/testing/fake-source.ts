@@ -1,5 +1,5 @@
-import type { WebAbortSignal } from "@plainworks/std"
-import type { Json } from "../privacy"
+import type { Json } from "@plainworks/std/encoding"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import type { SourceEvent, SourceId, StatusIndicator } from "../protocol"
 import type { Source, SourceHandle, SourceObserver } from "../source"
 

@@ -9,7 +9,7 @@ export type {
   StreamTransport,
   StreamTransportContext,
   StreamTransportFactory,
-} from "@plainworks/std"
+} from "@plainworks/std/seam"
 // Typed error + wire seam
 export { ChannelError, type ChannelErrorKind } from "./error"
 // Event router + sinks

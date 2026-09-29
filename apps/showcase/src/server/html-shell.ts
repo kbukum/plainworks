@@ -5,6 +5,7 @@
 // back on hydration. Both JSON payloads are embedded with `<` escaped so a value can never close
 // the script element early.
 
+import { escapeJsonForHtml } from "@plainworks/std/encoding"
 import { QUERY_STATE_SCRIPT_ID, ROOT_ELEMENT_ID, SNAPSHOT_SCRIPT_ID } from "../app/constants"
 
 /** Everything the shell needs to assemble one server response. */
@@ -23,12 +24,6 @@ export interface HtmlShellInput {
   readonly clientEntry: string
 }
 
-// A value embedded in a `<script>` must not contain a literal `</script>` or an HTML comment
-// opener; escaping `<` to its unicode form keeps the JSON valid while making that impossible.
-function embedJson(json: string): string {
-  return json.replace(/</g, "\\u003c")
-}
-
 /** Assemble the full HTML document for one SSR response. */
 export function renderHtmlShell(input: HtmlShellInput): string {
   const stylesheetLinks = input.stylesheets
@@ -45,8 +40,8 @@ ${stylesheetLinks}
   </head>
   <body>
     <div id="${ROOT_ELEMENT_ID}">${input.appHtml}</div>
-    <script type="application/json" id="${SNAPSHOT_SCRIPT_ID}">${embedJson(input.snapshotJson)}</script>
-    <script type="application/json" id="${QUERY_STATE_SCRIPT_ID}">${embedJson(input.queryJson)}</script>
+    <script type="application/json" id="${SNAPSHOT_SCRIPT_ID}">${escapeJsonForHtml(input.snapshotJson)}</script>
+    <script type="application/json" id="${QUERY_STATE_SCRIPT_ID}">${escapeJsonForHtml(input.queryJson)}</script>
     <script type="module" src="${input.clientEntry}"></script>
   </body>
 </html>`

@@ -1,5 +1,6 @@
 import type { Store } from "@plainworks/state"
 import { isRecord } from "@plainworks/std"
+import { type Clock, systemClock } from "@plainworks/std/time"
 import { createEventSampler } from "../../retention"
 import type { Source, SourceHandle } from "../../source"
 
@@ -22,8 +23,8 @@ export interface StateSourceOptions<State = unknown> {
    * state (`(state) => state`) only when every field is safe to inspect.
    */
   readonly snapshot: (state: State) => unknown
-  /** Clock for event and indicator timestamps. Defaults to `Date.now`. */
-  readonly now?: () => number
+  /** Clock for event and indicator timestamps. Defaults to `systemClock`. */
+  readonly clock?: Clock
   /**
    * Coalescing interval for rapid updates in milliseconds; `0` emits everything. Defaults to
    * 250 — a burst of writes collapses into one change event per interval.
@@ -41,7 +42,7 @@ const MAX_CHANGED_KEYS = 20
  * cycles, and oversized values reach the panel only as safe markers after session sanitize.
  */
 export function createStateSource<State>(options: StateSourceOptions<State>): Source {
-  const now = options.now ?? Date.now
+  const clock = options.clock ?? systemClock
   const intervalMs = options.intervalMs ?? DEFAULT_INTERVAL_MS
   const project = options.snapshot
   return {
@@ -53,7 +54,7 @@ export function createStateSource<State>(options: StateSourceOptions<State>): So
         mode: "coalesce",
         onEmit: (event) => observer.emit(event),
         onError: (error) => observer.fail(error),
-        now,
+        clock,
       })
       let changes = 0
 
@@ -72,7 +73,7 @@ export function createStateSource<State>(options: StateSourceOptions<State>): So
           kind: "state.change",
           label: `${options.instance} changed`,
           severity: summary === undefined ? "warn" : "info",
-          at: now(),
+          at: clock.now(),
           ...(summary ? { summary } : {}),
           detail: "current",
         })
@@ -81,7 +82,7 @@ export function createStateSource<State>(options: StateSourceOptions<State>): So
           label: options.label ?? `State ${options.instance}`,
           value: `${changes} change${changes === 1 ? "" : "s"}`,
           severity: "ok",
-          updatedAt: now(),
+          updatedAt: clock.now(),
           target: "state",
         })
       })

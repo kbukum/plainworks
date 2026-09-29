@@ -23,8 +23,9 @@ import { createMockApi } from "@plainworks/demo"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import { mockServerPlugin } from "@plainworks/mocks/vite-plugin"
-import { parseCookieHeader, systemClock } from "@plainworks/std"
-import { createMockIdp, manualClock } from "@plainworks/testkit"
+import { fixedClock, systemClock } from "@plainworks/std/time"
+import { PayloadTooLargeError, parseCookieHeader } from "@plainworks/std/web"
+import { createMockIdp } from "@plainworks/testkit"
 import { createServer as createViteServer, type ViteDevServer } from "vite"
 import { createShowcaseAuth } from "./src/app/auth"
 import { AUTH_CALLBACK_PATH, LOGIN_PATH, LOGOUT_PATH } from "./src/app/constants"
@@ -37,7 +38,7 @@ import {
 import type { RenderApp } from "./src/entry-server"
 import { respondWithInternalError } from "./src/server/internal-error"
 import { renderLoginPage } from "./src/server/login-page"
-import { PayloadTooLargeError, readRequestBody, resolveSigningKey } from "./src/server/request-body"
+import { readRequestBody, resolveSigningKey } from "./src/server/request-body"
 
 const PORT = Number(process.env.PORT ?? 5173)
 const HOST = "127.0.0.1"
@@ -56,7 +57,7 @@ const SIGNING_KEY = resolveSigningKey()
 // The browser gate pins the demo backend's clock to the same instant it pins the browser's, so
 // every fixture date is identical on each run and on each machine.
 const FIXED_NOW = process.env.PLAINWORKS_FIXED_NOW
-const DEMO_CLOCK = FIXED_NOW === undefined ? systemClock : manualClock(FIXED_NOW)
+const DEMO_CLOCK = FIXED_NOW === undefined ? systemClock : fixedClock(FIXED_NOW)
 
 // Browser-test fixture pages, `/e2e/fixtures/<name>.html`. They go through Vite's HTML transform
 // like app pages, so they load modules and connect the reload client from this same origin.

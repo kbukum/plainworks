@@ -1,4 +1,12 @@
-import { AbortError, type WebAbortSignal, type WebResponse } from "@plainworks/std"
+import { getErrorMessage, isPositiveInteger } from "@plainworks/std"
+import { stringifyJson } from "@plainworks/std/encoding"
+import { AbortError } from "@plainworks/std/resilience"
+import {
+  PayloadTooLargeError,
+  readBoundedText,
+  type WebAbortSignal,
+  type WebResponse,
+} from "@plainworks/std/web"
 import { HttpError } from "../error"
 import type { BodyCodec, EncodedBody } from "./body"
 
@@ -17,19 +25,20 @@ export interface JsonCodecOptions {
 }
 
 /**
- * Build a JSON {@link BodyCodec} with a configurable maximum decoded body size. Encoding maps a
- * non-serializable value (cyclic, `BigInt`, or a top-level `function`/`symbol` that
- * `JSON.stringify` renders as `undefined`) to a fatal {@link HttpError} `http/encode` instead of
- * throwing a raw `TypeError` or emitting an invalid body. Decoding reads the body through a bounded
- * streaming reader that cancels the stream once `maxBytes` is exceeded (rejecting with a fatal
- * {@link HttpError} `http/decode`) or the caller's signal aborts (rejecting with a typed abort
- * error), treats an empty body (including `204`/`205`) as `undefined`, and wraps a malformed body
- * in a fatal {@link HttpError} `http/decode` rather than leaking the raw `SyntaxError`. `maxBytes`
- * must be a positive integer.
+ * Build a JSON {@link BodyCodec} with a configurable maximum decoded body size.
+ *
+ * Encoding uses std's `stringifyJson`: a value JSON can't hold faithfully (a cycle, a function, a
+ * symbol, a BigInt, a non-finite number) is a fatal {@link HttpError} `http/encode`, never a
+ * silently dropped field. An `undefined` property is left out, as `JSON.stringify` does.
+ *
+ * Decoding reads the body with std's bounded `readBoundedText`: past `maxBytes` it is a fatal
+ * `http/decode` error, a stream fault is a retryable `http/network` error, and an abort stays a
+ * typed abort error. An empty body (including `204`/`205`) decodes to `undefined`, and a malformed
+ * body is a fatal `http/decode` error. `maxBytes` must be a positive safe integer.
  */
 export function createJsonCodec(options: JsonCodecOptions = {}): BodyCodec {
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_BODY_BYTES
-  if (!Number.isInteger(maxBytes) || maxBytes <= 0) {
+  if (!isPositiveInteger(maxBytes)) {
     // A non-finite, fractional, or non-positive cap would let the bound silently degrade to "no
     // limit" (`Infinity`/`NaN` compare false against every size) or refuse every body, defeating
     // the memory guard. Fail loudly at construction rather than at the first oversized response.
@@ -37,24 +46,20 @@ export function createJsonCodec(options: JsonCodecOptions = {}): BodyCodec {
   }
   return {
     encode(value: unknown): EncodedBody {
-      let serialized: string | undefined
       try {
-        serialized = JSON.stringify(value)
+        return {
+          body: stringifyJson(value, { omitUndefined: true }),
+          contentType: "application/json",
+        }
       } catch (cause) {
-        throw HttpError.encode({ cause })
+        throw HttpError.encode({ message: getErrorMessage(cause), cause })
       }
-      if (serialized === undefined) {
-        throw HttpError.encode({
-          message: "Request body is not JSON-serializable (function, symbol, or undefined).",
-        })
-      }
-      return { body: serialized, contentType: "application/json" }
     },
     async decode(response: WebResponse, signal?: WebAbortSignal): Promise<unknown> {
       if (response.status === 204 || response.status === 205) {
         return undefined
       }
-      const text = await readBoundedText(response, maxBytes, signal)
+      const text = await readBody(response, maxBytes, signal)
       if (text.length === 0) {
         return undefined
       }
@@ -72,84 +77,30 @@ export function createJsonCodec(options: JsonCodecOptions = {}): BodyCodec {
 export const jsonCodec: BodyCodec = createJsonCodec()
 
 /**
- * Read a response body as text without buffering more than `maxBytes`. Bytes are pulled from the
- * body stream and decoded incrementally; the reader is cancelled the moment the cap is exceeded or
- * `signal` aborts, so an oversized or stalled body never accumulates unbounded memory and its
- * connection is released. A `null` body (no content) decodes to the empty string. A cancellation —
- * whether the signal was already aborted or fired mid-read — rejects with a typed
- * {@link AbortError} rather than resolving a truncated body as if it were complete, and a genuine
- * stream fault (the underlying `read()` rejecting for a non-abort reason) maps to a retryable
- * `http/network` error.
+ * Read a response body under the codec's cap, mapping the std reader's failures onto the client's
+ * error model: an oversized body is a fatal decode error, a stream fault a retryable network error,
+ * and an abort stays a typed {@link AbortError}.
  */
-async function readBoundedText(
+async function readBody(
   response: WebResponse,
   maxBytes: number,
-  signal?: WebAbortSignal,
+  signal: WebAbortSignal | undefined,
 ): Promise<string> {
-  const body = response.body
-  if (body === null) {
-    return ""
-  }
-  // An already-aborted signal never emits a fresh `abort` event: release the connection and surface
-  // the cancellation as a typed abort, never a silent empty body a caller would treat as success.
-  if (signal?.aborted) {
-    await safeCancel(body)
-    throw new AbortError({ cause: signal.reason })
-  }
-  const reader = body.getReader()
-  const decoder = new TextDecoder()
-  const onAbort = (): void => {
-    void safeCancel(reader)
-  }
-  signal?.addEventListener("abort", onAbort, { once: true })
-  let received = 0
-  let text = ""
   try {
-    for (;;) {
-      let chunk: Awaited<ReturnType<typeof reader.read>>
-      try {
-        chunk = await reader.read()
-      } catch (cause) {
-        // An abort that races the in-flight read surfaces here as a rejection; report it as the
-        // cancellation it is, not a transport fault.
-        if (signal?.aborted) {
-          throw new AbortError({ cause: signal.reason })
-        }
-        throw HttpError.network({ message: "Failed to read the response body stream.", cause })
-      }
-      // The read may settle with a final chunk after the abort fired; honor the cancellation before
-      // treating that partial body as a complete response.
-      if (signal?.aborted) {
-        throw new AbortError({ cause: signal.reason })
-      }
-      if (chunk.done) {
-        break
-      }
-      received += chunk.value.byteLength
-      if (received > maxBytes) {
-        await safeCancel(reader)
-        throw HttpError.decode({
-          message: `Response body exceeded the maximum decode size of ${maxBytes} bytes.`,
-        })
-      }
-      text += decoder.decode(chunk.value, { stream: true })
+    return await readBoundedText(
+      response.body,
+      signal === undefined ? { maxBytes } : { maxBytes, signal },
+    )
+  } catch (cause) {
+    if (cause instanceof AbortError) {
+      throw cause
     }
-    text += decoder.decode()
-    return text
-  } finally {
-    signal?.removeEventListener("abort", onAbort)
-    reader.releaseLock()
-  }
-}
-
-/**
- * Cancel a reader or stream as best-effort teardown. A body that refuses to cancel must never mask
- * the abort/decode/network error being raised, so a rejected cancellation is swallowed.
- */
-async function safeCancel(cancellable: { readonly cancel: () => Promise<void> }): Promise<void> {
-  try {
-    await cancellable.cancel()
-  } catch {
-    // Intentionally ignored — teardown is best-effort.
+    if (cause instanceof PayloadTooLargeError) {
+      throw HttpError.decode({
+        message: `Response body exceeded the maximum decode size of ${maxBytes} bytes.`,
+        cause,
+      })
+    }
+    throw HttpError.network({ message: "Failed to read the response body stream.", cause })
   }
 }

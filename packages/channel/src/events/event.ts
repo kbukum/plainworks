@@ -1,4 +1,4 @@
-import type { PlainEvent, StreamFrame } from "@plainworks/std"
+import type { PlainEvent, StreamFrame } from "@plainworks/std/seam"
 import { ChannelError } from "../error"
 
 /**

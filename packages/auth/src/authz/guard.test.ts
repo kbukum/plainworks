@@ -1,4 +1,4 @@
-import type { Decision } from "@plainworks/std"
+import type { Decision } from "@plainworks/std/seam"
 import { describe, expect, test } from "vitest"
 import { guardDecision } from "./guard"
 

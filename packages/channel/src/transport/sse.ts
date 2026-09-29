@@ -2,14 +2,18 @@
 // `EventSource` (which cannot attach an `Authorization` header — the reason this kit streams over
 // `fetch`). It implements one attempt of the transport seam; reconnect/backoff/timeouts live in the
 // channel core. Runs anywhere `fetch` and `TextDecoder` exist (Node, edge, workers, browser).
+import { isPositiveInteger } from "@plainworks/std"
 import type {
   StreamTransport,
   StreamTransportContext,
   StreamTransportFactory,
-  WebFetch,
-  WebReadableStream,
-  WebResponse,
-} from "@plainworks/std"
+} from "@plainworks/std/seam"
+import {
+  resolveFetch,
+  type WebFetch,
+  type WebReadableStream,
+  type WebResponse,
+} from "@plainworks/std/web"
 import { createParser } from "eventsource-parser"
 import { ChannelError } from "../error"
 import { resolveUrl, type UrlSource } from "./url"
@@ -41,10 +45,12 @@ export function createSseTransport(options: SseTransportOptions): StreamTranspor
   const { url, maxBufferChars = DEFAULT_MAX_BUFFER_CHARS } = options
   // A non-integer/overflowing bound (e.g. Infinity) would make the parser's size check permanently
   // pass, defeating the memory bound — reject it at construction.
-  if (!Number.isSafeInteger(maxBufferChars) || maxBufferChars < 1) {
+  if (!isPositiveInteger(maxBufferChars)) {
     throw ChannelError.config("maxBufferChars must be a safe integer >= 1")
   }
-  const fetchImpl = options.fetch ?? resolveGlobalFetch()
+  const fetchImpl = resolveFetch(options.fetch, () =>
+    ChannelError.config("no global fetch is available; pass options.fetch to the SSE transport"),
+  )
 
   return (): StreamTransport => ({
     async open(context: StreamTransportContext): Promise<void> {
@@ -152,13 +158,4 @@ async function readEventStream(
   } finally {
     reader.releaseLock()
   }
-}
-
-function resolveGlobalFetch(): WebFetch {
-  if (typeof fetch !== "function") {
-    throw ChannelError.config(
-      "no global fetch is available; pass options.fetch to the SSE transport",
-    )
-  }
-  return (input, init) => fetch(input, init)
 }

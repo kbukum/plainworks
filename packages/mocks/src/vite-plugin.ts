@@ -12,6 +12,9 @@
  */
 
 import type { IncomingMessage, ServerResponse } from "node:http"
+import { Readable } from "node:stream"
+import { isPositiveInteger } from "@plainworks/std"
+import { PayloadTooLargeError, readBoundedText } from "@plainworks/std/web"
 import type { RequestHandler } from "msw"
 import type { Plugin, ViteDevServer } from "vite"
 
@@ -38,14 +41,6 @@ export interface MockServerPluginOptions {
 }
 
 const DEFAULT_MAX_BODY_BYTES = 1024 * 1024
-
-/** Marker error for a request body that exceeded the configured byte limit. */
-class BodyTooLargeError extends Error {
-  constructor(limit: number) {
-    super(`request body exceeded ${limit} bytes`)
-    this.name = "BodyTooLargeError"
-  }
-}
 
 /**
  * Creates a Vite plugin that serves mock API responses
@@ -92,7 +87,7 @@ export function mockServerPlugin(
   if (!Number.isFinite(latency) || latency < 0) {
     throw new RangeError("mockServerPlugin: latency must be a finite number >= 0")
   }
-  if (!Number.isSafeInteger(maxBodyBytes) || maxBodyBytes < 1) {
+  if (!isPositiveInteger(maxBodyBytes)) {
     throw new RangeError("mockServerPlugin: maxBodyBytes must be a positive safe integer")
   }
 
@@ -135,10 +130,9 @@ export function mockServerPlugin(
               }
             }
 
-            // Read request body for non-GET requests (bounded — see readRequestBody)
             let body: string | undefined
             if (method !== "GET" && method !== "HEAD") {
-              body = await readRequestBody(req, maxBodyBytes)
+              body = await readBoundedText(Readable.toWeb(req), { maxBytes: maxBodyBytes })
             }
 
             const request = new Request(fullUrl, {
@@ -191,7 +185,7 @@ export function mockServerPlugin(
               req.off("close", onClose)
             }
           } catch (error) {
-            if (error instanceof BodyTooLargeError) {
+            if (error instanceof PayloadTooLargeError) {
               res.statusCode = 413
               res.setHeader("Content-Type", "application/json")
               res.end(JSON.stringify({ error: "Request body too large" }))
@@ -206,57 +200,6 @@ export function mockServerPlugin(
       )
     },
   }
-}
-
-/**
- * Read the request body from a Node.js IncomingMessage, rejecting once `maxBytes` is exceeded and
- * cleaning up listeners when the request aborts.
- */
-function readRequestBody(req: IncomingMessage, maxBytes: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const chunks: Buffer[] = []
-    let size = 0
-
-    const cleanup = (): void => {
-      req.off("data", onData)
-      req.off("end", onEnd)
-      req.off("error", onError)
-      req.off("close", onClose)
-    }
-    let tooLarge = false
-    const onData = (chunk: Buffer): void => {
-      size += chunk.length
-      if (size > maxBytes) {
-        // Keep draining (discarding) instead of destroying the request: destroying kills the
-        // socket, so the caller could never receive the 413 response.
-        tooLarge = true
-        chunks.length = 0
-        return
-      }
-      if (!tooLarge) chunks.push(chunk)
-    }
-    const onEnd = (): void => {
-      cleanup()
-      if (tooLarge) {
-        reject(new BodyTooLargeError(maxBytes))
-        return
-      }
-      resolve(Buffer.concat(chunks).toString())
-    }
-    const onError = (error: Error): void => {
-      cleanup()
-      reject(error)
-    }
-    const onClose = (): void => {
-      cleanup()
-      reject(new Error("request aborted"))
-    }
-
-    req.on("data", onData)
-    req.on("end", onEnd)
-    req.on("error", onError)
-    req.on("close", onClose)
-  })
 }
 
 /**

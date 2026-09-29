@@ -1,5 +1,5 @@
 import type { ErrorSnapshot } from "@plainworks/std"
-import type { Json } from "../privacy"
+import type { Json } from "@plainworks/std/encoding"
 import type { CommandDescriptor } from "./command"
 import type { SourceEvent } from "./event"
 import type { SourceId } from "./identity"

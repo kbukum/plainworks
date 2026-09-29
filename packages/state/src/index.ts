@@ -1,7 +1,7 @@
 // Server-safe public entry for `@plainworks/state` — re-export-only barrel (no logic here; the
 // implementation lives in concern modules). No React or DOM imports, so the `.` entry runs anywhere
 // (Node, edge, RSC); the interactive Provider + selector hooks live under `./client`.
-export type { StateCapabilities, StateSerializer, StateSource } from "@plainworks/std"
+export type { StateCapabilities, StateSerializer, StateSource } from "@plainworks/std/seam"
 export type { StateFieldFailure, StateSourceErrorOptions } from "./errors"
 export { StateConfigError, StateError, StateSourceError } from "./errors"
 export type { StoreDefinition, StoreShape } from "./facade"

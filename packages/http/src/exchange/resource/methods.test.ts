@@ -1,4 +1,6 @@
-import { guardSchema, type RetryPolicy, unsafePassthrough, type WebResponse } from "@plainworks/std"
+import type { RetryPolicy } from "@plainworks/std/resilience"
+import { guardSchema, unsafePassthrough } from "@plainworks/std/seam"
+import type { WebResponse } from "@plainworks/std/web"
 import { autoBackoffDelay, fakeAuthHeaderProvider, fakeFetch } from "@plainworks/testkit"
 import { expect, test } from "vitest"
 import { HttpError } from "../../error"

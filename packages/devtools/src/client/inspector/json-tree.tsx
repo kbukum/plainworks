@@ -1,9 +1,9 @@
 "use client"
 
 import { isRecord } from "@plainworks/std"
+import type { Json } from "@plainworks/std/encoding"
 import { ChevronRight } from "lucide-react"
 import { type ReactElement, useState } from "react"
-import type { Json } from "../../privacy"
 
 /** Props for {@link JsonTree}. */
 export interface JsonTreeProps {

@@ -1,4 +1,4 @@
-import type { Identity } from "@plainworks/std"
+import type { Identity } from "@plainworks/std/seam"
 import { manualClock } from "@plainworks/testkit"
 import { describe, expect, test } from "vitest"
 import { defaultAuthCrypto } from "../crypto"

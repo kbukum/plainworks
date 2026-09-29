@@ -49,7 +49,7 @@ describe("createEventSampler", () => {
       intervalMs: 100,
       mode: "sample",
       onEmit: (e) => emitted.push(e.label),
-      now: () => nowMs,
+      clock: { now: () => nowMs },
     })
 
     sampler.offer(event("a"))
@@ -74,7 +74,7 @@ describe("createEventSampler", () => {
       intervalMs: 250,
       mode: "coalesce",
       onEmit: (e) => emitted.push(e.label),
-      now: () => nowMs,
+      clock: { now: () => nowMs },
     })
 
     sampler.offer(event("first"))
@@ -103,7 +103,7 @@ describe("createEventSampler", () => {
       intervalMs: 250,
       mode: "coalesce",
       onEmit: (e) => emitted.push(e.label),
-      now: () => nowMs,
+      clock: { now: () => nowMs },
     })
 
     sampler.offer(event("a"))
@@ -125,7 +125,7 @@ describe("createEventSampler", () => {
       intervalMs: 250,
       mode: "coalesce",
       onEmit: (e) => emitted.push(e.label),
-      now: () => nowMs,
+      clock: { now: () => nowMs },
     })
 
     sampler.offer(event("a"))
@@ -145,10 +145,12 @@ describe("createEventSampler", () => {
       mode: "coalesce",
       onEmit: () => {},
       onError: (error) => failures.push(error),
-      now: () => {
-        clockCalls += 1
-        if (clockCalls > 2) throw new Error("clock failed")
-        return 1_000
+      clock: {
+        now: () => {
+          clockCalls += 1
+          if (clockCalls > 2) throw new Error("clock failed")
+          return 1_000
+        },
       },
     })
 

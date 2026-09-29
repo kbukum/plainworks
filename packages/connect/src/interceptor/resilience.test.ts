@@ -1,5 +1,6 @@
 import { Code, ConnectError, type Interceptor } from "@connectrpc/connect"
-import { type Delay, TimeoutError, type WebAbortSignal } from "@plainworks/std"
+import { type Delay, TimeoutError } from "@plainworks/std/resilience"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { flushMicrotasks, manualDelay, seededRandom } from "@plainworks/testkit"
 import {
   countResponse,

@@ -1,3 +1,4 @@
+import { isPositiveInteger } from "@plainworks/std"
 /** How much run output to keep. Named snapshots live elsewhere and are never pruned. */
 export interface RetentionPolicy {
   /** The most runs to keep, the current one included. */
@@ -29,7 +30,7 @@ export function planRunRetention(
   policy: RetentionPolicy,
   current: string,
 ): string[] {
-  if (!Number.isInteger(policy.keepRuns) || policy.keepRuns < 1) {
+  if (!isPositiveInteger(policy.keepRuns)) {
     throw new RangeError("A retention policy must keep at least one run")
   }
   if (!Number.isFinite(policy.maxBytes) || policy.maxBytes < 0) {

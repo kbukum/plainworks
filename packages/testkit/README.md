@@ -30,7 +30,8 @@ import {
   flushMicrotasks,
 } from "@plainworks/testkit"
 
-// Deterministic time for anything built on the `Clock` seam.
+// Deterministic time for anything that takes a `clock?: Clock` option. Use std's `fixedClock`
+// when time never needs to move.
 const clock = manualClock(0)
 clock.advance(1000)
 
@@ -234,7 +235,7 @@ Exit codes: **0** when every flow captured, **1** when a flow broke (it errored,
 
 ## Streaming transport double — `fakeStreamTransport`
 
-A scripted `StreamTransportFactory` for testing anything built on the `@plainworks/std` stream seam — a channel, an app's live view, or an integration flow — without SSE or WebSocket sockets. You drive each connection attempt by hand: open it, push frames, then end it cleanly or with an error. It honors the abort seam like a real transport, so reconnect, resume-from-cursor, and teardown all exercise the same double.
+A scripted `StreamTransportFactory` for testing anything built on the `@plainworks/std/seam` stream seam — a channel, an app's live view, or an integration flow — without SSE or WebSocket sockets. You drive each connection attempt by hand: open it, push frames, then end it cleanly or with an error. It honors the abort seam like a real transport, so reconnect, resume-from-cursor, and teardown all exercise the same double.
 
 ```ts
 import { fakeStreamTransport } from "@plainworks/testkit"

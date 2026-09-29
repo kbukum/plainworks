@@ -5,7 +5,7 @@
 
 import type { UserSettings } from "@plainworks/demo"
 import type { createHttpClient } from "@plainworks/http"
-import type { WebAbortSignal } from "@plainworks/std"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import type { QueryFunctionContext } from "@tanstack/react-query"
 import { SETTINGS_RESOURCE } from "./constants"
 import { settingsEnvelopeSchema } from "./settings-shape"

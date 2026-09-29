@@ -1,5 +1,5 @@
 import { type ContextKey, createContextKey, type Interceptor } from "@connectrpc/connect"
-import type { AuthContext, AuthHeaderProvider } from "@plainworks/std"
+import type { AuthContext, AuthHeaderProvider } from "@plainworks/std/seam"
 
 /**
  * Context key carrying the header names the auth interceptor injected on this attempt. The

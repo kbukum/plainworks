@@ -1,2 +1,2 @@
-export type { Json, SanitizeOptions } from "./sanitize"
-export { isJson, sanitize } from "./sanitize"
+export type { SanitizeOptions } from "./sanitize"
+export { sanitize } from "./sanitize"

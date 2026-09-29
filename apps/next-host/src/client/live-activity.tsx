@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@plainworks/elements/button"
-import type { StateSource } from "@plainworks/std"
+import type { StateSource } from "@plainworks/std/seam"
 import { Section } from "@plainworks/ui/page"
 import { Pause, Play } from "lucide-react"
 import { type ReactElement, useState } from "react"

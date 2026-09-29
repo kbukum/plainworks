@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Client tests opt into jsdom per file; the package default stays `node`.
 
-import type { StateSource } from "@plainworks/std"
+import type { StateSource } from "@plainworks/std/seam"
 import { asyncStateSource, fakeStateSource } from "@plainworks/testkit"
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"

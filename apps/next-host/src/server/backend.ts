@@ -8,8 +8,7 @@ import "server-only"
 // multi-instance, worker, or serverless deployment, replace this catch-all route handler with calls
 // to your real API origin or shared durable storage.
 
-import { systemClock } from "@plainworks/std"
-import { manualClock } from "@plainworks/testkit"
+import { fixedClock, systemClock } from "@plainworks/std/time"
 import { createDemoBackend, type DemoBackend } from "./mock-dispatch"
 
 let backend: DemoBackend | undefined
@@ -22,7 +21,7 @@ export function demoBackend(): DemoBackend {
   const fixedNow = process.env.PLAINWORKS_FIXED_NOW
   backend ??= createDemoBackend({
     seed: 7,
-    clock: fixedNow === undefined ? systemClock : manualClock(fixedNow),
+    clock: fixedNow === undefined ? systemClock : fixedClock(fixedNow),
   })
   return backend
 }

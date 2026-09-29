@@ -1,5 +1,5 @@
-import { EventEmitter } from "node:events"
 import type { IncomingMessage } from "node:http"
+import { Readable } from "node:stream"
 import { HttpResponse, http } from "msw"
 import { describe, expect, it } from "vitest"
 import { mockServerPlugin } from "./vite-plugin"
@@ -56,16 +56,11 @@ function captureMiddleware(options?: Parameters<typeof mockServerPlugin>[1]): Ca
 }
 
 function fakeRequest(method: string, url: string, body?: string): IncomingMessage {
-  const req = new EventEmitter() as IncomingMessage
+  // A real readable stream, so the plugin's web-stream body read runs as it does on a socket.
+  const req = Readable.from(body === undefined ? [] : [Buffer.from(body)]) as IncomingMessage
   req.method = method
   req.url = url
   req.headers = { host: "localhost:5173" }
-  req.destroy = (() => req) as IncomingMessage["destroy"]
-  // Deliver any body as data chunks on the next tick.
-  queueMicrotask(() => {
-    if (body !== undefined) req.emit("data", Buffer.from(body))
-    req.emit("end")
-  })
   return req
 }
 

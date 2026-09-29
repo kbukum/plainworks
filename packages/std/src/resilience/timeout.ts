@@ -1,5 +1,5 @@
 import { PlainError } from "../error"
-import type { WebAbortSignal } from "../web"
+import type { WebAbortSignal } from "../web/types"
 
 /**
  * A cancellable delay: resolve after `ms`, or reject with an {@link AbortError} if `signal` aborts

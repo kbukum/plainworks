@@ -1,6 +1,6 @@
 "use client"
 
-import type { StateSource } from "@plainworks/std"
+import type { StateSource } from "@plainworks/std/seam"
 import { useTheme } from "@plainworks/theme/client"
 import { Callout } from "@plainworks/ui/feedback"
 import { Breadcrumbs, NavList } from "@plainworks/ui/navigation"

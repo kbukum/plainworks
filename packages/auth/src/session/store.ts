@@ -1,16 +1,8 @@
 import { createStore, type Store } from "@plainworks/state"
-import {
-  type AuthContext,
-  type AuthHeaders,
-  type Clock,
-  type Delay,
-  type Identity,
-  raceAbort,
-  systemClock,
-  type WebAbortController,
-  type WebAbortSignal,
-  withTimeout,
-} from "@plainworks/std"
+import { type Delay, raceAbort, withTimeout } from "@plainworks/std/resilience"
+import type { AuthContext, AuthHeaders, Identity } from "@plainworks/std/seam"
+import { type Clock, systemClock } from "@plainworks/std/time"
+import type { WebAbortController, WebAbortSignal } from "@plainworks/std/web"
 
 /**
  * The credential material a login or refresh yields. The access token is held **in memory only**

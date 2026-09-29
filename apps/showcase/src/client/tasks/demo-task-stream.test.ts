@@ -1,4 +1,4 @@
-import type { StreamFrame, StreamTransportContext } from "@plainworks/std"
+import type { StreamFrame, StreamTransportContext } from "@plainworks/std/seam"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { createDemoTaskStream } from "./demo-task-stream"
 

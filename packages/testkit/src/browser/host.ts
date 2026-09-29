@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process"
+import { type Clock, systemClock } from "@plainworks/std/time"
 
 /**
  * How to start one reference host for one Playwright worker. Each worker gets its own process on
@@ -43,7 +44,7 @@ export interface GateHostRuntime {
   ) => SpawnedHost
   readonly fetch: (url: string, init: RequestInit) => Promise<Response>
   readonly sleep: (ms: number) => Promise<void>
-  readonly now: () => number
+  readonly clock: Clock
 }
 
 /** A host serving one worker. */
@@ -85,7 +86,7 @@ export async function startGateHost(
   })
   const running: RunningGateHost = { origin, stop: () => stopHost(child, runtime) }
 
-  const deadline = runtime.now() + (host.startTimeoutMs ?? DEFAULT_START_TIMEOUT_MS)
+  const deadline = runtime.clock.now() + (host.startTimeoutMs ?? DEFAULT_START_TIMEOUT_MS)
   for (;;) {
     if (exitCode !== undefined) {
       throw new Error(
@@ -93,7 +94,7 @@ export async function startGateHost(
       )
     }
     if (await answers(runtime, readyUrl)) break
-    if (runtime.now() >= deadline) {
+    if (runtime.clock.now() >= deadline) {
       await running.stop()
       throw new Error(`Host did not answer ${readyUrl} in time.\n${child.output()}`)
     }
@@ -178,5 +179,5 @@ export const nodeGateHostRuntime: GateHostRuntime = {
   },
   fetch: (url, init) => fetch(url, init),
   sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-  now: () => Date.now(),
+  clock: systemClock,
 }

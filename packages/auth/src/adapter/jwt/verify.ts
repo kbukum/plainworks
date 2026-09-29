@@ -1,5 +1,5 @@
-import type { WebAbortSignal, WebFetch } from "@plainworks/std"
-import { raceAbort } from "@plainworks/std"
+import { raceAbort } from "@plainworks/std/resilience"
+import type { WebAbortSignal, WebFetch } from "@plainworks/std/web"
 import { createLocalJWKSet, createRemoteJWKSet, customFetch, errors, jwtVerify } from "jose"
 import { AuthError } from "../../errors"
 

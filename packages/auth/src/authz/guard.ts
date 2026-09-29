@@ -1,4 +1,4 @@
-import type { Decision, RedirectSignal } from "@plainworks/std"
+import type { Decision, RedirectSignal } from "@plainworks/std/seam"
 import { sanitizeReturnTo } from "../redirect/sanitize"
 
 /** How a caller who fails authorization is handled. */

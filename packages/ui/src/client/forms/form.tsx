@@ -1,7 +1,7 @@
 "use client"
 
 import { FieldError } from "@plainworks/elements/field"
-import { type StandardSchemaV1, validateWithSchema } from "@plainworks/std"
+import { type StandardSchemaV1, validateWithSchema } from "@plainworks/std/seam"
 import { cn } from "@plainworks/theme"
 import {
   type FormEvent,

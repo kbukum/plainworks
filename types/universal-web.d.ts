@@ -9,66 +9,68 @@ declare function setTimeout(handler: () => void, timeout?: number): unknown
 declare function clearTimeout(id?: unknown): void
 
 declare const AbortSignal: {
-  readonly prototype: import("@plainworks/std").WebAbortSignal
-  new (): import("@plainworks/std").WebAbortSignal
+  readonly prototype: import("@plainworks/std/web").WebAbortSignal
+  new (): import("@plainworks/std/web").WebAbortSignal
   any(
-    signals: readonly import("@plainworks/std").WebAbortSignal[],
-  ): import("@plainworks/std").WebAbortSignal
+    signals: readonly import("@plainworks/std/web").WebAbortSignal[],
+  ): import("@plainworks/std/web").WebAbortSignal
 }
 
 declare const AbortController: {
-  readonly prototype: import("@plainworks/std").WebAbortController
-  new (): import("@plainworks/std").WebAbortController
+  readonly prototype: import("@plainworks/std/web").WebAbortController
+  new (): import("@plainworks/std/web").WebAbortController
 }
 
 declare const Headers: {
-  readonly prototype: import("@plainworks/std").WebHeaders
-  new (init?: import("@plainworks/std").WebHeadersInit): import("@plainworks/std").WebHeaders
+  readonly prototype: import("@plainworks/std/web").WebHeaders
+  new (
+    init?: import("@plainworks/std/web").WebHeadersInit,
+  ): import("@plainworks/std/web").WebHeaders
 }
 
 declare const Response: {
-  readonly prototype: import("@plainworks/std").WebResponse
+  readonly prototype: import("@plainworks/std/web").WebResponse
   new (
-    body?: import("@plainworks/std").WebBodyInit | null,
-    init?: import("@plainworks/std").WebResponseInit,
-  ): import("@plainworks/std").WebResponse
+    body?: import("@plainworks/std/web").WebBodyInit | null,
+    init?: import("@plainworks/std/web").WebResponseInit,
+  ): import("@plainworks/std/web").WebResponse
   json(
     data: unknown,
-    init?: import("@plainworks/std").WebResponseInit,
-  ): import("@plainworks/std").WebResponse
-  error(): import("@plainworks/std").WebResponse
+    init?: import("@plainworks/std/web").WebResponseInit,
+  ): import("@plainworks/std/web").WebResponse
+  error(): import("@plainworks/std/web").WebResponse
 }
 
-declare const fetch: import("@plainworks/std").WebFetch
+declare const fetch: import("@plainworks/std/web").WebFetch
 
 declare const TextDecoder: {
-  readonly prototype: import("@plainworks/std").WebTextDecoder
+  readonly prototype: import("@plainworks/std/web").WebTextDecoder
   new (
     label?: string,
     options?: { readonly fatal?: boolean; readonly ignoreBOM?: boolean },
-  ): import("@plainworks/std").WebTextDecoder
+  ): import("@plainworks/std/web").WebTextDecoder
 }
 
 declare const TextEncoder: {
-  readonly prototype: import("@plainworks/std").WebTextEncoder
-  new (): import("@plainworks/std").WebTextEncoder
+  readonly prototype: import("@plainworks/std/web").WebTextEncoder
+  new (): import("@plainworks/std/web").WebTextEncoder
 }
 
 declare const URLSearchParams: {
-  readonly prototype: import("@plainworks/std").WebURLSearchParams
+  readonly prototype: import("@plainworks/std/web").WebURLSearchParams
   new (
     init?:
       | string
       | readonly (readonly [string, string])[]
       | Record<string, string>
-      | import("@plainworks/std").WebURLSearchParams,
-  ): import("@plainworks/std").WebURLSearchParams
+      | import("@plainworks/std/web").WebURLSearchParams,
+  ): import("@plainworks/std/web").WebURLSearchParams
 }
 
 declare const URL: {
-  readonly prototype: import("@plainworks/std").WebURL
+  readonly prototype: import("@plainworks/std/web").WebURL
   new (
-    url: string | import("@plainworks/std").WebURL,
-    base?: string | import("@plainworks/std").WebURL,
-  ): import("@plainworks/std").WebURL
+    url: string | import("@plainworks/std/web").WebURL,
+    base?: string | import("@plainworks/std/web").WebURL,
+  ): import("@plainworks/std/web").WebURL
 }

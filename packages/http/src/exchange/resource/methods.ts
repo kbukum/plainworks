@@ -1,4 +1,4 @@
-import type { InferSchemaOutput, StandardSchemaV1 } from "@plainworks/std"
+import type { InferSchemaOutput, StandardSchemaV1 } from "@plainworks/std/seam"
 import { type HttpMethod, withIdempotencyKey } from "../../method"
 import type { RequestInput } from "../request-input"
 import type { HttpResponse } from "../response"

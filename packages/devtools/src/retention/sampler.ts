@@ -1,4 +1,5 @@
-import { assertTimerMs } from "@plainworks/std"
+import { assertTimerMs } from "@plainworks/std/resilience"
+import { type Clock, systemClock } from "@plainworks/std/time"
 import type { SourceEvent } from "../protocol"
 
 /** How a sampler thins a burst: keep the first event of each window, or keep only the latest. */
@@ -14,8 +15,8 @@ export interface EventSamplerOptions {
   readonly onEmit: (event: SourceEvent) => void
   /** Receives a clock or emission failure from the owned trailing timer. */
   readonly onError?: (error: unknown) => void
-  /** Injected clock for the current time. Defaults to `Date.now`. */
-  readonly now?: () => number
+  /** Clock for the current time. Defaults to `systemClock`. */
+  readonly clock?: Clock
 }
 
 /**
@@ -47,7 +48,7 @@ export interface EventSampler {
  */
 export function createEventSampler(options: EventSamplerOptions): EventSampler {
   const { intervalMs, mode, onEmit, onError } = options
-  const now = options.now ?? Date.now
+  const clock = options.clock ?? systemClock
   assertTimerMs(intervalMs)
 
   if (intervalMs === 0) {
@@ -72,7 +73,7 @@ export function createEventSampler(options: EventSamplerOptions): EventSampler {
       const event = pending
       pending = undefined
       try {
-        windowEnd = now() + intervalMs
+        windowEnd = clock.now() + intervalMs
         onEmit(event)
       } catch (error) {
         if (onError === undefined) throw error
@@ -93,7 +94,7 @@ export function createEventSampler(options: EventSamplerOptions): EventSampler {
   return {
     offer(event) {
       if (disposed) return
-      const current = now()
+      const current = clock.now()
       if (mode === "sample") {
         if (current >= windowEnd) {
           windowEnd = current + intervalMs

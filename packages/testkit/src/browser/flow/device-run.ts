@@ -1,4 +1,5 @@
-import { AbortError, TimeoutError, type WebAbortSignal, withTimeout } from "@plainworks/std"
+import { AbortError, TimeoutError, withTimeout } from "@plainworks/std/resilience"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { applyAllowances, capFindingsPerCheck, type Finding } from "../checks/findings"
 import { judgeLayout, judgeLayoutShift } from "../checks/heuristics"
 import type { CheckpointChecks, Flow, FlowCheckpoint } from "./definition"

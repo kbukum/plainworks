@@ -7,7 +7,7 @@ export {
   createMemoryBridge,
   type MemoryBridgeOptions,
 } from "./bridge"
-export { isJson, type Json, type SanitizeOptions, sanitize } from "./privacy"
+export { type SanitizeOptions, sanitize } from "./privacy"
 export {
   type CommandDescriptor,
   type CommandRisk,

@@ -1,4 +1,6 @@
-import { base64urlEncode, createSeededRandom, type StandardSchemaV1 } from "@plainworks/std"
+import { base64urlEncode } from "@plainworks/std/encoding"
+import { createSeededRandom } from "@plainworks/std/random"
+import type { StandardSchemaV1 } from "@plainworks/std/seam"
 import { type ManualClock, manualClock } from "@plainworks/testkit"
 import { describe, expect, test } from "vitest"
 import { AuthError } from "../errors"

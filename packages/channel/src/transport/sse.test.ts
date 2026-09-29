@@ -1,12 +1,5 @@
-import type {
-  AuthHeaders,
-  StreamFrame,
-  StreamTransportContext,
-  WebFetch,
-  WebHeaders,
-  WebRequestInit,
-  WebResponse,
-} from "@plainworks/std"
+import type { AuthHeaders, StreamFrame, StreamTransportContext } from "@plainworks/std/seam"
+import type { WebFetch, WebHeaders, WebRequestInit, WebResponse } from "@plainworks/std/web"
 import { describe, expect, test } from "vitest"
 import { ChannelError } from "../error"
 import { createSseTransport } from "./sse"

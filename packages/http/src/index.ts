@@ -7,7 +7,6 @@ export { createJsonCodec, DEFAULT_MAX_BODY_BYTES, jsonCodec } from "./codec"
 export type { HttpErrorKind } from "./error"
 export { HttpError, isHttpError } from "./error"
 export type {
-  FetchLike,
   HttpClient,
   HttpClientOptions,
   HttpRequest,

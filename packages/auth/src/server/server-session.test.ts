@@ -1,4 +1,5 @@
-import { guardSchema, systemClock } from "@plainworks/std"
+import { guardSchema } from "@plainworks/std/seam"
+import { systemClock } from "@plainworks/std/time"
 import { createMockIdp } from "@plainworks/testkit"
 import { describe, expect, test } from "vitest"
 import { oidcAdapter } from "../adapter/oidc"

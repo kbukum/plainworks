@@ -1,5 +1,6 @@
-import type { AuthHeaders, WebFetch, WebResponse } from "@plainworks/std"
-import { systemClock } from "@plainworks/std"
+import type { AuthHeaders } from "@plainworks/std/seam"
+import { systemClock } from "@plainworks/std/time"
+import type { WebFetch, WebResponse } from "@plainworks/std/web"
 import { exportJWK, generateKeyPair, type JWK, SignJWT } from "jose"
 import { describe, expect, test } from "vitest"
 import { defaultAuthCrypto } from "../../crypto"

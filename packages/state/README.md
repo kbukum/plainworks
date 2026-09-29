@@ -187,7 +187,7 @@ const usePrefs = createScopedState({
 
 ### The two seams
 
-A scoped value is the composition of two seams: a `StateSource` **backend** (from `@plainworks/std`, *where the value lives*) feeding a mirror `Store` driven by the React **binding** (*what a component reads*).
+A scoped value is the composition of two seams: a `StateSource` **backend** (from `@plainworks/std/seam`, *where the value lives*) feeding a mirror `Store` driven by the React **binding** (*what a component reads*).
 
 ```mermaid
 flowchart LR

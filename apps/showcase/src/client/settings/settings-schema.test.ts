@@ -1,4 +1,4 @@
-import { validateWithSchema } from "@plainworks/std"
+import { validateWithSchema } from "@plainworks/std/seam"
 import { describe, expect, it } from "vitest"
 import {
   notificationsFormSchema,

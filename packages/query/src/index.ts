@@ -23,7 +23,7 @@ export type {
   PresenceFilter,
   ScalarFilter,
   SortDirection,
-} from "@plainworks/std"
+} from "@plainworks/std/list"
 export type {
   OptimisticUpdate,
   QueryCacheAction,

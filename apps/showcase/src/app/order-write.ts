@@ -5,7 +5,9 @@
 
 import type { Order } from "@plainworks/demo"
 import type { createHttpClient } from "@plainworks/http"
-import { guardSchema, isRecord, type WebAbortSignal } from "@plainworks/std"
+import { isRecord } from "@plainworks/std"
+import { guardSchema } from "@plainworks/std/seam"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { encodeIdSegment } from "./id-segment"
 import { isOrder } from "./order-shape"
 

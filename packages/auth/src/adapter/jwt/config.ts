@@ -1,4 +1,5 @@
-import type { WebFetch } from "@plainworks/std"
+import { isNonNegativeInteger, isPositiveInteger } from "@plainworks/std"
+import type { WebFetch } from "@plainworks/std/web"
 import { AuthError } from "../../errors"
 
 /** The registry kind under which the stateless JWT bearer-verifier adapter registers. */
@@ -66,10 +67,7 @@ function requireHttpUrl(value: unknown, field: string): void {
 }
 
 function requirePositiveInteger(value: unknown, field: string): void {
-  if (
-    value !== undefined &&
-    (typeof value !== "number" || !Number.isInteger(value) || value <= 0)
-  ) {
+  if (value !== undefined && !isPositiveInteger(value)) {
     throw new AuthError("auth/config", `JWT adapter config \`${field}\` must be a positive integer`)
   }
 }
@@ -141,9 +139,7 @@ export function validateJwtAdapterConfig(config: unknown): JwtAdapterConfig {
   requirePositiveInteger(candidate.timeoutMs, "timeoutMs")
   if (
     candidate.cooldownDurationMs !== undefined &&
-    (typeof candidate.cooldownDurationMs !== "number" ||
-      !Number.isInteger(candidate.cooldownDurationMs) ||
-      candidate.cooldownDurationMs < 0)
+    !isNonNegativeInteger(candidate.cooldownDurationMs)
   ) {
     throw new AuthError(
       "auth/config",

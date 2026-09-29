@@ -3,7 +3,8 @@
  * Eliminates repetitive REST endpoint boilerplate
  */
 
-import type { Clock } from "@plainworks/std"
+import { isPositiveInteger } from "@plainworks/std"
+import type { Clock } from "@plainworks/std/time"
 import { type HttpHandler, HttpResponse, http } from "msw"
 import type { EntityStore } from "../../data/common/store"
 import { type FilterCondition, parseApiParams } from "../../filter"
@@ -116,7 +117,7 @@ const forbidden = (): Response =>
 function parsePositiveInt(value: string | null, defaultValue: number): number | null {
   if (value === null || value === "") return defaultValue
   const parsed = Number(value)
-  if (!Number.isInteger(parsed) || parsed < 1) return null
+  if (!isPositiveInteger(parsed)) return null
   return parsed
 }
 

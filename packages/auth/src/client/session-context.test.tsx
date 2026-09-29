@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Client tests opt into jsdom per file; the package default stays `node` so the neutral `.` and
 // `./server` entries can never lean on a DOM global unnoticed.
-import type { Identity } from "@plainworks/std"
+import type { Identity } from "@plainworks/std/seam"
 import { cleanup, render, screen } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { afterEach, describe, expect, test } from "vitest"

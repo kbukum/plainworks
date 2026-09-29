@@ -1,11 +1,10 @@
+import { base64urlDecode, base64urlEncode } from "@plainworks/std/encoding"
 import {
-  base64urlDecode,
-  base64urlEncode,
-  type Clock,
   type InferSchemaOutput,
   type StandardSchemaV1,
   validateWithSchema,
-} from "@plainworks/std"
+} from "@plainworks/std/seam"
+import type { Clock } from "@plainworks/std/time"
 import { AuthError } from "../errors"
 import type { SessionSigner } from "../signer/seam"
 

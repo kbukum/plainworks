@@ -1,4 +1,5 @@
-import type { AuthHeaders, Identity, WebFetch } from "@plainworks/std"
+import type { AuthHeaders, Identity } from "@plainworks/std/seam"
+import { resolveFetch } from "@plainworks/std/web"
 import { AuthError } from "../../errors"
 import type { AuthAdapter, AuthAdapterDeps, AuthenticateRequest } from "../seam"
 import { JWT_ADAPTER_KIND, type JwtAdapterConfig, jwtAlgorithms } from "./config"
@@ -7,20 +8,6 @@ import { createJwtVerifier } from "./verify"
 const DEFAULT_HEADER = "Authorization"
 const DEFAULT_SCHEME = "Bearer"
 const DEFAULT_SUBJECT_CLAIM = "sub"
-
-function resolveFetch(configured: WebFetch | undefined): WebFetch {
-  if (configured !== undefined) {
-    return configured
-  }
-  const candidate = (globalThis as { fetch?: WebFetch }).fetch
-  if (typeof candidate !== "function") {
-    throw new AuthError(
-      "auth/config",
-      "no global fetch is available; inject a jwt `fetch` for this runtime",
-    )
-  }
-  return candidate
-}
 
 /**
  * Read the bearer credential from the configured header — header-only, never a URL/query string.
@@ -64,7 +51,18 @@ export function jwtAdapter(config: JwtAdapterConfig, _deps: AuthAdapterDeps): Au
   const verifier = createJwtVerifier({
     jwksUri: config.jwksUri,
     jwks: config.jwks,
-    ...(config.jwksUri === undefined ? {} : { fetch: resolveFetch(config.fetch) }),
+    ...(config.jwksUri === undefined
+      ? {}
+      : {
+          fetch: resolveFetch(
+            config.fetch,
+            () =>
+              new AuthError(
+                "auth/config",
+                "no global fetch is available; inject a jwt `fetch` for this runtime",
+              ),
+          ),
+        }),
     issuer: config.issuer,
     audience: config.audience,
     algorithms: jwtAlgorithms(config),

@@ -4,6 +4,7 @@ import { createMockServerHandle } from "@plainworks/demo/server"
 import { createDevtoolsSession, sourceKey } from "@plainworks/devtools"
 import { createHttpClient, type HttpClient } from "@plainworks/http"
 import { createMockControlClient, type MockControlClient } from "@plainworks/mocks"
+import { fixedClock } from "@plainworks/std/time"
 import { deferred } from "@plainworks/testkit"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
@@ -29,7 +30,12 @@ function makeClient(): HttpClient {
 function setup(client: HttpClient) {
   const session = createDevtoolsSession()
   const registration = session.registerSource(
-    createMockSource({ control: controlOf(client), client, pollIntervalMs: 0, now: () => 1_000 }),
+    createMockSource({
+      control: controlOf(client),
+      client,
+      pollIntervalMs: 0,
+      clock: fixedClock(1_000),
+    }),
   )
   return { session, port: session.connect(), registration }
 }
@@ -229,7 +235,7 @@ describe("createMockSource", () => {
         control: controlOf(client),
         client,
         pollIntervalMs: 50,
-        now: () => 1_000,
+        clock: fixedClock(1_000),
       }),
     )
     try {

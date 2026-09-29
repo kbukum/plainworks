@@ -3,9 +3,8 @@
  * serialization, and the per-cookie byte budget. It lives in `std` (the bottom layer) so both the
  * client cookie scope in `@plainworks/state` and the server-owned `__Host-` session cookie in
  * `@plainworks/auth` share **one** grammar instead of each hand-rolling it. It touches no host
- * global: name/path checks are string regexes, the byte budget is measured without allocating a
- * `TextEncoder`, and reading `document.cookie` / the host `Set-Cookie` transport stays with the
- * caller.
+ * global: name/path checks are string regexes, the byte budget is measured with `utf8ByteLength`,
+ * and reading `document.cookie` / the host `Set-Cookie` transport stays with the caller.
  */
 
 // A cookie name is an RFC 6265 token: visible ASCII minus controls, whitespace, and separators
@@ -47,36 +46,6 @@ export function isCookiePath(path: string): boolean {
 }
 
 /**
- * The UTF-8 byte length of `value`, measured directly so a hot cookie write never allocates a
- * `TextEncoder`. Matches `new TextEncoder().encode(value).length` — including the 3-byte
- * replacement for a lone surrogate — which is what the cookie byte budget is measured against.
- */
-export function utf8ByteLength(value: string): number {
-  let bytes = 0
-  for (let index = 0; index < value.length; index++) {
-    const code = value.charCodeAt(index)
-    if (code < 0x80) {
-      bytes += 1
-    } else if (code < 0x800) {
-      bytes += 2
-    } else if (code >= 0xd800 && code <= 0xdbff) {
-      const next = value.charCodeAt(index + 1)
-      if (next >= 0xdc00 && next <= 0xdfff) {
-        // A well-formed surrogate pair encodes one 4-byte code point.
-        bytes += 4
-        index++
-      } else {
-        // A lone high surrogate encodes as the 3-byte replacement character.
-        bytes += 3
-      }
-    } else {
-      bytes += 3
-    }
-  }
-  return bytes
-}
-
-/**
  * Parse a `Cookie` request header (`name=value; name2=value2`) into a name→value map. The value is
  * returned **exactly as sent** (still percent-encoded) — decoding and interpreting it is the
  * caller's concern, since encoding is per-cookie. Malformed pairs (no `=`, empty name) are skipped,
@@ -98,6 +67,15 @@ export function parseCookieHeader(header: string): Map<string, string> {
     }
   }
   return jar
+}
+
+/**
+ * Read one cookie's raw value from a `Cookie` header (or a `document.cookie` string), or
+ * `undefined` when it is absent. Same rules as {@link parseCookieHeader}: the value is returned
+ * still percent-encoded, and the first occurrence of a name wins.
+ */
+export function readCookie(header: string, name: string): string | undefined {
+  return parseCookieHeader(header).get(name)
 }
 
 /**

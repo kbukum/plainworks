@@ -4,7 +4,7 @@
 // applies to `fetch`. Header-only auth flows through {@link WebSocketConnectInit.headers}: a Node
 // `ws` factory forwards them; the browser default cannot, so header-authenticated browser channels
 // inject a factory (or rely on cookies). A token NEVER goes in the URL.
-import type { AuthHeaders } from "@plainworks/std"
+import type { AuthHeaders } from "@plainworks/std/seam"
 import { ChannelError } from "../../error"
 
 /** The `readyState` value of an open socket (mirrors `WebSocket.OPEN`). */

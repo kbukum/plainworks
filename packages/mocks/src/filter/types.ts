@@ -1,4 +1,4 @@
-import type { FilterOperator } from "@plainworks/std"
+import type { FilterOperator } from "@plainworks/std/list"
 
 /**
  * Structured filter query shapes for the mock handlers. The operator vocabulary itself is **not**

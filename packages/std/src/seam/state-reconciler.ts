@@ -1,6 +1,6 @@
-import { AbortError } from "./resilience"
-import type { StateSource } from "./seam"
-import type { WebAbortController, WebAbortSignal } from "./web"
+import { AbortError } from "../resilience"
+import type { WebAbortController, WebAbortSignal } from "../web"
+import type { StateSource } from "./state"
 
 /** Where a rejected reconciler read is routed — never swallowed. */
 export type ReconcilerReport = (error: unknown) => void

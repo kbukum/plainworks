@@ -1,7 +1,7 @@
 /**
  * Repo-only build shim that binds the universal Web-platform runtime globals (Node 18+, Deno, edge, browser, worker) so host-independent package *source* typechecks against ES-only libs without pulling the DOM/WebWorker libs (which would leak host-only globals `window`, `self`, `caches`, `indexedDB` past the "assume no host" boundary). Included explicitly by each host-independent package tsconfig; host-bound tooling opts into `types: ["node"]` instead.
  *
- * This file declares only the runtime *values* (constructors and `fetch`). Their instance and argument shapes come from the shipped, self-contained `@plainworks/std` web contract (`packages/std/src/web.ts`), so there is one source of truth and the emitted `.d.ts` of every package references those exported `Web*` types — never a repo-only ambient — and therefore typechecks standalone in a consumer that has neither DOM nor `@types/node`. These value globals appear only in `.js` output, so they are never part of any package's published type surface. Extend only with APIs that are genuinely universal.
+ * This file declares only the runtime *values* (constructors and `fetch`). Their instance and argument shapes come from the shipped, self-contained `@plainworks/std` web contract (`packages/std/src/web/types.ts`), so there is one source of truth and the emitted `.d.ts` of every package references those exported `Web*` types — never a repo-only ambient — and therefore typechecks standalone in a consumer that has neither DOM nor `@types/node`. These value globals appear only in `.js` output, so they are never part of any package's published type surface. Extend only with APIs that are genuinely universal.
  */
 
 // Timer handles are intentionally opaque: Node returns an object, browsers a number.

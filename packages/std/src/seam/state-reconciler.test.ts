@@ -5,9 +5,9 @@
 
 import type { StateSource } from "@plainworks/std"
 import { describe, expect, test } from "vitest"
-import { AbortError } from "./resilience"
+import { AbortError } from "../resilience"
+import type { WebAbortSignal } from "../web"
 import { createSourceReconciler } from "./state-reconciler"
-import type { WebAbortSignal } from "./web"
 
 interface PendingWrite {
   readonly op: string

@@ -1,18 +1,20 @@
 // Server-safe public entry for `@plainworks/std` — the bottom of the layer graph. Re-export-only
 // barrel (no logic here; implementation lives in concern modules). Zero runtime dependencies and no
 // React or DOM imports, so it runs anywhere: Node, edge, RSC, browser.
-export { base64urlDecode, base64urlEncode } from "./base64url"
-export type { CookieAttributes, CookieSameSite } from "./cookie"
+export { base64urlDecode, base64urlEncode } from "./encoding"
+export type { Err, ErrorSnapshot, Ok, PlainErrorOptions, Result } from "./error"
 export {
-  isCookieNameToken,
-  isCookiePath,
-  MAX_COOKIE_BYTES,
-  parseCookieHeader,
-  serializeCookieAttributes,
-  utf8ByteLength,
-} from "./cookie"
-export type { ErrorSnapshot, PlainErrorOptions } from "./errors"
-export { createErrorSnapshot, ensureError, getErrorMessage, PlainError } from "./errors"
+  createErrorSnapshot,
+  ensureError,
+  err,
+  getErrorMessage,
+  isErr,
+  isOk,
+  ok,
+  PlainError,
+  unwrap,
+  unwrapOr,
+} from "./error"
 export {
   assert,
   assertNever,
@@ -56,10 +58,10 @@ export {
 } from "./list"
 export type { Handler, Interceptor } from "./pipeline"
 export { composeInterceptors, pipeValues } from "./pipeline"
+export type { RedactOptions } from "./privacy"
+export { isSensitiveKey, redact } from "./privacy"
 export type { RandomSource } from "./random"
 export { createSeededRandom, idempotencyKey, randomId, systemRandom } from "./random"
-export type { RedactOptions } from "./redact"
-export { isSensitiveKey, redact } from "./redact"
 export type {
   BackoffPolicy,
   BoundedQueue,
@@ -97,8 +99,6 @@ export {
   TimeoutError,
   withTimeout,
 } from "./resilience"
-export type { Err, Ok, Result } from "./result"
-export { err, isErr, isOk, ok, unwrap, unwrapOr } from "./result"
 export type {
   AuthContext,
   AuthHeaderProvider,
@@ -111,6 +111,7 @@ export type {
   InferSchemaOutput,
   Listener,
   PlainEvent,
+  ReconcilerReport,
   RedirectSignal,
   StandardSchemaFailure,
   StandardSchemaIssue,
@@ -121,6 +122,7 @@ export type {
   StandardSchemaTypes,
   StandardSchemaV1,
   StateCapabilities,
+  StateReconciler,
   StateSerializer,
   StateSource,
   StreamFrame,
@@ -129,12 +131,12 @@ export type {
   StreamTransportFactory,
   Subscription,
 } from "./seam"
-export { guardSchema, unsafePassthrough, validateWithSchema } from "./seam"
-export type { ReconcilerReport, StateReconciler } from "./state-reconciler"
-export { createSourceReconciler } from "./state-reconciler"
+export { createSourceReconciler, guardSchema, unsafePassthrough, validateWithSchema } from "./seam"
 export type { Clock } from "./time"
 export { systemClock } from "./time"
 export type {
+  CookieAttributes,
+  CookieSameSite,
   WebAbortController,
   WebAbortSignal,
   WebBodyInit,
@@ -150,4 +152,12 @@ export type {
   WebTextEncoder,
   WebURL,
   WebURLSearchParams,
+} from "./web"
+export {
+  isCookieNameToken,
+  isCookiePath,
+  MAX_COOKIE_BYTES,
+  parseCookieHeader,
+  serializeCookieAttributes,
+  utf8ByteLength,
 } from "./web"

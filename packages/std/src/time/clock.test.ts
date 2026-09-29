@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest"
-import { type Clock, systemClock } from "./time"
+import { type Clock, systemClock } from "./clock"
 
 describe("systemClock", () => {
   test("reports the current epoch milliseconds from the host clock", () => {

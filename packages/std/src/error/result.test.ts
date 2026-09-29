@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { PlainError } from "./errors"
+import { PlainError } from "./plain-error"
 import { err, isErr, isOk, ok, type Result, unwrap, unwrapOr } from "./result"
 
 describe("Result constructors", () => {

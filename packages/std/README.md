@@ -12,7 +12,9 @@ bun add @plainworks/std
 
 ## What's inside
 
-- **Errors** — `PlainError` (typed base that preserves `cause` and carries a `kind` discriminant), `ensureError`, `getErrorMessage`.
+The source is grouped by concern, one folder each: `error`, `guard`, `resilience`, `pipeline`, `privacy`, `random`, `time`, `encoding`, `list`, `seam`, and `web`. Everything is exported flat from the `.` entry.
+
+- **Errors** — `PlainError` (typed base that preserves `cause` and carries a `kind` discriminant), `ensureError`, `getErrorMessage`, and `createErrorSnapshot` (an inert copy that is safe to log).
 - **Result** — `Result<T, E>` with `ok` / `err` / `isOk` / `isErr` / `unwrap` / `unwrapOr`.
 - **Guards** — `isDefined`, `isRecord`, `isNonEmptyString`, `hasProperty`.
 - **Assertions** — `assert`, `assertNever`.
@@ -25,11 +27,14 @@ bun add @plainworks/std
 - **Pipeline** — `composeInterceptors` / `pipeValues`, the generic handler/interceptor combinators.
 - **Redaction** — `redact`, structural secret stripping for safe logging.
 - **Randomness** — `systemRandom` and seedable `createSeededRandom` for deterministic tests.
-- **Utilities** — `randomId` / `idempotencyKey` (Web Crypto UUID), `systemClock` + the `Clock` seam.
+- **Ids and time** — `randomId` / `idempotencyKey` (Web Crypto UUID), `systemClock` + the `Clock` seam.
+- **Encoding** — `base64urlEncode` / `base64urlDecode`.
+- **Cookies** — `parseCookieHeader`, `serializeCookieAttributes`, and the name, path, and size checks.
 - **List contract** — the protocol-independent list-read shapes: the typed request (`ListQueryParams`, the `ListFilter` discriminated union, the `FilterOperator` operator vocabulary) and the response envelopes (`PaginatedResult`, `CursorResult`, `PageInfo`, `CursorInfo`, `Facets`). A transport maps them to its own wire dialect (`@plainworks/http` owns the PostgREST/Supabase REST one); `query` derives cache keys from the same abstract params.
 - **Shared seams** — the single source of truth higher layers implement:
   - `AuthHeaderProvider` / `AuthHeaders` — the header-only auth seam.
   - `PlainEvent` / `Listener` / `Subscription` — the event and teardown shapes.
+  - `StateSource` and `createSourceReconciler` — the async state-source seam and the reconciler that keeps reads and writes in order.
   - `StandardSchemaV1` — the [Standard Schema](https://standardschema.dev) validation seam (owned structurally, so any Zod/Valibot/ArkType schema fits without a dependency), with `validateWithSchema` (validation → `Result`) and the audited `unsafePassthrough<T>()` opt-out. `http` turns an untrusted decoded `unknown` into a typed value through it.
 - **Web-platform types** — self-contained structural types (`WebFetch`, `WebResponse`, `WebHeaders`, `WebRequestInit`, `WebAbortSignal`, `WebURL`, `WebReadableStream`, `WebTextDecoder`, …) that let a neutral package name `fetch`/`Headers`/`Response`/`URL` in its public API and ship a `.d.ts` that typechecks standalone against the ES lib — no DOM or `@types/node` dependency imposed on consumers.
 

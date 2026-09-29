@@ -30,214 +30,213 @@
   },
   "files": [
     "dist",
+    "src",
+    "!src/**/*.test.*",
     "registry.json",
-    "src/atoms",
-    "src/shadcn",
-    "shadcn.lock.json",
-    "!src/atoms/**/*.test.*",
-    "!src/shadcn/**/*.test.*"
+    "shadcn.lock.json"
   ],
   "exports": {
     ".": {
+      "@plainworks/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./accordion": {
       "types": "./dist/accordion.d.ts",
-      "import": "./dist/accordion.js"
+      "default": "./dist/accordion.js"
     },
     "./alert": {
       "types": "./dist/alert.d.ts",
-      "import": "./dist/alert.js"
+      "default": "./dist/alert.js"
     },
     "./alert-dialog": {
       "types": "./dist/alert-dialog.d.ts",
-      "import": "./dist/alert-dialog.js"
+      "default": "./dist/alert-dialog.js"
     },
     "./aspect-ratio": {
       "types": "./dist/aspect-ratio.d.ts",
-      "import": "./dist/aspect-ratio.js"
+      "default": "./dist/aspect-ratio.js"
     },
     "./avatar": {
       "types": "./dist/avatar.d.ts",
-      "import": "./dist/avatar.js"
+      "default": "./dist/avatar.js"
     },
     "./badge": {
       "types": "./dist/badge.d.ts",
-      "import": "./dist/badge.js"
+      "default": "./dist/badge.js"
     },
     "./breadcrumb": {
       "types": "./dist/breadcrumb.d.ts",
-      "import": "./dist/breadcrumb.js"
+      "default": "./dist/breadcrumb.js"
     },
     "./button": {
       "types": "./dist/button.d.ts",
-      "import": "./dist/button.js"
+      "default": "./dist/button.js"
     },
     "./button-group": {
       "types": "./dist/button-group.d.ts",
-      "import": "./dist/button-group.js"
+      "default": "./dist/button-group.js"
     },
     "./calendar": {
       "types": "./dist/calendar.d.ts",
-      "import": "./dist/calendar.js"
+      "default": "./dist/calendar.js"
     },
     "./card": {
       "types": "./dist/card.d.ts",
-      "import": "./dist/card.js"
+      "default": "./dist/card.js"
     },
     "./checkbox": {
       "types": "./dist/checkbox.d.ts",
-      "import": "./dist/checkbox.js"
+      "default": "./dist/checkbox.js"
     },
     "./collapsible": {
       "types": "./dist/collapsible.d.ts",
-      "import": "./dist/collapsible.js"
+      "default": "./dist/collapsible.js"
     },
     "./command": {
       "types": "./dist/command.d.ts",
-      "import": "./dist/command.js"
+      "default": "./dist/command.js"
     },
     "./context-menu": {
       "types": "./dist/context-menu.d.ts",
-      "import": "./dist/context-menu.js"
+      "default": "./dist/context-menu.js"
     },
     "./dialog": {
       "types": "./dist/dialog.d.ts",
-      "import": "./dist/dialog.js"
+      "default": "./dist/dialog.js"
     },
     "./dropdown-menu": {
       "types": "./dist/dropdown-menu.d.ts",
-      "import": "./dist/dropdown-menu.js"
+      "default": "./dist/dropdown-menu.js"
     },
     "./empty": {
       "types": "./dist/empty.d.ts",
-      "import": "./dist/empty.js"
+      "default": "./dist/empty.js"
     },
     "./field": {
       "types": "./dist/field.d.ts",
-      "import": "./dist/field.js"
+      "default": "./dist/field.js"
     },
     "./hover-card": {
       "types": "./dist/hover-card.d.ts",
-      "import": "./dist/hover-card.js"
+      "default": "./dist/hover-card.js"
     },
     "./input": {
       "types": "./dist/input.d.ts",
-      "import": "./dist/input.js"
+      "default": "./dist/input.js"
     },
     "./input-group": {
       "types": "./dist/input-group.d.ts",
-      "import": "./dist/input-group.js"
+      "default": "./dist/input-group.js"
     },
     "./input-otp": {
       "types": "./dist/input-otp.d.ts",
-      "import": "./dist/input-otp.js"
+      "default": "./dist/input-otp.js"
     },
     "./item": {
       "types": "./dist/item.d.ts",
-      "import": "./dist/item.js"
+      "default": "./dist/item.js"
     },
     "./kbd": {
       "types": "./dist/kbd.d.ts",
-      "import": "./dist/kbd.js"
+      "default": "./dist/kbd.js"
     },
     "./label": {
       "types": "./dist/label.d.ts",
-      "import": "./dist/label.js"
+      "default": "./dist/label.js"
     },
     "./menubar": {
       "types": "./dist/menubar.d.ts",
-      "import": "./dist/menubar.js"
+      "default": "./dist/menubar.js"
     },
     "./native-select": {
       "types": "./dist/native-select.d.ts",
-      "import": "./dist/native-select.js"
+      "default": "./dist/native-select.js"
     },
     "./navigation-menu": {
       "types": "./dist/navigation-menu.d.ts",
-      "import": "./dist/navigation-menu.js"
+      "default": "./dist/navigation-menu.js"
     },
     "./pagination": {
       "types": "./dist/pagination.d.ts",
-      "import": "./dist/pagination.js"
+      "default": "./dist/pagination.js"
     },
     "./popover": {
       "types": "./dist/popover.d.ts",
-      "import": "./dist/popover.js"
+      "default": "./dist/popover.js"
     },
     "./progress": {
       "types": "./dist/progress.d.ts",
-      "import": "./dist/progress.js"
+      "default": "./dist/progress.js"
     },
     "./radio-group": {
       "types": "./dist/radio-group.d.ts",
-      "import": "./dist/radio-group.js"
+      "default": "./dist/radio-group.js"
     },
     "./scroll-area": {
       "types": "./dist/scroll-area.d.ts",
-      "import": "./dist/scroll-area.js"
+      "default": "./dist/scroll-area.js"
     },
     "./select": {
       "types": "./dist/select.d.ts",
-      "import": "./dist/select.js"
+      "default": "./dist/select.js"
     },
     "./separator": {
       "types": "./dist/separator.d.ts",
-      "import": "./dist/separator.js"
+      "default": "./dist/separator.js"
     },
     "./sheet": {
       "types": "./dist/sheet.d.ts",
-      "import": "./dist/sheet.js"
+      "default": "./dist/sheet.js"
     },
     "./skeleton": {
       "types": "./dist/skeleton.d.ts",
-      "import": "./dist/skeleton.js"
+      "default": "./dist/skeleton.js"
     },
     "./slider": {
       "types": "./dist/slider.d.ts",
-      "import": "./dist/slider.js"
+      "default": "./dist/slider.js"
     },
     "./sonner": {
+      "@plainworks/source": "./src/atoms/sonner.tsx",
       "types": "./dist/sonner.d.ts",
-      "import": "./dist/sonner.js"
+      "default": "./dist/sonner.js"
     },
     "./switch": {
       "types": "./dist/switch.d.ts",
-      "import": "./dist/switch.js"
+      "default": "./dist/switch.js"
     },
     "./table": {
       "types": "./dist/table.d.ts",
-      "import": "./dist/table.js"
+      "default": "./dist/table.js"
     },
     "./tabs": {
       "types": "./dist/tabs.d.ts",
-      "import": "./dist/tabs.js"
+      "default": "./dist/tabs.js"
     },
     "./textarea": {
       "types": "./dist/textarea.d.ts",
-      "import": "./dist/textarea.js"
+      "default": "./dist/textarea.js"
     },
     "./toggle": {
       "types": "./dist/toggle.d.ts",
-      "import": "./dist/toggle.js"
+      "default": "./dist/toggle.js"
     },
     "./toggle-group": {
       "types": "./dist/toggle-group.d.ts",
-      "import": "./dist/toggle-group.js"
+      "default": "./dist/toggle-group.js"
     },
     "./tooltip": {
       "types": "./dist/tooltip.d.ts",
-      "import": "./dist/tooltip.js"
+      "default": "./dist/tooltip.js"
     },
     "./styles.css": "./dist/styles.css"
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.shadcn.json && tsc --noEmit -p tsconfig.scripts.json",
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.scripts.json && tsc --noEmit -p tsconfig.shadcn.json",
     "test": "vitest run --coverage",
-    "lint": "biome check .",
-    "check-packaging": "publint --strict && attw --pack --profile esm-only --exclude-entrypoints @plainworks/elements/styles.css",
+    "check-packaging": "plainworks-release check-packaging",
     "registry:add": "bun scripts/registry/cli.ts add",
     "registry:update": "bun scripts/registry/cli.ts update",
     "registry:diff": "bun scripts/registry/cli.ts diff",
@@ -264,9 +263,9 @@
     }
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "catalog:",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
+    "@plainworks/vitest-config": "workspace:*",
     "@testing-library/react": "catalog:",
     "@testing-library/user-event": "catalog:",
     "@types/node": "catalog:",
@@ -276,7 +275,6 @@
     "axe-core": "catalog:",
     "jsdom": "catalog:",
     "msw": "catalog:",
-    "publint": "catalog:",
     "shadcn": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",

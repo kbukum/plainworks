@@ -38,3 +38,7 @@ A minimal but fully wired host: the composition kernel, `theme`, `query`, `chann
 ## Versions
 
 The generated `package.json` resolves workspace protocol ranges so the scaffolded project stands alone: every `@plainworks/*` dependency is pinned to the exact published version this initializer ships with, and shared third-party dependencies are resolved from the catalog semver ranges (no `workspace:` or `catalog:` protocols leak). A drift check keeps that version map in sync with the monorepo catalog.
+
+## Ejectable app shape
+
+The starter is built from the app profile used in this repo. Inside the monorepo its `tsconfig` extends `../../tsconfig.app.json`; eject writes a standalone equivalent so the app can live outside the workspace. Eject also drops repo-only gates and private tooling (`test`, `check-production`, the unit-test toolchain, `@plainworks/bundle-exclusion`, and `@plainworks/vitest-config`). `@plainworks/testkit` stays because the starter ships Playwright flows.

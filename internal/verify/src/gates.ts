@@ -36,6 +36,7 @@ export const GATES: readonly Gate[] = [
   repoGate("check-comments", "comment prose within the 100-column width"),
   repoGate("check-layer-map", "layer-map docs match internal/boundaries/layers.json"),
   repoGate("check-registry", "vendored atoms match shadcn.lock.json"),
+  repoGate("check-shape", "every workspace matches its generated profile"),
   turboGate("typecheck", "tsc --noEmit for every project and the generator", [
     "tsc",
     "-p",
@@ -44,6 +45,6 @@ export const GATES: readonly Gate[] = [
   repoGate("check-boundaries", "dependency-cruiser layers, cycles, and client/server split"),
   turboGate("build", "tsdown ESM-only dist for every package"),
   turboGate("test", "Vitest with coverage thresholds"),
-  turboGate("check-packaging", "publint + are-the-types-wrong over each built tarball"),
+  turboGate("check-packaging", "publint + are-the-types-wrong over each packed tarball"),
   turboGate("check-production", "host production builds exclude the development inspector"),
 ]

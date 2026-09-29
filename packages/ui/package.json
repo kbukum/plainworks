@@ -17,9 +17,9 @@
     "@plainworks/theme": "workspace:*"
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "catalog:",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
+    "@plainworks/vitest-config": "workspace:*",
     "@testing-library/react": "catalog:",
     "@testing-library/user-event": "catalog:",
     "@types/node": "catalog:",
@@ -29,79 +29,88 @@
     "axe-core": "catalog:",
     "jsdom": "catalog:",
     "msw": "catalog:",
-    "publint": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
   "exports": {
     ".": {
+      "@plainworks/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./client": {
+      "@plainworks/source": "./src/client.ts",
       "types": "./dist/client.d.ts",
-      "import": "./dist/client.js"
+      "default": "./dist/client.js"
     },
     "./hooks": {
+      "@plainworks/source": "./src/client/hooks/index.ts",
       "types": "./dist/hooks.d.ts",
-      "import": "./dist/hooks.js"
+      "default": "./dist/hooks.js"
     },
     "./layout": {
+      "@plainworks/source": "./src/client/layout/index.ts",
       "types": "./dist/layout.d.ts",
-      "import": "./dist/layout.js"
+      "default": "./dist/layout.js"
     },
     "./feedback": {
+      "@plainworks/source": "./src/client/feedback/index.ts",
       "types": "./dist/feedback.d.ts",
-      "import": "./dist/feedback.js"
+      "default": "./dist/feedback.js"
     },
     "./overlays": {
+      "@plainworks/source": "./src/client/overlays/index.ts",
       "types": "./dist/overlays.d.ts",
-      "import": "./dist/overlays.js"
+      "default": "./dist/overlays.js"
     },
     "./display": {
+      "@plainworks/source": "./src/client/display/index.ts",
       "types": "./dist/display.d.ts",
-      "import": "./dist/display.js"
+      "default": "./dist/display.js"
     },
     "./navigation": {
+      "@plainworks/source": "./src/client/navigation/index.ts",
       "types": "./dist/navigation.d.ts",
-      "import": "./dist/navigation.js"
+      "default": "./dist/navigation.js"
     },
     "./data-table": {
+      "@plainworks/source": "./src/client/data-table/index.ts",
       "types": "./dist/data-table.d.ts",
-      "import": "./dist/data-table.js"
+      "default": "./dist/data-table.js"
     },
     "./forms": {
+      "@plainworks/source": "./src/client/forms/index.ts",
       "types": "./dist/forms.d.ts",
-      "import": "./dist/forms.js"
+      "default": "./dist/forms.js"
     },
     "./list": {
+      "@plainworks/source": "./src/client/list/index.ts",
       "types": "./dist/list.d.ts",
-      "import": "./dist/list.js"
+      "default": "./dist/list.js"
     },
     "./page": {
+      "@plainworks/source": "./src/client/page/index.ts",
       "types": "./dist/page.d.ts",
-      "import": "./dist/page.js"
+      "default": "./dist/page.js"
     },
     "./shell": {
+      "@plainworks/source": "./src/client/shell/index.ts",
       "types": "./dist/shell.d.ts",
-      "import": "./dist/shell.js"
+      "default": "./dist/shell.js"
     },
     "./theme": {
-      "types": "./dist/theme-client.d.ts",
-      "import": "./dist/theme-client.js"
+      "@plainworks/source": "./src/client/theme/index.ts",
+      "types": "./dist/theme.d.ts",
+      "default": "./dist/theme.js"
     },
     "./styles.css": "./dist/styles.css"
   },
   "files": [
     "dist",
-    "registry.json",
-    "src/client",
-    "src/hooks",
-    "src/region",
-    "!src/client/**/*.test.*",
-    "!src/hooks/**/*.test.*",
-    "!src/region/**/*.test.*"
+    "src",
+    "!src/**/*.test.*",
+    "registry.json"
   ],
   "homepage": "https://github.com/kbukum/plainworks/tree/main/packages/ui#readme",
   "keywords": [
@@ -127,9 +136,8 @@
   },
   "scripts": {
     "build": "tsdown",
-    "check-packaging": "publint --strict && attw --pack --profile esm-only --exclude-entrypoints @plainworks/ui/styles.css",
+    "check-packaging": "plainworks-release check-packaging",
     "codegen": "bun scripts/codegen/cli.ts",
-    "lint": "biome check .",
     "test": "vitest run --coverage",
     "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.scripts.json"
   }

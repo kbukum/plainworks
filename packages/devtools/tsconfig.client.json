@@ -5,18 +5,7 @@
   // base config. The server project (`tsconfig.src.json`) stays DOM-free and excludes this graph,
   // so the `.` entry can never silently depend on a browser global.
   "compilerOptions": {
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "paths": {
-      "@plainworks/testkit": ["../testkit/src"],
-      "@plainworks/testkit/client": ["../testkit/src/client/index.ts"],
-      "@plainworks/state/client/scope": ["../state/src/client/scope/index.ts"],
-      "@plainworks/theme": ["../theme/src"],
-      "@plainworks/ui": ["../ui/src"],
-      "@plainworks/ui/hooks": ["../ui/src/client/hooks/index.ts"],
-      "@plainworks/ui/feedback": ["../ui/src/client/feedback/index.ts"],
-      "@plainworks/ui/page": ["../ui/src/client/page/index.ts"],
-      "@plainworks/*": ["../*/src"]
-    }
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
   },
   "include": ["src/client.ts", "src/client"]
 }

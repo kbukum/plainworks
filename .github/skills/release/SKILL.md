@@ -46,12 +46,12 @@ bun run verify                # every Definition-of-Done gate, in order (`--list
 Also run the [`review`](../review/SKILL.md) project audit in a fresh agent before a release. Treat green gates as necessary but not sufficient. The packaging gate already lints each built tarball's `exports`/`types` resolution; still sanity-check the artifacts before publishing:
 
 ```bash
-(cd packages/<name> && bun pm pack)   # inspect the tarball: only dist/, correct exports/types/files
+plainworks-release pack packages/<name>   # inspect the npm-shaped tarball
 ```
 
 Confirm `packages/elements/shadcn.lock.json` records the same shadcn CLI version as the `shadcn` catalog pin in the root `package.json`. The lock stores the version that last ran `registry:update`, so a mismatch means atoms were not refreshed after a CLI bump — run [`update-atoms`](../update-atoms/SKILL.md) before releasing. Never edit the lock by hand.
 
-Confirm each publishable package's `package.json` has `"files": ["dist"]`, correct `exports` (`.` and, where present, `./client`), `"type": "module"`, and `react`/`react-dom` as `catalog:` peer ranges (never a hard dep).
+Confirm each publishable package's `tsdown.config.ts` exports a typed build description for its public entries, and `bun run check-shape` is green so the derived `package.json` fields match it. Packages publish `dist` plus `src` (tests excluded) so source maps and declaration maps land on real TypeScript source.
 
 ## Step 3 — Version the packages
 
@@ -86,7 +86,7 @@ What the workflow does, in order:
 1. Runs only on `main`, in the protected `release` environment.
 2. Runs `bun run verify`, so a commit that never passed CI cannot publish.
 3. Checks the publish set with `plainworks-release publish-set --check`, then walks it in dependency order (lowest layer first), derived from the workspace graph.
-4. Packs each package with `bun pm pack`, which resolves `catalog:` and `workspace:*` into concrete versions. `bun publish` cannot use OIDC or emit provenance yet ([oven-sh/bun#24855](https://github.com/oven-sh/bun/issues/24855)), and `npm publish` alone would ship the raw protocols.
+4. Packs each package with `plainworks-release pack`, which resolves `catalog:` and `workspace:*` into concrete versions, applies `publishConfig`, and removes the repo-only source condition. `bun publish` cannot use OIDC or emit provenance yet ([oven-sh/bun#24855](https://github.com/oven-sh/bun/issues/24855)), and `npm publish` alone would ship the raw protocols.
 5. Publishes each tarball with `npm publish <tarball> --provenance --tag <dist-tag>`, skipping versions already on npm, so a re-run is safe. It refuses to publish a prerelease under `latest`.
 
 One-time setup (out of band): configure a **trusted publisher** for each `@plainworks/*` package and `create-plainworks` on npmjs.com, pointing at this repo's `release.yml`. The workflow requests `id-token: write` and installs npm ≥ 11.5.1.

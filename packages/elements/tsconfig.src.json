@@ -7,8 +7,7 @@
   // tests read files from disk and run under Vitest only.
   "compilerOptions": {
     "paths": {
-      "@/*": ["./src/*"],
-      "@plainworks/*": ["../*/src"]
+      "@/*": ["./src/*"]
     }
   },
   "exclude": ["src/atoms", "src/shadcn", "src/styles.test.ts", "src/theme-variables.test.ts"],

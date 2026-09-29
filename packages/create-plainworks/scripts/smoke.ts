@@ -1,5 +1,5 @@
 // End-to-end smoke for the initializer: pack the workspace `@plainworks/*` packages exactly as they
-// would publish (bun resolves `workspace:`/`catalog:` to concrete versions on pack), scaffold a
+// would publish (through `plainworks-release pack`, the release workflow's packer), scaffold a
 // project with the built `create-plainworks`, redirect the generated pinned deps to those local
 // tarballs, then install, typecheck, build, and boot it — probing the running app over HTTP. It
 // proves the generated manifest is well-formed and the app compiles AND runs against the real
@@ -31,6 +31,23 @@ const packagesDir = join(repoRoot, "packages")
 function run(command: string, args: readonly string[], cwd: string): void {
   process.stdout.write(`$ ${command} ${args.join(" ")}  (cwd: ${cwd})\n`)
   execFileSync(command, args, { cwd, stdio: "inherit" })
+}
+
+/**
+ * Pack a workspace exactly as the release workflow publishes it and return the tarball path. The
+ * release tool resolves `workspace:`/`catalog:` ranges and applies `publishConfig`.
+ */
+function pack(dir: string, destination: string): string {
+  const releaseTool = join(repoRoot, "node_modules", ".bin", "plainworks-release")
+  process.stdout.write(`$ plainworks-release pack ${dir} --destination ${destination}\n`)
+  const printed = execFileSync(releaseTool, ["pack", dir, "--destination", destination], {
+    encoding: "utf8",
+  })
+  const tarball = printed.trim().split("\n").at(-1)
+  if (tarball === undefined || !tarball.endsWith(".tgz")) {
+    throw new Error(`plainworks-release pack printed no tarball for ${dir}`)
+  }
+  return tarball
 }
 
 /** Every published `@plainworks/*` package a generated app can depend on (excludes this initializer). */
@@ -168,29 +185,16 @@ try {
 
   const packages = publishablePackages()
 
-  // Build the initializer and every packable package, then pack each — `bun pm pack` rewrites
-  // `workspace:`/`catalog:` to the concrete versions a real publish would ship.
+  // Build the initializer and every packable package, then pack each as a real publish would.
   const buildFilters = ["--filter=create-plainworks", ...packages.map((p) => `--filter=${p.name}`)]
   run("bunx", ["turbo", "run", "build", ...buildFilters], repoRoot)
 
   const overrides: Record<string, string> = {}
-  for (const pkg of packages) {
-    const before = new Set(readdirSync(packs))
-    run("bun", ["pm", "pack", "--destination", packs], pkg.dir)
-    const created = readdirSync(packs).find((file) => !before.has(file) && file.endsWith(".tgz"))
-    if (!created) throw new Error(`bun pm pack produced no tarball for ${pkg.name}`)
-    overrides[pkg.name] = `file:${join(packs, created)}`
-  }
+  for (const pkg of packages) overrides[pkg.name] = `file:${pack(pkg.dir, packs)}`
 
   // Pack the initializer itself into a tarball to prove its packaging includes examples/ and
   // exposes the bin properly when installed.
-  const beforeCli = new Set(readdirSync(packs))
-  run("bun", ["pm", "pack", "--destination", packs], packageDir)
-  const cliTarball = readdirSync(packs).find(
-    (file) => !beforeCli.has(file) && file.endsWith(".tgz"),
-  )
-  if (!cliTarball) throw new Error("bun pm pack produced no tarball for create-plainworks")
-  const cliTarballPath = join(packs, cliTarball)
+  const cliTarballPath = pack(packageDir, packs)
 
   // Install the packed initializer tarball in an isolated runner directory and execute its bin.
   const runnerDir = join(workspace, "cli-runner")

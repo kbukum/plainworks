@@ -1,5 +1,5 @@
+import type { WorkspaceFiles } from "@plainworks/workspace"
 import { ReleaseToolError } from "../error"
-import type { WorkspaceFiles } from "../workspace"
 
 /**
  * The Changesets pre-release state from `.changeset/pre.json`. `pre` is an open pre-release line;

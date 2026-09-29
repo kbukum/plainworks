@@ -20,7 +20,7 @@ bun run verify --filter='...[origin/main]'     # only packages affected by the d
 bun run verify                                 # everything — CI sign-off, audits, releases
 ```
 
-`--filter` takes any turbo filter and is repeatable. It scopes the package gates (typecheck, build, test, packaging, production); the repo-wide gates (versions, lint, comments, layer map, atom lock, boundaries) are cheap and always run over the whole graph.
+`--filter` takes any turbo filter and is repeatable. It scopes the package gates (typecheck, build, test, packaging, production); the repo-wide gates (versions, lint, comments, layer map, atom lock, workspace shape, boundaries) are cheap and always run over the whole graph.
 
 Plus a **Changeset** (`bun run changeset`) and the architecture invariants (no import-time side effects, no module-level singletons, header-only auth, typed errors, no `any` in public APIs).
 
@@ -31,6 +31,7 @@ While you work, run a single gate directly. Every gate is a root script or a tur
 ```bash
 turbo run test --filter=@plainworks/<name>    # one task for one package
 bun run lint                                   # one repo-wide gate (`bun run format` fixes)
+bun run check-shape                            # generated workspace manifests
 cd packages/<name> && bun run test             # a package's own script
 ```
 
@@ -57,7 +58,8 @@ If you touched `turbo/generators/**`, prove the golden template still yields a g
 
 ```bash
 bun run gen package --args scratch "scratch" false && bun install
-bun run verify --filter=@plainworks/scratch
+bun run check-shape
+turbo run typecheck build test check-packaging --filter=@plainworks/scratch
 rm -rf packages/scratch && bun install
 ```
 

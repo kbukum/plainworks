@@ -5,12 +5,7 @@
   // The server project (`tsconfig.src.json`) stays DOM-free and excludes this graph, so the `.`
   // entry can never silently depend on a browser global.
   "compilerOptions": {
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "paths": {
-      "@plainworks/testkit": ["../testkit/src"],
-      "@plainworks/testkit/client": ["../testkit/src/client/index.ts"],
-      "@plainworks/*": ["../*/src"]
-    }
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
   },
   "include": ["src/client.ts", "src/client"]
 }

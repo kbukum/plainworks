@@ -20,8 +20,9 @@
 // Same-layer ("sideways") and upward imports are forbidden. A cross-layer need defines the
 // seam in the lower layer and implements it higher (the gokit/rskit rule).
 //
-// Package sources resolve to `packages/<name>/src` via the tsconfig `paths` alias, so the
-// graph is analysed source->source and does not require a build first.
+// Package imports resolve to `packages/<name>/src` through the `@plainworks/source` export
+// condition, and vendored atom subpaths through the aliases in `.dependency-cruiser.resolve.cjs`,
+// so the graph is analysed source->source and does not require a build first.
 
 const path = require("node:path")
 
@@ -331,13 +332,16 @@ module.exports = {
   options: {
     doNotFollow: { path: "node_modules" },
     // Keep the gate off this package's own layer-violation test fixtures.
-    exclude: { path: "(^|/)internal/boundaries/test/" },
+    exclude: { path: "(^|/)internal/boundaries/fixtures/" },
     includeOnly: "(^|/)(packages|apps|internal)/[^/]+/src/",
     tsPreCompilationDeps: true,
     tsConfig: { fileName: path.join(repoRoot, "tsconfig.base.json") },
+    webpackConfig: { fileName: path.join(__dirname, ".dependency-cruiser.resolve.cjs") },
     enhancedResolveOptions: {
       exportsFields: ["exports"],
-      conditionNames: ["import", "types", "default"],
+      // `@plainworks/source` first, as in `tsconfig.base.json`: workspace imports resolve to
+      // source, so the gate checks the real import graph without a build.
+      conditionNames: ["@plainworks/source", "import", "types", "default"],
       mainFields: ["module", "main", "types"],
     },
   },

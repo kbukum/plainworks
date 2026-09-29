@@ -1,8 +1,8 @@
-import { preset } from "@plainworks/tsdown-config"
+import { type PackageBuild, preset } from "@plainworks/tsdown-config"
 
 // `index` is the prelude (errors, results, guards). Every other entry is one concern module,
 // published as its own subpath (`@plainworks/std/web`), so the import path names the concern.
-export default preset({
+export const build: PackageBuild = {
   entry: {
     index: "src/index.ts",
     emitter: "src/emitter/index.ts",
@@ -16,4 +16,6 @@ export default preset({
     time: "src/time/index.ts",
     web: "src/web/index.ts",
   },
-})
+}
+
+export default preset(build)

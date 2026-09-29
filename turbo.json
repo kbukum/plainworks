@@ -1,14 +1,17 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "stream",
-  // Files outside a package that every package task reads: the base tsconfig every project extends,
+  // Files outside a package that every package task reads: the shared tsconfigs projects extend,
   // the portability shim each project includes from `types/`, the Biome config, and the shared
-  // tsdown preset (it has no `build` task, so `^build` carries no hash for it).
+  // build and test presets (they have no `build` task, so `^build` carries no hash for them).
   "globalDependencies": [
     "tsconfig.base.json",
+    "tsconfig.tool.json",
+    "tsconfig.app.json",
     "types/**",
     "biome.json",
-    "internal/tsdown-config/src/**"
+    "internal/tsdown-config/src/**",
+    "internal/vitest-config/src/**"
   ],
   "tasks": {
     // Every task hashes the package's whole tracked tree (`$TURBO_DEFAULT$`) and drops only what
@@ -25,8 +28,8 @@
       "outputs": []
     },
     "check-packaging": {
-      // publint + attw validate the *built* tarball (exports/types/files resolution), so depend on
-      // this package's own `build` and read `dist` plus the tracked files that are packed with it.
+      // `plainworks-release check-packaging` validates the packed tarball, so depend on this
+      // package's own `build` and read `dist` plus the tracked files that are packed with it.
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "dist/**"],
       "outputs": []
@@ -41,9 +44,6 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", "!**/*.md"],
       "outputs": ["coverage/**"]
-    },
-    "lint": {
-      "outputs": []
     }
   }
 }

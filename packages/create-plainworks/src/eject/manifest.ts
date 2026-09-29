@@ -3,11 +3,11 @@ import type { DependencyMap, PackageManifest } from "../scaffold/manifest"
 
 // The manifest half of the eject transform: turn the source app's `package.json` into the lean
 // starter template a generated project begins from. The source app is gated like any workspace
-// member, so it carries a test script and the test toolchain in `devDependencies`; the ejected
-// starter is the minimal wired spine a user grows, not the app's own gate, so eject drops the test
-// wiring. Dependency *ranges* are left as `workspace:`/`catalog:` here and pinned to concrete
-// versions later by the runtime rewrite (`scaffold/manifest.ts`), so this transform never has to
-// know the shipped versions.
+// member, so it carries test and production-check scripts plus their toolchain in
+// `devDependencies`; the ejected starter is the minimal wired spine a user grows, not the app's own
+// gate, so eject drops that gate wiring. Dependency *ranges* are left as `workspace:`/`catalog:`
+// here and pinned to concrete versions later by the runtime rewrite (`scaffold/manifest.ts`), so
+// this transform never has to know the shipped versions.
 
 /** The default project name a generated manifest carries until the CLI substitutes the real one. */
 export const DEFAULT_TEMPLATE_NAME = "plainworks-app"
@@ -15,10 +15,12 @@ export const DEFAULT_TEMPLATE_NAME = "plainworks-app"
 /** The default description written into the ejected Next starter's `package.json`. */
 export const TEMPLATE_DESCRIPTION: string = NEXT_TEMPLATE_DESCRIPTION
 
-// The test-only `devDependencies` eject strips: the starter ships no test suite, so the test
-// runner, DOM environment, and accessibility/testing-library toolchain are not part of a generated
-// project.
-const TEST_ONLY_DEV_DEPENDENCIES = new Set([
+// The gate-only `devDependencies` eject strips: the starter ships no test suite or production
+// check, so the test runner, DOM environment, testing toolchain, and the private workspace tools
+// the monorepo gates run are not part of a generated project.
+const GATE_ONLY_DEV_DEPENDENCIES = new Set([
+  "@plainworks/bundle-exclusion",
+  "@plainworks/vitest-config",
   "@testing-library/dom",
   "@testing-library/react",
   "@testing-library/user-event",
@@ -28,9 +30,8 @@ const TEST_ONLY_DEV_DEPENDENCIES = new Set([
   "vitest",
 ])
 
-// The `package.json` scripts eject strips — the starter ships no test suite, so `test` has no
-// runner.
-const DROPPED_SCRIPTS = new Set(["test"])
+// The `package.json` scripts eject strips: they run the monorepo gates the starter does not ship.
+const GATE_ONLY_SCRIPTS = new Set(["test", "check-production"])
 
 /** Drop the keys in `remove` from a string map, preserving the rest in order. */
 function omit(map: Record<string, string>, remove: ReadonlySet<string>): Record<string, string> {
@@ -43,7 +44,7 @@ function omit(map: Record<string, string>, remove: ReadonlySet<string>): Record<
 
 /**
  * Produce the ejected starter `package.json` from the source app manifest: the standalone name and
- * description, the test script dropped, and the test-only `devDependencies` removed. Dependency
+ * description, with the gate-only scripts and `devDependencies` removed. Dependency
  * ranges are preserved verbatim for the runtime version rewrite to pin. The input is not mutated.
  */
 export function toTemplateManifest(
@@ -57,10 +58,10 @@ export function toTemplateManifest(
     description,
   }
   if (isStringMap(appManifest.scripts)) {
-    template.scripts = omit(appManifest.scripts, DROPPED_SCRIPTS)
+    template.scripts = omit(appManifest.scripts, GATE_ONLY_SCRIPTS)
   }
   if (appManifest.devDependencies !== undefined) {
-    template.devDependencies = omit(appManifest.devDependencies, TEST_ONLY_DEV_DEPENDENCIES)
+    template.devDependencies = omit(appManifest.devDependencies, GATE_ONLY_DEV_DEPENDENCIES)
   }
   return template
 }

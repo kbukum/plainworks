@@ -1,0 +1,7 @@
+#!/usr/bin/env -S bun --conditions=@plainworks/source
+import { runCommand } from "./command"
+
+process.exitCode = runCommand(process.argv.slice(2), {
+  stdout: (text) => process.stdout.write(text),
+  stderr: (text) => process.stderr.write(text),
+})

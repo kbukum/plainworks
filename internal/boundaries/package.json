@@ -6,15 +6,19 @@
   "type": "module",
   "scripts": {
     "check": "dependency-cruiser --config .dependency-cruiser.cjs ../../packages ../../apps ../../internal",
-    "layer-map:check": "bun src/layer-map/cli.ts --check",
-    "layer-map:write": "bun src/layer-map/cli.ts --write",
+    "layer-map:check": "bun --conditions=@plainworks/source src/layer-map/cli.ts --check",
+    "layer-map:write": "bun --conditions=@plainworks/source src/layer-map/cli.ts --write",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --coverage"
   },
   "devDependencies": {
+    "@plainworks/vitest-config": "workspace:*",
     "@types/node": "catalog:",
     "dependency-cruiser": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@plainworks/std": "workspace:*"
   }
 }

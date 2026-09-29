@@ -77,20 +77,23 @@ bun install
 bun run verify          # every gate, in order (`--list` shows them)
 ```
 
-Use `bun run gen package` to scaffold a package from the golden template. Read [Contributing](./CONTRIBUTING.md) before changing code.
+Use `bun run gen package` to scaffold a package from the golden template, and `bun run gen tool` for an internal tool. Read [Contributing](./CONTRIBUTING.md) before changing code.
+
+Workspace manifests are generated from their profile. Use `bun run check-shape` to verify the shape and `bun run sync-shape` after changing a package's `tsdown.config.ts`, adding a tool bin, or editing a generator template.
 
 ## Tooling
 
 | Concern | Tool |
 |---|---|
 | Tasks and caching | Turborepo |
-| Package generation | `@turbo/gen` |
-| Build | tsdown |
+| Package and tool generation | `@turbo/gen` |
+| Workspace shape | `plainworks-shape` |
+| Build | tsdown through `@plainworks/tsdown-config` |
 | Lint and format | Biome |
 | Boundaries and cycles | dependency-cruiser |
 | Version synchronization | Sherif and Syncpack |
-| Tests and coverage | Vitest |
-| Releases | Changesets |
+| Tests and coverage | Vitest through `@plainworks/vitest-config` |
+| Packaging and releases | `plainworks-release` and Changesets |
 
 Dependency versions live in the Bun catalog in the root `package.json`. Workspace manifests reference `catalog:` so version checks can reject inline or divergent versions.
 

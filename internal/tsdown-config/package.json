@@ -1,20 +1,24 @@
 {
   "name": "@plainworks/tsdown-config",
   "version": "0.0.0",
-  "description": "Shared tsdown build preset: ESM-only, per-module \"use client\" preservation, React externalized.",
+  "description": "Shared tsdown build preset and the package build description every exports map is generated from.",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage"
   },
   "dependencies": {
+    "@plainworks/vitest-config": "workspace:*",
     "tsdown": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "typescript": "catalog:"
+    "@vitest/coverage-v8": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

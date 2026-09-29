@@ -1,7 +1,7 @@
 {
   "name": "@plainworks/http",
   "version": "0.1.0-alpha.1",
-  "description": "Host-independent typed fetch client (ergonomic resource methods, idempotency-key writes, interceptors, auth-header injection, safe URL building, codec seam) \u2014 the REST/JSON client.",
+  "description": "Host-independent typed fetch client (ergonomic resource methods, idempotency-key writes, interceptors, auth-header injection, safe URL building, codec seam) — the REST/JSON client.",
   "type": "module",
   "sideEffects": false,
   "license": "MIT",
@@ -26,39 +26,42 @@
     "access": "public"
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "!src/**/*.test.*"
   ],
   "exports": {
     ".": {
+      "@plainworks/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./interceptor": {
+      "@plainworks/source": "./src/interceptor/index.ts",
       "types": "./dist/interceptor.d.ts",
-      "import": "./dist/interceptor.js"
+      "default": "./dist/interceptor.js"
     },
     "./list": {
+      "@plainworks/source": "./src/list/index.ts",
       "types": "./dist/list.d.ts",
-      "import": "./dist/list.js"
+      "default": "./dist/list.js"
     }
   },
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
-    "lint": "biome check .",
-    "check-packaging": "publint --strict && attw --pack --profile esm-only"
+    "check-packaging": "plainworks-release check-packaging"
   },
   "dependencies": {
     "@plainworks/std": "workspace:*"
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "catalog:",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
+    "@plainworks/vitest-config": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
-    "publint": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

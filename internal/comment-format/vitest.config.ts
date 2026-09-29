@@ -1,8 +1,4 @@
-import { defineConfig } from "vitest/config"
+import { testConfig } from "@plainworks/vitest-config"
 
-export default defineConfig({
-  test: {
-    environment: "node",
-    include: ["test/**/*.test.ts"],
-  },
-})
+// `cli.ts` binds the tested command to the real process and disk.
+export default testConfig({ coverage: { exclude: ["src/cli.ts"] } })

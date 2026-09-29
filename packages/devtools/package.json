@@ -25,40 +25,50 @@
     "access": "public"
   },
   "files": [
-    "dist"
+    "dist",
+    "src",
+    "!src/**/*.test.*"
   ],
   "exports": {
     ".": {
+      "@plainworks/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./client": {
+      "@plainworks/source": "./src/client.ts",
       "types": "./dist/client.d.ts",
-      "import": "./dist/client.js"
+      "default": "./dist/client.js"
     },
     "./query": {
+      "@plainworks/source": "./src/adapters/query/index.ts",
       "types": "./dist/query.d.ts",
-      "import": "./dist/query.js"
+      "default": "./dist/query.js"
     },
     "./state": {
+      "@plainworks/source": "./src/adapters/state/index.ts",
       "types": "./dist/state.d.ts",
-      "import": "./dist/state.js"
+      "default": "./dist/state.js"
     },
     "./http": {
+      "@plainworks/source": "./src/adapters/http/index.ts",
       "types": "./dist/http.d.ts",
-      "import": "./dist/http.js"
+      "default": "./dist/http.js"
     },
     "./connect": {
+      "@plainworks/source": "./src/adapters/connect/index.ts",
       "types": "./dist/connect.d.ts",
-      "import": "./dist/connect.js"
+      "default": "./dist/connect.js"
     },
     "./channel": {
+      "@plainworks/source": "./src/adapters/channel/index.ts",
       "types": "./dist/channel.d.ts",
-      "import": "./dist/channel.js"
+      "default": "./dist/channel.js"
     },
     "./observability": {
+      "@plainworks/source": "./src/adapters/observability/index.ts",
       "types": "./dist/observability.d.ts",
-      "import": "./dist/observability.js"
+      "default": "./dist/observability.js"
     },
     "./styles.css": "./dist/styles.css"
   },
@@ -66,8 +76,7 @@
     "build": "tsdown && bun scripts/styles/cli.ts",
     "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.fixtures.json && tsc --noEmit -p tsconfig.scripts.json",
     "test": "vitest run --coverage",
-    "lint": "biome check .",
-    "check-packaging": "publint --strict && attw --pack --profile esm-only --exclude-entrypoints @plainworks/devtools/styles.css"
+    "check-packaging": "plainworks-release check-packaging"
   },
   "dependencies": {
     "@plainworks/elements": "workspace:*",
@@ -111,7 +120,6 @@
     }
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "catalog:",
     "@connectrpc/connect": "catalog:",
     "@plainworks/channel": "workspace:*",
     "@plainworks/connect": "workspace:*",
@@ -119,6 +127,7 @@
     "@plainworks/observability": "workspace:*",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
+    "@plainworks/vitest-config": "workspace:*",
     "@tailwindcss/oxide": "catalog:",
     "@tanstack/query-core": "catalog:",
     "@testing-library/react": "catalog:",
@@ -132,7 +141,6 @@
     "lightningcss": "catalog:",
     "postcss": "catalog:",
     "postcss-selector-parser": "catalog:",
-    "publint": "catalog:",
     "tailwindcss": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",

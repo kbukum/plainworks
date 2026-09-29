@@ -6,11 +6,19 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --coverage"
   },
   "devDependencies": {
+    "@plainworks/vitest-config": "workspace:*",
     "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "bin": {
+    "plainworks-bundle-exclusion": "./src/cli.ts"
+  },
+  "dependencies": {
+    "@plainworks/std": "workspace:*"
   }
 }

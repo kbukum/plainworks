@@ -12,6 +12,7 @@
     "test": "vitest run --coverage"
   },
   "devDependencies": {
+    "@plainworks/vitest-config": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "typescript": "catalog:",

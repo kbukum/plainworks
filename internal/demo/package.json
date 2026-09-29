@@ -4,21 +4,23 @@
   "description": "Dev-only demo domain: the fake commerce/SaaS fixture set (users, orders, products, tasks, content, notifications, settings, dashboard) and the createMockApi graph that wires it from @plainworks/mocks primitives. Never published; the showcase and integration tests run against it.",
   "private": true,
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": {
+      "@plainworks/source": "./src/index.ts",
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "default": "./dist/index.js"
     },
     "./server": {
+      "@plainworks/source": "./src/server.ts",
       "types": "./dist/server.d.ts",
-      "import": "./dist/server.js"
+      "default": "./dist/server.js"
     }
   },
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --coverage",
-    "lint": "biome check ."
+    "test": "vitest run --coverage"
   },
   "dependencies": {
     "@plainworks/mocks": "workspace:*",
@@ -27,6 +29,7 @@
   },
   "devDependencies": {
     "@plainworks/tsdown-config": "workspace:*",
+    "@plainworks/vitest-config": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "tsdown": "catalog:",

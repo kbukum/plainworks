@@ -2,22 +2,20 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, join, relative } from "node:path"
 import { fileURLToPath } from "node:url"
 import { formatSource } from "./format"
-import { isRecord, readJson } from "./json"
 
-// Everything ui publishes that can drift — the package `exports` map and `files` whitelist, the
-// tsdown entry list, and the shadcn `registry.json` — is generated from the `CONCERNS` manifest
-// below: it declares each published concern, its build entry, and its registry classification. A
-// `registry` concern's
-// authored folder is the only thing scanned on disk, for that item's files and dependencies.
-// `codegen` writes the outputs; a test asserts re-deriving them produces no change, so the surface
-// can never silently drift.
+// The tsdown build description and the shadcn `registry.json` are generated from the `CONCERNS`
+// manifest below: it declares each published concern, its build entry, and its registry
+// classification. A `registry` concern's authored folder is the only thing scanned on disk, for
+// that item's files and dependencies. `codegen` writes the outputs, and a test asserts re-deriving
+// them produces no change. The package `exports` and `files` follow from the build description
+// through `bun run sync-shape`, like every other package.
 
 export const packageRoot: string = fileURLToPath(new URL("../../", import.meta.url))
 
 /** A published entry: a build `source`, or a registry `dir` scanned for its files and deps. */
 interface Concern {
+  /** The public subpath under the package, e.g. `data-table` for `@plainworks/ui/data-table`. */
   subpath: string
-  entry: string
   source?: string
   dir?: string
   registry?: string
@@ -52,27 +50,24 @@ export interface Registry {
   items: RegistryItem[]
 }
 
-/** A package `exports` entry: a subpath target map, or the plain string for `./styles.css`. */
-type ExportTarget = { types: string; import: string } | string
-
 // The public entries. `source` is the module tsdown builds; when a concern is `registry`,
 // its `dir` (a folder of authored source) is scanned for that shadcn item's files and dependencies.
 // `registry` is the shadcn item type; a concern without it is a plain published entry (an aggregate
 // barrel or a re-export wrapper) that ships in the package but is not a standalone copyable item.
 const CONCERNS: readonly Concern[] = [
-  { subpath: "./client", entry: "client", source: "src/client.ts" },
-  { subpath: "./hooks", entry: "hooks", source: "src/client/hooks/index.ts" },
-  { subpath: "./layout", entry: "layout", dir: "src/client/layout", registry: "ui" },
-  { subpath: "./feedback", entry: "feedback", dir: "src/client/feedback", registry: "ui" },
-  { subpath: "./overlays", entry: "overlays", dir: "src/client/overlays", registry: "ui" },
-  { subpath: "./display", entry: "display", dir: "src/client/display", registry: "ui" },
-  { subpath: "./navigation", entry: "navigation", dir: "src/client/navigation", registry: "ui" },
-  { subpath: "./data-table", entry: "data-table", dir: "src/client/data-table", registry: "ui" },
-  { subpath: "./forms", entry: "forms", dir: "src/client/forms", registry: "ui" },
-  { subpath: "./list", entry: "list", dir: "src/client/list", registry: "ui" },
-  { subpath: "./page", entry: "page", dir: "src/client/page", registry: "ui" },
-  { subpath: "./shell", entry: "shell", dir: "src/client/shell", registry: "ui" },
-  { subpath: "./theme", entry: "theme-client", source: "src/client/theme/index.ts" },
+  { subpath: "client", source: "src/client.ts" },
+  { subpath: "hooks", source: "src/client/hooks/index.ts" },
+  { subpath: "layout", dir: "src/client/layout", registry: "ui" },
+  { subpath: "feedback", dir: "src/client/feedback", registry: "ui" },
+  { subpath: "overlays", dir: "src/client/overlays", registry: "ui" },
+  { subpath: "display", dir: "src/client/display", registry: "ui" },
+  { subpath: "navigation", dir: "src/client/navigation", registry: "ui" },
+  { subpath: "data-table", dir: "src/client/data-table", registry: "ui" },
+  { subpath: "forms", dir: "src/client/forms", registry: "ui" },
+  { subpath: "list", dir: "src/client/list", registry: "ui" },
+  { subpath: "page", dir: "src/client/page", registry: "ui" },
+  { subpath: "shell", dir: "src/client/shell", registry: "ui" },
+  { subpath: "theme", source: "src/client/theme/index.ts" },
 ]
 
 // react is a peer and a relative specifier is a file already shipped inside the same concern —
@@ -216,52 +211,15 @@ export function buildRegistry(root: string = packageRoot): Registry {
       if (concern.dir === undefined || concern.registry === undefined) {
         throw new Error(`registry concern ${concern.subpath} must declare a dir and registry type.`)
       }
-      return buildRegistryItem(
-        concern.subpath.slice(2),
-        concern.dir,
-        `registry:${concern.registry}`,
-        root,
-      )
+      return buildRegistryItem(concern.subpath, concern.dir, `registry:${concern.registry}`, root)
     }),
   }
-}
-
-/**
- * The package `exports` map: the server-safe `.` manifest, one subpath per concern entry, and the
- * static `./styles.css`.
- */
-export function buildExports(): Record<string, ExportTarget> {
-  const exports: Record<string, ExportTarget> = {
-    ".": { types: "./dist/index.d.ts", import: "./dist/index.js" },
-  }
-  for (const concern of CONCERNS) {
-    exports[concern.subpath] = {
-      types: `./dist/${concern.entry}.d.ts`,
-      import: `./dist/${concern.entry}.js`,
-    }
-  }
-  exports["./styles.css"] = "./dist/styles.css"
-  return exports
-}
-
-/**
- * The package `files` whitelist: the build, the registry manifest, and every source folder a
- * registry item ships (tests excluded). Deriving it from the registry means a `shadcn add` from the
- * published tarball can always resolve each file the manifest lists.
- */
-export function buildPublishedFiles(registry: Registry): string[] {
-  const roots = new Set<string>()
-  for (const item of registry.items) {
-    for (const { path } of item.files) roots.add(path.split("/").slice(0, 2).join("/"))
-  }
-  const dirs = [...roots].sort()
-  return ["dist", "registry.json", ...dirs, ...dirs.map((dir) => `!${dir}/**/*.test.*`)]
 }
 
 /** The tsdown entry map: the neutral manifest and each concern entry. */
 export function buildTsdownEntry(): Record<string, string> {
   const entry: Record<string, string> = { index: "src/index.ts" }
-  for (const concern of CONCERNS) entry[concern.entry] = concernSource(concern)
+  for (const concern of CONCERNS) entry[concern.subpath] = concernSource(concern)
   return entry
 }
 
@@ -270,37 +228,27 @@ export function renderTsdownConfig(): string {
     .map(([key, value]) => `    ${JSON.stringify(key)}: ${JSON.stringify(value)},`)
     .join("\n")
   return `${[
-    'import { preset } from "@plainworks/tsdown-config"',
+    'import { type PackageBuild, preset } from "@plainworks/tsdown-config"',
     "",
     "// Generated by `bun run --filter @plainworks/ui codegen` — do not edit the entry map by hand.",
     "// Each concern is its own entry so consumers tree-shake to what they import; the neutral",
     "// `index` entry stays free of the client graph.",
-    "export default preset({",
+    "export const build: PackageBuild = {",
     "  entry: {",
     entries,
     "  },",
-    "  // tsdown has no CSS pipeline, so the Tailwind-source stylesheet is copied verbatim into",
-    "  // `dist`; the `./styles.css` export resolves from the build output the packaging gate covers.",
-    '  copy: [{ from: "src/styles.css", to: "dist" }],',
-    "})",
+    "  // tsdown has no CSS pipeline, so the Tailwind-source stylesheet is copied verbatim.",
+    '  assets: { "styles.css": { from: "src/styles.css" } },',
+    "  // The shadcn registry points at authored `src` files, so it ships beside them.",
+    '  files: ["registry.json"],',
+    "}",
+    "",
+    "export default preset(build)",
     "",
   ].join("\n")}`
 }
 
-// Rewrite package.json's `exports` and `files` in place, preserving the rest of the file and the
-// 2-space style.
-function writePackageManifest(root: string, registry: Registry): void {
-  const path = join(root, "package.json")
-  const pkg = readJson(path)
-  if (!isRecord(pkg)) throw new Error(`${path} is not a JSON object.`)
-  pkg.exports = buildExports()
-  pkg.files = buildPublishedFiles(registry)
-  writeFileSync(path, formatSource(`${JSON.stringify(pkg, null, 2)}\n`, "package.json"))
-}
-
-/**
- * Regenerate `registry.json`, the tsdown entries, and the package exports and files from disk.
- */
+/** Regenerate `registry.json` and the tsdown build description from disk. */
 export function runCodegen(root: string = packageRoot): void {
   const registry = buildRegistry(root)
   writeFileSync(
@@ -311,5 +259,4 @@ export function runCodegen(root: string = packageRoot): void {
     join(root, "tsdown.config.ts"),
     formatSource(renderTsdownConfig(), "tsdown.config.ts"),
   )
-  writePackageManifest(root, registry)
 }

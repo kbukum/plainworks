@@ -1,7 +1,1 @@
-{
-  "extends": "../../tsconfig.base.json",
-  "compilerOptions": {
-    "types": ["node"]
-  },
-  "include": ["reflow.ts", "cli.ts", "safety.ts", "verify.ts", "test"]
-}
+{ "extends": "../../tsconfig.tool.json", "include": ["src"] }

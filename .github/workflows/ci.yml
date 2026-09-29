@@ -56,14 +56,18 @@ jobs:
         with:
           node-version: "24"
 
-      - name: Generate server-only + client packages
+      # `verify` runs `check-shape` over the whole repo, so the generated workspaces must match their
+      # profiles with no manual fixup.
+      - name: Generate server-only + client packages and an internal tool
         run: |
           bun run gen package --args smoke-server "CI smoke: server-only" false
           bun run gen package --args smoke-client "CI smoke: client entry" true
-          bun install
+          bun run gen tool --args smoke-tool "CI smoke: internal tool"
 
-      - name: Gates on generated packages
-        run: bun run verify --filter=@plainworks/smoke-server --filter=@plainworks/smoke-client
+      - name: Gates on generated workspaces
+        run: >-
+          bun run verify --filter=@plainworks/smoke-server --filter=@plainworks/smoke-client
+          --filter=@plainworks/smoke-tool
 
       - name: Assert "use client" directive is preserved
         run: |

@@ -1,6 +1,6 @@
-import { preset } from "@plainworks/tsdown-config"
+import { type PackageBuild, preset } from "@plainworks/tsdown-config"
 
-export default preset({
+export const build: PackageBuild = {
   entry: {
     index: "src/index.ts",
     client: "src/client.ts",
@@ -11,4 +11,8 @@ export default preset({
     channel: "src/adapters/channel/index.ts",
     observability: "src/adapters/observability/index.ts",
   },
-})
+  // The panel's scoped stylesheet is compiled by `scripts/styles` after tsdown, in `build`.
+  assets: { "styles.css": { generatedBy: "scripts/styles/cli.ts" } },
+}
+
+export default preset(build)

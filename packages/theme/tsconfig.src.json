@@ -4,11 +4,6 @@
   // `src/client/`) is excluded here and typechecked with DOM libs via `tsconfig.client.json`. The
   // neutral tokens/theme/`cn` under `src` stay here so a host-only global on the `.` entry fails to
   // compile (the portability gate).
-  "compilerOptions": {
-    "paths": {
-      "@plainworks/*": ["../*/src"]
-    }
-  },
   // Tests and the `src/testing/` stylesheet readers use Node and DOM APIs, so they are typechecked
   // by `tsconfig.test.json` instead of this DOM- and Node-free graph.
   "exclude": ["src/client.ts", "src/client", "src/testing", "src/**/*.test.ts"],

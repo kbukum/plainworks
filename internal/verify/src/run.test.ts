@@ -23,6 +23,7 @@ describe("GATES", () => {
       "check-comments",
       "check-layer-map",
       "check-registry",
+      "check-shape",
       "typecheck",
       "check-boundaries",
       "build",
@@ -60,6 +61,7 @@ describe("runVerify", () => {
       "bun run check-comments",
       "bun run check-layer-map",
       "bun run check-registry",
+      "bun run check-shape",
       "turbo run typecheck --filter=@plainworks/std",
       "tsc -p turbo/generators/tsconfig.json",
       "bun run check-boundaries",
@@ -68,7 +70,7 @@ describe("runVerify", () => {
       "turbo run check-packaging --filter=@plainworks/std",
       "turbo run check-production --filter=@plainworks/std",
     ])
-    expect(rec.output()).toContain("verify: all 11 gates passed")
+    expect(rec.output()).toContain("verify: all 12 gates passed")
   })
 
   it("stops at the first failing gate and names it", () => {
@@ -84,7 +86,7 @@ describe("runVerify", () => {
     expect(runVerify(["--list"], rec.runner, rec.write)).toBe(0)
     expect(rec.ran).toEqual([])
     expect(rec.output()).toContain(" 1. check-versions")
-    expect(rec.output()).toContain("11. check-production")
+    expect(rec.output()).toContain("12. check-production")
   })
 
   it("prints usage for unknown arguments", () => {

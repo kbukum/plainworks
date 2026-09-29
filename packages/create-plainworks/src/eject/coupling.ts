@@ -4,15 +4,17 @@ import { join, relative, resolve } from "node:path"
 import * as ts from "typescript"
 import type { PackageManifest } from "../scaffold/manifest"
 import { isSkippedEntry, NEUTRALIZED_TSCONFIG_EXTENDS } from "./config"
+import { toTemplateManifest } from "./manifest"
 
 // The ejectability enforcement gate. Eject neutralizes a finite, explicit set of monorepo couplings
-// — `workspace:`/`catalog:` dependency ranges, the base `tsconfig` an app extends, the workspace
-// task/test config. This gate proves the source app couples to the monorepo through *only* those
-// known channels, so eject's transform is complete: every `@plainworks/*` runtime dependency is a
-// published package (a private/internal one like `@plainworks/demo` can never be pinned), every
-// `@plainworks/*` import is a declared dependency the version rewrite covers, no source import
-// escapes the app directory, and the `tsconfig` extends only the base config eject inlines. A new,
-// un-neutralized coupling fails this check rather than emitting a broken standalone project.
+// — `workspace:`/`catalog:` dependency ranges, the shared app `tsconfig` an app extends, the
+// workspace gate scripts, tools, and config. This gate proves the source app couples to the
+// monorepo through *only* those known channels, so eject's transform is complete: every
+// `@plainworks/*` dependency the starter keeps is a published package (a private/internal one like
+// `@plainworks/demo` can never be pinned), every `@plainworks/*` import is a declared dependency
+// the version rewrite covers, no source import escapes the app directory, and the `tsconfig`
+// extends only the app config eject inlines. A new, un-neutralized coupling fails this check rather
+// than emitting a broken standalone project.
 
 /** Raised when a source app couples to the monorepo through a channel eject does not neutralize. */
 export class EjectCouplingError extends Error {
@@ -214,7 +216,7 @@ function assertCssImportsStayLocal(appDir: string, declared: Set<string>): void 
   }
 }
 
-/** Assert the app `tsconfig` couples only through the base config eject inlines standalone. */
+/** Assert the app `tsconfig` couples only through the app config eject inlines standalone. */
 function assertTsconfigNeutralized(appDir: string): void {
   const tsconfig = readJsonc<{
     extends?: unknown
@@ -241,11 +243,15 @@ function assertTsconfigNeutralized(appDir: string): void {
 
 /**
  * Assert a source app is ejectable — it couples to the monorepo only through channels eject
- * neutralizes. Throws {@link EjectCouplingError} on the first un-neutralized coupling. Reused by
- * the bundle step (fail-closed at build) and the ejectability test.
+ * neutralizes. Throws {@link EjectCouplingError} on the first un-neutralized coupling. The
+ * dependency checks read the manifest eject emits, so the gate tooling eject drops never counts as
+ * a coupling, and an app file importing it is caught as undeclared. Reused by the bundle step
+ * (fail-closed at build) and the ejectability test.
  */
 export function assertEjectable(options: AssertEjectableOptions): void {
-  const manifest = readJson<PackageManifest>(join(options.appDir, "package.json"))
+  const manifest = toTemplateManifest(
+    readJson<PackageManifest>(join(options.appDir, "package.json")),
+  )
   const published = publishedPlainworksPackages(options.repoRoot)
   const declared = new Set(
     DEPENDENCY_SECTIONS.flatMap((section) => Object.keys(manifest[section] ?? {})),

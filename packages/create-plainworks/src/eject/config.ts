@@ -12,8 +12,8 @@ export const STANDALONE_TSCONFIG: StandaloneTsconfig = NEXT_STANDALONE_TSCONFIG
 // resolves outside the workspace. Eject drops the workspace-only config and writes a self-contained
 // `tsconfig.json` in its place, so the generated project stands alone.
 
-/** The only `tsconfig.extends` an ejectable app may use — the base config eject replaces inline. */
-export const NEUTRALIZED_TSCONFIG_EXTENDS = "../../tsconfig.base.json"
+/** The only `tsconfig.extends` an ejectable app may use — the app config eject replaces inline. */
+export const NEUTRALIZED_TSCONFIG_EXTENDS = "../../tsconfig.app.json"
 
 // Entries never copied into a generated project. Build and browser-test run output (`node_modules`,
 // `dist`, `playwright-report`, …) is dropped at any depth; the workspace-only task/test config

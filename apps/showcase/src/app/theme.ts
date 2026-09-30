@@ -4,7 +4,7 @@
 // and the server resolves the `<html>` class from the same validated value the client seeds
 // `ThemeProvider` with. React-free and host-agnostic, so it stays in the server-safe graph.
 
-import { resolveTheme, themePreferenceOf } from "@plainworks/theme"
+import { resolveTheme, themePreferenceOf } from "@plainworks/theme/preference"
 
 /**
  * Resolve the `<html>` class for a snapshot slice. A `"system"` preference gets no mode class, so

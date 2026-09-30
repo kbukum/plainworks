@@ -23,13 +23,13 @@ describe("atom sources", () => {
     const root = stageRoot([
       `${SHADCN_DIR}/button.tsx`,
       `${SHADCN_DIR}/button.test.tsx`,
-      `${OWNED_DIR}/sonner.tsx`,
+      `${OWNED_DIR}/number-field.tsx`,
       `${SHADCN_DIR}/alert.tsx`,
     ])
     expect(atomSources(root)).toEqual([
       { name: "alert", origin: "shadcn", path: `${SHADCN_DIR}/alert.tsx` },
       { name: "button", origin: "shadcn", path: `${SHADCN_DIR}/button.tsx` },
-      { name: "sonner", origin: "owned", path: `${OWNED_DIR}/sonner.tsx` },
+      { name: "number-field", origin: "owned", path: `${OWNED_DIR}/number-field.tsx` },
     ])
   })
 

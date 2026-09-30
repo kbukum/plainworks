@@ -1,5 +1,6 @@
 "use client"
 
+import { DescriptionItem, DescriptionList } from "@plainworks/ui/display/description-list"
 import { Callout } from "@plainworks/ui/feedback/callout"
 import { Section } from "@plainworks/ui/layout/section"
 import type { ReactElement } from "react"
@@ -11,12 +12,12 @@ function Profile(): ReactElement {
   const name = typeof identity?.claims.name === "string" ? identity.claims.name : undefined
   return (
     <Section title="Profile" description="The identity this session is signed in with.">
-      <dl className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-2 text-sm">
-        <dt className="text-muted-foreground">Name</dt>
-        <dd>{name ?? "Not provided"}</dd>
-        <dt className="text-muted-foreground">User ID</dt>
-        <dd className="wrap-anywhere">{identity?.subject ?? "Not provided"}</dd>
-      </dl>
+      <DescriptionList>
+        <DescriptionItem term="Name">{name ?? "Not provided"}</DescriptionItem>
+        <DescriptionItem term="User ID" className="wrap-anywhere">
+          {identity?.subject ?? "Not provided"}
+        </DescriptionItem>
+      </DescriptionList>
     </Section>
   )
 }

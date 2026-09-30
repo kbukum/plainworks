@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
+import { COLOR_SCHEMES } from "../preference"
 import { contrastRatio, type Tint } from "../testing/contrast"
 import { parseRules, readStylesheet, resolveTokens } from "../testing/stylesheet"
-import { COLOR_SCHEMES } from "../theme/resolution"
 import { STATUS_TONES } from "./index"
 
 // WCAG 2.2 AA: 4.5:1 for text (1.4.3) and 3:1 for control boundaries and focus indicators (1.4.11).

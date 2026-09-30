@@ -2,10 +2,27 @@ import { Alert, AlertAction, AlertDescription, AlertTitle } from "@plainworks/el
 import { Button } from "@plainworks/elements/button"
 import { Progress, ProgressLabel, ProgressValue } from "@plainworks/elements/progress"
 import { Skeleton } from "@plainworks/elements/skeleton"
+import { useToast } from "@plainworks/ui/feedback/toast"
 import { InfoIcon } from "lucide-react"
 import type { ReactElement } from "react"
-import { toast } from "sonner"
 import { Category, Section } from "./frame"
+
+function ShowToasts(): ReactElement {
+  const toast = useToast()
+  return (
+    <Button
+      variant="outline"
+      onClick={() => {
+        toast.success("Order saved")
+        toast.error("Payment failed")
+        toast.info("New version available")
+        toast.warning("Storage almost full")
+      }}
+    >
+      Show toast
+    </Button>
+  )
+}
 
 export function FeedbackGroup(): ReactElement {
   return (
@@ -44,19 +61,8 @@ export function FeedbackGroup(): ReactElement {
           </div>
         </div>
       </Section>
-      <Section name="Sonner">
-        <Button
-          variant="outline"
-          onClick={() => {
-            toast("Event created")
-            toast.success("Order saved")
-            toast.error("Payment failed")
-            toast.info("New version available")
-            toast.warning("Storage almost full")
-          }}
-        >
-          Show toast
-        </Button>
+      <Section name="Toast">
+        <ShowToasts />
       </Section>
     </Category>
   )

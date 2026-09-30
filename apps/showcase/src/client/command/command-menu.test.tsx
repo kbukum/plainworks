@@ -2,12 +2,12 @@
 
 import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/client"
 import { fakeStateSource } from "@plainworks/testkit/fakes"
-import type { ThemePreference } from "@plainworks/theme"
 import { ThemeProvider } from "@plainworks/theme/client"
+import type { ThemePreference } from "@plainworks/theme/preference"
+import { ToastProvider } from "@plainworks/ui/feedback/toast"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { ToastProvider } from "../feedback"
 import { RouterProvider } from "../router"
 import { CommandMenu } from "./command-menu"
 

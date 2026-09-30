@@ -1,5 +1,6 @@
 import { defineThemeAxes } from "@plainworks/testkit/playwright"
-import { COLOR_SCHEMES, DEFAULT_THEME, DENSITIES, resolveTheme } from "@plainworks/theme"
+import { COLOR_SCHEMES, DEFAULT_THEME, resolveTheme } from "@plainworks/theme/preference"
+import { DENSITIES } from "@plainworks/theme/tokens"
 
 /**
  * The Next host's theme vocabulary for flows: every brand color scheme and density from

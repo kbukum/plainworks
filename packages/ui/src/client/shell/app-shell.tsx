@@ -1,8 +1,9 @@
 "use client"
 
-import { Button, buttonVariants } from "@plainworks/elements/button"
+import { buttonVariants } from "@plainworks/elements/button"
 import { cn } from "@plainworks/theme"
 import { type ReactElement, type ReactNode, useEffect, useRef, useState } from "react"
+import { IconButton } from "../actions/icon-button"
 import { Drawer } from "../overlays/drawer"
 
 /** Every user-facing string of the {@link AppShell}, injected so it ships no fixed copy. */
@@ -110,14 +111,11 @@ export function AppShell({
           open={drawerOpen}
           onOpenChange={setDrawerOpen}
           trigger={
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={copy.openNavigation}
+            <IconButton
+              label={copy.openNavigation}
+              icon={menuIcon ?? "☰"}
               className="shrink-0 @3xl/shell:hidden"
-            >
-              {menuIcon ?? <span aria-hidden>☰</span>}
-            </Button>
+            />
           }
         >
           {navigation({ placement: "drawer", onNavigate: () => setDrawerOpen(false) })}

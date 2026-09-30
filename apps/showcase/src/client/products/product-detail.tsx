@@ -2,10 +2,11 @@
 
 import type { Product } from "@plainworks/demo"
 import { Badge } from "@plainworks/elements/badge"
+import { DescriptionItem, DescriptionList } from "@plainworks/ui/display/description-list"
 import { NumberValue } from "@plainworks/ui/display/number-value"
 import { StatusBadge } from "@plainworks/ui/display/status-badge"
 import { Modal } from "@plainworks/ui/overlays/modal"
-import type { ReactElement, ReactNode } from "react"
+import type { ReactElement } from "react"
 import { DISPLAY_LOCALE } from "../../app/constants"
 import { PRODUCT_STATUS_LABEL, PRODUCT_STATUS_TONE, productInStock } from "./product-fields"
 
@@ -20,15 +21,6 @@ export interface ProductDetailProps {
 }
 
 /** One labelled detail field rendered as a description-list pair. */
-function DetailField({ label, children }: { label: string; children: ReactNode }): ReactElement {
-  return (
-    <div className="grid gap-0.5">
-      <dt className="text-muted-foreground text-xs">{label}</dt>
-      <dd className="font-medium">{children}</dd>
-    </div>
-  )
-}
-
 /**
  * The product detail overlay: a labelled {@link Modal} leading with category and status badges and
  * the currency-formatted price, then the full description and a description list of category,
@@ -58,12 +50,14 @@ export function ProductDetail({ product, onOpenChange }: ProductDetailProps): Re
           <p className="text-muted-foreground text-sm">{product.description}</p>
         )}
 
-        <dl className="grid gap-4 @sm:grid-cols-2">
-          <DetailField label="Category">{product.category}</DetailField>
-          <DetailField label="Status">{PRODUCT_STATUS_LABEL[product.status]}</DetailField>
-          <DetailField label="Availability">{inStock ? "In stock" : "Unavailable"}</DetailField>
-          <DetailField label="Stock on hand">{product.stock}</DetailField>
-        </dl>
+        <DescriptionList>
+          <DescriptionItem term="Category">{product.category}</DescriptionItem>
+          <DescriptionItem term="Status">{PRODUCT_STATUS_LABEL[product.status]}</DescriptionItem>
+          <DescriptionItem term="Availability">
+            {inStock ? "In stock" : "Unavailable"}
+          </DescriptionItem>
+          <DescriptionItem term="Stock on hand">{product.stock}</DescriptionItem>
+        </DescriptionList>
       </div>
     </Modal>
   )

@@ -1,9 +1,9 @@
 import "../../../src/client/styles.css"
 
-import { Toaster } from "@plainworks/elements/sonner"
 import { jsonSerializer, memoryScope } from "@plainworks/state"
-import type { ThemePreference } from "@plainworks/theme"
 import { ThemeProvider } from "@plainworks/theme/client"
+import type { ThemePreference } from "@plainworks/theme/preference"
+import { ToastProvider } from "@plainworks/ui/feedback/toast"
 import type { ReactElement } from "react"
 import { createRoot } from "react-dom/client"
 import { CompositesGroup } from "./composites"
@@ -47,7 +47,8 @@ const container = document.getElementById("fixture")
 if (container === null) throw new Error("Missing #fixture container")
 createRoot(container).render(
   <ThemeProvider source={themeSource}>
-    <Group />
-    <Toaster />
+    <ToastProvider limit={4}>
+      <Group />
+    </ToastProvider>
   </ThemeProvider>,
 )

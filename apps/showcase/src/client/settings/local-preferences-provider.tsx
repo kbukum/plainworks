@@ -1,26 +1,12 @@
 "use client"
 
+import { useDocumentMotion } from "@plainworks/theme/client"
+import { useToast } from "@plainworks/ui/feedback/toast"
 import type { ReactElement, ReactNode } from "react"
-import { useEffect } from "react"
-import { useToast } from "../feedback"
 import { useLocalPreferences } from "./local-preferences"
 
 function MotionPreferenceRoot({ children }: { readonly children: ReactNode }): ReactElement {
-  const motion = useLocalPreferences((state) => state.motion)
-
-  useEffect(() => {
-    const root = document.documentElement
-    const previous = root.dataset.motion
-    root.dataset.motion = motion
-    return () => {
-      if (previous === undefined) {
-        delete root.dataset.motion
-      } else {
-        root.dataset.motion = previous
-      }
-    }
-  }, [motion])
-
+  useDocumentMotion(useLocalPreferences((state) => state.motion))
   return <>{children}</>
 }
 

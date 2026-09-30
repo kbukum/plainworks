@@ -55,8 +55,8 @@ describe("atom ingest pipeline", () => {
 
   it("refuses a name an owned atom already publishes", () => {
     const root = stageRoot()
-    writeFileSync(join(root, OWNED_DIR, "sonner.tsx"), "export {}\n")
-    expect(() => ingestAtom(root, "sonner", seams())).toThrow(/is an owned atom/)
+    writeFileSync(join(root, OWNED_DIR, "number-field.tsx"), "export {}\n")
+    expect(() => ingestAtom(root, "number-field", seams())).toThrow(/is an owned atom/)
   })
 
   it("reports no delta once an atom has been ingested from that upstream", () => {

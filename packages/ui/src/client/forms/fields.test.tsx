@@ -31,12 +31,43 @@ describe("TextField", () => {
 })
 
 describe("NumberField", () => {
-  it("is a numeric input", async () => {
-    const { container } = render(<NumberField name="age" label="Age" />)
-    const input = screen.getByLabelText("Age")
-    expect(input.getAttribute("type")).toBe("number")
-    expect(input.getAttribute("inputmode")).toBe("numeric")
+  it("is a labelled number field with named steppers and no violations", async () => {
+    const { container } = render(<NumberField name="age" label="Age" defaultValue={30} />)
+    const input = screen.getByRole("textbox", { name: "Age" }) as HTMLInputElement
+    expect(input.value).toBe("30")
+    expect(screen.getByRole("button", { name: "Increase" })).toBeDefined()
+    expect(screen.getByRole("button", { name: "Decrease" })).toBeDefined()
     await expectNoAxeViolations(container)
+  })
+
+  it("steps with the keyboard, clamps to the bounds, and submits the number", async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <form>
+        <NumberField name="qty" label="Quantity" defaultValue={4} min={0} max={5} />
+      </form>,
+    )
+    const input = screen.getByRole("textbox", { name: "Quantity" }) as HTMLInputElement
+
+    await user.click(input)
+    await user.keyboard("{ArrowUp}{ArrowUp}")
+
+    expect(input.value).toBe("5")
+    const form = container.querySelector("form")
+    expect(form === null ? null : new FormData(form).get("qty")).toBe("5")
+  })
+
+  it("names the steppers from the labels", () => {
+    render(
+      <NumberField name="qty" label="Menge" labels={{ increment: "Mehr", decrement: "Weniger" }} />,
+    )
+    expect(screen.getByRole("button", { name: "Mehr" })).toBeDefined()
+    expect(screen.getByRole("button", { name: "Weniger" })).toBeDefined()
+  })
+
+  it("marks a required field for assistive tech", () => {
+    render(<NumberField name="qty" label="Quantity" required />)
+    expect(screen.getByRole("textbox", { name: /Quantity/ }).hasAttribute("required")).toBe(true)
   })
 })
 

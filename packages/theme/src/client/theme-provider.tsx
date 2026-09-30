@@ -14,7 +14,7 @@ import {
   useState,
 } from "react"
 import { ThemeError } from "../errors"
-import { DEFAULT_THEME, resolveTheme, type ThemePreference } from "../theme"
+import { DEFAULT_THEME, resolveTheme, type ThemePreference } from "../preference"
 
 export interface ThemeContextValue {
   readonly error: Error | undefined

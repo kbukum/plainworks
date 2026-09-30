@@ -3,7 +3,7 @@ import {
   expectPageFocusVisible,
   settleAnimations,
 } from "@plainworks/testkit/playwright"
-import { COLOR_SCHEMES } from "@plainworks/theme"
+import { COLOR_SCHEMES } from "@plainworks/theme/preference"
 import { GALLERY_GROUPS } from "./fixtures/gallery/groups"
 import { GALLERY_OVERLAYS, openGalleryGroup, openGalleryOverlay } from "./support/gallery"
 import { expect, test } from "./support/gate"

@@ -328,6 +328,17 @@
       ]
     },
     {
+      "name": "number-field",
+      "type": "registry:ui",
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "files": [
+        {
+          "path": "src/atoms/number-field.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
       "name": "pagination",
       "type": "registry:ui",
       "registryDependencies": ["button"],
@@ -439,12 +450,12 @@
       ]
     },
     {
-      "name": "sonner",
+      "name": "spinner",
       "type": "registry:ui",
-      "dependencies": ["lucide-react", "sonner"],
+      "dependencies": ["lucide-react"],
       "files": [
         {
-          "path": "src/atoms/sonner.tsx",
+          "path": "src/shadcn/spinner.tsx",
           "type": "registry:ui"
         }
       ]
@@ -487,6 +498,18 @@
       "files": [
         {
           "path": "src/shadcn/textarea.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
+      "name": "toast",
+      "type": "registry:ui",
+      "registryDependencies": ["button"],
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "files": [
+        {
+          "path": "src/shadcn/toast.tsx",
           "type": "registry:ui"
         }
       ]

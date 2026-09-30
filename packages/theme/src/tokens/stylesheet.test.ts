@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
+import { COLOR_SCHEMES } from "../preference"
 import { parseRules, readStylesheet, resolveTokens, SYSTEM_ROOT } from "../testing/stylesheet"
-import { COLOR_SCHEMES } from "../theme/resolution"
 import {
   BRAND_COLOR_ROLES,
   DENSITIES,
@@ -113,6 +113,19 @@ describe("tokens.css", () => {
     for (const duration of MOTION_DURATIONS) {
       expect(reduced.get(`--pw-duration-${duration}`)).toBe("0ms")
     }
+  })
+
+  it("collapses motion when the document asks for reduced motion, whatever the device says", () => {
+    const reduced = declared(':root[data-motion="reduce"]')
+    for (const duration of MOTION_DURATIONS) {
+      expect(reduced.get(`--pw-duration-${duration}`)).toBe("0ms")
+    }
+    const everything = declared(
+      ':root[data-motion="reduce"] *, :root[data-motion="reduce"] *::before, :root[data-motion="reduce"] *::after',
+    )
+    expect(everything.get("animation-duration")).toBe("0s !important")
+    expect(everything.get("transition-duration")).toBe("0s !important")
+    expect(everything.get("animation-iteration-count")).toBe("1 !important")
   })
 
   it("strengthens boundaries and secondary text when the user prefers more contrast", () => {

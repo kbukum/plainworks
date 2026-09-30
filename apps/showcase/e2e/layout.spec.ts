@@ -171,7 +171,7 @@ for (const [side, width, height] of [
       .getByRole("button", { name: /^Mark read/ })
       .first()
       .click()
-    const toast = page.getByRole("listitem").filter({ hasText: "Marked as read" })
+    const toast = page.getByRole("dialog").filter({ hasText: "Marked as read" })
     await expect(toast).toBeInViewport({ ratio: 1 })
 
     const [toastBox, barBox] = await Promise.all([toast.boundingBox(), devtools.boundingBox()])

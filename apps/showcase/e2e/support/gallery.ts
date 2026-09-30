@@ -118,6 +118,18 @@ export const GALLERY_OVERLAYS: readonly GalleryOverlay[] = [
     action: "click",
     popup: (page) => page.getByRole("dialog", { name: "Order details" }),
   },
+  {
+    group: "composites",
+    trigger: "account-menu",
+    action: "click",
+    popup: (page) => page.getByRole("menu"),
+  },
+  {
+    group: "composites",
+    trigger: "command-palette",
+    action: "click",
+    popup: (page) => page.getByRole("dialog", { name: "Command menu" }),
+  },
 ]
 
 /** Open `overlay` in an already open gallery group, and wait for its popup. */

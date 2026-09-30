@@ -4,6 +4,17 @@
   "homepage": "https://github.com/kbukum/plainworks",
   "items": [
     {
+      "name": "actions",
+      "type": "registry:ui",
+      "dependencies": ["@plainworks/elements"],
+      "files": [
+        {
+          "path": "src/client/actions/icon-button.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
       "name": "layout",
       "type": "registry:ui",
       "dependencies": ["@plainworks/theme"],
@@ -45,7 +56,7 @@
     {
       "name": "feedback",
       "type": "registry:ui",
-      "dependencies": ["@plainworks/elements", "@plainworks/theme"],
+      "dependencies": ["@plainworks/elements", "@plainworks/std", "@plainworks/theme"],
       "files": [
         {
           "path": "src/client/feedback/async-state.tsx",
@@ -69,6 +80,10 @@
         },
         {
           "path": "src/client/feedback/spinner.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/feedback/toast.tsx",
           "type": "registry:ui"
         },
         {
@@ -110,7 +125,19 @@
           "type": "registry:ui"
         },
         {
+          "path": "src/client/display/description-list.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/display/metric-card.tsx",
+          "type": "registry:ui"
+        },
+        {
           "path": "src/client/display/number-value.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/display/sparkline.tsx",
           "type": "registry:ui"
         },
         {
@@ -135,10 +162,53 @@
       ]
     },
     {
+      "name": "command",
+      "type": "registry:ui",
+      "dependencies": ["@plainworks/elements", "@plainworks/theme"],
+      "files": [
+        {
+          "path": "src/client/command/command-palette.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/keyboard/use-keyboard-shortcuts.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/state/use-controllable-state.ts",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
       "name": "theme",
       "type": "registry:ui",
       "dependencies": ["@plainworks/elements", "@plainworks/theme"],
       "files": [
+        {
+          "path": "src/client/actions/icon-button.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/display/sparkline.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/forms/form-context.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/forms/radio-group-field.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/theme/accent-picker.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/theme/motion-control.tsx",
+          "type": "registry:ui"
+        },
         {
           "path": "src/client/theme/theme-mode-group.tsx",
           "type": "registry:ui"
@@ -149,6 +219,14 @@
         },
         {
           "path": "src/client/theme/theme-mode-options.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/theme/theme-preview.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/theme/theme-studio.tsx",
           "type": "registry:ui"
         }
       ]
@@ -195,6 +273,10 @@
           "type": "registry:ui"
         },
         {
+          "path": "src/client/forms/radio-group-field.tsx",
+          "type": "registry:ui"
+        },
+        {
           "path": "src/client/forms/select-field.tsx",
           "type": "registry:ui"
         },
@@ -218,11 +300,19 @@
       "dependencies": ["@plainworks/elements", "@plainworks/theme"],
       "files": [
         {
+          "path": "src/client/actions/icon-button.tsx",
+          "type": "registry:ui"
+        },
+        {
           "path": "src/client/overlays/body.tsx",
           "type": "registry:ui"
         },
         {
           "path": "src/client/overlays/drawer.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/shell/account-menu.tsx",
           "type": "registry:ui"
         },
         {
@@ -253,11 +343,23 @@
           "type": "registry:ui"
         },
         {
+          "path": "src/client/data/facet-panel.tsx",
+          "type": "registry:ui"
+        },
+        {
           "path": "src/client/data/filter-bar.tsx",
           "type": "registry:ui"
         },
         {
           "path": "src/client/data/filter-model.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/data/list-layout.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/data/list-search.tsx",
           "type": "registry:ui"
         },
         {
@@ -269,15 +371,31 @@
           "type": "registry:ui"
         },
         {
+          "path": "src/client/data/range-filter.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/data/use-list-query-state.ts",
+          "type": "registry:ui"
+        },
+        {
           "path": "src/client/feedback/empty-state.tsx",
           "type": "registry:ui"
         },
         {
-          "path": "src/hooks/use-controllable-state.ts",
+          "path": "src/client/overlays/body.tsx",
           "type": "registry:ui"
         },
         {
-          "path": "src/hooks/use-selection.ts",
+          "path": "src/client/overlays/drawer.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/state/use-controllable-state.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/state/use-selection.ts",
           "type": "registry:ui"
         }
       ]

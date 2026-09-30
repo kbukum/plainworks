@@ -13,6 +13,7 @@ import {
 import { cn } from "@plainworks/theme"
 import { useTheme } from "@plainworks/theme/client"
 import type { ReactElement } from "react"
+import { IconButton } from "../actions/icon-button"
 import {
   defaultThemeModeLabels,
   THEME_MODES,
@@ -43,15 +44,24 @@ export function ThemeModeMenu({ labels, icons, className }: ThemeModeMenuProps):
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        aria-label={`${copy.label}: ${copy[theme.mode]}`}
-        className={cn(
-          buttonVariants({ variant: "ghost", size: icon === undefined ? "sm" : "icon" }),
-          className,
-        )}
-      >
-        {icon ?? copy[theme.mode]}
-      </DropdownMenuTrigger>
+      {icon === undefined ? (
+        <DropdownMenuTrigger
+          aria-label={`${copy.label}: ${copy[theme.mode]}`}
+          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), className)}
+        >
+          {copy[theme.mode]}
+        </DropdownMenuTrigger>
+      ) : (
+        <DropdownMenuTrigger
+          render={
+            <IconButton
+              label={`${copy.label}: ${copy[theme.mode]}`}
+              icon={icon}
+              className={className}
+            />
+          }
+        />
+      )}
       <DropdownMenuContent align="end">
         <DropdownMenuGroup>
           <DropdownMenuLabel>{copy.label}</DropdownMenuLabel>

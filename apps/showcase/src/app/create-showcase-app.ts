@@ -5,7 +5,7 @@
 // by the shared capability id.
 
 import { type App, type Capability, createApp, defineCapability } from "@plainworks/app"
-import { DEFAULT_THEME, parseThemeCookie, type ThemePreference } from "@plainworks/theme"
+import { DEFAULT_THEME, parseThemeCookie, type ThemePreference } from "@plainworks/theme/preference"
 import { THEME_CAPABILITY_ID, THEME_COOKIE } from "./constants"
 
 /** The neutral theme capability — resolves the persisted preference from the request cookie. */

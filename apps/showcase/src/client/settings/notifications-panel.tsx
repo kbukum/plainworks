@@ -1,11 +1,11 @@
 "use client"
 
 import type { UpdateSettingsInput } from "@plainworks/demo"
+import { useToast } from "@plainworks/ui/feedback/toast"
 import { CheckboxField } from "@plainworks/ui/forms/checkbox-field"
 import { Form } from "@plainworks/ui/forms/form"
 import { SwitchField } from "@plainworks/ui/forms/switch-field"
 import type { ReactElement } from "react"
-import { useToast } from "../feedback"
 import { PanelActions, type SettingsPanelProps } from "./settings-panel"
 import { notificationsFormSchema } from "./settings-schema"
 

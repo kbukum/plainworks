@@ -38,6 +38,16 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./preference": {
+      "@plainworks/source": "./src/preference/index.ts",
+      "types": "./dist/preference.d.ts",
+      "default": "./dist/preference.js"
+    },
+    "./tokens": {
+      "@plainworks/source": "./src/tokens/index.ts",
+      "types": "./dist/tokens.d.ts",
+      "default": "./dist/tokens.js"
+    },
     "./client": {
       "@plainworks/source": "./src/client.ts",
       "types": "./dist/client.d.ts",

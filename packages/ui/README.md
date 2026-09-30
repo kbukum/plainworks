@@ -38,16 +38,21 @@ Every component has its own subpath, `@plainworks/ui/<concern>/<component>`, so 
 
 | Concern | Subpaths | You get |
 | --- | --- | --- |
-| `shell` | `app-shell` | The app frame: header, navigation rail or drawer, skip link, and main landmark |
+| `shell` | `app-shell`, `account-menu` | The app frame (header, navigation rail or drawer, skip link, main landmark) and the signed-in user's menu |
+| `actions` | `icon-button` | An icon-only button that always has a name and a tooltip |
+| `command` | `command-palette` | A ⌘K / Ctrl+K palette of navigation and actions |
 | `layout` | `page`, `page-header`, `section`, `toolbar`, `stack`, `grid`, `split` | Page structure plus fluid, container-first layout primitives |
-| `feedback` | `async-state`, `loading-state`, `empty-state`, `error-state`, `spinner`, `callout` | Region states and inline status |
-| `display` | `date-value`, `number-value`, `status-badge` | SSR-stable `Intl` formatting and toned status labels |
+| `feedback` | `async-state`, `loading-state`, `empty-state`, `error-state`, `spinner`, `callout`, `toast` | Region states, inline status, and toasts |
+| `display` | `date-value`, `number-value`, `status-badge`, `description-list`, `metric-card`, `sparkline` | SSR-stable `Intl` formatting, status labels, term/value lists, metric cards, and a dependency-free sparkline |
 | `navigation` | `breadcrumbs`, `nav-list` | An accessible trail and a primary nav list that marks the current page |
 | `overlays` | `modal`, `drawer` | Labelled, controllable overlays; a drawer body scrolls on its own |
-| `forms` | `form`, `form-submit`, `text-field`, `number-field`, `date-field`, `textarea-field`, `select-field`, `checkbox-field`, `switch-field`, `field` | Schema-validated forms on React 19 Actions |
-| `data` | `data-table`, `filter-bar`, `pagination` | A controlled table plus paging and filtering over `std/list` |
-| `theme` | `theme-mode-menu`, `theme-mode-group`, `theme-mode-options` | Color-mode controls |
-| `hooks` | `use-controllable-state`, `use-selection`, `use-disclosure`, `use-list-state`, `use-media-query`, `use-clipboard`, `use-keyboard-shortcuts` | Behaviour hooks |
+| `forms` | `form`, `form-submit`, `text-field`, `number-field`, `date-field`, `textarea-field`, `select-field`, `checkbox-field`, `switch-field`, `radio-group-field`, `field` | Schema-validated forms on React 19 Actions |
+| `data` | `data-table`, `filter-bar`, `pagination`, `list-layout`, `list-search`, `facet-panel`, `range-filter`, `use-list-query-state`, `filter-model` | A controlled table, paging, and filtering over `std/list`, plus a full list-page layout |
+| `theme` | `theme-mode-menu`, `theme-mode-group`, `theme-mode-options`, `accent-picker`, `motion-control`, `theme-preview`, `theme-studio` | Color-mode, accent, and motion controls, plus a full appearance editor |
+| `state` | `use-controllable-state`, `use-selection`, `use-disclosure`, `use-list-state` | DOM-free controlled/uncontrolled state hooks |
+| `clipboard` | `use-clipboard` | Copy text with a timed "copied" state |
+| `keyboard` | `use-keyboard-shortcuts` | Global shortcuts; `mod` means ⌘ or Ctrl |
+| `media` | `use-media-query` | An SSR-safe media query |
 
 `AppShell` frames the whole app. Navigation sits in a rail on wide screens and in a drawer behind a menu button on narrow ones, measured by the shell's own width. It adds a skip link and a named main landmark, and moves focus to main when the page changes. The rail and drawer copies of the navigation can both be mounted, so give each a unique label based on `placement`. Pass `renderLink` to `NavList` to use your router's link.
 
@@ -153,20 +158,52 @@ import { Pagination } from "@plainworks/ui/data/pagination"
 <Pagination page={page} pageSize={20} total={total} onPageChange={setPage} />
 ```
 
-## Hooks
-
-Each hook has its own `hooks/*` subpath. The DOM-free stately hooks — `useControllableState`, `useSelection`, `useDisclosure`, `useListState` — are the controlled/uncontrolled foundation the composites are built on. The browser hooks — `useMediaQuery`, `useClipboard`, `useKeyboardShortcuts` — wrap DOM APIs with SSR-safe defaults and owned teardown.
+For a full list page, `useListQueryState` holds the page, search, sort, and filters and hands you the `std/list` params for your query. `ListLayout` puts search above the rows and filters in a side panel, which becomes a drawer on narrow screens. `FacetPanel` and `RangeFilter` edit the same filter list as `FilterBar`.
 
 ```tsx
-import { useClipboard } from "@plainworks/ui/hooks/use-clipboard"
-import { useSelection } from "@plainworks/ui/hooks/use-selection"
+import { FacetPanel } from "@plainworks/ui/data/facet-panel"
+import { ListLayout } from "@plainworks/ui/data/list-layout"
+import { ListSearch } from "@plainworks/ui/data/list-search"
+import { useListQueryState } from "@plainworks/ui/data/use-list-query-state"
+
+const list = useListQueryState({ pageSize: 20, facets: ["status"] })
+const orders = useOrders(list.params)
+
+<ListLayout
+  search={<ListSearch value={list.search} onChange={list.setSearch} />}
+  filters={<FacetPanel fields={facetFields} facets={orders.facets} value={list.filters} onChange={list.setFilters} />}
+  activeFilters={list.filters.length}
+>
+  {table}
+</ListLayout>
+```
+
+`CommandPalette` opens from its trigger or ⌘K / Ctrl+K. Give it groups of items; it closes before it runs the one you pick.
+
+```tsx
+import { CommandPalette } from "@plainworks/ui/command/command-palette"
+
+<CommandPalette
+  groups={[{ id: "go", heading: "Go to", items: [{ id: "orders", label: "Orders", onSelect: openOrders }] }]}
+/>
+```
+
+## State and browser hooks
+
+The DOM-free `state` hooks (`useControllableState`, `useSelection`, `useDisclosure`, `useListState`) are the controlled/uncontrolled base the composites build on. Browser capabilities each have their own concern: `clipboard`, `keyboard`, and `media`. They wrap DOM APIs with SSR-safe defaults and clean up after themselves.
+
+```tsx
+import { useClipboard } from "@plainworks/ui/clipboard/use-clipboard"
+import { useSelection } from "@plainworks/ui/state/use-selection"
 ```
 
 ## Theme
 
-Use `parseThemeCookie` and `resolveTheme` from `@plainworks/theme` during SSR, then render the returned `htmlClass` on `<html>`. System mode adds no mode class, so the stylesheet follows the OS preference on the first paint. On the client, pass a caller-owned `StateSource<ThemePreference>` to `ThemeProvider` from `@plainworks/theme/client`; `cookieScope` from `@plainworks/state/cookie` keeps the value server-readable without creating a singleton or using browser storage directly.
+Use `parseThemeCookie` and `resolveTheme` from `@plainworks/theme/preference` during SSR, then render the returned `htmlClass` on `<html>`. System mode adds no mode class, so the stylesheet follows the OS preference on the first paint. On the client, pass a caller-owned `StateSource<ThemePreference>` to `ThemeProvider` from `@plainworks/theme/client`; `cookieScope` from `@plainworks/state/cookie` keeps the value server-readable without creating a singleton or using browser storage directly.
 
-Two controls set the color mode. `ThemeModeMenu` is a compact header menu; `ThemeModeGroup` is an inline Light / Dark / System button group for a settings page. Both take optional `icons` and `labels`, so the kit ships no icon set and no fixed copy.
+`ThemeStudio` is a ready-made appearance editor: color mode, accent color, and a live preview. Add `MotionControl` with `useDocumentMotion` from `@plainworks/theme/client` to let users reduce motion.
+
+Two smaller controls set the color mode. `ThemeModeMenu` is a compact header menu; `ThemeModeGroup` is an inline Light / Dark / System button group for a settings page. Both take optional `icons` and `labels`, so the kit ships no icon set and no fixed copy.
 
 A save can fail, for example when the cookie write is rejected. The selection then stays unchanged and the failure lands on `useTheme().error`:
 

@@ -16,7 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@plainworks/elements/card"
-import { DEFAULT_THEME, parseThemeCookie } from "@plainworks/theme"
+import { DEFAULT_THEME, parseThemeCookie } from "@plainworks/theme/preference"
 import type { ReactElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { LOGIN_PATH, THEME_COOKIE } from "../app/constants"

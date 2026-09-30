@@ -2,42 +2,14 @@
 
 import type { DashboardStats } from "@plainworks/demo"
 import { Button } from "@plainworks/elements/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@plainworks/elements/card"
+import { MetricCard, MetricList } from "@plainworks/ui/display/metric-card"
 import { NumberValue } from "@plainworks/ui/display/number-value"
 import { LoadingState } from "@plainworks/ui/feedback/loading-state"
-import type { ReactElement, ReactNode } from "react"
+import type { ReactElement } from "react"
 import { DISPLAY_LOCALE } from "../../app/constants"
 import { GrowthBadge } from "./growth-badge"
 
 const STAT_LABELS = ["Total users", "Total orders", "Revenue", "Products"] as const
-
-/** One headline metric: a label, its formatted value, and a supporting line. */
-function StatCard({
-  label,
-  value,
-  detail,
-}: {
-  readonly label: string
-  readonly value: ReactNode
-  /** The supporting line: a growth badge or a short caption, so every card has the same shape. */
-  readonly detail: ReactNode
-}): ReactElement {
-  return (
-    <Card>
-      <CardHeader>
-        <CardDescription>{label}</CardDescription>
-        <CardTitle className="text-2xl tabular-nums">{value}</CardTitle>
-      </CardHeader>
-      <CardContent className="text-caption text-muted-foreground">{detail}</CardContent>
-    </Card>
-  )
-}
 
 function growthDetail(value: number): ReactElement {
   return <GrowthBadge value={value} periodLabel="from last period" />
@@ -50,24 +22,24 @@ export interface StatCardsProps {
 }
 
 /**
- * The Overview headline: four metric cards formatted through the kit's SSR-stable
- * {@link NumberValue} — counts, a currency total, and signed growth badges — laid out in a fluid,
- * mobile-first grid that reflows from one column to four without a fixed-pixel break.
+ * The Overview headline: four kit `MetricCard`s formatted through the kit's SSR-stable
+ * {@link NumberValue} — counts, a currency total, and signed growth badges — laid out in a
+ * `MetricList` that reflows from one column to four.
  */
 export function StatCards({ stats }: StatCardsProps): ReactElement {
   return (
-    <div className="grid grid-cols-1 gap-4 @sm/main:grid-cols-2 @4xl/main:grid-cols-4">
-      <StatCard
+    <MetricList>
+      <MetricCard
         label="Total users"
         value={<NumberValue value={stats.totalUsers} locale={DISPLAY_LOCALE} />}
         detail={growthDetail(stats.userGrowth)}
       />
-      <StatCard
+      <MetricCard
         label="Total orders"
         value={<NumberValue value={stats.totalOrders} locale={DISPLAY_LOCALE} />}
         detail={growthDetail(stats.orderGrowth)}
       />
-      <StatCard
+      <MetricCard
         label="Revenue"
         value={
           <NumberValue
@@ -78,30 +50,27 @@ export function StatCards({ stats }: StatCardsProps): ReactElement {
         }
         detail={growthDetail(stats.revenueGrowth)}
       />
-      <StatCard
+      <MetricCard
         label="Products"
         value={<NumberValue value={stats.totalProducts} locale={DISPLAY_LOCALE} />}
         detail="Listed in the catalog"
       />
-    </div>
+    </MetricList>
   )
 }
 
 /** Four card-shaped loading placeholders that preserve the dashboard layout. */
 export function StatCardsSkeleton(): ReactElement {
   return (
-    <div className="grid grid-cols-1 gap-4 @sm/main:grid-cols-2 @4xl/main:grid-cols-4">
+    <MetricList>
       {STAT_LABELS.map((label) => (
-        <Card key={label}>
-          <CardHeader>
-            <CardDescription>{label}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <LoadingState label={`Loading ${label}`} lines={2} />
-          </CardContent>
-        </Card>
+        <MetricCard
+          key={label}
+          label={label}
+          detail={<LoadingState label={`Loading ${label}`} lines={2} />}
+        />
       ))}
-    </div>
+    </MetricList>
   )
 }
 
@@ -123,16 +92,15 @@ export function StatCardsError({ onRetry }: StatCardsErrorProps): ReactElement {
           Try again
         </Button>
       </div>
-      <div className="grid grid-cols-1 gap-4 @sm/main:grid-cols-2 @4xl/main:grid-cols-4">
+      <MetricList>
         {STAT_LABELS.map((label) => (
-          <Card key={label}>
-            <CardHeader>
-              <CardDescription>{label}</CardDescription>
-              <CardTitle className="text-muted-foreground text-base">Unavailable</CardTitle>
-            </CardHeader>
-          </Card>
+          <MetricCard
+            key={label}
+            label={label}
+            value={<span className="text-base text-muted-foreground">Unavailable</span>}
+          />
         ))}
-      </div>
+      </MetricList>
     </section>
   )
 }

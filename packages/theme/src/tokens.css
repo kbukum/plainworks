@@ -384,8 +384,24 @@
 
 /*
  * Reduced motion: token-based motion stops, and the catch-all below also stops third-party
- * animation that does not use the tokens.
+ * animation that does not use the tokens. It applies when the device prefers reduced motion, and
+ * when the user chose it in the app (`data-motion="reduce"` on the root, written by `theme/client`).
  */
+:root[data-motion="reduce"] {
+  --pw-duration-fast: 0ms;
+  --pw-duration-base: 0ms;
+  --pw-duration-slow: 0ms;
+}
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] *::before,
+:root[data-motion="reduce"] *::after {
+  scroll-behavior: auto !important;
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+}
 @media (prefers-reduced-motion: reduce) {
   :root {
     --pw-duration-fast: 0ms;

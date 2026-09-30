@@ -57,7 +57,7 @@ describe("shadcn lock", () => {
 
   it("ignores owned atoms and tests", () => {
     const root = stageRoot()
-    writeFileSync(join(root, OWNED_DIR, "sonner.tsx"), "export {}\n")
+    writeFileSync(join(root, OWNED_DIR, "number-field.tsx"), "export {}\n")
     writeFileSync(join(root, SHADCN_DIR, "button.test.tsx"), "export {}\n")
     expect(verifyLock(root)).toEqual([])
   })

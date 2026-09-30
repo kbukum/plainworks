@@ -176,12 +176,39 @@ function scopeSelectors(rule: Rule, { scope, guard }: Scoping): string[] {
     if (rootMatch !== null) {
       const rest = trimmed.slice(rootMatch[0]?.length ?? 0)
       if (rest === "") return scope
-      // `:root .x` → `[root] .x`; `:root.dark` keeps its condition on the document root.
-      return /^\s/.test(rest) ? descendant(rest.trim()) : `${trimmed} ${scope}`
+      // `:root .x` → `[root] .x`; `:root.dark` keeps its condition on the document root, and
+      // `:root[data-x] .y` keeps it there while `.y` is scoped beneath the style root.
+      if (/^\s/.test(rest)) return descendant(rest.trim())
+      const end = compoundEnd(rest)
+      const condition = `${rootMatch[0]}${rest.slice(0, end)}`
+      const descendants = rest.slice(end).trim()
+      return descendants === ""
+        ? `${condition} ${scope}`
+        : `${condition} ${descendant(descendants)}`
     }
     return ancestor ? `${trimmed} ${scope}` : descendant(trimmed)
   })
   return [...new Set(scoped)]
+}
+
+/**
+ * The length of the leading compound selector in `selector`: everything up to the first
+ * combinator or whitespace outside brackets, parentheses, and quotes.
+ */
+function compoundEnd(selector: string): number {
+  let depth = 0
+  let quote: string | undefined
+  for (let index = 0; index < selector.length; index += 1) {
+    const char = selector[index]
+    if (quote !== undefined) {
+      if (char === "\\") index += 1
+      else if (char === quote) quote = undefined
+    } else if (char === '"' || char === "'") quote = char
+    else if (char === "[" || char === "(") depth += 1
+    else if (char === "]" || char === ")") depth -= 1
+    else if (depth === 0 && char !== undefined && /[\s>+~]/.test(char)) return index
+  }
+  return selector.length
 }
 
 /**

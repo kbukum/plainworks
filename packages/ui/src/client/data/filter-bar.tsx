@@ -3,10 +3,10 @@
 import { Button } from "@plainworks/elements/button"
 import { Input } from "@plainworks/elements/input"
 import { NativeSelect, NativeSelectOption } from "@plainworks/elements/native-select"
+import { NumberField, NumberFieldGroup, NumberFieldInput } from "@plainworks/elements/number-field"
 import { Textarea } from "@plainworks/elements/textarea"
 import {
   type FilterOperator,
-  type FilterValue,
   isListOperator,
   isPresenceOperator,
   type ListFilter,
@@ -15,11 +15,15 @@ import { cn } from "@plainworks/theme"
 import { type ReactElement, useEffect, useRef, useState } from "react"
 import {
   buildFilter,
+  carryFilterValue,
   encodeListValues,
   type FilterFieldDef,
+  filterSetsEqual,
   filterToInputValue,
   operatorsForField,
   parseListValues,
+  withFilterField,
+  withFilterOperator,
 } from "./filter-model"
 
 /** User-facing strings for {@link FilterBar}; every field defaults through {@link defaultFilterBarLabels}. */
@@ -184,13 +188,13 @@ export function FilterBar({
     const def = findDef(field)
     const operators = operatorsForField(def)
     const op = operators.includes(previous.op) ? previous.op : operators[0]
-    replaceAt(index, buildFilter(def, op, carryValue(previous, op)))
+    replaceAt(index, buildFilter(def, op, carryFilterValue(previous, op)))
   }
 
   const changeOperator = (index: number, op: FilterOperator): void => {
     const filter = value[index]
     if (filter === undefined) return
-    replaceAt(index, buildFilter(findDef(filter.field), op, carryValue(filter, op)))
+    replaceAt(index, buildFilter(findDef(filter.field), op, carryFilterValue(filter, op)))
   }
 
   const changeValue = (index: number, raw: string): void => {
@@ -250,8 +254,8 @@ export function FilterBar({
     >
       {value.map((filter, index) => {
         const def = findDef(filter.field)
-        const operators = withOperator(operatorsForField(def), filter.op)
-        const fieldChoices = withField(fields, filter.field)
+        const operators = withFilterOperator(operatorsForField(def), filter.op)
+        const fieldChoices = withFilterField(fields, filter.field)
         const position = index + 1
         const rowId = rowIds[index]
         return (
@@ -333,73 +337,9 @@ export function FilterBar({
 const CONTROL_CLASS = "w-full @md/filter-bar:w-auto"
 const VALUE_EDITOR_CLASS = "w-full @md/filter-bar:w-40"
 
-// Carry a row's editor value across an operator-category change instead of feeding a list editor's
-// multi-line serialization to a scalar builder (which would emit `eq: "a\nb"` from `["a","b"]`).
-// A target presence operator takes no value; switching a list operator to a scalar keeps only the
-// first value; every other transition carries the current value through unchanged.
-function carryValue(filter: ListFilter, targetOp: FilterOperator): string {
-  if (isPresenceOperator(targetOp)) return ""
-  if (isListOperator(filter.op) && !isListOperator(targetOp)) {
-    return parseListValues(filterToInputValue(filter))[0] ?? ""
-  }
-  return filterToInputValue(filter)
-}
-
-// Ensure the row's current field is a selectable option even when it is absent from `fields`, so an
-// unrecognized field stays visible and editable rather than snapping to the first defined field.
-function withField(fields: readonly FilterFieldDef[], field: string): readonly FilterFieldDef[] {
-  if (fields.some((candidate) => candidate.field === field)) return fields
-  return [{ field, label: field }, ...fields]
-}
-
-// Ensure the row's current operator is a selectable option even when the field's allowed set does
-// not include it (e.g. after the field changed), so the operator is never silently dropped.
-function withOperator(
-  operators: readonly FilterOperator[],
-  op: FilterOperator,
-): readonly FilterOperator[] {
-  return operators.includes(op) ? operators : [op, ...operators]
-}
-
-function filterSetsEqual(left: readonly ListFilter[], right: readonly ListFilter[]): boolean {
-  return (
-    left.length === right.length &&
-    left.every((filter, index) => {
-      const candidate = right[index]
-      if (
-        candidate === undefined ||
-        filter.field !== candidate.field ||
-        filter.op !== candidate.op
-      ) {
-        return false
-      }
-      if (!("value" in filter) || !("value" in candidate)) {
-        return !("value" in filter) && !("value" in candidate)
-      }
-      const filterValue = filter.value
-      const candidateValue = candidate.value
-      if (isFilterValueList(filterValue) || isFilterValueList(candidateValue)) {
-        return (
-          isFilterValueList(filterValue) &&
-          isFilterValueList(candidateValue) &&
-          filterValue.length === candidateValue.length &&
-          filterValue.every((item, valueIndex) => item === candidateValue[valueIndex])
-        )
-      }
-      return filterValue === candidateValue
-    })
-  )
-}
-
-function isFilterValueList(
-  value: FilterValue | readonly FilterValue[],
-): value is readonly FilterValue[] {
-  return Array.isArray(value)
-}
-
 // The value editor for a non-presence operator: a native select for a `select` field on a scalar
-// operator, a multi-line editor (one value per line) for a list operator, otherwise a text/number
-// input.
+// operator, a multi-line editor (one value per line) for a list operator, a number field for a
+// numeric field, otherwise a text input.
 function renderValueEditor({
   def,
   filter,
@@ -431,15 +371,26 @@ function renderValueEditor({
       </NativeSelect>
     )
   }
-  // A text-backed numeric draft, not a native `type="number"`: a native number input blanks an
-  // out-of-range or non-numeric draft, so the visible editor could disagree with the emitted filter
-  // value. A text input keeps display and emitted string identical while `buildFilter` coerces to a
-  // finite number at the wire boundary; `inputMode` still summons a numeric keypad on touch.
+  if (def.type === "number") {
+    // The number-field atom parses by locale and reports only numbers (or null when cleared). A
+    // value it cannot show, such as text from a saved URL, is flagged instead of shown as blank.
+    const number = "value" in filter && typeof filter.value === "number" ? filter.value : null
+    const invalid = number === null && current !== ""
+    return (
+      <NumberField
+        className={VALUE_EDITOR_CLASS}
+        value={number}
+        onValueChange={(next) => onValueChange(next === null ? "" : String(next))}
+      >
+        <NumberFieldGroup>
+          <NumberFieldInput aria-label={label} aria-invalid={invalid || undefined} />
+        </NumberFieldGroup>
+      </NumberField>
+    )
+  }
   return (
     <Input
       aria-label={label}
-      type="text"
-      inputMode={def.type === "number" ? "decimal" : undefined}
       className={cn("h-8", VALUE_EDITOR_CLASS)}
       value={current}
       onChange={(event) => onValueChange(event.target.value)}

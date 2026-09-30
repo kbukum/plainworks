@@ -4,9 +4,10 @@ import type { User } from "@plainworks/demo"
 import { Avatar, AvatarFallback } from "@plainworks/elements/avatar"
 import { Badge } from "@plainworks/elements/badge"
 import { DateValue } from "@plainworks/ui/display/date-value"
+import { DescriptionItem, DescriptionList } from "@plainworks/ui/display/description-list"
 import { StatusBadge } from "@plainworks/ui/display/status-badge"
 import { Modal } from "@plainworks/ui/overlays/modal"
-import type { ReactElement, ReactNode } from "react"
+import type { ReactElement } from "react"
 import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../app/constants"
 import {
   USER_ROLE_LABEL,
@@ -25,15 +26,6 @@ export interface UserProfileProps {
 }
 
 /** One labelled profile field rendered as a description-list pair. */
-function ProfileField({ label, children }: { label: string; children: ReactNode }): ReactElement {
-  return (
-    <div className="grid gap-0.5">
-      <dt className="text-muted-foreground text-xs">{label}</dt>
-      <dd className="font-medium">{children}</dd>
-    </div>
-  )
-}
-
 /**
  * The member profile overlay: a labelled {@link Modal} leading with the avatar, name, and role and
  * status badges, then a description list of contact, department, verification, and activity —
@@ -63,21 +55,21 @@ export function UserProfile({ user, onOpenChange }: UserProfileProps): ReactElem
           </div>
         </div>
 
-        <dl className="grid gap-4 @sm:grid-cols-2">
-          <ProfileField label="Email">{user.email}</ProfileField>
-          <ProfileField label="Department">{user.department ?? "—"}</ProfileField>
-          {user.age === undefined ? null : <ProfileField label="Age">{user.age}</ProfileField>}
+        <DescriptionList>
+          <DescriptionItem term="Email">{user.email}</DescriptionItem>
+          <DescriptionItem term="Department">{user.department ?? "—"}</DescriptionItem>
+          {user.age === undefined ? null : <DescriptionItem term="Age">{user.age}</DescriptionItem>}
           {user.score === undefined ? null : (
-            <ProfileField label="Score">{user.score}</ProfileField>
+            <DescriptionItem term="Score">{user.score}</DescriptionItem>
           )}
-          <ProfileField label="Member since">
+          <DescriptionItem term="Member since">
             <DateValue
               value={user.createdAt}
               locale={DISPLAY_LOCALE}
               timeZone={DISPLAY_TIME_ZONE}
             />
-          </ProfileField>
-          <ProfileField label="Last active">
+          </DescriptionItem>
+          <DescriptionItem term="Last active">
             {user.lastLoginAt === undefined ? (
               "Never"
             ) : (
@@ -87,8 +79,8 @@ export function UserProfile({ user, onOpenChange }: UserProfileProps): ReactElem
                 timeZone={DISPLAY_TIME_ZONE}
               />
             )}
-          </ProfileField>
-        </dl>
+          </DescriptionItem>
+        </DescriptionList>
       </div>
     </Modal>
   )

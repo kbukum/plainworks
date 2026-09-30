@@ -1,60 +1,25 @@
 "use client"
 
-import { buttonVariants } from "@plainworks/elements/button"
-import {
-  Command,
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandShortcut,
-} from "@plainworks/elements/command"
-import { Kbd, KbdGroup } from "@plainworks/elements/kbd"
 import { AbortError } from "@plainworks/std/resilience"
-import { cn } from "@plainworks/theme"
 import { useTheme } from "@plainworks/theme/client"
+import { CommandPalette, type CommandPaletteGroup } from "@plainworks/ui/command/command-palette"
+import { useToast } from "@plainworks/ui/feedback/toast"
 import { Moon, Search, Sun } from "lucide-react"
-import { type ReactElement, useCallback, useEffect, useState } from "react"
+import type { ReactElement } from "react"
 import { SECTIONS } from "../../app/navigation"
-import { useToast } from "../feedback"
 import { useRouter } from "../router"
 
 /**
- * The command palette — a single ⌘K (Ctrl-K) surface that navigates to every section and runs a
- * few real actions, built on the kit's focus-trapped `command` dialog atom. It owns its own open
- * state and the global hotkey, and also renders the header affordance that opens it, so the shell
- * only has to place one component. Nothing here is decorative: the shortcut hint mirrors a live key
- * binding, and every item performs its navigation or action and closes.
+ * The showcase's ⌘K palette: the kit `CommandPalette` fed with a jump to every section and a
+ * theme-mode switch that confirms with a toast.
  */
 export function CommandMenu(): ReactElement {
-  const [open, setOpen] = useState(false)
   const { navigate } = useRouter()
   const { theme, setTheme, resolvedMode } = useTheme()
   const toast = useToast()
 
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault()
-        setOpen((previous) => !previous)
-      }
-    }
-    window.addEventListener("keydown", onKeyDown)
-    return () => window.removeEventListener("keydown", onKeyDown)
-  }, [])
-
-  // Every item closes the palette first, then performs its effect — so focus returns to the page
-  // before navigation or a theme change lands.
-  const run = useCallback((effect: () => void): void => {
-    setOpen(false)
-    effect()
-  }, [])
-
   const nextMode = resolvedMode === "dark" ? "light" : "dark"
   const toggleTheme = (): void => {
-    setOpen(false)
     void setTheme({ ...theme, mode: nextMode }).then(
       () => toast.info(`Switched to ${nextMode} mode`),
       (error: unknown) => {
@@ -64,69 +29,46 @@ export function CommandMenu(): ReactElement {
     )
   }
 
-  return (
-    <>
-      <button
-        type="button"
-        aria-label="Search sections and actions"
-        onClick={() => setOpen(true)}
-        className={cn(
-          buttonVariants({ variant: "outline", size: "icon" }),
-          "gap-2 text-muted-foreground @2xl/shell:w-56 @2xl/shell:justify-start @2xl/shell:px-3",
-        )}
-      >
-        <Search aria-hidden className="size-4 shrink-0" />
-        <span className="sr-only @2xl/shell:not-sr-only">Search</span>
-        <KbdGroup aria-hidden className="ml-auto hidden @2xl/shell:flex">
-          <Kbd>⌘</Kbd>
-          <Kbd>K</Kbd>
-        </KbdGroup>
-      </button>
+  const groups: readonly CommandPaletteGroup[] = [
+    {
+      id: "go",
+      heading: "Go to",
+      items: SECTIONS.map((section) => {
+        const Icon = section.icon
+        return {
+          id: `go-${section.id}`,
+          label: section.label,
+          icon: <Icon aria-hidden className="size-4" />,
+          onSelect: () => navigate(section.path),
+        }
+      }),
+    },
+    {
+      id: "actions",
+      heading: "Actions",
+      items: [
+        {
+          id: "toggle-theme-mode",
+          label: `Switch to ${nextMode} mode`,
+          keywords: ["theme", "mode"],
+          icon:
+            nextMode === "dark" ? (
+              <Moon aria-hidden className="size-4" />
+            ) : (
+              <Sun aria-hidden className="size-4" />
+            ),
+          shortcut: "Theme",
+          onSelect: toggleTheme,
+        },
+      ],
+    },
+  ]
 
-      {/* The atom pins the palette a third of the way down; bounding it to the rest of the screen
-          lets the list scroll instead of running off a short landscape screen. */}
-      <CommandDialog
-        className="flex max-h-[calc(200dvh/3-1rem)] flex-col"
-        open={open}
-        onOpenChange={setOpen}
-        title="Command menu"
-        description="Search sections and run actions"
-      >
-        <Command label="Command menu">
-          <CommandInput placeholder="Search sections and actions..." />
-          {/* The empty message sits outside the list, and an empty list hides: a listbox with no
-              options is invalid ARIA, and cmdk keeps it mounted when nothing matches. */}
-          <CommandEmpty>No matching commands.</CommandEmpty>
-          <CommandList className="[&:not(:has([cmdk-item]))]:hidden">
-            <CommandGroup heading="Go to">
-              {SECTIONS.map((section) => {
-                const Icon = section.icon
-                return (
-                  <CommandItem
-                    key={section.id}
-                    value={`go ${section.label}`}
-                    onSelect={() => run(() => navigate(section.path))}
-                  >
-                    <Icon aria-hidden className="size-4" />
-                    {section.label}
-                  </CommandItem>
-                )
-              })}
-            </CommandGroup>
-            <CommandGroup heading="Actions">
-              <CommandItem value="toggle theme mode" onSelect={toggleTheme}>
-                {nextMode === "dark" ? (
-                  <Moon aria-hidden className="size-4" />
-                ) : (
-                  <Sun aria-hidden className="size-4" />
-                )}
-                Switch to {nextMode} mode
-                <CommandShortcut>Theme</CommandShortcut>
-              </CommandItem>
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </CommandDialog>
-    </>
+  return (
+    <CommandPalette
+      groups={groups}
+      labels={{ trigger: "Search sections and actions" }}
+      icon={<Search aria-hidden className="size-4 shrink-0" />}
+    />
   )
 }

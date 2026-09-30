@@ -7,10 +7,10 @@ import { HttpClientProvider } from "@plainworks/http/client"
 import { HydrationBoundary } from "@plainworks/query/client"
 import type { DehydratedState } from "@plainworks/query/hydration"
 import type { ReactElement } from "react"
-import { ToastProvider } from "./feedback"
 import { RouterProvider } from "./router"
 import { LocalPreferencesProvider } from "./settings/local-preferences-provider"
 import { ShowcaseShell } from "./shell"
+import { ToastHost } from "./toast-host"
 
 /** Everything the shared render root needs, built per request on the server and once in the browser. */
 export interface ShowcaseProps {
@@ -39,11 +39,11 @@ export function Showcase(props: ShowcaseProps): ReactElement {
       <HydrationBoundary state={props.dehydratedState}>
         <HttpClientProvider client={props.httpClient}>
           <RouterProvider initialPath={props.initialPath}>
-            <ToastProvider>
+            <ToastHost>
               <LocalPreferencesProvider>
                 <ShowcaseShell />
               </LocalPreferencesProvider>
-            </ToastProvider>
+            </ToastHost>
           </RouterProvider>
         </HttpClientProvider>
       </HydrationBoundary>

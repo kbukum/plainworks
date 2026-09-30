@@ -97,7 +97,7 @@ export const overlaysFlow = defineFlow({
           .click({ signal })
         await expect(page.getByText("Marked as read")).toBeVisible()
         // Hovering pauses the toast's dismissal timer, so it stays through every variant's checks.
-        await page.getByRole("listitem").filter({ hasText: "Marked as read" }).hover()
+        await page.getByRole("dialog").filter({ hasText: "Marked as read" }).hover()
       },
       ready: (page) => page.getByText("Marked as read"),
     },

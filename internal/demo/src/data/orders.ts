@@ -4,14 +4,16 @@
 
 import {
   createEntityFactory,
-  daysAgo,
   type EntityFactory,
   type FixtureSources,
+} from "@plainworks/mocks/data"
+import {
+  daysAgo,
   nowISOString,
   randomElement,
   randomFloat,
   randomInt,
-} from "@plainworks/mocks"
+} from "@plainworks/mocks/fixture"
 import type { CreateOrderInput, Order, OrderItem } from "../types"
 
 const CUSTOMER_NAMES = ["John Doe", "Jane Smith", "Mike Johnson", "Sarah Williams", "Tom Brown"]

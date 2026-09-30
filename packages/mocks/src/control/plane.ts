@@ -13,10 +13,33 @@
 
 import { isRecord } from "@plainworks/std"
 import type { Clock } from "@plainworks/std/time"
-import { type HttpHandler, HttpResponse, http } from "msw"
+import {
+  type HttpCustomPredicate,
+  type HttpHandler,
+  HttpResponse,
+  http,
+  type PathParams,
+} from "msw"
 import { type LatencyController, MAX_LATENCY_MS } from "../latency"
 import { MAX_REQUEST_LOG_SIZE } from "./limits"
 import { MOCK_CONTROL_PATHS } from "./paths"
+
+// A control route answers at the origin root or under the `/api` namespace the logging handler
+// scopes to. Matched exactly, so an application route that merely ends in a control path
+// (`/api/users/mock/state`) is logged, gated, and never answered by the control plane.
+function controlPathnames(path: string): readonly string[] {
+  return [path, `/api${path}`]
+}
+
+const CONTROL_PATHNAMES: ReadonlySet<string> = new Set(
+  Object.values(MOCK_CONTROL_PATHS).flatMap(controlPathnames),
+)
+
+/** Matches one control route by exact pathname, on any origin. */
+function controlRoute(path: string): HttpCustomPredicate<PathParams> {
+  const allowed = controlPathnames(path)
+  return ({ request }) => allowed.includes(new URL(request.url).pathname)
+}
 
 /** A single logged request captured by the logging handler. */
 export interface RequestLogEntry {
@@ -87,6 +110,11 @@ export function createMockControl(
   // requests are never logged or gated. While error simulation is enabled it fails the request
   // before any data handler runs; otherwise it returns undefined to pass through.
   const loggingHandler: HttpHandler = http.all("*/api/*", async ({ request, requestId }) => {
+    const pathname = new URL(request.url).pathname
+    if (CONTROL_PATHNAMES.has(pathname)) {
+      return undefined
+    }
+
     requestLog.push({
       id: requestId,
       url: request.url,
@@ -108,7 +136,7 @@ export function createMockControl(
 
   const handlers: HttpHandler[] = [
     // Get request log
-    http.get(`*${MOCK_CONTROL_PATHS.requests}`, async () => {
+    http.get(controlRoute(MOCK_CONTROL_PATHS.requests), async () => {
       return HttpResponse.json({
         data: control.requestLog(),
         count: requestLog.length,
@@ -116,20 +144,20 @@ export function createMockControl(
     }),
 
     // Clear request log
-    http.delete(`*${MOCK_CONTROL_PATHS.requests}`, async () => {
+    http.delete(controlRoute(MOCK_CONTROL_PATHS.requests), async () => {
       control.clearRequestLog()
       return HttpResponse.json({ success: true })
     }),
 
     // Get current mock state
-    http.get(`*${MOCK_CONTROL_PATHS.state}`, async () => {
+    http.get(controlRoute(MOCK_CONTROL_PATHS.state), async () => {
       return HttpResponse.json({
         data: control.state(),
       })
     }),
 
     // Control global error simulation
-    http.post(`*${MOCK_CONTROL_PATHS.error}`, async ({ request }) => {
+    http.post(controlRoute(MOCK_CONTROL_PATHS.error), async ({ request }) => {
       let body: unknown
       try {
         body = await request.json()
@@ -146,7 +174,7 @@ export function createMockControl(
     }),
 
     // Control global latency
-    http.post(`*${MOCK_CONTROL_PATHS.latency}`, async ({ request }) => {
+    http.post(controlRoute(MOCK_CONTROL_PATHS.latency), async ({ request }) => {
       let body: unknown
       try {
         body = await request.json()
@@ -172,7 +200,7 @@ export function createMockControl(
     }),
 
     // Reset all mock data
-    http.post(`*${MOCK_CONTROL_PATHS.reset}`, async () => {
+    http.post(controlRoute(MOCK_CONTROL_PATHS.reset), async () => {
       onReset()
       control.clearRequestLog()
       return HttpResponse.json({ success: true })

@@ -1,0 +1,21 @@
+{
+  "name": "@plainworks/axe-coverage",
+  "version": "0.0.0",
+  "description": "Axe-coverage gate: every React render test file awaits the shared axe assertion and never imports axe-core directly.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "plainworks-axe-coverage": "./src/cli.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@plainworks/vitest-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

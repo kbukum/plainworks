@@ -7,7 +7,7 @@
 // POST from riding the session cookie into the bodyless bulk endpoint. Neutral and server-safe: it
 // reads only request headers and names no host global.
 
-import type { MutationAuthorizer } from "@plainworks/mocks"
+import type { MutationAuthorizer } from "@plainworks/mocks/handlers"
 import type { ReadShowcaseSession } from "./auth"
 import { NOTIFICATION_MUTATION_HEADER, NOTIFICATION_MUTATION_HEADER_VALUE } from "./constants"
 import { hasName } from "./identity-policy"

@@ -1,6 +1,7 @@
 import type { User } from "@plainworks/demo"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { listQueryOptions } from "@plainworks/query/list"
 import type { PaginatedResult } from "@plainworks/std/list"
@@ -14,12 +15,10 @@ import { readUserPage } from "./user-reads"
 const handle = createMockServerHandle({ seed: 42 })
 const client = createHttpClient({ baseUrl: "http://mock.test" })
 
-beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
+bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
 afterEach(() => {
-  handle.server.resetHandlers()
   handle.api.reset()
 })
-afterAll(() => handle.server.close())
 
 describe("empty page through the cache", () => {
   it("caches an empty page for a filter that matches nothing without a success-shaped fallback", async () => {

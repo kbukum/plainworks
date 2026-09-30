@@ -3,11 +3,14 @@
 import type { AppSnapshot } from "@plainworks/app"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { dehydrateClient, prefetchQuery } from "@plainworks/query/hydration"
 import type { StateSource } from "@plainworks/std/seam"
-import { deferred, fakeStateSource } from "@plainworks/testkit"
+import { deferred } from "@plainworks/testkit"
 import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/client"
+import { fakeStateSource } from "@plainworks/testkit/fakes"
+import { createTestQueryClient } from "@plainworks/testkit/query"
 import type { ThemePreference } from "@plainworks/theme"
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -38,18 +41,16 @@ Element.prototype.scrollIntoView = vi.fn()
 
 const handle = createMockServerHandle({ seed: 7 })
 
-beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
+bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
 beforeEach(() => {
   installMatchMedia()
   window.history.pushState(null, "", "/tasks")
 })
 afterEach(() => {
   cleanup()
-  handle.server.resetHandlers()
   handle.api.reset()
   vi.unstubAllGlobals()
 })
-afterAll(() => handle.server.close())
 
 const AUTHED: AppSnapshot = {
   capabilities: {
@@ -66,7 +67,7 @@ async function renderShell(
 ) {
   const { snapshot = AUTHED, initialPath = "/tasks", themeSource = createThemeSource() } = options
   const httpClient = createHttpClient({ baseUrl: "http://showcase.test" })
-  const queryClient = createQueryClient()
+  const queryClient = createTestQueryClient(createQueryClient)
   await prefetchQuery(queryClient, taskListPlan(httpClient, TASK_LIST_PARAMS))
   const capabilities = buildClientCapabilities({ queryClient, themeSource })
   return render(

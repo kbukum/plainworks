@@ -2,7 +2,7 @@ import { base64urlEncode } from "@plainworks/std/encoding"
 import { fixedClock } from "@plainworks/std/time"
 import { importJWK, type JWK, jwtVerify } from "jose"
 import { describe, expect, it } from "vitest"
-import { createMockIdp, type MockIdpOptions } from "./oidc"
+import { createMockIdp, type MockIdpOptions } from "./provider"
 
 // A stable millisecond clock so token `iat`/`exp` and minted identifiers are deterministic.
 const FIXED_NOW = 1_700_000_000_000

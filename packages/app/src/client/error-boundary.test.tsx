@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
+
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { cleanup, render, screen } from "@testing-library/react"
 import { userEvent } from "@testing-library/user-event"
-import axe from "axe-core"
 import { createElement, type ReactNode, useState } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { AppErrorBoundary, type ErrorFallbackProps } from "./error-boundary"
@@ -84,7 +85,6 @@ describe("AppErrorBoundary", () => {
     )
     // The fallback owns interactive DOM (the "Try again" button), so it must clear the WCAG floor.
     expect(screen.getByRole("button", { name: "Try again" })).toBeDefined()
-    const results = await axe.run(container)
-    expect(results.violations).toEqual([])
+    await expectNoAxeViolations(container)
   })
 })

@@ -1,4 +1,4 @@
-import { browserGateUse } from "@plainworks/testkit/browser"
+import { browserGateUse } from "@plainworks/testkit/playwright"
 import { defineConfig, devices } from "@playwright/test"
 
 // The showcase browser gate: every flow (`e2e/flows/`) checked at each checkpoint, plus functional

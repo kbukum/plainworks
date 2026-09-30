@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { cleanup, render, screen } from "@testing-library/react"
 import { createElement, type ReactNode } from "react"
 import { afterEach, describe, expect, it } from "vitest"
@@ -21,12 +22,13 @@ describe("app context hooks", () => {
       seen = { hasTheme: "theme" in useAppSnapshot().capabilities }
       return createElement("span", null, "ok")
     }
-    render(
+    const { container } = render(
       <AppProvider capabilities={[theme.provider]} snapshot={snapshot}>
         <Probe />
       </AppProvider>,
     )
     expect(seen).toEqual({ hasTheme: true })
+    await expectNoAxeViolations(container)
   })
 
   it("throw a typed error when read outside <AppProvider>", () => {

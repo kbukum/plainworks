@@ -1,4 +1,4 @@
-import type { VisualCapture } from "@plainworks/testkit/browser"
+import type { VisualCapture } from "@plainworks/testkit/playwright"
 
 /**
  * A whole page, every scrolled row. Flows run with the development inspector off, so the page docks

@@ -74,6 +74,7 @@
     }
   },
   "devDependencies": {
+    "@plainworks/mocks": "workspace:*",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",

@@ -2,8 +2,8 @@
  * Dashboard data generators
  */
 
-import type { FixtureSources } from "@plainworks/mocks"
-import { daysAgo, randomElements, randomFloat, randomInt } from "@plainworks/mocks"
+import type { FixtureSources } from "@plainworks/mocks/data"
+import { daysAgo, randomElements, randomFloat, randomInt } from "@plainworks/mocks/fixture"
 import type {
   ChartDataPoint,
   DailySales,

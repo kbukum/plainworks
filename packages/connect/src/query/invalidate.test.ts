@@ -1,6 +1,6 @@
 import { createConnectQueryKey } from "@connectrpc/connect-query-core"
-import { fakeCacheInvalidator } from "@plainworks/testkit"
 import { EchoService } from "@plainworks/testkit/connect"
+import { fakeCacheInvalidator } from "@plainworks/testkit/fakes"
 import { describe, expect, test } from "vitest"
 import { createMethodInvalidator } from "./invalidate"
 

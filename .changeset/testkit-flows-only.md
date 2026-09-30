@@ -2,7 +2,7 @@
 "@plainworks/testkit": minor
 ---
 
-`@plainworks/testkit/browser` now has one model: flows. The per-surface screenshot gate is gone, with `planVisualTests`, `runVisualTest`, `VISUAL_TAG`, the `FULL_MATRIX`/`COMPACT_MATRIX`/`DIALOG_MATRIX` matrices, and the throwing `expect*` assertions. Express a surface as a one-checkpoint flow, and build any one-off assertion on the finding forms (`scanBrowserAxe`, `findFocusProblems`, `horizontalOverflow`, `waitForHydration`).
+`@plainworks/testkit/playwright` now has one model: flows. The per-surface screenshot gate is gone, with `planVisualTests`, `runVisualTest`, `VISUAL_TAG`, and the `FULL_MATRIX`/`COMPACT_MATRIX`/`DIALOG_MATRIX` matrices. Express a surface as a one-checkpoint flow. For a single moment a flow does not reach, such as a menu opened mid-test, use the throwing page assertions (`expectPageHydrated`, `expectNoPageAxeViolations`, `expectPageFocusVisible`, `expectPageReflow`). Each is a thin layer over the finding forms the flow engine consumes (`scanBrowserAxe`, `findFocusProblems`, `horizontalOverflow`, `waitForHydration`).
 
 - No screenshot is compared with a committed baseline anymore: `browserGateScreenshot` is gone, and every check is structural.
 - `assert` mode checks, and `capture` mode only writes frames and ARIA snapshots, one shot per frame.

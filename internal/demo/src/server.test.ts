@@ -1,3 +1,4 @@
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { createMockApi } from "./api"
 import { createMockServer, createMockServerHandle } from "./server"
@@ -21,12 +22,10 @@ describe("createMockServer", () => {
 describe("createMockServerHandle", () => {
   const handle = createMockServerHandle({ seed: 7 })
 
-  beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
+  bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
   afterEach(() => {
-    handle.server.resetHandlers()
     handle.api.reset()
   })
-  afterAll(() => handle.server.close())
 
   it("pairs a server with the api it serves so a test can reach both", async () => {
     const response = await fetch("http://mock.test/api/users?pageSize=3")

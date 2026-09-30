@@ -47,7 +47,7 @@ Flag candidates, not verdicts — read each hit.
 rg -n "onClick" packages/*/src --glob '*.tsx' | rg -v "button|<a\b|role="   # click on a non-semantic element
 rg -n "\b\d{2,}px\b" packages/*/src --glob '*.css' --glob '*.tsx'           # fixed-pixel sizing — check for a fluid alternative
 rg -n "@media \(" packages/*/src --glob '*.css'                            # viewport query where a container query may belong
-rg -Ln "toHaveNoViolations|axe\(" packages/*/src/**/*.test.tsx             # client tests missing an axe assertion
+bun run check-axe-coverage                                                  # client render test files that never await axe
 rg -n "useMemo|useCallback|memo\(" packages/*/src --glob '*.tsx'           # confirm each has a profiled reason
 rg -n "prefers-reduced-motion|prefers-color-scheme" packages/*/src         # motion/theme should honor these
 ```

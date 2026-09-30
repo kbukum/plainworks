@@ -1,7 +1,7 @@
 import { ConnectError, createClient } from "@connectrpc/connect"
 import { describe, expect, test } from "vitest"
 import { flushMicrotasks } from "../async"
-import { manualDelay } from "../delay"
+import { manualDelay } from "../time"
 import { createFakeConnectTransport } from "./fake-transport"
 import { EchoService, echoResponse } from "./fixtures"
 import { Code, failUnary } from "./responder"

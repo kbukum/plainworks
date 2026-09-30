@@ -1,4 +1,4 @@
-import { createFixtureSources, createStore } from "@plainworks/mocks"
+import { createFixtureSources, createStore } from "@plainworks/mocks/data"
 import { fixedClock } from "@plainworks/std/time"
 import { describe, expect, it } from "vitest"
 import {

@@ -35,6 +35,51 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./control": {
+      "@plainworks/source": "./src/control/index.ts",
+      "types": "./dist/control.d.ts",
+      "default": "./dist/control.js"
+    },
+    "./data": {
+      "@plainworks/source": "./src/data/common/index.ts",
+      "types": "./dist/data.d.ts",
+      "default": "./dist/data.js"
+    },
+    "./dispatch": {
+      "@plainworks/source": "./src/dispatch/index.ts",
+      "types": "./dist/dispatch.d.ts",
+      "default": "./dist/dispatch.js"
+    },
+    "./filter": {
+      "@plainworks/source": "./src/filter/index.ts",
+      "types": "./dist/filter.d.ts",
+      "default": "./dist/filter.js"
+    },
+    "./fixture": {
+      "@plainworks/source": "./src/fixture/index.ts",
+      "types": "./dist/fixture.d.ts",
+      "default": "./dist/fixture.js"
+    },
+    "./handlers": {
+      "@plainworks/source": "./src/handlers/common/index.ts",
+      "types": "./dist/handlers.d.ts",
+      "default": "./dist/handlers.js"
+    },
+    "./idp": {
+      "@plainworks/source": "./src/idp/index.ts",
+      "types": "./dist/idp.d.ts",
+      "default": "./dist/idp.js"
+    },
+    "./lifecycle": {
+      "@plainworks/source": "./src/lifecycle/index.ts",
+      "types": "./dist/lifecycle.d.ts",
+      "default": "./dist/lifecycle.js"
+    },
+    "./query": {
+      "@plainworks/source": "./src/query/index.ts",
+      "types": "./dist/query.d.ts",
+      "default": "./dist/query.js"
+    },
     "./vite-plugin": {
       "@plainworks/source": "./src/vite-plugin.ts",
       "types": "./dist/vite-plugin.d.ts",
@@ -50,6 +95,7 @@
   "dependencies": {
     "@plainworks/http": "workspace:*",
     "@plainworks/std": "workspace:*",
+    "jose": "catalog:",
     "msw": "catalog:"
   },
   "peerDependencies": {

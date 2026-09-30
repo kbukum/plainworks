@@ -1,6 +1,7 @@
 import type { User } from "@plainworks/demo"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { listQueryOptions } from "@plainworks/query/list"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
@@ -20,12 +21,10 @@ const usersPlan = () =>
     fetch: (params, signal) => readUserPage(client, params, signal),
   })
 
-beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
+bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
 afterEach(() => {
-  handle.server.resetHandlers()
   handle.api.reset()
 })
-afterAll(() => handle.server.close())
 
 describe("aborted read through the plan", () => {
   it("rejects an aborted read and never populates the cache", async () => {

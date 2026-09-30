@@ -1,5 +1,6 @@
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient, HttpError } from "@plainworks/http"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { readUserPage } from "./user-reads"
@@ -15,12 +16,10 @@ import { readUserPage } from "./user-reads"
 const handle = createMockServerHandle({ seed: 42 })
 const client = createHttpClient({ baseUrl: "http://mock.test" })
 
-beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
+bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
 afterEach(() => {
-  handle.server.resetHandlers()
   handle.api.reset()
 })
-afterAll(() => handle.server.close())
 
 describe("list wire serialization", () => {
   it("serializes, parses, and applies a scalar filter with sort and paging into the exact envelope", async () => {

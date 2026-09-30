@@ -2,6 +2,7 @@
 // Client tests opt into jsdom per file; the package default stays `node` so the neutral `.` and
 // `./server` entries can never lean on a DOM global unnoticed.
 import type { Identity } from "@plainworks/std/seam"
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { cleanup, render, screen } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { afterEach, describe, expect, test } from "vitest"
@@ -12,7 +13,7 @@ afterEach(cleanup)
 const identity: Identity = { subject: "user-123", claims: { name: "Ada" } }
 
 describe("createSessionContext", () => {
-  test("hydrates the server-resolved snapshot for the first render", () => {
+  test("hydrates the server-resolved snapshot for the first render", async () => {
     const { SessionProvider, useSession, useIdentity, useIsAuthenticated } = createSessionContext()
     function View(): ReactNode {
       const session = useSession()
@@ -22,12 +23,13 @@ describe("createSessionContext", () => {
         </output>
       )
     }
-    render(
+    const { container } = render(
       <SessionProvider initialSnapshot={{ status: "authenticated", identity }}>
         <View />
       </SessionProvider>,
     )
     expect(screen.getByRole("status").textContent).toBe("authenticated|user-123|true")
+    await expectNoAxeViolations(container)
   })
 
   test("starts unauthenticated when no snapshot is provided", () => {

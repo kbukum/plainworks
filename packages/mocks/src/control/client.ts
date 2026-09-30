@@ -60,6 +60,8 @@ export interface MockControlClient {
   setLatency(latencyMs: number, signal?: WebAbortSignal): Promise<void>
   /** Reset the server's data stores and clear the request log. */
   reset(signal?: WebAbortSignal): Promise<void>
+  /** Restore data, errors, latency, and request logging to the clean gate state. */
+  restore(signal?: WebAbortSignal): Promise<void>
 }
 
 /**
@@ -69,6 +71,28 @@ export interface MockControlClient {
 export function createMockControlClient({ client }: MockControlClientOptions): MockControlClient {
   const withSignal = (signal: WebAbortSignal | undefined) =>
     signal === undefined ? undefined : { signal }
+
+  const setError = async (enabled: boolean, signal?: WebAbortSignal): Promise<void> => {
+    const path = MOCK_CONTROL_PATHS.error
+    const body = await client.post(path, { body: { enabled }, ...withSignal(signal) })
+    if (!isRecord(body) || !isRecord(body.data) || body.data.globalError !== enabled) {
+      throw new MockControlError(path, { cause: body })
+    }
+  }
+  const setLatency = async (latencyMs: number, signal?: WebAbortSignal): Promise<void> => {
+    if (!isLatency(latencyMs)) {
+      throw new RangeError(`latency must be between 0 and ${MAX_LATENCY_MS}`)
+    }
+    const path = MOCK_CONTROL_PATHS.latency
+    const body = await client.post(path, { body: { latency: latencyMs }, ...withSignal(signal) })
+    if (!isRecord(body) || !isRecord(body.data) || body.data.globalLatency !== latencyMs) {
+      throw new MockControlError(path, { cause: body })
+    }
+  }
+  const reset = async (signal?: WebAbortSignal): Promise<void> => {
+    const path = MOCK_CONTROL_PATHS.reset
+    assertSuccess(await client.post(path, withSignal(signal)), path)
+  }
 
   return {
     async state(signal) {
@@ -83,26 +107,14 @@ export function createMockControlClient({ client }: MockControlClientOptions): M
       const path = MOCK_CONTROL_PATHS.requests
       assertSuccess(await client.delete(path, withSignal(signal)), path)
     },
-    async setError(enabled, signal) {
-      const path = MOCK_CONTROL_PATHS.error
-      const body = await client.post(path, { body: { enabled }, ...withSignal(signal) })
-      if (!isRecord(body) || !isRecord(body.data) || body.data.globalError !== enabled) {
-        throw new MockControlError(path, { cause: body })
-      }
-    },
-    async setLatency(latencyMs, signal) {
-      if (!isLatency(latencyMs)) {
-        throw new RangeError(`latency must be between 0 and ${MAX_LATENCY_MS}`)
-      }
-      const path = MOCK_CONTROL_PATHS.latency
-      const body = await client.post(path, { body: { latency: latencyMs }, ...withSignal(signal) })
-      if (!isRecord(body) || !isRecord(body.data) || body.data.globalLatency !== latencyMs) {
-        throw new MockControlError(path, { cause: body })
-      }
-    },
-    async reset(signal) {
-      const path = MOCK_CONTROL_PATHS.reset
-      assertSuccess(await client.post(path, withSignal(signal)), path)
+    setError,
+    setLatency,
+    reset,
+    async restore(signal) {
+      // Reset first so the final error and latency state is what the caller observes.
+      await reset(signal)
+      await setError(false, signal)
+      await setLatency(0, signal)
     },
   }
 }

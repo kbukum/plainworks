@@ -16,6 +16,7 @@
     "@plainworks/std": "workspace:*"
   },
   "devDependencies": {
+    "@plainworks/mocks": "workspace:*",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",
     "@types/node": "catalog:",

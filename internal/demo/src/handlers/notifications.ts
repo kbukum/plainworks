@@ -2,13 +2,13 @@
  * Notification API handlers
  */
 
-import type {
-  EntityFactory,
-  EntityStore,
-  LatencyController,
-  MutationAuthorizer,
-} from "@plainworks/mocks"
-import { createCrudHandlers, type InputSpec } from "@plainworks/mocks"
+import type { LatencyController } from "@plainworks/mocks"
+import type { EntityFactory, EntityStore } from "@plainworks/mocks/data"
+import {
+  createCrudHandlers,
+  type InputSpec,
+  type MutationAuthorizer,
+} from "@plainworks/mocks/handlers"
 import type { Clock } from "@plainworks/std/time"
 import { type HttpHandler, HttpResponse, http } from "msw"
 import type { CreateNotificationInput, Notification } from "../types"

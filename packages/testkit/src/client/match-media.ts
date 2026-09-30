@@ -2,8 +2,14 @@
 
 /** A `change` handler registered against the fake, in either the modern or legacy shape. */
 type MatchMediaListener =
-  | EventListenerOrEventListenerObject
-  | ((event: MediaQueryListEvent) => unknown)
+  | ((event: FakeMatchMediaEvent) => unknown)
+  | { handleEvent(event: FakeMatchMediaEvent): unknown }
+
+interface FakeMatchMediaEvent {
+  readonly type: "change"
+  readonly matches: boolean
+  readonly media: string
+}
 
 /** Handle returned by {@link installMatchMedia} for driving the fake at runtime. */
 export interface FakeMatchMedia {
@@ -31,32 +37,35 @@ export function installMatchMedia(initialMatches = false): FakeMatchMedia {
     if (listener) listeners.delete(listener)
   }
 
-  // jsdom lacks `MediaQueryList`, so the fake structurally mirrors the parts callers touch; the one
-  // assertion keeps the public surface fully typed while faking a global the runtime does not ship.
-  const query = (media: string): MediaQueryList =>
-    ({
-      get matches() {
-        return matches
-      },
-      media,
-      onchange: null,
-      addEventListener: (type: string, listener: MatchMediaListener | null) => {
-        if (type === "change") track(listener)
-      },
-      removeEventListener: (type: string, listener: MatchMediaListener | null) => {
-        if (type === "change") untrack(listener)
-      },
-      addListener: track,
-      removeListener: untrack,
-      dispatchEvent: () => true,
-    }) as unknown as MediaQueryList
+  // jsdom lacks `MediaQueryList`, so the fake structurally mirrors the parts callers touch without
+  // requiring DOM ambient types in packages whose tests import this entry.
+  const query = (media: string) => ({
+    get matches() {
+      return matches
+    },
+    media,
+    onchange: null,
+    addEventListener: (type: string, listener: MatchMediaListener | null) => {
+      if (type === "change") track(listener)
+    },
+    removeEventListener: (type: string, listener: MatchMediaListener | null) => {
+      if (type === "change") untrack(listener)
+    },
+    addListener: track,
+    removeListener: untrack,
+    dispatchEvent: () => true,
+  })
 
-  Object.defineProperty(window, "matchMedia", { configurable: true, writable: true, value: query })
+  Object.defineProperty(globalThis, "matchMedia", {
+    configurable: true,
+    writable: true,
+    value: query,
+  })
 
   return {
     setMatches: (next: boolean) => {
       matches = next
-      const event = new Event("change") as MediaQueryListEvent
+      const event = { type: "change", matches, media: "" } as const
       for (const listener of [...listeners]) {
         if (typeof listener === "function") listener(event)
         else listener.handleEvent(event)

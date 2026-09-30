@@ -1,9 +1,9 @@
-import { browserGateUse } from "@plainworks/testkit/browser"
+import { browserGateUse } from "@plainworks/testkit/playwright"
 import { defineConfig, devices } from "@playwright/test"
 
 // The Next host's browser gate: every flow (`e2e/flows/`) checked at each checkpoint, plus
 // functional specs, over `next dev` so the development inspector is part of the proof. The fixed
-// clock, locale, time zone, and motion come from `@plainworks/testkit/browser`. See
+// clock, locale, time zone, and motion come from `@plainworks/testkit/playwright`. See
 // `docs/browser-gate.md`.
 //
 // Each worker starts its own `next dev` on its own port and signs in once (`e2e/support/gate.ts`),

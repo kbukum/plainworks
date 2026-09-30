@@ -1,4 +1,4 @@
-import type { UiCaptureConfig } from "@plainworks/testkit/browser"
+import type { UiCaptureConfig } from "@plainworks/testkit/playwright"
 import { SHOWCASE_FLOWS } from "./flows/suite"
 import { SHOWCASE_HOST } from "./support/host"
 import { signIn } from "./support/session"

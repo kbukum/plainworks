@@ -1,6 +1,7 @@
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
-import { createMockIdp } from "@plainworks/testkit"
+import { createMockIdp } from "@plainworks/mocks/idp"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { createShowcaseAuth, type ShowcaseAuth } from "../app/auth"
 import { QUERY_STATE_SCRIPT_ID, SNAPSHOT_SCRIPT_ID, THEME_COOKIE } from "../app/constants"
@@ -70,8 +71,8 @@ async function mintSessionCookie(): Promise<string> {
   return [...inbound].map(([name, value]) => `${name}=${value}`).join("; ")
 }
 
+bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
 beforeAll(async () => {
-  handle.server.listen({ onUnhandledRequest: "error" })
   idp = await createMockIdp()
   auth = createShowcaseAuth({
     fetch: idp.fetch,
@@ -83,10 +84,8 @@ beforeAll(async () => {
   sessionCookie = await mintSessionCookie()
 })
 afterEach(() => {
-  handle.server.resetHandlers()
   handle.api.reset()
 })
-afterAll(() => handle.server.close())
 
 describe("session gate", () => {
   it("redirects an unauthenticated request to the login route with a sanitized return target", async () => {

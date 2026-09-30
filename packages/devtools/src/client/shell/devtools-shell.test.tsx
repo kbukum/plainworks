@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { fakeStateSource } from "@plainworks/testkit"
 import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/client"
+import { fakeStateSource } from "@plainworks/testkit/fakes"
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { useState } from "react"

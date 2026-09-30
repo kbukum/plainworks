@@ -1,4 +1,4 @@
-import { planFlowSuite, runFlow } from "@plainworks/testkit/browser"
+import { planFlowSuite, runFlow } from "@plainworks/testkit/playwright"
 import { SHOWCASE_DEVTOOLS_KEY } from "../src/client/dev-tools/enabled"
 import { SHOWCASE_FLOWS } from "./flows/suite"
 import { test } from "./support/gate"

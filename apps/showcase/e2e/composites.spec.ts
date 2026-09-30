@@ -1,5 +1,5 @@
+import { expectNoPageAxeViolations, expectPageReflow } from "@plainworks/testkit/playwright"
 import type { Page } from "@playwright/test"
-import { expectNoAxeViolations, expectReflow } from "./support/checks"
 import { openFixturePage } from "./support/fixture-page"
 import { expect, test } from "./support/gate"
 
@@ -15,14 +15,14 @@ test("composites meet contrast and target size in light and dark", async ({ page
   for (const dark of [false, true]) {
     await test.step(dark ? "dark" : "light", async () => {
       await page.evaluate((dark) => document.documentElement.classList.toggle("dark", dark), dark)
-      await expectNoAxeViolations(page)
+      await expectNoPageAxeViolations(page)
     })
   }
 })
 
 test("composites reflow at 320 CSS px", async ({ page }) => {
   await openGallery(page)
-  await expectReflow(page)
+  await expectPageReflow(page)
 })
 
 test("a narrow table keeps low-priority values reachable through row details", async ({ page }) => {

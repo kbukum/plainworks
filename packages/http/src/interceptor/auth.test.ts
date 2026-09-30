@@ -1,4 +1,4 @@
-import { fakeAuthHeaderProvider } from "@plainworks/testkit"
+import { fakeAuthHeaderProvider } from "@plainworks/testkit/fakes"
 import { expect, test } from "vitest"
 import type { HttpRequest } from "../exchange/request"
 import { authHeaderInterceptor } from "./auth"

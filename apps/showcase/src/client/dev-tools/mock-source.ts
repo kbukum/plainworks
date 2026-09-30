@@ -1,7 +1,7 @@
 import type { CommandDescriptor, Source, SourceHandle, SourceObserver } from "@plainworks/devtools"
 import { sanitizeHttpUrl } from "@plainworks/devtools/http"
 import type { HttpClient } from "@plainworks/http"
-import type { MockControlClient, RequestLogEntry } from "@plainworks/mocks"
+import type { MockControlClient, RequestLogEntry } from "@plainworks/mocks/control"
 import { isPositiveInteger, isRecord } from "@plainworks/std"
 import { assertTimerMs, combineSignals } from "@plainworks/std/resilience"
 import { type Clock, systemClock } from "@plainworks/std/time"

@@ -1,6 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
-  // Browser-gate project: the `./browser` entry runs in the Playwright test runner (Node) and hands
+  // Playwright project: the `./playwright` entry runs in the Playwright test runner (Node) and hands
   // callbacks to `page.evaluate`, which execute in the page. It needs the Node types Playwright's
   // own declarations reference and the DOM libs those in-page callbacks read. The server `.` entry
   // stays DOM-free because `tsconfig.src.json` excludes this graph.
@@ -8,5 +8,5 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["node"]
   },
-  "include": ["src/browser"]
+  "include": ["src/playwright"]
 }

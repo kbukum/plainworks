@@ -7,6 +7,7 @@
       "devDependencies": {
         "@biomejs/biome": "catalog:",
         "@changesets/cli": "catalog:",
+        "@plainworks/axe-coverage": "workspace:*",
         "@plainworks/bundle-exclusion": "workspace:*",
         "@plainworks/comment-format": "workspace:*",
         "@plainworks/release": "workspace:*",
@@ -110,6 +111,20 @@
         "vitest": "catalog:",
       },
     },
+    "internal/axe-coverage": {
+      "name": "@plainworks/axe-coverage",
+      "version": "0.0.0",
+      "bin": {
+        "plainworks-axe-coverage": "./src/cli.ts",
+      },
+      "devDependencies": {
+        "@plainworks/vitest-config": "workspace:*",
+        "@types/node": "catalog:",
+        "@vitest/coverage-v8": "catalog:",
+        "typescript": "catalog:",
+        "vitest": "catalog:",
+      },
+    },
     "internal/boundaries": {
       "name": "@plainworks/boundaries",
       "version": "0.0.0",
@@ -185,6 +200,7 @@
         "@plainworks/std": "workspace:*",
       },
       "devDependencies": {
+        "@plainworks/mocks": "workspace:*",
         "@plainworks/testkit": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",
         "@types/node": "catalog:",
@@ -298,6 +314,7 @@
         "@plainworks/auth": "workspace:*",
         "@plainworks/query": "workspace:*",
         "@plainworks/state": "workspace:*",
+        "@plainworks/testkit": "workspace:*",
         "@plainworks/tsdown-config": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",
         "@tanstack/query-core": "catalog:",
@@ -344,6 +361,7 @@
         "oauth4webapi": "catalog:",
       },
       "devDependencies": {
+        "@plainworks/mocks": "workspace:*",
         "@plainworks/testkit": "workspace:*",
         "@plainworks/tsdown-config": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",
@@ -585,6 +603,7 @@
       "dependencies": {
         "@plainworks/http": "workspace:*",
         "@plainworks/std": "workspace:*",
+        "jose": "catalog:",
         "msw": "catalog:",
       },
       "devDependencies": {
@@ -712,8 +731,6 @@
       "dependencies": {
         "@plainworks/std": "workspace:*",
         "@testing-library/react": "catalog:",
-        "axe-core": "catalog:",
-        "jose": "catalog:",
         "pixelmatch": "catalog:",
         "pngjs": "catalog:",
       },
@@ -726,11 +743,13 @@
         "@plainworks/tsdown-config": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",
         "@playwright/test": "catalog:",
+        "@tanstack/react-query": "catalog:",
         "@types/node": "catalog:",
         "@types/pngjs": "catalog:",
         "@types/react": "catalog:",
         "@types/react-dom": "catalog:",
         "@vitest/coverage-v8": "catalog:",
+        "axe-core": "catalog:",
         "tsdown": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:",
@@ -740,6 +759,8 @@
         "@bufbuild/protobuf": "catalog:",
         "@connectrpc/connect": "catalog:",
         "@playwright/test": "catalog:",
+        "@tanstack/react-query": "catalog:",
+        "axe-core": "catalog:",
         "react": "catalog:",
         "react-dom": "catalog:",
       },
@@ -748,6 +769,8 @@
         "@bufbuild/protobuf",
         "@connectrpc/connect",
         "@playwright/test",
+        "@tanstack/react-query",
+        "axe-core",
         "react-dom",
       ],
     },
@@ -1281,6 +1304,8 @@
     "@plainworks/app": ["@plainworks/app@workspace:packages/app"],
 
     "@plainworks/auth": ["@plainworks/auth@workspace:packages/auth"],
+
+    "@plainworks/axe-coverage": ["@plainworks/axe-coverage@workspace:internal/axe-coverage"],
 
     "@plainworks/boundaries": ["@plainworks/boundaries@workspace:internal/boundaries"],
 

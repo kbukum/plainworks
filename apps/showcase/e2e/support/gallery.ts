@@ -1,4 +1,4 @@
-import type { BrowserAxeOptions } from "@plainworks/testkit/browser"
+import type { BrowserAxeOptions } from "@plainworks/testkit/playwright"
 import { expect, type Page } from "@playwright/test"
 import { GALLERY_GROUPS, type GalleryGroupId } from "../fixtures/gallery/groups"
 import { openFixturePage } from "./fixture-page"

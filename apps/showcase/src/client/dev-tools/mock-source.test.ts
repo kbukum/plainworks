@@ -3,7 +3,9 @@
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createDevtoolsSession, sourceKey } from "@plainworks/devtools"
 import { createHttpClient, type HttpClient } from "@plainworks/http"
-import { createMockControlClient, type MockControlClient } from "@plainworks/mocks"
+import type { MockControlClient } from "@plainworks/mocks/control"
+import { createMockControlClient } from "@plainworks/mocks/control"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { fixedClock } from "@plainworks/std/time"
 import { deferred } from "@plainworks/testkit"
 import { HttpResponse, http } from "msw"
@@ -12,12 +14,10 @@ import { createMockSource, MOCK_SOURCE_ID, MOCK_STATE_REF } from "./mock-source"
 
 const handle = createMockServerHandle({ seed: 21 })
 
-beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
+bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
 afterEach(() => {
-  handle.server.resetHandlers()
   handle.api.reset()
 })
-afterAll(() => handle.server.close())
 
 function controlOf(client: HttpClient): MockControlClient {
   return createMockControlClient({ client })

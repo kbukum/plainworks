@@ -5,7 +5,7 @@
 // or a forged, tampered, or expired cookie, is rejected with 403. Neutral and server-safe: it reads
 // only the request `Cookie` header and names no host global.
 
-import type { MutationAuthorizer } from "@plainworks/mocks"
+import type { MutationAuthorizer } from "@plainworks/mocks/handlers"
 import type { ReadShowcaseSession } from "./auth"
 import { hasName } from "./identity-policy"
 

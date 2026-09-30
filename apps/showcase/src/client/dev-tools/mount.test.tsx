@@ -3,8 +3,10 @@
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import type { HttpInterceptor } from "@plainworks/http/interceptor"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { deferred } from "@plainworks/testkit"
+import { createTestQueryClient } from "@plainworks/testkit/query"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { mountShowcaseDevtools } from "./mount"
 import { createShowcaseDevtoolsSeams } from "./seams"
@@ -12,12 +14,10 @@ import { createShowcaseDevtoolsSeams } from "./seams"
 const handle = createMockServerHandle({ seed: 5 })
 const origin = "http://showcase.test"
 
-beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
+bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
 afterEach(() => {
-  handle.server.resetHandlers()
   handle.api.reset()
 })
-afterAll(() => handle.server.close())
 
 function mount() {
   const seams = createShowcaseDevtoolsSeams()
@@ -25,7 +25,7 @@ function mount() {
   const dispose = mountShowcaseDevtools({
     seams,
     httpClient,
-    queryClient: createQueryClient(),
+    queryClient: createTestQueryClient(createQueryClient),
     origin,
   })
   return { dispose }
@@ -69,7 +69,7 @@ describe("showcase devtools", () => {
     const dispose = mountShowcaseDevtools({
       seams,
       httpClient,
-      queryClient: createQueryClient(),
+      queryClient: createTestQueryClient(createQueryClient),
       origin,
     })
     try {

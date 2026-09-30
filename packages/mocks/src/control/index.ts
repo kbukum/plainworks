@@ -13,3 +13,9 @@ export {
   type MockControlGraph,
   type RequestLogEntry,
 } from "./plane"
+export {
+  type ApiRequestContext,
+  type ApiRequestResponse,
+  createApiRequestMockControlTransport,
+  MockControlRequestError,
+} from "./request-transport"

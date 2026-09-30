@@ -1,4 +1,4 @@
-import { defineFlow, type FlowCheckpoint } from "@plainworks/testkit/browser"
+import { defineFlow, type FlowCheckpoint } from "@plainworks/testkit/playwright"
 import {
   GALLERY_OVERLAYS,
   type GalleryOverlay,

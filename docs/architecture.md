@@ -70,7 +70,7 @@ A few rules keep the vocabulary honest, and the gates enforce each one.
 - **Named exports only.** A barrel lists every name it re-exports; `export *` fails lint. Each name has exactly one import path.
 - **Everyday names in `.`, concerns on subpaths.** A package that spans several concerns keeps `.` for its prelude and puts each concern on its own subpath. Shared typed errors live in `src/errors/`; an error that belongs to one concern stays with it.
 - **DOM is opt-in.** A package declares `dom: true` in `tsdown.config.ts` only when its product is browser UI (`theme`, `elements`, `ui`, `devtools`, `testkit`). Everywhere else the DOM lib is allowed only in adapter, test, and tooling projects.
-- **Adapters say what they do.** An entry is never named after a host (`dom`, `browser`, `node`). `testkit/browser`, the real-browser test harness, is the one exception.
+- **Adapters say what they do.** An entry is never named after a host (`dom`, `browser`, `node`). The real-browser test harness is `testkit/playwright`, named after its required runner.
 - **Test helpers stay out of shipped code.** `./testing` compiles in its own `tsconfig.testing.json` project, and a boundary rule stops production modules from importing it.
 
 React Native imports `./client` from `state`, `query`, `channel`, `auth`, `connect`, and `app`. Those clients compile without the DOM lib, and fixtures in `@plainworks/boundaries` prove it. DOM UI and browser adapters stay out of its graph.
@@ -260,4 +260,4 @@ bun run verify          # every gate, in order
 bun run verify --list   # the gates and what each enforces
 ```
 
-`verify` has 12 gates: versions, lint, comments, layer map, atom lock, workspace shape, typecheck, boundaries, build, test, packaging, and production-bundle checks.
+`verify` has 13 gates: versions, lint, comments, layer map, atom lock, workspace shape, axe coverage, typecheck, boundaries, build, test, packaging, and production-bundle checks.

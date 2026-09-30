@@ -1,4 +1,4 @@
-import { defineFlow } from "@plainworks/testkit/browser"
+import { defineFlow } from "@plainworks/testkit/playwright"
 
 /**
  * A guest's way in: the login page, a sign-in that could not finish, and signing in again. The

@@ -1,5 +1,5 @@
+import { expectPageHydrated } from "@plainworks/testkit/playwright"
 import { expect, type Locator, type Page } from "@playwright/test"
-import { expectHydrated } from "./checks"
 
 /** One routed page of the showcase and the content that proves it rendered. */
 export interface AppRoute {
@@ -103,7 +103,7 @@ export async function openRoute(page: Page, route: AppRoute, signal?: AbortSigna
   await expect(page.getByRole("heading", { level: 1, name: route.heading })).toBeVisible()
   await expect(route.ready(page)).toBeVisible()
   await page.waitForLoadState("networkidle")
-  await expectHydrated(page)
+  await expectPageHydrated(page)
 }
 
 /**

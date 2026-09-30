@@ -1,4 +1,4 @@
-import { defineFlow, focusWithKeyboard, pressWithKeyboard } from "@plainworks/testkit/browser"
+import { defineFlow, focusWithKeyboard, pressWithKeyboard } from "@plainworks/testkit/playwright"
 import { expect } from "@playwright/test"
 import { appRoute, openPausedTasks, openRoute } from "../support/app"
 

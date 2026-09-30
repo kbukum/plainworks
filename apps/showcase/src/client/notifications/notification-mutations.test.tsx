@@ -3,10 +3,12 @@
 import type { Notification } from "@plainworks/demo"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import type { PaginatedResult } from "@plainworks/std/list"
 import { deferred } from "@plainworks/testkit"
-import { QueryClientProvider, useQuery } from "@tanstack/react-query"
+import { createTestQueryClient, TestQueryClientProvider } from "@plainworks/testkit/query"
+import { useQuery } from "@tanstack/react-query"
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
 import { HttpResponse, http } from "msw"
 import type { ReactElement, ReactNode } from "react"
@@ -21,20 +23,18 @@ import { type NotificationMutationResult, useNotificationMutations } from "./not
 
 const handle = createMockServerHandle({ seed: 11 })
 
-beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
+bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
 afterEach(() => {
   cleanup()
-  handle.server.resetHandlers()
   handle.api.reset()
 })
-afterAll(() => handle.server.close())
 
 type Page = PaginatedResult<Notification>
 
 function harness(options: { rows?: Notification[]; observe?: boolean } = {}) {
   const httpClient = createHttpClient({ baseUrl: "http://showcase.test" })
   // Seeded rows start stale so an observer refetches them, which the race tests depend on.
-  const queryClient = createQueryClient({
+  const queryClient = createTestQueryClient(createQueryClient, {
     defaultOptions: { queries: { retry: false, staleTime: 0 } },
   })
   const plan = notificationListPlan(httpClient, NOTIFICATION_LIST_PARAMS)
@@ -43,9 +43,9 @@ function harness(options: { rows?: Notification[]; observe?: boolean } = {}) {
     queryClient.setQueryData<Page>(key, seedPage(options.rows))
   }
   const wrapper = ({ children }: { children: ReactNode }): ReactElement => (
-    <QueryClientProvider client={queryClient}>
+    <TestQueryClientProvider client={queryClient}>
       <HttpClientProvider client={httpClient}>{children}</HttpClientProvider>
-    </QueryClientProvider>
+    </TestQueryClientProvider>
   )
   const hook = renderHook(
     () => {

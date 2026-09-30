@@ -1,5 +1,6 @@
 import { encodeSession } from "@plainworks/auth"
 import { createMockServerHandle } from "@plainworks/demo/server"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { type ShowcaseSessionValue, showcaseSessionCodec, showcaseSessionReader } from "./auth"
 import {
@@ -64,12 +65,10 @@ describe("createNotificationMutationAuthorizer", () => {
 describe("notification mutation boundary", () => {
   const handle = createMockServerHandle({ seed: 5, authorizeNotificationMutation: authorize })
 
-  beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
+  bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
   afterEach(() => {
-    handle.server.resetHandlers()
     handle.api.reset()
   })
-  afterAll(() => handle.server.close())
 
   it("rejects mark-read and mark-all-read from a caller without a session (403)", async () => {
     const notification = handle.api.stores.notifications.getAll()[0]

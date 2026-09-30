@@ -1,5 +1,6 @@
 import { encodeSession } from "@plainworks/auth"
 import { createMockServerHandle } from "@plainworks/demo/server"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { type ShowcaseSessionValue, showcaseSessionCodec, showcaseSessionReader } from "./auth"
 import { SESSION_COOKIE } from "./constants"
@@ -61,12 +62,10 @@ describe("order mutation boundary", () => {
     readonly error?: string
   }
 
-  beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
+  bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
   afterEach(() => {
-    handle.server.resetHandlers()
     handle.api.reset()
   })
-  afterAll(() => handle.server.close())
 
   function patchStatus(id: string, cookie?: string): Promise<Response> {
     return fetch(`${base}/api/orders/${id}`, {

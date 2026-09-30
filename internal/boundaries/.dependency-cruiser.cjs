@@ -27,7 +27,7 @@
 const path = require("node:path")
 
 // A test module: `*.test.ts`/`*.test.tsx`. Test files are the ONLY source permitted the single
-// upward exception below (importing @plainworks/testkit); production source is not.
+// upward exception below (importing test tooling); production source is not.
 const TEST_FILE = "\\.test\\.tsx?$"
 
 // A module in a package's `./testing` profile: the `src/testing.ts` entry or anything under
@@ -150,11 +150,13 @@ function uiConcernRules() {
 function layerRules() {
   return Object.entries(LAYERS).map(([pkg, layer]) => {
     // Packages this one must NOT import: anything at the same or a higher layer, except itself.
-    // `testkit` is carved out here and governed by `no-production-testkit-import` instead, so the
-    // one test-only exception lives in a single place; every other upward/sideways edge (including
-    // testkit imported from *production* source) still trips this rule.
+    // Test tooling is carved out here and governed by `no-production-test-tooling-import` instead,
+    // so the test-only exception lives in one place. Every production import still trips that rule.
     const forbidden = Object.entries(LAYERS)
-      .filter(([other, otherLayer]) => other !== pkg && otherLayer >= layer && other !== "testkit")
+      .filter(
+        ([other, otherLayer]) =>
+          other !== pkg && otherLayer >= layer && other !== "testkit" && other !== "mocks",
+      )
       .map(([other]) => other)
 
     return {
@@ -220,17 +222,26 @@ const forbidden = [
     to: { path: "(^|/)(apps|internal)/[^/]+/" },
   },
   {
-    // The single, deliberate upward exception. @plainworks/testkit (L4) ships shared fakes and
-    // harnesses that lower packages consume in their tests — a test-only edge, so `*.test.ts(x)`
-    // source is exempt (via `from.pathNot`) while production source may not pull test tooling into
-    // the shipped graph. This replaces testkit's coverage in the per-layer rules above, keeping the
-    // exception narrow: it relaxes testkit and only testkit, and only for test files. `testkit`'s
-    // own source is excluded from `from` so its internal imports stay legal.
-    name: "no-production-testkit-import",
+    // The deliberate upward exception. Tests in lower packages consume shared fakes from testkit
+    // and mocked services from mocks. Production modules may not pull either L4 package into their
+    // shipped graph. The tooling packages' own sources are excluded so their internal imports stay
+    // legal.
+    name: "no-production-test-tooling-import",
     comment:
-      "Only *.test.ts(x) files may import @plainworks/testkit; production source must not pull test tooling into the shipped graph.",
+      "Only *.test.ts(x) files may import @plainworks/testkit or @plainworks/mocks; production source must not pull test tooling into the shipped graph.",
     severity: "error",
-    from: { path: "(^|/)packages/(?!testkit/)[^/]+/src/", pathNot: TEST_FILE },
+    from: { path: "(^|/)packages/(?!(?:testkit|mocks)/)[^/]+/src/", pathNot: TEST_FILE },
+    to: { path: "(^|/)packages/(?:testkit|mocks)/" },
+  },
+  {
+    name: "no-app-production-testkit-import",
+    comment:
+      "Only app test files, e2e modules, and Playwright configuration may import @plainworks/testkit.",
+    severity: "error",
+    from: {
+      path: "(^|/)apps/[^/]+/",
+      pathNot: [TEST_FILE, "(^|/)apps/[^/]+/e2e/", "(^|/)apps/[^/]+/playwright\\.config\\.ts$"],
+    },
     to: { path: "(^|/)packages/testkit/" },
   },
   {

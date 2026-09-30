@@ -1,5 +1,8 @@
-import { pressWithKeyboard } from "@plainworks/testkit/browser"
-import { expectFocusVisible, expectNoAxeViolations } from "./support/checks"
+import {
+  expectNoPageAxeViolations,
+  expectPageFocusVisible,
+  pressWithKeyboard,
+} from "@plainworks/testkit/playwright"
 import { expect, test } from "./support/gate"
 import { hostRoute, openRoute, pauseLiveActivity } from "./support/host"
 import { SIGNED_OUT_STATE } from "./support/session"
@@ -13,7 +16,7 @@ test.describe("signed out", () => {
 
   test("the public overview offers sign-in, which lands on the gated tasks", async ({ page }) => {
     await openRoute(page, hostRoute("overview"))
-    await expectNoAxeViolations(page)
+    await expectNoPageAxeViolations(page)
     await page.getByRole("button", { name: "Sign in" }).click()
     await expect(page.getByRole("heading", { level: 1, name: "Tasks" })).toBeVisible()
     await expect(page.getByRole("button", { name: /Signed in as/ })).toBeVisible()
@@ -61,7 +64,7 @@ test("the live feed streams updates and pausing silences it", async ({ page }) =
 test("the account menu opens account settings and logs out", async ({ page }) => {
   await openRoute(page, hostRoute("overview"))
   await pressWithKeyboard(page.getByRole("button", { name: /Signed in as/ }))
-  await expectFocusVisible(page)
+  await expectPageFocusVisible(page)
   await page.getByRole("menuitem", { name: "Account settings" }).click()
   await expect(page.getByRole("heading", { level: 1, name: "Account settings" })).toBeVisible()
   await expect(page.getByRole("main").getByText("Ada Lovelace")).toBeVisible()
@@ -78,7 +81,7 @@ test("the chosen color mode applies and survives a reload", async ({ page }) => 
   await page.reload()
   await expect(page.locator("html")).toHaveClass(/\bdark\b/)
   await pauseLiveActivity(page)
-  await expectNoAxeViolations(page)
+  await expectNoPageAxeViolations(page)
 })
 
 test("a narrow screen reaches every section from the sections menu", async ({ page }) => {
@@ -99,7 +102,7 @@ test("the development inspector opens over the page and closes on Escape", async
     .click()
   const inspector = page.getByRole("region", { name: "Plainworks inspector" })
   await expect(inspector).toBeVisible()
-  await expectNoAxeViolations(page)
+  await expectNoPageAxeViolations(page)
   await page.keyboard.press("Escape")
   await expect(inspector).toBeHidden()
 })

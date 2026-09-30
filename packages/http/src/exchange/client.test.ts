@@ -2,13 +2,13 @@ import { RetryError, type RetryPolicy, TimeoutError } from "@plainworks/std/resi
 import { guardSchema, unsafePassthrough } from "@plainworks/std/seam"
 import { fixedClock } from "@plainworks/std/time"
 import type { WebResponse } from "@plainworks/std/web"
+import { autoBackoffDelay } from "@plainworks/testkit"
 import {
-  autoBackoffDelay,
   fakeAuthHeaderProvider,
   fakeFetch,
   fakeSchema,
   recordTelemetry,
-} from "@plainworks/testkit"
+} from "@plainworks/testkit/fakes"
 import { expect, test, vi } from "vitest"
 import { HttpError } from "../errors"
 import type { HttpInterceptor } from "../interceptor"

@@ -3,7 +3,8 @@
 // entry can never lean on DOM globals unnoticed.
 
 import type { StateSource } from "@plainworks/std/seam"
-import { asyncStateSource } from "@plainworks/testkit"
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
+import { asyncStateSource } from "@plainworks/testkit/fakes"
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ReactNode } from "react"
@@ -74,7 +75,7 @@ describe("createScopedState — one callable hook across scopes", () => {
     test("renders the initial value, then an optimistic write everyone sees", async () => {
       const user = userEvent.setup()
       const { useTheme, Label, Toggle } = makeConsumer(scope)
-      render(
+      const { container } = render(
         <useTheme.Provider>
           <Label />
           <Toggle />
@@ -83,6 +84,7 @@ describe("createScopedState — one callable hook across scopes", () => {
       expect(screen.getByText("theme: light")).toBeDefined()
       await user.click(screen.getByRole("button", { name: "go dark" }))
       expect(screen.getByText("theme: dark")).toBeDefined()
+      await expectNoAxeViolations(container)
     })
   })
 

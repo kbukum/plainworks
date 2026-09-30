@@ -1,4 +1,4 @@
-import { defineFlow } from "@plainworks/testkit/browser"
+import { defineFlow } from "@plainworks/testkit/playwright"
 import { hostRoute, openRoute } from "../support/host"
 
 /** A guest's public overview, then signing in through the BFF, which lands on the gated tasks. */

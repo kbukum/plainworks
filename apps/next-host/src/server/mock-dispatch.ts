@@ -1,7 +1,7 @@
 // The local mock backend the host serves its domain from — the Next route-handler equivalent of a
 // real API origin. It builds a seeded, single-domain (tasks) mock straight from the published
 // `@plainworks/mocks` primitives (a generated app owns its domain; the kit ships the primitives,
-// not a demo) and dispatches an incoming `Request` through the MSW handlers via `handler.run`, so
+// not a demo) and dispatches an incoming `Request` through the public MSW response resolver, so
 // the browser's `/api/*` calls and the RSC prefetch both read one set of seeded fixtures over real
 // HTTP. Pure (no `next/*`, no module state) and server-bound: the `server-only` marker keeps the
 // seeded backend out of any client bundle. The shared dev-adapter singleton a route handler calls
@@ -9,26 +9,27 @@
 
 import "server-only"
 
+import { createLatency, type LatencyController } from "@plainworks/mocks"
+import { createMockControl } from "@plainworks/mocks/control"
 import {
-  createCrudHandlers,
   createEntityFactory,
-  createLatency,
-  createMockControl,
   createReloadableFixtureSources,
   createStore,
-  daysAgo,
-  daysFromNow,
   type EntityFactory,
   type EntityStore,
   type FixtureSources,
-  type InputSpec,
-  type LatencyController,
+} from "@plainworks/mocks/data"
+import { dispatchMockRequest } from "@plainworks/mocks/dispatch"
+import {
+  daysAgo,
+  daysFromNow,
   nowISOString,
   randomBoolean,
   randomElement,
   randomElements,
   randomInt,
-} from "@plainworks/mocks"
+} from "@plainworks/mocks/fixture"
+import { createCrudHandlers, type InputSpec } from "@plainworks/mocks/handlers"
 import { type Clock, systemClock } from "@plainworks/std/time"
 import type { CreateTaskInput, Task } from "../neutral/task"
 
@@ -171,17 +172,9 @@ export function createDemoBackend(options: DemoBackendOptions = {}): DemoBackend
  * is a client error, never a silent pass-through.
  */
 export async function dispatchMock(request: Request, handlers: MockHandler[]): Promise<Response> {
-  const requestId = crypto.randomUUID()
-  for (const handler of handlers) {
-    // MSW brands its handler I/O with its own `StrictRequest`/`Response` types. They are
-    // structurally the host's global fetch `Request`/`Response`, so cross the nominal seam here.
-    const result = await handler.run({
-      request: request as Parameters<typeof handler.run>[0]["request"],
-      requestId,
-    })
-    if (result?.response) {
-      return result.response as unknown as Response
-    }
+  const response = await dispatchMockRequest(request, handlers)
+  if (response !== undefined) {
+    return response
   }
   return Response.json(
     { error: `No mock handler for ${request.method} ${new URL(request.url).pathname}` },

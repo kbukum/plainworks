@@ -3,7 +3,9 @@
 import { createQueryClient } from "@plainworks/query"
 import { QueryProvider } from "@plainworks/query/client"
 import type { StreamFrame } from "@plainworks/std/seam"
-import { fakeStreamTransport } from "@plainworks/testkit"
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
+import { fakeStreamTransport } from "@plainworks/testkit/fakes"
+import { createTestQueryClient } from "@plainworks/testkit/query"
 import { render, waitFor } from "@testing-library/react"
 import type { ReactElement } from "react"
 import { describe, expect, it } from "vitest"
@@ -22,7 +24,7 @@ function upsertFrame(id: string, title: string): StreamFrame {
 describe("live stream", () => {
   it("folds one stream event into both the state slot and the query cache", async () => {
     const source = createLiveTasksSource()
-    const queryClient = createQueryClient()
+    const queryClient = createTestQueryClient(createQueryClient)
     const transport = fakeStreamTransport()
 
     const tree: ReactElement = (
@@ -34,7 +36,7 @@ describe("live stream", () => {
         </LiveChannelProvider>
       </QueryProvider>
     )
-    const { unmount } = render(tree)
+    const { container, unmount } = render(tree)
 
     await waitFor(() => expect(transport.current).toBeDefined())
     transport.current?.open()
@@ -49,13 +51,14 @@ describe("live stream", () => {
         title: "Ship the reference app",
       })
     })
+    await expectNoAxeViolations(container)
 
     unmount()
   })
 
   it("drops a malformed frame instead of folding it into either sink", async () => {
     const source = createLiveTasksSource()
-    const queryClient = createQueryClient()
+    const queryClient = createTestQueryClient(createQueryClient)
     const transport = fakeStreamTransport()
 
     const { unmount } = render(

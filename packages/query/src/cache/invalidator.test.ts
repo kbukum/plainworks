@@ -1,6 +1,6 @@
 import type { CacheInvalidator, CacheKey } from "@plainworks/std/seam"
 import type { WebAbortSignal } from "@plainworks/std/web"
-import { fakeCacheInvalidator } from "@plainworks/testkit"
+import { fakeCacheInvalidator } from "@plainworks/testkit/fakes"
 import { QueryObserver } from "@tanstack/query-core"
 import { describe, expect, it, vi } from "vitest"
 import { createQueryClient } from "../query-client"

@@ -1,4 +1,8 @@
-import { BROWSER_GATE_NOW, type BrowserGateHost, FIXED_NOW_ENV } from "@plainworks/testkit/browser"
+import {
+  BROWSER_GATE_NOW,
+  type BrowserGateHost,
+  FIXED_NOW_ENV,
+} from "@plainworks/testkit/playwright"
 
 /** The showcase directory, where the host and Playwright run. */
 export const APP_DIR: string = new URL("../../", import.meta.url).pathname

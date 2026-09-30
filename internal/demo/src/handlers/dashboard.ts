@@ -2,7 +2,8 @@
  * Dashboard API handlers
  */
 
-import type { FixtureSources, LatencyController } from "@plainworks/mocks"
+import type { LatencyController } from "@plainworks/mocks"
+import type { FixtureSources } from "@plainworks/mocks/data"
 import { isPositiveInteger } from "@plainworks/std"
 import { type HttpHandler, HttpResponse, http } from "msw"
 import {

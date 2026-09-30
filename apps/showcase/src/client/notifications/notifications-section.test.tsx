@@ -2,12 +2,14 @@
 
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { prefetchQuery } from "@plainworks/query/hydration"
-import { deferred, fakeStateSource } from "@plainworks/testkit"
+import { deferred } from "@plainworks/testkit"
 import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/client"
+import { fakeStateSource } from "@plainworks/testkit/fakes"
+import { createTestQueryClient, TestQueryClientProvider } from "@plainworks/testkit/query"
 import { ThemeProvider } from "@plainworks/theme/client"
-import { QueryClientProvider } from "@tanstack/react-query"
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
@@ -33,25 +35,25 @@ const AUTHED = {
   identity: { subject: "user-123", claims: { name: "Ada" } },
 }
 
-beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
+bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
 beforeEach(() => installMatchMedia())
 afterEach(() => {
   cleanup()
-  handle.server.resetHandlers()
   handle.api.reset()
   vi.unstubAllGlobals()
 })
-afterAll(() => handle.server.close())
 
 async function renderNotifications(options: { authed?: boolean; prefetch?: boolean } = {}) {
   const { authed = true, prefetch = true } = options
   const httpClient = createHttpClient({ baseUrl: "http://showcase.test" })
-  const queryClient = createQueryClient({ defaultOptions: { queries: { retry: false } } })
+  const queryClient = createTestQueryClient(createQueryClient, {
+    defaultOptions: { queries: { retry: false } },
+  })
   if (prefetch) {
     await prefetchQuery(queryClient, notificationListPlan(httpClient, NOTIFICATION_LIST_PARAMS))
   }
   const ui = render(
-    <QueryClientProvider client={queryClient}>
+    <TestQueryClientProvider client={queryClient}>
       <SessionProvider {...(authed ? { initialSnapshot: AUTHED } : {})}>
         <HttpClientProvider client={httpClient}>
           <ThemeProvider source={fakeStateSource()}>
@@ -61,7 +63,7 @@ async function renderNotifications(options: { authed?: boolean; prefetch?: boole
           </ThemeProvider>
         </HttpClientProvider>
       </SessionProvider>
-    </QueryClientProvider>,
+    </TestQueryClientProvider>,
   )
   return { httpClient, queryClient, ...ui }
 }

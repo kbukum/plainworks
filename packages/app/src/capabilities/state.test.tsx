@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { memoryScope } from "@plainworks/state"
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { cleanup, render, screen } from "@testing-library/react"
 import { createElement, type ReactNode } from "react"
 import { afterEach, describe, expect, it } from "vitest"
@@ -10,7 +11,7 @@ import { createScopesCapability } from "./state"
 afterEach(cleanup)
 
 describe("createScopesCapability", () => {
-  it("publishes the scope registry to the subtree as a capability, not a kernel seam", () => {
+  it("publishes the scope registry to the subtree as a capability, not a kernel seam", async () => {
     const { capability, useScopes } = createScopesCapability({
       scopes: { memory: memoryScope },
     })
@@ -19,12 +20,13 @@ describe("createScopesCapability", () => {
       const scopes = useScopes()
       return createElement("p", null, `${"memory" in scopes}:${Object.keys(scopes).length}`)
     }
-    render(
+    const { container } = render(
       <AppProvider capabilities={[capability]}>
         <Probe />
       </AppProvider>,
     )
     expect(screen.getByText("true:1")).toBeDefined()
+    await expectNoAxeViolations(container)
   })
 
   it("fails with a typed error when read outside its provider", () => {

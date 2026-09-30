@@ -2,10 +2,11 @@
 
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { prefetchQuery } from "@plainworks/query/hydration"
 import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/client"
-import { QueryClientProvider } from "@tanstack/react-query"
+import { createTestQueryClient, TestQueryClientProvider } from "@plainworks/testkit/query"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
@@ -22,30 +23,30 @@ import { NotificationsBell } from "./notifications-bell"
 const handle = createMockServerHandle({ seed: 11 })
 const UNREAD = 11
 
-beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
+bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
 beforeEach(() => installMatchMedia())
 afterEach(() => {
   cleanup()
-  handle.server.resetHandlers()
   handle.api.reset()
 })
-afterAll(() => handle.server.close())
 
 async function renderBell(options: { prefetch?: boolean } = {}) {
   const { prefetch = true } = options
   const httpClient = createHttpClient({ baseUrl: "http://showcase.test" })
-  const queryClient = createQueryClient({ defaultOptions: { queries: { retry: false } } })
+  const queryClient = createTestQueryClient(createQueryClient, {
+    defaultOptions: { queries: { retry: false } },
+  })
   if (prefetch) {
     await prefetchQuery(queryClient, notificationListPlan(httpClient, NOTIFICATION_LIST_PARAMS))
   }
   const ui = render(
-    <QueryClientProvider client={queryClient}>
+    <TestQueryClientProvider client={queryClient}>
       <HttpClientProvider client={httpClient}>
         <RouterProvider initialPath="/">
           <NotificationsBell />
         </RouterProvider>
       </HttpClientProvider>
-    </QueryClientProvider>,
+    </TestQueryClientProvider>,
   )
   return { httpClient, queryClient, ...ui }
 }
@@ -70,7 +71,9 @@ describe("notifications bell", () => {
 
   it("drops the count when the inbox has no unread items", async () => {
     const httpClient = createHttpClient({ baseUrl: "http://showcase.test" })
-    const queryClient = createQueryClient({ defaultOptions: { queries: { retry: false } } })
+    const queryClient = createTestQueryClient(createQueryClient, {
+      defaultOptions: { queries: { retry: false } },
+    })
     await prefetchQuery(queryClient, notificationListPlan(httpClient, NOTIFICATION_LIST_PARAMS))
     for (const row of handle.api.stores.notifications.getAll()) {
       if (!row.read) {
@@ -80,13 +83,13 @@ describe("notifications bell", () => {
     }
     await queryClient.invalidateQueries()
     render(
-      <QueryClientProvider client={queryClient}>
+      <TestQueryClientProvider client={queryClient}>
         <HttpClientProvider client={httpClient}>
           <RouterProvider initialPath="/">
             <NotificationsBell />
           </RouterProvider>
         </HttpClientProvider>
-      </QueryClientProvider>,
+      </TestQueryClientProvider>,
     )
     const bell = await screen.findByRole("link", { name: "Notifications" })
     await waitFor(() => expect(bell.getAttribute("aria-label")).toBe("Notifications"))

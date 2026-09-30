@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { QueryProvider } from "@plainworks/query/client"
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
+import { createTestQueryClient } from "@plainworks/testkit/query"
 import { cleanup, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
@@ -21,15 +23,15 @@ const backend = createDemoBackend({ seed: 7 })
 
 const server = setupServer(http.all(`${ORIGIN}/*`, ({ request }) => backend.dispatch(request)))
 
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }))
+bindMockServerLifecycle(server, { hooks: { beforeAll, afterEach, afterAll } })
 afterEach(() => {
   cleanup()
-  server.resetHandlers()
 })
-afterAll(() => server.close())
 
 function renderList() {
-  const queryClient = createQueryClient({ defaultOptions: { queries: { retry: false } } })
+  const queryClient = createTestQueryClient(createQueryClient, {
+    defaultOptions: { queries: { retry: false } },
+  })
   return render(
     <QueryProvider client={queryClient}>
       <HttpClientProvider origin={ORIGIN}>

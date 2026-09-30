@@ -1,6 +1,6 @@
 # Browser gate
 
-The browser gate runs both reference hosts, the [showcase](../apps/showcase/README.md) and the [Next host](../apps/next-host/README.md), in real Chromium. Every test starts from seeded data and a fixed clock, and fails on any runtime error, hydration error, or request that leaves the host. The engine lives in [`@plainworks/testkit/browser`](../packages/testkit/README.md#browser-gate--plainworkstestkitbrowser).
+The browser gate runs both reference hosts, the [showcase](../apps/showcase/README.md) and the [Next host](../apps/next-host/README.md), in real Chromium. Every test starts from seeded data and a fixed clock, and fails on any runtime error, hydration error, or request that leaves the host. The engine lives in [`@plainworks/testkit/playwright`](../packages/testkit/README.md#playwright-gate--plainworkstestkitplaywright).
 
 ## Quickstart
 
@@ -34,7 +34,7 @@ flowchart LR
 One set of flows feeds both uses: the e2e suite checks, and `ui:capture` shows.
 
 - **Flows are the gate.** A flow is a named journey of checkpoints: the pages, states, overlays, dialogs, and gallery fixtures of an app. `flows.spec.ts` asserts every flow at the `quick` preset (desktop and mobile, light and dark), and a flow may add devices such as `tablet`, `reflow` (320 px), or `landscape`.
-- **Functional specs cover the rest.** A journey that needs its own assertions, such as a mutation that reconciles through the server, stays a plain spec. It uses the app's `e2e/support/checks.ts` for a one-off axe, focus, or reflow check.
+- **Functional specs cover the rest.** A journey that needs its own assertions, such as a mutation that reconciles through the server, stays a plain spec. It imports the shared axe, focus, or reflow assertion from `@plainworks/testkit/playwright`.
 - **No screenshot baselines.** Every check is structural, so nothing is compared with a committed image and any machine gives the same verdict.
 
 ## What each checkpoint checks

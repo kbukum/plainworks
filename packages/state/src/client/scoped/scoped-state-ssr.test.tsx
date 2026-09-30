@@ -2,7 +2,7 @@
 // concurrent requests never share state — the SSR-safety guarantee, verified without a browser.
 
 import type { StateSource } from "@plainworks/std/seam"
-import { fakeStateSource } from "@plainworks/testkit"
+import { fakeStateSource } from "@plainworks/testkit/fakes"
 import type { ReactNode } from "react"
 import { renderToString } from "react-dom/server"
 import { describe, expect, test } from "vitest"

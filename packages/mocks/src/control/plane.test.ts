@@ -2,6 +2,7 @@ import { HttpResponse, http } from "msw"
 import { setupServer } from "msw/node"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { createLatency, MAX_LATENCY_MS } from "../latency"
+import { bindMockServerLifecycle } from "../lifecycle"
 import { createMockControl } from "./plane"
 
 const clock = { now: () => 1_700_000_000_000 }
@@ -19,9 +20,8 @@ const server = setupServer(graph.loggingHandler, ping, ...graph.handlers)
 
 const url = (path: string): string => `http://mock.test${path}`
 
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }))
+bindMockServerLifecycle(server, { hooks: { beforeAll, afterEach, afterAll } })
 afterEach(() => {
-  server.resetHandlers()
   vi.useRealTimers()
 })
 beforeEach(() => {
@@ -30,7 +30,6 @@ beforeEach(() => {
   graph.control.setError(false)
   latency.set(0)
 })
-afterAll(() => server.close())
 
 describe("createMockControl programmatic surface", () => {
   it("toggles error simulation and snapshots state", () => {
@@ -51,6 +50,20 @@ describe("logging + error gate", () => {
   it("fails every API request with 500 while error simulation is on", async () => {
     graph.control.setError(true)
     expect((await fetch(url("/api/ping"))).status).toBe(500)
+  })
+
+  it("never answers an application route that only ends in a control path", async () => {
+    // No app handler matches, so the strict server rejects the request instead of the control
+    // plane answering it.
+    await expect(fetch(url("/api/users/mock/state"))).rejects.toThrow()
+    await expect(fetch(url("/api/users/mock/reset"), { method: "POST" })).rejects.toThrow()
+    expect(onReset).not.toHaveBeenCalled()
+  })
+
+  it("logs and gates an application route that only ends in a control path", async () => {
+    graph.control.setError(true)
+    expect((await fetch(url("/api/users/mock/state"))).status).toBe(500)
+    expect(graph.control.requestLog()).toHaveLength(1)
   })
 })
 
@@ -101,6 +114,21 @@ describe("/mock control endpoints", () => {
       (await fetch(url("/mock/error"), { method: "POST", body: JSON.stringify({ enabled: 1 }) }))
         .status,
     ).toBe(400)
+  })
+
+  it("keeps prefixed control routes available while error simulation is enabled", async () => {
+    const enable = await fetch(url("/api/mock/error"), {
+      method: "POST",
+      body: JSON.stringify({ enabled: true }),
+    })
+    expect(enable.status).toBe(200)
+
+    const disable = await fetch(url("/api/mock/error"), {
+      method: "POST",
+      body: JSON.stringify({ enabled: false }),
+    })
+    expect(disable.status).toBe(200)
+    expect(graph.control.isErrorEnabled()).toBe(false)
   })
 
   it("validates the latency body and applies a valid value", async () => {

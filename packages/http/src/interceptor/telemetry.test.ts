@@ -1,4 +1,4 @@
-import { recordTelemetry } from "@plainworks/testkit"
+import { recordTelemetry } from "@plainworks/testkit/fakes"
 import { expect, test } from "vitest"
 import { HttpError } from "../errors"
 import type { HttpRequest } from "../exchange/request"

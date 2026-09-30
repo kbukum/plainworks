@@ -4,16 +4,18 @@
 
 import {
   createEntityFactory,
-  daysAgo,
-  daysFromNow,
   type EntityFactory,
   type FixtureSources,
+} from "@plainworks/mocks/data"
+import {
+  daysAgo,
+  daysFromNow,
   nowISOString,
   randomBoolean,
   randomElement,
   randomElements,
   randomInt,
-} from "@plainworks/mocks"
+} from "@plainworks/mocks/fixture"
 import { type CreateTaskInput, TASK_PRIORITIES, type Task } from "../types"
 
 const TASK_TITLES = [

@@ -2,6 +2,7 @@ import { setupServer } from "msw/node"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { createStore } from "../../data/common"
 import { createLatency } from "../../latency"
+import { bindMockServerLifecycle } from "../../lifecycle"
 import { type CrudHandlerConfig, createCrudHandlers } from "./crud"
 import type { InputSpec } from "./decode"
 
@@ -108,14 +109,12 @@ async function get(path: string): Promise<Response> {
   return fetch(url(path))
 }
 
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }))
-afterEach(() => server.resetHandlers())
+bindMockServerLifecycle(server, { hooks: { beforeAll, afterEach, afterAll } })
 beforeEach(() => {
   nextId = 100
   widgetStore.setAll(seed())
   gadgetStore.setAll([{ ...seed()[0], id: "g_0", name: "gadget", size: 10 } as Widget])
 })
-afterAll(() => server.close())
 
 describe("GET list", () => {
   it("paginates with a default page and honors the pageSize/limit aliases", async () => {

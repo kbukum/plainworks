@@ -3,11 +3,12 @@
 import type { Order } from "@plainworks/demo"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { prefetchQuery } from "@plainworks/query/hydration"
 import type { PaginatedResult } from "@plainworks/std/list"
 import { deferred } from "@plainworks/testkit"
-import { QueryClientProvider } from "@tanstack/react-query"
+import { createTestQueryClient, TestQueryClientProvider } from "@plainworks/testkit/query"
 import { act, renderHook } from "@testing-library/react"
 import { HttpResponse, http } from "msw"
 import type { ReactElement, ReactNode } from "react"
@@ -24,24 +25,24 @@ import { useOrderMutations } from "./order-mutations"
 const STATUSES: Order["status"][] = ["pending", "processing", "shipped", "delivered", "cancelled"]
 const handle = createMockServerHandle({ seed: 11 })
 
-beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
+bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
 afterEach(() => {
-  handle.server.resetHandlers()
   handle.api.reset()
 })
-afterAll(() => handle.server.close())
 
 type OrderPage = PaginatedResult<Order>
 
 async function setup() {
   const httpClient = createHttpClient({ baseUrl: "http://showcase.test" })
-  const queryClient = createQueryClient({ defaultOptions: { queries: { retry: false } } })
+  const queryClient = createTestQueryClient(createQueryClient, {
+    defaultOptions: { queries: { retry: false } },
+  })
   const plan = orderListPlan(httpClient, ORDER_LIST_PARAMS)
   await prefetchQuery(queryClient, plan)
   const wrapper = ({ children }: { children: ReactNode }): ReactElement => (
-    <QueryClientProvider client={queryClient}>
+    <TestQueryClientProvider client={queryClient}>
       <HttpClientProvider client={httpClient}>{children}</HttpClientProvider>
-    </QueryClientProvider>
+    </TestQueryClientProvider>
   )
   const { result } = renderHook(() => useOrderMutations(plan.queryKey, ORDER_LIST_PARAMS), {
     wrapper,

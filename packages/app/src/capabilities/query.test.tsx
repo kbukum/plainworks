@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { createQueryClient } from "@plainworks/query"
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { useQueryClient } from "@tanstack/react-query"
 import { cleanup, render, screen } from "@testing-library/react"
 import { createElement, type ReactNode } from "react"
@@ -14,14 +15,15 @@ function ReadsClient({ expected }: { expected: unknown }): ReactNode {
 }
 
 describe("createQueryCapability", () => {
-  it("mounts the caller-owned client so the subtree reads exactly it", () => {
+  it("mounts the caller-owned client so the subtree reads exactly it", async () => {
     const client = createQueryClient()
-    render(
+    const { container } = render(
       <AppProvider capabilities={[createQueryCapability({ client })]}>
         <ReadsClient expected={client} />
       </AppProvider>,
     )
     expect(screen.getByText("same-client")).toBeDefined()
+    await expectNoAxeViolations(container)
   })
 
   it("declares its id and dependencies so the ordering graph can target it", () => {

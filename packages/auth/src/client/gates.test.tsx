@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 import type { Authorizer, Decision, Identity } from "@plainworks/std/seam"
 import { type Deferred, deferred } from "@plainworks/testkit"
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import axe from "axe-core"
 import { type ReactNode, useState } from "react"
 import { afterEach, describe, expect, test } from "vitest"
 import { createAuthGates } from "./gates"
@@ -164,7 +164,6 @@ describe("Can", () => {
       </main>,
     )
     await waitFor(() => expect(screen.getByRole("button", { name: "Delete post" })).toBeDefined())
-    const results = await axe.run(container)
-    expect(results.violations).toEqual([])
+    await expectNoAxeViolations(container)
   })
 })

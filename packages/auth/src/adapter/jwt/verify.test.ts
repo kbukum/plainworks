@@ -1,5 +1,5 @@
 import type { WebFetch, WebResponse } from "@plainworks/std/web"
-import { fakeFetch } from "@plainworks/testkit"
+import { fakeFetch } from "@plainworks/testkit/fakes"
 import { exportJWK, generateKeyPair, type JWK, SignJWT, UnsecuredJWT } from "jose"
 import { describe, expect, test } from "vitest"
 import { AuthError } from "../../errors"

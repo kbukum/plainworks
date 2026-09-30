@@ -1,6 +1,7 @@
 import type { User } from "@plainworks/demo"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { infiniteListQueryOptions } from "@plainworks/query/list"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { readUserCursorPage } from "./user-reads"
@@ -12,12 +13,10 @@ const handle = createMockServerHandle({ seed: 42 })
 const client = createHttpClient({ baseUrl: "http://mock.test" })
 const signal = new AbortController().signal
 
-beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
+bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
 afterEach(() => {
-  handle.server.resetHandlers()
   handle.api.reset()
 })
-afterAll(() => handle.server.close())
 
 describe("cursor paging round-trip", () => {
   it("pages an infinite list forward without overlap through the mock cursor mode", async () => {

@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 // Client tests opt into jsdom per file; the package default stays `node` so the server-safe `.`
 // entry can never lean on DOM globals unnoticed.
+
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { act, cleanup, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import axe from "axe-core"
 import type { ReactNode } from "react"
 import { hydrateRoot, type Root } from "react-dom/client"
 import { renderToStaticMarkup, renderToString } from "react-dom/server"
@@ -112,8 +113,7 @@ describe("createStoreContext", () => {
         <IncButton />
       </Provider>,
     )
-    const results = await axe.run(container)
-    expect(results.violations).toEqual([])
+    await expectNoAxeViolations(container)
   })
 
   test("custom mergeInitialState preserves a non-record state shape during hydration", () => {

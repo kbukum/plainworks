@@ -6,10 +6,17 @@ import { type Clock, parseTimestamp } from "@plainworks/std/time"
  * deterministic and instantaneous.
  */
 export interface ManualClock extends Clock {
-  /** Move time forward by `ms` milliseconds. Throws {@link RangeError} for a negative duration. */
+  /**
+   * Move time forward by `ms` milliseconds. Throws {@link RangeError} for a negative or non-finite
+   * duration.
+   */
   advance(ms: number): void
-  /** Set the absolute current time to `ms` milliseconds since the Unix epoch. */
-  set(ms: number): void
+  /**
+   * Set the absolute current time: epoch milliseconds or an ISO-8601 timestamp with an explicit
+   * zone, read like the start time. Throws {@link RangeError} for a value that does not name one
+   * moment.
+   */
+  set(at: number | string): void
 }
 
 /**
@@ -23,13 +30,13 @@ export function manualClock(start: number | string = 0): ManualClock {
   return {
     now: () => current,
     advance: (ms: number) => {
-      if (ms < 0) {
-        throw new RangeError("manualClock.advance requires a non-negative duration")
+      if (!Number.isFinite(ms) || ms < 0) {
+        throw new RangeError("manualClock.advance requires a finite, non-negative duration")
       }
       current += ms
     },
-    set: (ms: number) => {
-      current = ms
+    set: (at: number | string) => {
+      current = parseTimestamp(at)
     },
   }
 }

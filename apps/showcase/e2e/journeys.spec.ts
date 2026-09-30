@@ -1,5 +1,5 @@
+import { expectNoPageAxeViolations } from "@plainworks/testkit/playwright"
 import { appRoute, openPausedTasks, openRoute } from "./support/app"
-import { expectNoAxeViolations } from "./support/checks"
 import { expect, test } from "./support/gate"
 import { signIn } from "./support/session"
 
@@ -150,7 +150,7 @@ test("developer mock inspector mounts and drives a control", async ({ page }) =>
 
   const panel = page.getByRole("region", { name: "Plainworks inspector" })
   await expect(panel).toBeVisible()
-  await expectNoAxeViolations(page)
+  await expectNoPageAxeViolations(page)
 
   // The mock behavior controls live in the app-owned custom renderer under the source's own tab.
   await panel.getByRole("tab", { name: "mock" }).click()

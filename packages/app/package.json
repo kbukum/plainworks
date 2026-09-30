@@ -72,6 +72,7 @@
     "@plainworks/auth": "workspace:*",
     "@plainworks/query": "workspace:*",
     "@plainworks/state": "workspace:*",
+    "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",
     "@tanstack/query-core": "catalog:",

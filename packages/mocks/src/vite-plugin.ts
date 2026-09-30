@@ -17,6 +17,7 @@ import { isPositiveInteger } from "@plainworks/std"
 import { PayloadTooLargeError, readBoundedText } from "@plainworks/std/web"
 import type { RequestHandler } from "msw"
 import type { Plugin, ViteDevServer } from "vite"
+import { dispatchMockRequest } from "./dispatch"
 
 export interface MockServerPluginOptions {
   /**
@@ -160,7 +161,7 @@ export function mockServerPlugin(
               }
 
               // Try to find a matching handler
-              const response = await handleRequest(request, handlers)
+              const response = await dispatchMockRequest(request, handlers)
 
               if (aborted) return
 
@@ -200,31 +201,6 @@ export function mockServerPlugin(
       )
     },
   }
-}
-
-/**
- * Find and execute a matching MSW handler
- */
-async function handleRequest(
-  request: Request,
-  handlers: RequestHandler[],
-): Promise<Response | undefined> {
-  // Generate a unique request ID for MSW
-  const requestId = crypto.randomUUID()
-
-  for (const handler of handlers) {
-    // Use MSW's handler.run() method to check if handler matches
-    const result = await handler.run({
-      request: request as Parameters<typeof handler.run>[0]["request"],
-      requestId,
-    })
-
-    if (result?.response) {
-      return result.response
-    }
-  }
-
-  return undefined
 }
 
 export default mockServerPlugin

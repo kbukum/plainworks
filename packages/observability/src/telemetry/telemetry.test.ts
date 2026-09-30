@@ -1,6 +1,7 @@
 import type { Telemetry, TelemetryAttributes } from "@plainworks/std/seam"
 import { fixedClock } from "@plainworks/std/time"
-import { manualClock, recordTelemetry } from "@plainworks/testkit"
+import { manualClock } from "@plainworks/testkit"
+import { recordTelemetry } from "@plainworks/testkit/fakes"
 import { describe, expect, test } from "vitest"
 import { createLogger, type LogRecord } from "../logging"
 import { createTelemetry } from "./telemetry"

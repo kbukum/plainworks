@@ -1,5 +1,5 @@
 ---
-description: Run plainworks' standing engineering-baseline review — nine focused passes (structure, canonical reuse, principles, security, quality, tests/TDD, docs & supply chain, comments, and for UI accessibility/responsive/performance) over a change set or a package. Always run in a fresh, clean-context high-capability reviewer.
+description: Run plainworks' standing engineering-baseline review over a change set (a branch, commit range, or HEAD~1) or over a whole package/tree. Sequences nine focused passes — structure & placement, canonical reuse, principles, security & privacy, quality, tests/TDD, docs & supply chain, comments & TSDoc, and (for UI) accessibility/responsive/performance. Use before merging a change, when auditing a package, or before a release. Always run it in a fresh, clean-context reviewer with a high-capability model.
 ---
 
 # /review — router to the canonical skill

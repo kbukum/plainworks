@@ -78,7 +78,7 @@ Need the atom to look or behave differently? Follow the **deviation ladder** and
 | Dependency direction | Import only from a strictly lower layer. Define shared seams in the lower layer and implement them higher. |
 | Neutral entry | Keep `.` free from React, DOM globals, Node builtins, and framework assumptions. |
 | Client entry | Put React or browser bindings behind `./client`. Mark client-only modules with `"use client"`. |
-| Package manifest | Set `"type": "module"`, `"sideEffects": false`, `"files": ["dist"]`, and correct `exports` and `types`. Never commit `dist`. |
+| Package manifest | Let `sync-shape` derive `exports`, `files`, `sideEffects`, scripts, and preset dependencies from the workspace profile. Never hand-edit those fields or commit `dist`. |
 | Public APIs | Use typed, minimal surfaces. Do not expose `any`, unchecked casts, or string throws. |
 | Errors | Preserve causes with typed errors. Do not swallow exceptions or return success-shaped fallbacks. |
 | Runtime behavior | Do not create import-time side effects or module-level singletons. |

@@ -1,5 +1,5 @@
 ---
-description: Turn a non-trivial change into a written, reviewable plan under the gitignored tmp/ folder — a README overview plus numbered step files when multi-step, bound to plainworks' engineering baseline. Use when scoping or breaking down work.
+description: Turn a non-trivial change into a written, reviewable plan under the repo's gitignored tmp/ folder — a README overview plus, when the work is multi-step, numbered step markdown files that can be applied iteratively. Every plan is bound to plainworks' engineering baseline. Use when scoping a feature, refactor, package port, or release, or when asked to plan or break down work.
 ---
 
 # /create-plan — router to the canonical skill

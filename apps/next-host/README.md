@@ -1,6 +1,6 @@
 # @plainworks/next-host
 
-The **second reference host**: a Next.js App Router / RSC application that assembles the same published `@plainworks/*` surfaces as the Vite `@plainworks/showcase`, over a local mock backend built on `@plainworks/mocks`. Two genuinely different hosts on one kit is the proof of host-independence.
+The **second reference host**: a Next.js App Router / RSC application that assembles the same published `@plainworks/*` surfaces as the Vite `@plainworks/showcase`, over a local mock backend built on `@plainworks/mocks`. Two genuinely different hosts on one kit are the proof of host-independence.
 
 ## Run it
 
@@ -13,7 +13,7 @@ bun run --filter @plainworks/next-host test       # vitest (auth flow + dispatch
 bun run --filter @plainworks/next-host e2e        # the browser gate over next dev
 ```
 
-The app starts anonymous on the public overview (`/`). Signing in routes through the in-process mock identity provider, which approves immediately without requiring an external IdP or third-party login page, landing you back authenticated on the gated pages (`/tasks`, `/account`).
+Open `http://localhost:3000`. The app starts anonymous on the public overview (`/`). Signing in routes through the in-process mock identity provider, which approves immediately without requiring an external IdP or third-party login page, then lands you back authenticated on the gated pages (`/tasks`, `/account`).
 
 | Variable | Purpose |
 |---|---|
@@ -24,7 +24,7 @@ The mock backend is a catch-all Route Handler (`/api/[...path]`) that dispatches
 
 ## What it demonstrates
 
-- **The same kit under a different host.** The neutral composition kernel resolves an `AppSnapshot` in the RSC layout; a client `Providers` tree rebuilds the exact provider stack. The *same* surfaces — theme, query, channel, state, ui, auth — render under React Server Components and hydrate in the browser, not one line of the kit forked for Next.
+- **The same kit under a different host.** The neutral composition kernel resolves an `AppSnapshot` in the RSC layout, and a client `Providers` tree rebuilds the exact provider stack. The *same* surfaces — theme, query, channel, state, ui, auth — render under React Server Components and hydrate in the browser, with no kit code forked for Next.
 - **The three-bucket architecture, by path.** `src/neutral` names no host global (constants, theme/task narrowing); `src/client` is `"use client"` (providers, chrome, list); `src/server` is server-only (session, identity provider, backend). The layout threads a serializable snapshot from server to client as a plain prop.
 - **Token custody stays server-side.** Auth runs through `@plainworks/auth`'s `createServerSession` — Authorization Code + PKCE, an HMAC-signed **identity-only** session in a `__Host-` cookie. The BFF routes `/login`, `/auth/callback`, and `/logout` drive the flow. A callback that arrives without its login cookie lands on `/auth/interrupted` with a "Sign in again" link, not a server error. No token ever crosses to the client, and the token-custody modules carry the `server-only` marker so they cannot enter a client bundle.
 - **Query prefetch survives RSC.** The gated Tasks page prefetches the list into a request-scoped query client and hands the dehydrated cache to a client `HydrationBoundary`, so the browser mounts the list under the identical key with no refetch flash.

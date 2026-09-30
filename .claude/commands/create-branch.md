@@ -1,5 +1,5 @@
 ---
-description: Cut a working branch off an up-to-date main the canonical way — update main first, name it by the high-level change only (never batch/plan/task IDs). Use whenever you start new work or cut a branch in plainworks.
+description: Create a new git branch for a piece of work the canonical way — branch off an up-to-date main by default (or an explicitly named base branch), update main first, and name it by the high-level change only, never by internal scaffolding like batch numbers, plan numbers, or task IDs. Use whenever you start new work, cut a branch, or are unsure what to name a branch in plainworks.
 ---
 
 # /create-branch — router to the canonical skill

@@ -1,5 +1,5 @@
 ---
-description: Commit staged (or named) changes with one compact developer-friendly message — no Co-authored-by trailer, no plan/batch/PR numbers, one commit per branch (amend). Use when asked to commit work in plainworks.
+description: Commit staged (or explicitly named) changes with a single compact, developer-friendly commit message that states what changed — no Co-authored-by trailer, no plan/batch/PR numbers, no tool or review narration. Keep one commit per branch (amend). Use when asked to commit work in plainworks.
 ---
 
 # /commit — router to the canonical skill

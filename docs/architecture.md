@@ -73,7 +73,7 @@ A few rules keep the vocabulary honest, and the gates enforce each one.
 - **Adapters say what they do.** An entry is never named after a host (`dom`, `browser`, `node`). The real-browser test harness is `testkit/playwright`, named after its required runner.
 - **Test helpers stay out of shipped code.** `./testing` compiles in its own `tsconfig.testing.json` project, and a boundary rule stops production modules from importing it.
 
-React Native imports `./client` from `state`, `http`, `query`, `channel`, `auth`, `connect`, and `app`. Those clients compile without the DOM lib, and fixtures in `@plainworks/boundaries` prove it. DOM UI and browser adapters stay out of its graph.
+React Native imports `./client` from `state`, `http`, `query`, `channel`, `auth`, `connect`, and `app`. Those clients typecheck without the DOM lib, and fixtures in `@plainworks/boundaries` prove the gate rejects a DOM leak. DOM UI and browser adapters stay out of its graph.
 
 Workers inject SSE because they do not provide `EventSource`. Electron renderers use the browser entries but must keep BFF-managed tokens in memory rather than browser storage. React Native hosts inject missing cryptography, storage, or streaming primitives.
 
@@ -181,9 +181,15 @@ Imports must not read environment state, open handles, or dial a network. Create
 
 ### Development inspection
 
-[`@plainworks/devtools`](../packages/devtools/README.md) is an optional L4 consumer of public lower-layer seams. Under its own build-time development gate, a host creates named sources beside its runtime instances and passes them to `mountDevtools`, which owns the session and releases it with the shell on `dispose`. `DevtoolsShell` is the path for a session the host owns. Both views use the same bounded, redacted protocol. Its `.` entry carries only that protocol vocabulary; the session, store, retention, privacy, and bridge concerns each live on their own subpath (`@plainworks/devtools/session`, …). Custom renderers stay at the React call site; app-owned mock controls never introduce a same-layer dependency from devtools to mocks.
+[`@plainworks/devtools`](../packages/devtools/README.md) is an optional L4 inspector built only on public lower-layer seams. Each host keeps it out of its production build:
 
-The [showcase](../apps/showcase/README.md) proves a Vite-gated shell with HTTP/query adapters and a custom mock panel. The [Next host](../apps/next-host/README.md) proves client-only HTTP/query/channel inspection under RSC. Their production gate scans a source-mapped analysis build of emitted JavaScript and CSS, not just whether a launcher is visible. Cross-tab, server/RSC, extension, standalone, React Native rendering, auth inspection, and time travel remain outside embedded v1.
+- **Development-gated.** A host mounts it behind its own build-time development flag.
+- **Two ways to mount.** `mountDevtools` owns the session and releases it on `dispose`. `DevtoolsShell` renders a session the host owns.
+- **Bounded and redacted.** Both views read the same protocol, which caps retention and redacts sensitive values.
+- **Split by concern.** `.` holds only the protocol vocabulary. Session, store, retention, privacy, and bridge each have a subpath, such as `@plainworks/devtools/session`.
+- **No same-layer imports.** Custom renderers and app-owned mock panels are passed at the React call site, so devtools never imports `mocks`.
+
+The [showcase](../apps/showcase/README.md) mounts a Vite-gated shell with HTTP and query adapters plus a custom mock panel. The [Next host](../apps/next-host/README.md) inspects HTTP, query, and channel activity on the client under RSC. The `check-production` gate scans each host's source-mapped production build of JavaScript and CSS and fails if any inspector code remains. The embedded inspector does not cover cross-tab, server or RSC, browser-extension, standalone, React Native, auth, or time-travel inspection.
 
 ### Shared acceptance bar
 
@@ -232,7 +238,7 @@ The integration suite verifies serialization, offset and cursor paging, cache ke
 | Concern | Tool or rule |
 |---|---|
 | Tasks and caching | Turborepo |
-| Package generation | `@turbo/gen` through `bun run gen` |
+| Package and tool generation | `@turbo/gen` through `bun run gen` |
 | Build | tsdown through `@plainworks/tsdown-config`, ESM-only |
 | Lint and format | Biome |
 | Boundaries and cycles | dependency-cruiser |

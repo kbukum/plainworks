@@ -1,6 +1,6 @@
 # `@plainworks/ui`
 
-Plainworks-authored composites built on the vendored atom set. Each component and hook has its own subpath, so you import only what a route uses. The neutral entry holds `asyncStatus`, which runs anywhere, including on the server. The raw shadcn/Base-UI atoms themselves live in [`@plainworks/elements`](../elements/README.md) — `ui` composes them.
+Plainworks-authored composites built on the vendored atom set. Each component and hook has its own subpath, so a route imports only what it renders. The neutral entry holds `asyncStatus`, which runs anywhere, including on the server. The raw shadcn/Base-UI atoms live in [`@plainworks/elements`](../elements/README.md); `ui` composes them.
 
 ## Quickstart
 
@@ -245,7 +245,7 @@ function ThemeSaveAlert() {
 
 ## Relationship to `@plainworks/elements`
 
-`ui` (L3) depends downward on `elements` (L2): the authored composites under `src/client` compose atoms and carry the accessibility, responsive, and axe-test acceptance bar. `elements` atoms are **vendored** and **locked** by `shadcn.lock.json`, so never edit one. A reusable tone or behavior goes in a `ui` wrapper here; color, contrast, and focus go in `@plainworks/theme`; a one-off goes at the call site (the **deviation ladder**). Atoms come from `@plainworks/elements/*`; composites come from `@plainworks/ui/*`.
+`ui` (L3) depends downward on `elements` (L2): the authored composites under `src/client` compose atoms and carry the accessibility, responsive, and axe-test acceptance bar. `elements` atoms are **vendored** and **locked** by `shadcn.lock.json`, so never edit one. A reusable tone or behavior goes in a `ui` wrapper here; color, contrast, and focus go in `@plainworks/theme`; a one-off goes at the call site (the **deviation ladder**). Atoms come from atom subpaths such as `@plainworks/elements/button`; composites come from composite subpaths such as `@plainworks/ui/feedback/error-state`.
 
 A `ui` component exists only when it adds real behavior over an atom:
 

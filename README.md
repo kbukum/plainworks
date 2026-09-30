@@ -42,6 +42,8 @@ A second reference host, [`@plainworks/next-host`](./apps/next-host), assembles 
 
 Each package exposes a neutral `.` entry. Packages with React or browser bindings expose them separately through `./client`.
 
+To start a new app on these packages, [`create-plainworks`](./packages/create-plainworks) scaffolds a wired, runnable project over a local mock backend.
+
 ## How the packages fit
 
 Each package owns one concern and imports only from a **strictly lower layer**.

@@ -1,6 +1,6 @@
 # `@plainworks/elements`
 
-The shadcn/Base-UI atom set — buttons, inputs, dialogs, menus, and the rest of the ~47 primitives — installed and refreshed through the official **shadcn CLI**, never hand-copied or hand-edited. Every atom is a `"use client"` module with a per-atom subpath export, so consumers tree-shake to exactly the atoms they import.
+The shadcn/Base-UI atom set — buttons, inputs, dialogs, menus, and the rest of the ~47 primitives — installed and refreshed through the official **shadcn CLI**. Atoms are never hand-copied or hand-edited. Every atom is a `"use client"` module with its own subpath export, so consumers tree-shake to exactly the atoms they import.
 
 Part of the [plainworks](../../README.md) kit.
 
@@ -55,7 +55,7 @@ Every upstream atom we don't vendor has a recorded decision, so "not needed yet"
 | `sidebar` | **Skip.** The `ui` `AppShell` and `Drawer` cover it with less surface. |
 | `drawer` (vaul) | **Skip.** The `ui` `Drawer` is built on `sheet`; add vaul only for a real bottom-sheet need. |
 | `chart` | **Skip.** It pulls in a heavy charting dependency; the `ui` `Sparkline` covers small trends with no dependency. |
-| `form` | **Skip.** `@plainworks/ui/forms` owns form state. |
+| `form` | **Skip.** The form components in `@plainworks/ui` own form state. |
 | `resizable`, `carousel` | **Skip** until a consumer needs them. |
 | `direction` | **Revisit** with an RTL story; the kit has none today. |
 | Chat set (`message`, `bubble`, `attachment`, `message-scroller`, `marker`, `questionnaire`) | **Vendor together** when the kit adds AI UI. Treat all rendered model output as untrusted. |

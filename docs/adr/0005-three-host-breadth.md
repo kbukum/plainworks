@@ -1,4 +1,4 @@
-# 0005 — Host breadth is three references, delivered one per plan
+# 0005 — Host breadth is three references, delivered one host at a time
 
 **Status:** Accepted · **Date:** 2026-09-19
 
@@ -8,9 +8,9 @@
 
 ## Decision
 
-The reference host breadth is **three**: a Next.js RSC app, a TanStack Start app, and a Vite SPA. These span the meaningful axes — server components, a full-stack router, and a pure client SPA — so the neutral `.` and client `./client` seams are exercised against genuinely different runtimes.
+The reference host breadth is **three**: a Next.js RSC app, a TanStack Start app, and a Vite SSR host. These span the meaningful axes — server components, a full-stack router, and a Vite server-rendered app that hydrates on the client — so the neutral `.` and client `./client` seams are exercised against genuinely different runtimes.
 
-Breadth is delivered incrementally, one host per plan rather than all at once. The Vite SPA (`apps/showcase`) exists; this plan adds the Next.js RSC host (`apps/next-host`) with cross-host CI smoke. React Native, Remix, and Astro remain open follow-ons, added only when a plan proves them.
+Breadth is delivered incrementally, one host at a time rather than all at once. The Vite SSR host (`apps/showcase`) and Next.js RSC host (`apps/next-host`) exist with cross-host CI smoke. TanStack Start remains the third accepted reference before the full breadth claim is complete; React Native, Remix, and Astro remain open follow-ons.
 
 ## Consequences
 

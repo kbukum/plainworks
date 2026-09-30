@@ -28,6 +28,21 @@ describe("JsonTree", () => {
     expect(tags.getAttribute("aria-expanded")).toBe("false")
   })
 
+  it("toggles a collection from the keyboard and reports it with aria-expanded", async () => {
+    const user = userEvent.setup()
+    render(<JsonTree value={{ outer: { inner: { leaf: 1 } } }} />)
+    const inner = screen.getByRole("button", { name: /inner/ })
+    expect(inner.tagName).toBe("BUTTON")
+    expect(inner.getAttribute("aria-expanded")).toBe("false")
+    expect(screen.queryByText("leaf")).toBeNull()
+    inner.focus()
+    await user.keyboard("{Enter}")
+    expect(inner.getAttribute("aria-expanded")).toBe("true")
+    expect(screen.getByText("leaf")).toBeTruthy()
+    await user.keyboard(" ")
+    expect(inner.getAttribute("aria-expanded")).toBe("false")
+  })
+
   it("renders top-level scalars and empty collections", () => {
     const { rerender } = render(<JsonTree value="plain" />)
     expect(screen.getByText('"plain"')).toBeTruthy()

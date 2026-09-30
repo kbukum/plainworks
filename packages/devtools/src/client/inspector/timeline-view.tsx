@@ -4,10 +4,11 @@ import { Button } from "@plainworks/elements/button"
 import { Input } from "@plainworks/elements/input"
 import { NativeSelect, NativeSelectOption } from "@plainworks/elements/native-select"
 import { Toolbar } from "@plainworks/ui/layout/toolbar"
-import { type ReactElement, useMemo, useState } from "react"
-import { type Severity, sourceKey } from "../../protocol"
+import { type ReactElement, useState } from "react"
+import { isSeverity, type Severity, sourceKey } from "../../protocol"
 import type { DevtoolsClientPort } from "../../session"
 import { type DevtoolsStore, type DevtoolsStoreState, filterEvents } from "../../store"
+import { type DevtoolsLabels, useDevtoolsLabels } from "../labels"
 import { EventList } from "./event-list"
 
 /** Props for {@link TimelineView}. */
@@ -22,17 +23,7 @@ export interface TimelineViewProps {
 
 const ALL_SOURCES = "__all__"
 const ALL_SEVERITIES = "__all__"
-const SEVERITY_LABELS: Readonly<Record<Severity, string>> = {
-  ok: "OK",
-  info: "Info",
-  warn: "Warning",
-  error: "Error",
-}
 const SEVERITIES: readonly Severity[] = ["ok", "info", "warn", "error"]
-
-function isSeverity(value: string): value is Severity {
-  return Object.hasOwn(SEVERITY_LABELS, value)
-}
 
 /**
  * The unified timeline: every retained event across sources, filterable by source, severity, and
@@ -41,6 +32,7 @@ function isSeverity(value: string): value is Severity {
  * the host's dropped-count signal stays truthful.
  */
 export function TimelineView({ state, store, port }: TimelineViewProps): ReactElement {
+  const labels = useDevtoolsLabels()
   const [sourceFilter, setSourceFilter] = useState(ALL_SOURCES)
   const [severityFilter, setSeverityFilter] = useState<Severity | typeof ALL_SEVERITIES>(
     ALL_SEVERITIES,
@@ -53,15 +45,12 @@ export function TimelineView({ state, store, port }: TimelineViewProps): ReactEl
     ...(severityFilter === ALL_SEVERITIES ? {} : { severity: severityFilter }),
     ...(kindFilter === "" ? {} : { kind: kindFilter }),
   })
-  const emptyLabel = useMemo(
-    () => (state.events.length === 0 ? "No events recorded yet" : "No events match the filters"),
-    [state.events.length],
-  )
+  const emptyLabel = state.events.length === 0 ? labels.noEvents : labels.noMatchingEvents
 
   return (
-    <section aria-label="Timeline" className="grid gap-3">
+    <section aria-label={labels.timeline} className="grid gap-3">
       <Toolbar
-        label="Timeline controls"
+        label={labels.timelineControls}
         actions={
           <>
             <Button
@@ -70,7 +59,7 @@ export function TimelineView({ state, store, port }: TimelineViewProps): ReactEl
               size="sm"
               onClick={() => (state.paused ? store.resume() : store.pause())}
             >
-              {state.paused ? "Resume" : "Pause"}
+              {state.paused ? labels.resume : labels.pause}
             </Button>
             <Button
               type="button"
@@ -79,18 +68,18 @@ export function TimelineView({ state, store, port }: TimelineViewProps): ReactEl
               disabled={state.events.length === 0}
               onClick={() => store.clear()}
             >
-              Clear
+              {labels.clear}
             </Button>
           </>
         }
       >
         <NativeSelect
-          aria-label="Source"
+          aria-label={labels.sourceFilter}
           size="sm"
           value={sourceFilter}
           onChange={(event) => setSourceFilter(event.currentTarget.value)}
         >
-          <NativeSelectOption value={ALL_SOURCES}>All sources</NativeSelectOption>
+          <NativeSelectOption value={ALL_SOURCES}>{labels.allSources}</NativeSelectOption>
           {state.sources.map((source) => (
             <NativeSelectOption key={sourceKey(source.id)} value={sourceKey(source.id)}>
               {source.label}
@@ -98,7 +87,7 @@ export function TimelineView({ state, store, port }: TimelineViewProps): ReactEl
           ))}
         </NativeSelect>
         <NativeSelect
-          aria-label="Severity"
+          aria-label={labels.severityFilter}
           size="sm"
           value={severityFilter}
           onChange={(event) => {
@@ -106,39 +95,41 @@ export function TimelineView({ state, store, port }: TimelineViewProps): ReactEl
             setSeverityFilter(isSeverity(value) ? value : ALL_SEVERITIES)
           }}
         >
-          <NativeSelectOption value={ALL_SEVERITIES}>All severities</NativeSelectOption>
+          <NativeSelectOption value={ALL_SEVERITIES}>{labels.allSeverities}</NativeSelectOption>
           {SEVERITIES.map((severity) => (
             <NativeSelectOption key={severity} value={severity}>
-              {SEVERITY_LABELS[severity]}
+              {labels.severity(severity)}
             </NativeSelectOption>
           ))}
         </NativeSelect>
         <Input
           type="search"
-          aria-label="Kind"
-          placeholder="Filter by kind"
+          aria-label={labels.kindFilter}
+          placeholder={labels.kindPlaceholder}
           value={kindFilter}
           onChange={(event) => setKindFilter(event.currentTarget.value)}
           className="h-7 w-auto min-w-32 flex-1"
         />
       </Toolbar>
       <p role="status" className="text-muted-foreground text-xs">
-        {timelineStatus(state, filtered.length)}
+        {timelineStatus(state, filtered.length, labels)}
       </p>
       <EventList entries={filtered} sources={state.sources} port={port} emptyLabel={emptyLabel} />
     </section>
   )
 }
 
-function timelineStatus(state: DevtoolsStoreState, visible: number): string {
+function timelineStatus(
+  state: DevtoolsStoreState,
+  visible: number,
+  labels: DevtoolsLabels,
+): string {
   const parts = [
     visible === state.events.length
-      ? `${state.events.length} event${state.events.length === 1 ? "" : "s"}`
-      : `${visible} of ${state.events.length} events`,
+      ? labels.eventCount(state.events.length)
+      : labels.filteredEventCount(visible, state.events.length),
   ]
-  if (state.droppedAggregate > 0) {
-    parts.push(`${state.droppedAggregate} dropped (retention is bounded)`)
-  }
-  if (state.paused) parts.push("paused")
+  if (state.droppedAggregate > 0) parts.push(labels.timelineDropped(state.droppedAggregate))
+  if (state.paused) parts.push(labels.paused)
   return parts.join(" · ")
 }

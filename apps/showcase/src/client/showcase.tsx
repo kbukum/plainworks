@@ -2,50 +2,40 @@
 
 import type { AppSnapshot } from "@plainworks/app"
 import { AppProvider, type ClientCapability } from "@plainworks/app/client"
-import type { HttpClient } from "@plainworks/http"
-import { HttpClientProvider } from "@plainworks/http/client"
 import { HydrationBoundary } from "@plainworks/query/client"
 import type { DehydratedState } from "@plainworks/query/hydration"
 import type { ReactElement } from "react"
 import { RouterProvider } from "./router"
-import { LocalPreferencesProvider } from "./settings/local-preferences-provider"
 import { ShowcaseShell } from "./shell"
 import { ToastHost } from "./toast-host"
 
 /** Everything the shared render root needs, built per request on the server and once in the browser. */
 export interface ShowcaseProps {
-  /** The client capability registry (query, theme, scopes) handed to `AppProvider`. */
+  /** The client capability registry (query, http, theme, motion, auth, scopes) for `AppProvider`. */
   readonly capabilities: readonly ClientCapability[]
   /** The server-resolved snapshot each capability hydrates from. */
   readonly snapshot: AppSnapshot
   /** The dehydrated query cache the `HydrationBoundary` rehydrates so the list needs no refetch. */
-  readonly dehydratedState: DehydratedState
+  readonly dehydratedState: DehydratedState | undefined
   /** The path the server rendered, so the first client render matches (no hydration mismatch). */
   readonly initialPath: string
-  /** The request-scoped HTTP client the sections read and mutate through. */
-  readonly httpClient: HttpClient
 }
 
 /**
  * The one render root both the streaming server renderer and `hydrateRoot` render, so the two trees
  * cannot drift. Providers are composed through the kernel: `AppProvider` mounts the capability
- * registry (query outermost), inside which the query cache is rehydrated, the HTTP client is
- * provided to the sections, the router owns client-side navigation, and the app-wide toast host is
- * mounted so any surface can raise feedback.
+ * registry (query outermost), inside which the query cache is rehydrated, the router owns
+ * client-side navigation, and the app-wide toast host is mounted so any surface can raise feedback.
  */
 export function Showcase(props: ShowcaseProps): ReactElement {
   return (
     <AppProvider capabilities={props.capabilities} snapshot={props.snapshot}>
       <HydrationBoundary state={props.dehydratedState}>
-        <HttpClientProvider client={props.httpClient}>
-          <RouterProvider initialPath={props.initialPath}>
-            <ToastHost>
-              <LocalPreferencesProvider>
-                <ShowcaseShell />
-              </LocalPreferencesProvider>
-            </ToastHost>
-          </RouterProvider>
-        </HttpClientProvider>
+        <RouterProvider initialPath={props.initialPath}>
+          <ToastHost>
+            <ShowcaseShell />
+          </ToastHost>
+        </RouterProvider>
       </HydrationBoundary>
     </AppProvider>
   )

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import type { AppSnapshot } from "@plainworks/app"
+import { AUTH_CAPABILITY_ID } from "@plainworks/app/capabilities/auth"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
@@ -16,7 +17,7 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import { AUTH_CAPABILITY_ID, TASK_LIST_PARAMS } from "../../app/constants"
+import { TASK_LIST_PARAMS } from "../../app/constants"
 import { taskList } from "../../app/lists"
 import { buildClientCapabilities } from "../capabilities"
 import { Showcase } from "../showcase"
@@ -69,14 +70,13 @@ async function renderShell(
   const httpClient = createHttpClient({ baseUrl: "http://showcase.test" })
   const queryClient = createTestQueryClient(createQueryClient)
   await prefetchQuery(queryClient, taskList.options(httpClient, TASK_LIST_PARAMS))
-  const capabilities = buildClientCapabilities({ queryClient, themeSource })
+  const capabilities = buildClientCapabilities({ queryClient, httpClient, themeSource })
   return render(
     <Showcase
       capabilities={capabilities}
       snapshot={snapshot}
       dehydratedState={dehydrateClient(queryClient, { shouldDehydrateQuery: () => true })}
       initialPath={initialPath}
-      httpClient={httpClient}
     />,
   )
 }

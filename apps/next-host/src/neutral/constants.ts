@@ -1,7 +1,7 @@
 // Neutral, host-agnostic constants shared by the server components, the BFF route handlers, and the
 // client glue. Keeping them in one server-safe module (no React, no DOM, no host global) is what
-// lets every bucket agree on the cookie names, the capability ids the snapshot is keyed by, the
-// route paths, and the exact list request the dashboard reads.
+// lets every bucket agree on the cookie names, the route paths, and the exact list request the
+// dashboard reads.
 
 import type { ListQueryParams } from "@plainworks/std/list"
 
@@ -18,12 +18,6 @@ export const TASK_LIST_PARAMS: ListQueryParams = {
 
 /** Cookie the theme preference is persisted under so the server can render an explicit mode. */
 export const THEME_COOKIE = "theme"
-
-/** Capability id joining the neutral theme resolver to its client provider. */
-export const THEME_CAPABILITY_ID = "theme"
-
-/** Capability id joining the neutral session resolver to its client `SessionProvider`. */
-export const AUTH_CAPABILITY_ID = "auth"
 
 /** Public landing route — the overview, reachable without a session. */
 export const OVERVIEW_PATH = "/"

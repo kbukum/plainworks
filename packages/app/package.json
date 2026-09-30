@@ -38,10 +38,20 @@
       "types": "./dist/client.d.ts",
       "default": "./dist/client.js"
     },
+    "./hydration": {
+      "@plainworks/source": "./src/hydration/index.ts",
+      "types": "./dist/hydration.d.ts",
+      "default": "./dist/hydration.js"
+    },
     "./capabilities/auth": {
-      "@plainworks/source": "./src/capabilities/auth.ts",
+      "@plainworks/source": "./src/capabilities/auth/index.ts",
       "types": "./dist/capabilities/auth.d.ts",
       "default": "./dist/capabilities/auth.js"
+    },
+    "./capabilities/http": {
+      "@plainworks/source": "./src/capabilities/http.ts",
+      "types": "./dist/capabilities/http.d.ts",
+      "default": "./dist/capabilities/http.js"
     },
     "./capabilities/query": {
       "@plainworks/source": "./src/capabilities/query.ts",
@@ -53,6 +63,11 @@
       "types": "./dist/capabilities/state.d.ts",
       "default": "./dist/capabilities/state.js"
     },
+    "./capabilities/theme": {
+      "@plainworks/source": "./src/capabilities/theme/index.ts",
+      "types": "./dist/capabilities/theme.d.ts",
+      "default": "./dist/capabilities/theme.js"
+    },
     "./testing": {
       "@plainworks/source": "./src/testing.ts",
       "types": "./dist/testing.d.ts",
@@ -61,7 +76,7 @@
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.test.json && tsc --noEmit -p tsconfig.testing.json",
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.test.json && tsc --noEmit -p tsconfig.testing.json && tsc --noEmit -p tsconfig.theme.json",
     "test": "vitest run --coverage",
     "check-packaging": "plainworks-release check-packaging"
   },
@@ -70,9 +85,11 @@
   },
   "devDependencies": {
     "@plainworks/auth": "workspace:*",
+    "@plainworks/http": "workspace:*",
     "@plainworks/query": "workspace:*",
     "@plainworks/state": "workspace:*",
     "@plainworks/testkit": "workspace:*",
+    "@plainworks/theme": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",
     "@tanstack/query-core": "catalog:",
@@ -93,8 +110,10 @@
   },
   "peerDependencies": {
     "@plainworks/auth": "workspace:*",
+    "@plainworks/http": "workspace:*",
     "@plainworks/query": "workspace:*",
     "@plainworks/state": "workspace:*",
+    "@plainworks/theme": "workspace:*",
     "@tanstack/query-core": "catalog:",
     "@testing-library/react": "catalog:",
     "react": "catalog:",
@@ -104,10 +123,16 @@
     "@plainworks/auth": {
       "optional": true
     },
+    "@plainworks/http": {
+      "optional": true
+    },
     "@plainworks/query": {
       "optional": true
     },
     "@plainworks/state": {
+      "optional": true
+    },
+    "@plainworks/theme": {
       "optional": true
     },
     "@tanstack/query-core": {

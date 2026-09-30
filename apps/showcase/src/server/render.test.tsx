@@ -1,10 +1,11 @@
+import { HYDRATION_SCRIPT_ID } from "@plainworks/app/hydration"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import { createMockIdp } from "@plainworks/mocks/idp"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { createShowcaseAuth, type ShowcaseAuth } from "../app/auth"
-import { QUERY_STATE_SCRIPT_ID, SNAPSHOT_SCRIPT_ID, THEME_COOKIE } from "../app/constants"
+import { THEME_COOKIE } from "../app/constants"
 import { renderApp } from "./render"
 
 // The SSR render proven the way a consumer assembles the kit: the composition kernel resolves the
@@ -124,9 +125,9 @@ describe("server render", () => {
     )
 
     expect(status).toBe(200)
-    // The snapshot rides an inline JSON script under its stable id, carrying the theme capability's
-    // resolved slice the client deserializes and hands to `AppProvider`.
-    expect(html).toContain(`id="${SNAPSHOT_SCRIPT_ID}"`)
+    // The snapshot rides the inline hydration data block, carrying the theme capability's resolved
+    // slice the client reads back and hands to `AppProvider`.
+    expect(html).toContain(`id="${HYDRATION_SCRIPT_ID}"`)
     expect(html).toContain('"colorScheme":"violet"')
     expect(html).toContain('"mode":"dark"')
   })
@@ -137,7 +138,7 @@ describe("server render", () => {
 
     // At least one seeded task title rides the embedded dehydrated cache, proving the prefetch ran
     // on the server — the list is warm in the serialized cache before the browser boots.
-    expect(html).toContain(`id="${QUERY_STATE_SCRIPT_ID}"`)
+    expect(html).toContain(`id="${HYDRATION_SCRIPT_ID}"`)
     expect(seeded.length).toBeGreaterThan(0)
     expect(seeded.some((task) => html.includes(task.title))).toBe(true)
   })
@@ -186,7 +187,7 @@ describe("section prefetch", () => {
 
     expect(status).toBe(200)
     expect(html).toContain(">Orders</h1>")
-    expect(html).toContain(`id="${QUERY_STATE_SCRIPT_ID}"`)
+    expect(html).toContain(`id="${HYDRATION_SCRIPT_ID}"`)
     expect(seeded.length).toBeGreaterThan(0)
     expect(seeded.some((order) => html.includes(order.customerName))).toBe(true)
   })
@@ -197,7 +198,7 @@ describe("section prefetch", () => {
 
     expect(status).toBe(200)
     expect(html).toContain(">Products</h1>")
-    expect(html).toContain(`id="${QUERY_STATE_SCRIPT_ID}"`)
+    expect(html).toContain(`id="${HYDRATION_SCRIPT_ID}"`)
     expect(seeded.length).toBeGreaterThan(0)
     expect(seeded.some((product) => html.includes(product.name))).toBe(true)
   })
@@ -208,7 +209,7 @@ describe("section prefetch", () => {
 
     expect(status).toBe(200)
     expect(html).toContain(">Users</h1>")
-    expect(html).toContain(`id="${QUERY_STATE_SCRIPT_ID}"`)
+    expect(html).toContain(`id="${HYDRATION_SCRIPT_ID}"`)
     expect(seeded.length).toBeGreaterThan(0)
     expect(seeded.some((user) => html.includes(user.email))).toBe(true)
   })
@@ -219,7 +220,7 @@ describe("section prefetch", () => {
 
     expect(status).toBe(200)
     expect(html).toContain(">Notifications</h1>")
-    expect(html).toContain(`id="${QUERY_STATE_SCRIPT_ID}"`)
+    expect(html).toContain(`id="${HYDRATION_SCRIPT_ID}"`)
     expect(seeded.length).toBeGreaterThan(0)
     expect(seeded.some((notification) => html.includes(notification.title))).toBe(true)
   })

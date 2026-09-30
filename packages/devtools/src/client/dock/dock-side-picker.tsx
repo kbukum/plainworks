@@ -4,6 +4,7 @@ import { ToggleGroup, ToggleGroupItem } from "@plainworks/elements/toggle-group"
 import { isOneOf } from "@plainworks/std"
 import { type LucideIcon, PanelBottom, PanelLeft, PanelRight } from "lucide-react"
 import type { ReactElement } from "react"
+import { useDevtoolsLabels } from "../labels"
 import { DEVTOOLS_DOCK_SIDES, type DevtoolsDockSide } from "./layout"
 import type { DockLayoutFailure } from "./use-dock-layout"
 
@@ -25,11 +26,6 @@ const SIDE_ICONS: Readonly<Record<DevtoolsDockSide, LucideIcon>> = {
   right: PanelRight,
 }
 
-const FAILURE_COPY: Readonly<Record<DockLayoutFailure["phase"], string>> = {
-  restore: "Saved layout unreadable",
-  save: "Layout not saved",
-}
-
 /**
  * The inspector's dock controls: a group of exclusive toggle buttons that move the devtools to the
  * bottom, left, or right, and a status line when the layout cannot be restored or saved. On a
@@ -41,10 +37,11 @@ export function DockSidePicker({
   onSideChange,
   failure,
 }: DockSidePickerProps): ReactElement | null {
+  const labels = useDevtoolsLabels()
   const status =
     failure === undefined ? null : (
       <p role="status" className="self-center text-destructive text-xs">
-        {FAILURE_COPY[failure.phase]}
+        {failure.phase === "restore" ? labels.layoutRestoreFailed : labels.layoutSaveFailed}
       </p>
     )
   if (!sideDockFits) return status
@@ -52,7 +49,7 @@ export function DockSidePicker({
     <>
       {status}
       <ToggleGroup
-        aria-label="Dock side"
+        aria-label={labels.dockSide}
         size="sm"
         spacing={0}
         value={[side]}
@@ -65,7 +62,7 @@ export function DockSidePicker({
         {DEVTOOLS_DOCK_SIDES.map((option) => {
           const Icon = SIDE_ICONS[option]
           return (
-            <ToggleGroupItem key={option} value={option} aria-label={`Dock to ${option}`}>
+            <ToggleGroupItem key={option} value={option} aria-label={labels.dockTo(option)}>
               <Icon aria-hidden />
             </ToggleGroupItem>
           )

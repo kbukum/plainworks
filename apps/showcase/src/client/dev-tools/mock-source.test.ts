@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 
 import { createMockServerHandle } from "@plainworks/demo/server"
-import { createDevtoolsSession, sourceKey } from "@plainworks/devtools"
+import { sourceKey } from "@plainworks/devtools"
+import { createDevtoolsSession } from "@plainworks/devtools/session"
 import { createHttpClient, type HttpClient } from "@plainworks/http"
 import type { MockControlClient } from "@plainworks/mocks/control"
 import { createMockControlClient } from "@plainworks/mocks/control"

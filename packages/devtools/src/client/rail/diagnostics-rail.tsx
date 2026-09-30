@@ -1,11 +1,13 @@
 "use client"
 
+import { Button } from "@plainworks/elements/button"
 import type { ErrorSnapshot } from "@plainworks/std"
 import type { Clock } from "@plainworks/std/time"
 import { cn } from "@plainworks/theme"
 import type { ReactElement } from "react"
 import type { Severity, SourceDescriptor } from "../../protocol"
 import type { IndicatorEntry } from "../../session/client-port"
+import { useDevtoolsLabels } from "../labels"
 import { useNow } from "../shell/use-now"
 import { buildRailEntries, splitRailOverflow } from "./prioritize"
 
@@ -39,6 +41,11 @@ const SEVERITY_STYLES: Readonly<Record<Severity, string>> = {
   ok: "text-muted-foreground",
 }
 
+// The bar turns vertical on a side dock, so the rail's buttons size to their content in both axes
+// instead of the atom's fixed block size, and keep a 28px minimum target either way.
+const RAIL_BUTTON =
+  "h-auto min-h-7 min-w-7 px-2 py-1 font-normal @max-md/rail:gap-1 @max-md/rail:px-1.5"
+
 const DOT_STYLES: Readonly<Record<Severity, string>> = {
   error: "bg-destructive",
   warn: "bg-warning",
@@ -65,8 +72,10 @@ export function DiagnosticsRail({
   maxVisible = 4,
   onOpen,
 }: DiagnosticsRailProps): ReactElement | null {
+  const labels = useDevtoolsLabels()
   const current = useNow(clock, tickMs)
   const entries = buildRailEntries({
+    labels,
     sources,
     failures,
     indicators,
@@ -81,26 +90,24 @@ export function DiagnosticsRail({
   return (
     <div className="@container/rail flex min-h-0 min-w-0 flex-1 items-center gap-1">
       <ul
-        aria-label="Diagnostics"
+        aria-label={labels.diagnostics}
         className="no-scrollbar flex min-h-0 min-w-0 items-center gap-1 overflow-auto"
       >
         {visible.map((entry) => (
           <li key={entry.key} className="shrink-0">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="xs"
               data-severity={entry.severity}
               data-stale={entry.stale || undefined}
               aria-label={
                 entry.stale
-                  ? `${entry.label}: ${entry.value} (stale)`
-                  : `${entry.label}: ${entry.value}`
+                  ? labels.staleRailEntry(entry.label, entry.value)
+                  : labels.railEntry(entry.label, entry.value)
               }
               onClick={() => onOpen(entry.target)}
-              className={cn(
-                "inline-flex min-h-7 min-w-7 items-center gap-1.5 rounded-md px-2 text-xs",
-                "hover:bg-muted @max-md/rail:gap-1 @max-md/rail:px-1.5",
-                SEVERITY_STYLES[entry.severity],
-              )}
+              className={cn(RAIL_BUTTON, "gap-1.5", SEVERITY_STYLES[entry.severity])}
             >
               {/* Staleness fades only the dot, so the value text keeps its full contrast. */}
               <span
@@ -115,18 +122,20 @@ export function DiagnosticsRail({
                   is the glanceable signal; the full name stays in the accessible label. */}
               <span className="font-medium @max-md/rail:hidden">{entry.label}</span>
               <span className="tabular-nums">{entry.value}</span>
-            </button>
+            </Button>
           </li>
         ))}
       </ul>
       {overflowCount === 0 ? null : (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="xs"
           onClick={() => onOpen(undefined)}
-          className="inline-flex min-h-7 min-w-7 shrink-0 items-center rounded-md px-2 text-muted-foreground text-xs hover:bg-muted"
+          className={cn(RAIL_BUTTON, "text-muted-foreground")}
         >
-          {`Show ${overflowCount} more diagnostic${overflowCount === 1 ? "" : "s"}`}
-        </button>
+          {labels.showMore(overflowCount)}
+        </Button>
       )}
     </div>
   )

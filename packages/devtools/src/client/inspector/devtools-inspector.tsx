@@ -19,6 +19,7 @@ import { sourceKey } from "../../protocol"
 import type { DevtoolsClientPort } from "../../session"
 import type { DevtoolsStore, DevtoolsStoreState } from "../../store"
 import type { DevtoolsDockSide } from "../dock/layout"
+import { useDevtoolsLabels } from "../labels"
 import { OverviewView } from "./overview-view"
 import {
   GenericSourcePanel,
@@ -106,6 +107,7 @@ function InspectorPanel({
   tab,
   onTabChange,
 }: InspectorPanelProps): ReactElement {
+  const labels = useDevtoolsLabels()
   const generatedId = useId()
   const panelId = id ?? `${generatedId}-inspector`
   const titleId = `${panelId}-title`
@@ -158,18 +160,16 @@ function InspectorPanel({
         <header className="flex flex-wrap items-start gap-2 border-b px-4 py-2.5">
           <div className="grid min-w-0 flex-1 gap-0.5">
             <h2 id={titleId} className="font-medium text-sm">
-              Plainworks inspector
+              {labels.inspectorTitle}
             </h2>
-            <p className="text-muted-foreground text-xs">
-              Observation is read-only. Commands are marked by risk.
-            </p>
+            <p className="text-muted-foreground text-xs">{labels.inspectorDescription}</p>
           </div>
           {actions}
           <Button
             type="button"
             variant="ghost"
             size="icon-sm"
-            aria-label="Close inspector"
+            aria-label={labels.closeInspector}
             onClick={() => onOpenChange(false)}
           >
             <XIcon aria-hidden />
@@ -178,14 +178,14 @@ function InspectorPanel({
         <Tabs value={activeTab} onValueChange={onTabChange} className="min-h-0 flex-1 gap-0">
           <TabsList
             variant="line"
-            aria-label="Inspector views"
+            aria-label={labels.inspectorViews}
             className="no-scrollbar w-full shrink-0 justify-start overflow-x-auto border-b px-2"
           >
             <TabsTrigger value="overview" className="flex-none">
-              Overview
+              {labels.overview}
             </TabsTrigger>
             <TabsTrigger value="timeline" className="flex-none">
-              Timeline
+              {labels.timeline}
             </TabsTrigger>
             {kinds.map((kind) => (
               <TabsTrigger key={kind} value={kind} className="flex-none">
@@ -220,11 +220,12 @@ interface KindPanelProps {
 }
 
 function KindPanel({ kind, state, port, renderers }: KindPanelProps): ReactElement | null {
+  const labels = useDevtoolsLabels()
   const instances = state.sources.filter((source) => source.id.kind === kind)
   const [selectedKey, setSelectedKey] = useState<string>()
   const selected = instances.find((source) => sourceKey(source.id) === selectedKey) ?? instances[0]
   if (selected === undefined) return null
-  const props: SourcePanelProps = panelPropsFor(state, selected.id, port)
+  const props: SourcePanelProps = panelPropsFor(state, selected.id, port, labels)
   const Custom = renderers?.[kind]
   // Keyed by source so per-source UI state (an open confirmation, a custom renderer's own state)
   // never carries over to another instance.
@@ -233,7 +234,7 @@ function KindPanel({ kind, state, port, renderers }: KindPanelProps): ReactEleme
     <div className="grid gap-3">
       {instances.length < 2 ? null : (
         <NativeSelect
-          aria-label="Instance"
+          aria-label={labels.instance}
           size="sm"
           value={activeKey}
           onChange={(event) => setSelectedKey(event.currentTarget.value)}

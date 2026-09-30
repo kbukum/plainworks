@@ -1,8 +1,8 @@
 "use client"
 
 // Client public entry for `@plainworks/devtools` — a re-export-only barrel over the DOM/React
-// inspector concerns (shell, rail, inspector views, extension model, mounting). The neutral `.`
-// entry stays free of this graph. Importing this entry performs no work: mounting is explicit
+// inspector concerns (shell, rail, inspector views, copy, extension model, mounting). The neutral
+// `.` entry stays free of this graph. Importing this entry performs no work: mounting is explicit
 // (`mountDevtools` or `DevtoolsShell`), always behind the host's build-time development gate.
 export {
   createDevtoolsLayoutSource,
@@ -34,6 +34,7 @@ export {
   TimelineView,
   type TimelineViewProps,
 } from "./client/inspector"
+export { type DevtoolsLabels, defaultDevtoolsLabels } from "./client/labels"
 export { type DevtoolsMount, type MountDevtoolsOptions, mountDevtools } from "./client/mount"
 export {
   buildRailEntries,

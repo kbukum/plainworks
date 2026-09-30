@@ -1,5 +1,4 @@
 export {
-  createClientPort,
   type DetailResult,
   type DevtoolsClientPort,
   type DevtoolsSnapshot,

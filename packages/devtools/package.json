@@ -40,6 +40,36 @@
       "types": "./dist/client.d.ts",
       "default": "./dist/client.js"
     },
+    "./bridge": {
+      "@plainworks/source": "./src/bridge/index.ts",
+      "types": "./dist/bridge.d.ts",
+      "default": "./dist/bridge.js"
+    },
+    "./privacy": {
+      "@plainworks/source": "./src/privacy/index.ts",
+      "types": "./dist/privacy.d.ts",
+      "default": "./dist/privacy.js"
+    },
+    "./retention": {
+      "@plainworks/source": "./src/retention/index.ts",
+      "types": "./dist/retention.d.ts",
+      "default": "./dist/retention.js"
+    },
+    "./session": {
+      "@plainworks/source": "./src/session/index.ts",
+      "types": "./dist/session.d.ts",
+      "default": "./dist/session.js"
+    },
+    "./store": {
+      "@plainworks/source": "./src/store/index.ts",
+      "types": "./dist/store.d.ts",
+      "default": "./dist/store.js"
+    },
+    "./launch": {
+      "@plainworks/source": "./src/launch/index.ts",
+      "types": "./dist/launch.d.ts",
+      "default": "./dist/launch.js"
+    },
     "./query": {
       "@plainworks/source": "./src/adapters/query/index.ts",
       "types": "./dist/query.d.ts",

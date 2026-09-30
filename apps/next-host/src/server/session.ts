@@ -7,25 +7,16 @@ import "server-only"
 // `"use client"` graph — the session read stays entirely on the server, and only an identity slice
 // (never a token) crosses to the client via the snapshot.
 
-import { type AppSnapshot, createApp, defineCapability } from "@plainworks/app"
+import { type AppSnapshot, createApp } from "@plainworks/app"
+import { createAuthResolver } from "@plainworks/app/capabilities/auth"
+import { createThemeResolver } from "@plainworks/app/capabilities/theme"
 import { unauthenticatedRedirect } from "@plainworks/auth/redirect"
 import type { AuthSnapshot } from "@plainworks/auth/session"
-import { DEFAULT_THEME, parseThemeCookie, type ThemePreference } from "@plainworks/theme/preference"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import { LOGIN_PATH, THEME_CAPABILITY_ID, THEME_COOKIE } from "../neutral/constants"
-import { authServerCapability } from "./auth"
+import { LOGIN_PATH, THEME_COOKIE } from "../neutral/constants"
 import { hostAuth } from "./identity-provider"
 import { appOrigin } from "./origin"
-
-/** The neutral theme capability — resolves the persisted preference from the request cookie. */
-function themeServerCapability() {
-  return defineCapability<ThemePreference>({
-    id: THEME_CAPABILITY_ID,
-    resolve: ({ headers }) =>
-      parseThemeCookie(headers.get("cookie") ?? "", THEME_COOKIE, DEFAULT_THEME),
-  })
-}
 
 /** Reassemble the request `Cookie` header from the App Router cookie store. */
 async function requestCookieHeader(): Promise<string> {
@@ -46,18 +37,30 @@ export function requestOrigin(): string {
   return appOrigin()
 }
 
+/** The per-request document state the root layout renders from. */
+export interface ResolvedDocument {
+  /** The snapshot the client `AppProvider` hydrates from. */
+  readonly snapshot: AppSnapshot
+  /** The `<html>` class for the persisted theme. */
+  readonly htmlClass: string
+}
+
 /**
- * Resolve the per-request {@link AppSnapshot} — theme plus session — through the composition
- * kernel, the same neutral capabilities the showcase resolves, so the client `AppProvider` hydrates
- * from the same serialized values. A fresh app per call: no module-level singleton, SSR-safe.
+ * Resolve the per-request snapshot (theme plus session) and the `<html>` class through the
+ * `@plainworks/app` recipes, the same resolvers the showcase uses. A fresh app per call: no
+ * module-level singleton, SSR-safe.
  */
-export async function resolveSnapshot(): Promise<AppSnapshot> {
+export async function resolveDocument(): Promise<ResolvedDocument> {
   const { auth } = await hostAuth()
   const app = createApp({
-    capabilities: [themeServerCapability(), authServerCapability(auth.read)],
+    capabilities: [
+      createThemeResolver({ cookie: THEME_COOKIE }),
+      createAuthResolver({ read: auth.read }),
+    ],
   })
   const cookieHeader = await requestCookieHeader()
-  return app.resolve({ headers: new Headers({ cookie: cookieHeader }) })
+  const snapshot = await app.resolve({ headers: new Headers({ cookie: cookieHeader }) })
+  return { snapshot, htmlClass: app.htmlClass(snapshot) }
 }
 
 /** Resolve the client-safe auth slice from the request cookies. */

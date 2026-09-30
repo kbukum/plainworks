@@ -10,7 +10,6 @@
 
 import "server-only"
 
-import { type Capability, defineCapability } from "@plainworks/app"
 import { defaultAuthCrypto } from "@plainworks/auth/crypto"
 import {
   createServerSession,
@@ -24,7 +23,7 @@ import { isAbsentOr, isRecord } from "@plainworks/std"
 import { guardSchema, type StandardSchemaV1 } from "@plainworks/std/seam"
 import { systemClock } from "@plainworks/std/time"
 import { parseCookieHeader, type WebFetch } from "@plainworks/std/web"
-import { AUTH_CAPABILITY_ID, LOGIN_PATH } from "../neutral/constants"
+import { LOGIN_PATH } from "../neutral/constants"
 
 /** The value persisted in the signed session cookie — identity only, never a token. */
 export interface NextSessionValue {
@@ -113,12 +112,4 @@ function readOnlyJar(cookieHeader: string): ServerSessionJar {
       throw new Error("read-only cookie jar cannot set cookies")
     },
   }
-}
-
-/** The auth capability — joins the neutral session read to the AppSnapshot under a stable id. */
-export function authServerCapability(read: ReadSession): Capability<AuthSnapshot> {
-  return defineCapability<AuthSnapshot>({
-    id: AUTH_CAPABILITY_ID,
-    resolve: ({ headers }) => read(headers.get("cookie") ?? ""),
-  })
 }

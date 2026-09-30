@@ -1,14 +1,17 @@
-// The SSR render — the neutral composition seam the dev server and the smoke tests both drive. It
-// resolves the per-request snapshot through the composition kernel, prefetches the active section's
-// queries into a request-scoped query client, renders the one shared `<Showcase>` tree to a
-// complete stream, and wraps it in the document shell with the snapshot, the dehydrated cache, and
-// the persisted theme class inlined. It builds every store/client/source per call — no module-level
-// singleton — so two concurrent requests never share state. The network is an injected seam: the
-// caller sets up the mock (MSW in a test, the mock server in dev) and hands in the request-scoped
-// `httpClient`.
+// The SSR render — the neutral composition seam the dev server and the smoke tests both drive.
+// It resolves the per-request snapshot through the composition kernel, prefetches the active
+// section's queries into a request-scoped query client, renders the one shared `<Showcase>` tree to
+// a complete stream, and wraps it in the document shell with the persisted theme class and the
+// hydration payload (snapshot plus dehydrated cache) written by `@plainworks/app/hydration`.
+// It builds every store/client/source per call — no module-level singleton — so two concurrent
+// requests never share state. The network is an injected seam: the caller sets up the mock (MSW in
+// a test, the mock server in dev) and hands in the request-scoped `httpClient`.
 
 import { Writable } from "node:stream"
-import { createApp, serializeSnapshot, snapshotFor } from "@plainworks/app"
+import { createApp, snapshotFor } from "@plainworks/app"
+import { AUTH_CAPABILITY_ID, createAuthResolver } from "@plainworks/app/capabilities/auth"
+import { createThemeResolver } from "@plainworks/app/capabilities/theme"
+import { renderHydrationScript } from "@plainworks/app/hydration"
 import { unauthenticatedRedirect } from "@plainworks/auth/redirect"
 import { authSnapshotOf } from "@plainworks/auth/session"
 import type { HttpClient } from "@plainworks/http"
@@ -18,15 +21,11 @@ import type { WebAbortSignal } from "@plainworks/std/web"
 import type { ReactNode } from "react"
 import { renderToPipeableStream } from "react-dom/server.node"
 import type { ReadShowcaseSession } from "../app/auth"
-import { authServerCapability } from "../app/auth"
-import { AUTH_CAPABILITY_ID, LOGIN_PATH, THEME_CAPABILITY_ID } from "../app/constants"
-import { themeServerCapability } from "../app/create-showcase-app"
+import { LOGIN_PATH, THEME_COOKIE } from "../app/constants"
 import { sectionForPath } from "../app/navigation"
 import { prefetchSection } from "../app/section-prefetch"
-import { resolveHtmlClass } from "../app/theme"
 import { buildClientCapabilities } from "../client/capabilities"
 import { Showcase } from "../client/showcase"
-import { createThemeSource } from "../client/sources"
 import { renderHtmlShell } from "./html-shell"
 
 /** Everything one SSR request needs. */
@@ -89,7 +88,10 @@ function renderAppHtml(node: ReactNode): Promise<string> {
 /** Render one request to an HTML document with a hydratable snapshot and cache. */
 export async function renderApp(input: RenderInput): Promise<RenderResult> {
   const app = createApp({
-    capabilities: [themeServerCapability(), authServerCapability(input.readSession)],
+    capabilities: [
+      createThemeResolver({ cookie: THEME_COOKIE }),
+      createAuthResolver({ read: input.readSession }),
+    ],
   })
   const headers = new Headers({ cookie: input.cookieHeader })
   const snapshot = await app.resolve(input.signal ? { headers, signal: input.signal } : { headers })
@@ -110,8 +112,7 @@ export async function renderApp(input: RenderInput): Promise<RenderResult> {
   await prefetchSection(sectionForPath(pathname).id, queryClient, input.httpClient)
   const dehydratedState = dehydrateClient(queryClient, { shouldDehydrateQuery: () => true })
 
-  const themeSource = createThemeSource()
-  const capabilities = buildClientCapabilities({ queryClient, themeSource })
+  const capabilities = buildClientCapabilities({ queryClient, httpClient: input.httpClient })
 
   const appHtml = await renderAppHtml(
     <Showcase
@@ -119,15 +120,13 @@ export async function renderApp(input: RenderInput): Promise<RenderResult> {
       snapshot={snapshot}
       dehydratedState={dehydratedState}
       initialPath={pathname}
-      httpClient={input.httpClient}
     />,
   )
 
   const html = renderHtmlShell({
-    htmlClass: resolveHtmlClass(snapshotFor(snapshot, THEME_CAPABILITY_ID)),
+    htmlClass: app.htmlClass(snapshot),
     appHtml,
-    snapshotJson: serializeSnapshot(snapshot),
-    queryJson: JSON.stringify(dehydratedState),
+    hydrationScript: renderHydrationScript({ snapshot, query: dehydratedState }),
     stylesheets: input.stylesheets,
     clientEntry: input.clientEntry,
   })

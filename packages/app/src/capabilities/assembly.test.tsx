@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { createAuthStore } from "@plainworks/auth/session"
+import { createSessionContext } from "@plainworks/auth/client"
+import { type AuthSnapshot, sessionSnapshotOf } from "@plainworks/auth/session"
 import { createQueryClient } from "@plainworks/query"
 import { QueryProvider } from "@plainworks/query/client"
-import { createSuppliedStoreContext } from "@plainworks/state/client"
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { useQueryClient } from "@tanstack/react-query"
 import { cleanup, render, screen } from "@testing-library/react"
@@ -11,42 +11,35 @@ import { afterEach, describe, expect, it } from "vitest"
 import { defineProvider } from "../client/capability"
 import { AppProvider } from "../client/provider"
 import { orderCapabilities } from "../kernel/ordering"
-import { createAuthCapability } from "./auth"
+import { AUTH_CAPABILITY_ID, createAuthCapability } from "./auth"
 import { createQueryCapability } from "./query"
 
 afterEach(cleanup)
 
-/** Authenticate a fresh auth store — the shared setup for "state + query + auth working together". */
-function authedStore() {
-  const auth = createAuthStore()
-  auth.setSession({
-    accessToken: "in-memory-only",
-    expiresAt: Date.now() + 10_000,
-    identity: { subject: "ada", claims: {} },
-  })
-  return auth
-}
+const ada: AuthSnapshot = { authenticated: true, subject: "ada", name: null }
 
 describe("full recipe assembly", () => {
   it("composes query + auth in dependency order and reads both below", async () => {
     const client = createQueryClient()
-    const auth = authedStore()
-    const { capability: authCapability, useSession } = createAuthCapability({
-      store: auth.store,
-      dependsOn: ["query"], // auth mounts inside the shared cache, deterministically
-    })
-    // Registered auth-first; the topological sort still mounts query outermost.
+    const session = createSessionContext()
     function Screen(): ReactNode {
       const sameClient = useQueryClient() === client
-      const session = useSession()
+      const identity = session.useIdentity()
       return createElement(
         "p",
         null,
-        `${sameClient ? "cache" : "no-cache"}:${session.identity?.subject ?? "anon"}`,
+        `${sameClient ? "cache" : "no-cache"}:${identity?.subject ?? "anon"}`,
       )
     }
+    // Registered auth-first; the topological sort still mounts query outermost.
     const { container } = render(
-      <AppProvider capabilities={[authCapability, createQueryCapability({ client })]}>
+      <AppProvider
+        capabilities={[
+          createAuthCapability({ session, dependsOn: ["query"] }),
+          createQueryCapability({ client }),
+        ]}
+        snapshot={{ capabilities: { [AUTH_CAPABILITY_ID]: ada } }}
+      >
         <Screen />
       </AppProvider>,
     )
@@ -60,23 +53,22 @@ describe("freedom to opt out (no `app`)", () => {
     // The ejectability proof: delete `app`, compose `query` + `auth`'s published bindings directly,
     // and lose only convenience — the same client + session are readable below.
     const client = createQueryClient()
-    const auth = authedStore()
-    const session = createSuppliedStoreContext<ReturnType<typeof auth.getSnapshot>>()
+    const session = createSessionContext()
 
     function Screen(): ReactNode {
       const sameClient = useQueryClient() === client
-      const current = session.useStore()
+      const identity = session.useIdentity()
       return createElement(
         "p",
         null,
-        `${sameClient ? "cache" : "no-cache"}:${current.identity?.subject ?? "anon"}`,
+        `${sameClient ? "cache" : "no-cache"}:${identity?.subject ?? "anon"}`,
       )
     }
     render(
       <QueryProvider client={client}>
-        <session.Provider store={auth.store}>
+        <session.SessionProvider initialSnapshot={sessionSnapshotOf(ada)}>
           <Screen />
-        </session.Provider>
+        </session.SessionProvider>
       </QueryProvider>,
     )
     expect(screen.getByText("cache:ada")).toBeDefined()

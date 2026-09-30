@@ -311,9 +311,11 @@
       },
       "devDependencies": {
         "@plainworks/auth": "workspace:*",
+        "@plainworks/http": "workspace:*",
         "@plainworks/query": "workspace:*",
         "@plainworks/state": "workspace:*",
         "@plainworks/testkit": "workspace:*",
+        "@plainworks/theme": "workspace:*",
         "@plainworks/tsdown-config": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",
         "@tanstack/query-core": "catalog:",
@@ -334,8 +336,10 @@
       },
       "peerDependencies": {
         "@plainworks/auth": "workspace:*",
+        "@plainworks/http": "workspace:*",
         "@plainworks/query": "workspace:*",
         "@plainworks/state": "workspace:*",
+        "@plainworks/theme": "workspace:*",
         "@tanstack/query-core": "catalog:",
         "@testing-library/react": "catalog:",
         "react": "catalog:",
@@ -343,8 +347,10 @@
       },
       "optionalPeers": [
         "@plainworks/auth",
+        "@plainworks/http",
         "@plainworks/query",
         "@plainworks/state",
+        "@plainworks/theme",
         "@tanstack/query-core",
         "@testing-library/react",
         "react-dom",

@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 
+import { createMotionCapability } from "@plainworks/app/capabilities/theme"
+import { AppProvider } from "@plainworks/app/client"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import { HttpClientProvider } from "@plainworks/http/client"
@@ -16,7 +18,7 @@ import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { RouterProvider } from "../router"
 import { SessionProvider } from "../session"
-import { LocalPreferencesProvider } from "./local-preferences-provider"
+import { createMotionSource } from "./motion-preference"
 import { SettingsSection } from "./settings-section"
 
 // The Settings hub proven from the user's vantage over the real kit stack: `@plainworks/ui` forms
@@ -59,9 +61,11 @@ function renderSettings(options: { authed?: boolean; named?: boolean; path?: str
           <ThemeProvider source={fakeStateSource()}>
             <RouterProvider initialPath={path}>
               <ToastProvider>
-                <LocalPreferencesProvider>
+                <AppProvider
+                  capabilities={[createMotionCapability({ source: createMotionSource() })]}
+                >
                   <SettingsSection />
-                </LocalPreferencesProvider>
+                </AppProvider>
               </ToastProvider>
             </RouterProvider>
           </ThemeProvider>

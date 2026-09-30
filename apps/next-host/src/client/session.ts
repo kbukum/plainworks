@@ -7,7 +7,7 @@ import { createAuthGates, createSessionContext } from "@plainworks/auth/client"
 // with the server-resolved snapshot (zero-flash, matching the SSR gate), and the account bar reads
 // it. Module-level like any React context — the session store itself is still built per mount
 // inside the Provider, so concurrent SSR requests stay isolated.
-const session = createSessionContext()
+export const session = createSessionContext()
 export const { SessionProvider, useSession, useIdentity, useIsAuthenticated } = session
 
 // The client authorization gates bound to the shared session — `RequireAuth` for a whole subtree,

@@ -63,7 +63,7 @@ describe("EventList", () => {
     expect(rows[0]?.textContent).toContain("retry GET /tasks")
     expect(rows[1]?.textContent).toContain("GET /tasks")
     expect(rows[0]?.textContent).toContain("10:00:02")
-    expect(screen.getByText("warn")).toBeTruthy()
+    expect(screen.getByText("Warning")).toBeTruthy()
     expect(screen.getAllByText("HTTP api")).toHaveLength(2)
   })
 
@@ -93,6 +93,30 @@ describe("EventList", () => {
     )
     await user.click(screen.getByRole("button", { name: /Details for GET \/tasks/ }))
     expect(await screen.findByText('"req-9"')).toBeTruthy()
+  })
+
+  it("discloses detail from a keyboard-operable button that reports aria-expanded", async () => {
+    const user = userEvent.setup()
+    const { port } = setup((ref) => ({ ref }))
+    render(
+      <EventList
+        sources={[{ id: http, label: "HTTP api", commands: [] }]}
+        entries={[entry(1, "request", "GET /tasks", 1_000, "req-9")]}
+        port={port}
+        emptyLabel="No events"
+      />,
+    )
+    const details = screen.getByRole("button", { name: "Details for GET /tasks" })
+    expect(details.tagName).toBe("BUTTON")
+    expect(details.getAttribute("aria-expanded")).toBe("false")
+    await user.tab()
+    expect(document.activeElement).toBe(details)
+    await user.keyboard("{Enter}")
+    expect(details.getAttribute("aria-expanded")).toBe("true")
+    expect(await screen.findByText('"req-9"')).toBeTruthy()
+    await user.keyboard(" ")
+    expect(details.getAttribute("aria-expanded")).toBe("false")
+    expect(screen.queryByText('"req-9"')).toBeNull()
   })
 
   it("offers no detail affordance for an entry without a detail token", () => {

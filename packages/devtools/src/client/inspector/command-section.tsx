@@ -13,6 +13,7 @@ import {
 } from "react"
 import { type CommandDescriptor, type SourceDescriptor, sourceKey } from "../../protocol"
 import type { DevtoolsClientPort } from "../../session"
+import { useDevtoolsLabels } from "../labels"
 
 /** Props for {@link CommandSection}. */
 export interface CommandSectionProps {
@@ -35,6 +36,7 @@ type Outcome =
  * `port.runCommand` itself.
  */
 export function CommandSection({ port, source }: CommandSectionProps): ReactElement | null {
+  const labels = useDevtoolsLabels()
   const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(new Set())
   const [outcome, setOutcome] = useState<Outcome>()
   const controllers = useRef(new Map<string, AbortController>())
@@ -67,11 +69,14 @@ export function CommandSection({ port, source }: CommandSectionProps): ReactElem
       const result = await port.runCommand(source.id, command.id, null, controller.signal)
       if (controller.signal.aborted) return
       if (result.ok) {
-        setOutcome({ status: "succeeded", text: `${command.label}: ${formatValue(result.value)}` })
+        setOutcome({
+          status: "succeeded",
+          text: labels.commandSucceeded(command.label, formatValue(result.value)),
+        })
       } else if (result.error.kind !== "devtools/request-cancelled") {
         setOutcome({
           status: "failed",
-          text: `${command.label} failed: ${errorText(result.error)}`,
+          text: labels.commandFailed(command.label, errorText(result.error) ?? labels.unknownError),
         })
       }
     } finally {
@@ -92,7 +97,7 @@ export function CommandSection({ port, source }: CommandSectionProps): ReactElem
   return (
     <section
       ref={sectionRef}
-      aria-label={`${source.label} commands`}
+      aria-label={labels.commands(source.label)}
       tabIndex={-1}
       className="grid gap-2"
     >
@@ -134,6 +139,7 @@ function CommandControl({
   onRun,
   focusFallback,
 }: CommandControlProps): ReactElement {
+  const labels = useDevtoolsLabels()
   const disabled = !command.available || pending
   if (command.risk === "destructive") {
     return (
@@ -150,7 +156,9 @@ function CommandControl({
       <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={onRun}>
         {command.label}
       </Button>
-      {command.risk === "mutating" ? <Badge variant="secondary">Mutates state</Badge> : null}
+      {command.risk === "mutating" ? (
+        <Badge variant="secondary">{labels.mutatesState}</Badge>
+      ) : null}
     </span>
   )
 }
@@ -168,6 +176,7 @@ function DestructiveCommand({
   onRun,
   focusFallback,
 }: DestructiveCommandProps): ReactElement {
+  const labels = useDevtoolsLabels()
   const [confirming, setConfirming] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
@@ -214,16 +223,16 @@ function DestructiveCommand({
 
   return (
     <fieldset
-      aria-label={`Confirm ${command.label}`}
+      aria-label={labels.confirmCommand(command.label)}
       aria-describedby={descriptionId}
       onKeyDown={handleKeyDown}
       className="flex min-w-0 basis-full flex-wrap items-center gap-2 rounded-md border border-destructive p-2"
     >
       <p id={descriptionId} className="min-w-0 flex-1 basis-48 text-xs">
-        {`${command.label} is destructive and cannot be undone from the inspector.`}
+        {labels.destructiveWarning(command.label)}
       </p>
       <Button ref={cancelRef} type="button" variant="outline" size="sm" onClick={cancel}>
-        Cancel
+        {labels.cancel}
       </Button>
       <Button
         type="button"
@@ -236,23 +245,24 @@ function DestructiveCommand({
           onRun()
         }}
       >
-        {`Confirm ${command.label}`}
+        {labels.confirmCommand(command.label)}
       </Button>
     </fieldset>
   )
 }
 
-function formatValue(value: unknown): string {
-  if (value === null || value === undefined) return "done"
+/** A bounded one-line rendering of a command result; `undefined` when there is nothing to show. */
+function formatValue(value: unknown): string | undefined {
+  if (value === null || value === undefined) return undefined
   try {
     const text = JSON.stringify(value)
     return text.length > 120 ? `${text.slice(0, 117)}…` : text
   } catch {
-    return "done"
+    return undefined
   }
 }
 
-function errorText(error: unknown): string {
+function errorText(error: unknown): string | undefined {
   if (
     typeof error === "object" &&
     error !== null &&
@@ -264,5 +274,5 @@ function errorText(error: unknown): string {
   ) {
     return error.cause.message
   }
-  return error instanceof Error ? error.message : "Unknown error"
+  return error instanceof Error ? error.message : undefined
 }

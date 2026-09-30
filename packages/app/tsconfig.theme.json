@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Theme recipe project: `@plainworks/theme/client` is browser UI (it writes the `<html>` class
+  // and reads `matchMedia`), so the `./capabilities/theme` subpath alone adds the DOM libs. The
+  // rest of the client graph stays DOM-free for React Native.
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
+  "include": ["src/capabilities/theme", "../../types/universal-web.d.ts"]
+}

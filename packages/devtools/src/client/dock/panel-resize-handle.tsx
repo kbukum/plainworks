@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react"
+import { useDevtoolsLabels } from "../labels"
 import { previewPanelSize } from "./host-reservation"
 import { keyboardPanelSize, pointerPanelSize, type ResolvedDock } from "./layout"
 
@@ -44,6 +45,7 @@ export function PanelResizeHandle({
   controls,
   onResize,
 }: PanelResizeHandleProps): ReactElement {
+  const labels = useDevtoolsLabels()
   const ref = useRef<HTMLDivElement>(null)
   const drag = useRef<Drag>(undefined)
   // Defined only while dragging: the size the drag has reached, for the handle's own value.
@@ -124,7 +126,7 @@ export function PanelResizeHandle({
       ref={ref}
       role="separator"
       tabIndex={0}
-      aria-label="Resize inspector"
+      aria-label={labels.resizeInspector}
       aria-controls={controls}
       aria-orientation={vertical ? "vertical" : "horizontal"}
       aria-valuenow={dragSize ?? dock.size}

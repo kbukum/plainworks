@@ -3,14 +3,13 @@
 import type { AppSnapshot } from "@plainworks/app"
 import { AppProvider } from "@plainworks/app/client"
 import type { ChannelOptions } from "@plainworks/channel"
+import { type DevtoolsLauncher, launchDevtools } from "@plainworks/devtools/launch"
 import { createHttpClient } from "@plainworks/http"
-import { HttpClientProvider } from "@plainworks/http/client"
 import { createQueryClient } from "@plainworks/query"
 import dynamic from "next/dynamic"
 import { type ComponentType, type ReactElement, type ReactNode, useState } from "react"
 import { buildClientCapabilities } from "./capabilities"
 import type { DevtoolsMountProps } from "./dev-tools/devtools-mount"
-import { createDevtoolsSeams, type DevtoolsSeams } from "./dev-tools/seams"
 import { HostShell } from "./host-shell"
 import { createDemoTransport, LiveChannelProvider, LiveTaskSink } from "./live-stream"
 import { createLiveTasksSource, createThemeSource } from "./sources"
@@ -43,56 +42,57 @@ export interface ProvidersProps {
 
 /**
  * The client composition root the RSC layout mounts once. It assembles the published surfaces the
- * way a consumer does — the capability registry (query, theme, session, scopes) under
- * `AppProvider`, the request-scoped HTTP client, and the live channel folding the demo stream into
+ * way a consumer does — the capability registry (query, HTTP, theme, session, scopes) under
+ * `AppProvider`, and the live channel folding the demo stream into
  * state + query — then wraps the route content in the app chrome. Every store/client/source is
  * built once here via `useState` (never a module-level singleton), so a client navigation reuses
  * one stable graph.
  *
- * In development it also composes the embedded inspector: the instrumentation seams are built
- * behind a `process.env.NODE_ENV` gate the production bundler eliminates, then woven into the HTTP
- * client and channel before either is constructed. `DevtoolsMount` loads behind the same gate and
- * loads the shell lazily in turn, so a production build carries no devtools code
- * (`check-production` proves it). The inspector is optional: if it fails to start, the app runs
- * uninstrumented.
+ * In development it also launches the embedded inspector behind a `process.env.NODE_ENV` gate the
+ * production bundler eliminates. The launcher's seams wrap the HTTP client and channel before
+ * either is built. `DevtoolsMount` loads behind the same gate and mounts the shell lazily, so a
+ * production build carries no devtools code (`check-production` proves it). The inspector is
+ * optional: a failure is reported and the app runs uninstrumented.
  */
 export function Providers({ snapshot, origin, children }: ProvidersProps): ReactElement {
-  const [seams] = useState((): DevtoolsSeams | undefined => {
-    if (process.env.NODE_ENV === "production") return undefined
-    try {
-      return createDevtoolsSeams()
-    } catch (error) {
-      console.error("Development inspector failed to start; continuing without it.", error)
-      return undefined
-    }
-  })
-  // Built on the server-resolved origin, so SSR and hydration share one base URL.
-  const [httpClient] = useState(() =>
-    createHttpClient({
-      baseUrl: origin,
-      ...(seams ? { interceptors: [seams.http.interceptor] } : {}),
-    }),
+  const [devtools] = useState((): DevtoolsLauncher | undefined =>
+    process.env.NODE_ENV === "production"
+      ? undefined
+      : launchDevtools({
+          report: console.error,
+          http: { instance: "api", label: "Demo API" },
+          channel: { instance: "live", label: "Live tasks" },
+        }),
   )
+  // Built on the server-resolved origin, so SSR and hydration share one base URL.
+  const [httpClient] = useState(() => {
+    const seam = devtools?.http
+    return createHttpClient(
+      seam ? { baseUrl: origin, interceptors: [seam.interceptor] } : { baseUrl: origin },
+    )
+  })
   const [queryClient] = useState(() => createQueryClient())
   const [themeSource] = useState(() => createThemeSource())
   const [liveSource] = useState(() => createLiveTasksSource())
   const [transport] = useState(() => createDemoTransport())
-  const [capabilities] = useState(() => buildClientCapabilities({ queryClient, themeSource }))
+  const [capabilities] = useState(() =>
+    buildClientCapabilities({ queryClient, httpClient, themeSource }),
+  )
   const [channelOptions] = useState<ChannelOptions>(() => {
     const base: ChannelOptions = { transport }
-    return seams ? seams.channel.instrument(base) : base
+    return devtools?.channel ? devtools.channel.instrument(base) : base
   })
 
   return (
     <AppProvider capabilities={capabilities} snapshot={snapshot}>
-      <HttpClientProvider client={httpClient}>
-        <LiveChannelProvider options={channelOptions}>
-          <LiveTaskSink source={liveSource}>
-            <HostShell liveSource={liveSource}>{children}</HostShell>
-            {DevtoolsMount !== null && seams !== undefined ? <DevtoolsMount seams={seams} /> : null}
-          </LiveTaskSink>
-        </LiveChannelProvider>
-      </HttpClientProvider>
+      <LiveChannelProvider options={channelOptions}>
+        <LiveTaskSink source={liveSource}>
+          <HostShell liveSource={liveSource}>{children}</HostShell>
+          {DevtoolsMount !== null && devtools !== undefined ? (
+            <DevtoolsMount launcher={devtools} />
+          ) : null}
+        </LiveTaskSink>
+      </LiveChannelProvider>
     </AppProvider>
   )
 }

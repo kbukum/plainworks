@@ -46,6 +46,14 @@ export interface Capability<Resolved = unknown> {
    * client half's `dependsOn`.
    */
   readonly resolve?: (ctx: CapabilityResolveContext) => Awaitable<Resolved>
+  /**
+   * Optional classes this capability puts on the document root (`<html class>`) for its resolved
+   * slice, so the server's first paint is already styled (a theme's mode class, for example).
+   * It runs only when the snapshot holds this capability's slice;
+   * {@link import("./app").App.htmlClass} joins every capability's classes and rejects a token
+   * that is not letters, digits, `-`, `_`, or `:`.
+   */
+  htmlClass?(resolved: Resolved): string
 }
 
 /** A capability whose resolved type the kernel does not need to name. */

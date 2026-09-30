@@ -1,7 +1,8 @@
 "use client"
 
-import type { DevtoolsClientPort, SourceId } from "@plainworks/devtools"
+import type { SourceId } from "@plainworks/devtools"
 import type { SourcePanelProps } from "@plainworks/devtools/client"
+import type { DevtoolsClientPort } from "@plainworks/devtools/session"
 import { isRecord } from "@plainworks/std"
 import type { Json } from "@plainworks/std/encoding"
 import type { WebAbortSignal } from "@plainworks/std/web"

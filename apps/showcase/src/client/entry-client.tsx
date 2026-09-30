@@ -2,28 +2,15 @@
 
 import "./styles.css"
 
-import { deserializeSnapshot } from "@plainworks/app"
+import { readHydration } from "@plainworks/app/hydration"
+import { type DevtoolsLauncher, launchDevtools } from "@plainworks/devtools/launch"
 import { createHttpClient } from "@plainworks/http"
 import { createQueryClient } from "@plainworks/query"
-import type { DehydratedState } from "@plainworks/query/hydration"
 import { hydrateRoot } from "react-dom/client"
-import { QUERY_STATE_SCRIPT_ID, ROOT_ELEMENT_ID, SNAPSHOT_SCRIPT_ID } from "../app/constants"
+import { ROOT_ELEMENT_ID } from "../app/constants"
 import { buildClientCapabilities } from "./capabilities"
 import { devtoolsEnabled } from "./dev-tools/enabled"
-import { createShowcaseDevtoolsSeams, type ShowcaseDevtoolsSeams } from "./dev-tools/seams"
 import { Showcase } from "./showcase"
-import { createThemeSource } from "./sources"
-
-// Read a serialized `<script type="application/json">` payload the server embedded, as raw text —
-// never `innerHTML`/`eval` — so the untrusted string is only ever parsed by the kit's own
-// deserializers at their trust boundary.
-function readEmbedded(id: string): string {
-  const node = document.getElementById(id)
-  if (node?.textContent == null || node.textContent.length === 0) {
-    throw new Error(`Missing embedded payload #${id}; the server did not render it.`)
-  }
-  return node.textContent
-}
 
 function hydrate(): void {
   const root = document.getElementById(ROOT_ELEMENT_ID)
@@ -31,71 +18,56 @@ function hydrate(): void {
     throw new Error(`Missing #${ROOT_ELEMENT_ID} root element.`)
   }
 
-  const snapshot = deserializeSnapshot(readEmbedded(SNAPSHOT_SCRIPT_ID))
-  // The embedded cache is untrusted text; TanStack's `hydrate` (run by `HydrationBoundary`)
-  // validates it as it rehydrates, so this narrows the parsed JSON to the shape that boundary owns.
-  const dehydratedState = JSON.parse(readEmbedded(QUERY_STATE_SCRIPT_ID)) as DehydratedState
+  // The server embedded the snapshot and the dehydrated cache as one JSON data block; the reader
+  // parses and validates it at this trust boundary.
+  const { snapshot, query } = readHydration(document)
 
   // The development inspector is reached only inside `import.meta.env.DEV` blocks, so the flag
   // folding to `false` tree-shakes it — and every devtools chunk and its CSS — out of the
-  // production bundle (`check-production` proves it). The side-effect-free HTTP seam is imported
-  // statically because its interceptor must wrap the client at construction, and awaiting it would
-  // delay hydration past `load`. The inspector is optional: a failure is reported and the app
-  // hydrates uninstrumented, and the shell mounts only after hydration. A browser profile can turn
-  // it off, as the flow suite does.
-  let devtools: ShowcaseDevtoolsSeams | undefined
+  // production bundle (`check-production` proves it). The launcher touches no DOM, so it starts
+  // before hydration: its HTTP interceptor must wrap the client at construction. The inspector
+  // itself loads after hydration. A failure is reported and the app runs uninstrumented. A
+  // browser profile can turn it off, as the flow suite does.
+  let devtools: DevtoolsLauncher | undefined
   if (import.meta.env.DEV && devtoolsEnabled(() => window.localStorage)) {
-    try {
-      devtools = createShowcaseDevtoolsSeams()
-    } catch (error) {
-      console.error("Development inspector failed to start; continuing without it.", error)
-    }
+    devtools = launchDevtools({
+      report: console.error,
+      http: { instance: "api", label: "Demo API" },
+    })
   }
 
-  // One query client and one theme source — built once at startup for the browser (never a
+  // One query client — built once at startup for the browser (never a
   // module-level singleton), mirroring the per-request build on the server. The HTTP client reads
   // the app's own origin, so every `/api/*` read lands on the backend the SSR prefetch used.
   const queryClient = createQueryClient()
-  const themeSource = createThemeSource()
+  const devtoolsHttp = devtools?.http
   const httpClient = createHttpClient(
-    devtools
-      ? { baseUrl: window.location.origin, interceptors: [devtools.http.interceptor] }
+    devtoolsHttp
+      ? { baseUrl: window.location.origin, interceptors: [devtoolsHttp.interceptor] }
       : { baseUrl: window.location.origin },
   )
-  const capabilities = buildClientCapabilities({ queryClient, themeSource })
+  const capabilities = buildClientCapabilities({ queryClient, httpClient })
 
   hydrateRoot(
     root,
     <Showcase
       capabilities={capabilities}
       snapshot={snapshot}
-      dehydratedState={dehydratedState}
+      dehydratedState={query}
       initialPath={window.location.pathname}
-      httpClient={httpClient}
     />,
   )
 
   if (import.meta.env.DEV && devtools !== undefined) {
-    const seams = devtools
-    let active = true
-    let dispose: (() => void) | undefined
-    import.meta.hot?.dispose(() => {
-      active = false
-      dispose?.()
+    const origin = window.location.origin
+    const teardown = devtools.mount({
+      load: () =>
+        import("./dev-tools/inspector").then(({ createShowcaseInspector }) =>
+          createShowcaseInspector({ httpClient, origin }),
+        ),
+      query: { client: queryClient, instance: "app", label: "App cache" },
     })
-    import("./dev-tools/mount")
-      .then(({ mountShowcaseDevtools }) => {
-        if (!active) return
-        dispose = mountShowcaseDevtools({
-          seams,
-          httpClient,
-          queryClient,
-          origin: window.location.origin,
-        })
-      })
-      .catch((error: unknown) => {
-        console.error("Development inspector failed to mount.", error)
-      })
+    import.meta.hot?.dispose(teardown)
   }
 }
 

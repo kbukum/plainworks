@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { createMockServerHandle } from "@plainworks/demo/server"
+import { launchDevtools } from "@plainworks/devtools/launch"
 import { createHttpClient } from "@plainworks/http"
 import type { HttpInterceptor } from "@plainworks/http/interceptor"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
@@ -8,8 +9,7 @@ import { createQueryClient } from "@plainworks/query"
 import { deferred } from "@plainworks/testkit"
 import { createTestQueryClient } from "@plainworks/testkit/query"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
-import { mountShowcaseDevtools } from "./mount"
-import { createShowcaseDevtoolsSeams } from "./seams"
+import { createShowcaseInspector } from "./inspector"
 
 const handle = createMockServerHandle({ seed: 5 })
 const origin = "http://showcase.test"
@@ -19,27 +19,24 @@ afterEach(() => {
   handle.api.reset()
 })
 
-function mount() {
-  const seams = createShowcaseDevtoolsSeams()
-  const httpClient = createHttpClient({ baseUrl: origin, interceptors: [seams.http.interceptor] })
-  const dispose = mountShowcaseDevtools({
-    seams,
-    httpClient,
-    queryClient: createTestQueryClient(createQueryClient),
-    origin,
+function launch(interceptors: readonly HttpInterceptor[] = []) {
+  const report = vi.fn()
+  const launcher = launchDevtools({ report, http: { instance: "api", label: "Demo API" } })
+  const seam = launcher.http?.interceptor
+  const httpClient = createHttpClient({
+    baseUrl: origin,
+    interceptors: seam === undefined ? interceptors : [...interceptors, seam],
   })
-  return { dispose }
+  const dispose = launcher.mount({
+    load: async () => createShowcaseInspector({ httpClient, origin }),
+    query: { client: createTestQueryClient(createQueryClient), instance: "app" },
+  })
+  return { dispose, httpClient, report }
 }
 
 describe("showcase devtools", () => {
-  it("builds the HTTP seam without touching the DOM", () => {
-    const seams = createShowcaseDevtoolsSeams()
-    expect(typeof seams.http.interceptor).toBe("function")
-    expect(document.querySelector("[data-plainworks-devtools]")).toBeNull()
-  })
-
   it("mounts the inspector beside the runtime and tears it down on cleanup", async () => {
-    const { dispose } = mount()
+    const { dispose, report } = launch()
     try {
       await vi.waitFor(() =>
         expect(document.querySelector("[data-plainworks-devtools]")).not.toBeNull(),
@@ -48,6 +45,7 @@ describe("showcase devtools", () => {
       dispose()
     }
     expect(document.querySelector("[data-plainworks-devtools]")).toBeNull()
+    expect(report).not.toHaveBeenCalled()
   })
 
   it("keeps the mock control plane out of the observed HTTP client", async () => {
@@ -61,17 +59,7 @@ describe("showcase devtools", () => {
       if (new URL(request.url).pathname === "/mock/state") polled.resolve()
     }
     handle.server.events.on("request:start", onRequest)
-    const seams = createShowcaseDevtoolsSeams()
-    const httpClient = createHttpClient({
-      baseUrl: origin,
-      interceptors: [record, seams.http.interceptor],
-    })
-    const dispose = mountShowcaseDevtools({
-      seams,
-      httpClient,
-      queryClient: createTestQueryClient(createQueryClient),
-      origin,
-    })
+    const { dispose, httpClient } = launch([record])
     try {
       await polled.promise
       await httpClient.get("/api/tasks")
@@ -83,7 +71,7 @@ describe("showcase devtools", () => {
   })
 
   it("tolerates a repeated teardown from the host's own lifecycle", () => {
-    const { dispose } = mount()
+    const { dispose } = launch()
     dispose()
     dispose()
     expect(document.querySelector("[data-plainworks-devtools]")).toBeNull()

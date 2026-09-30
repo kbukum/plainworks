@@ -17,6 +17,7 @@ import { PanelResizeHandle } from "../dock/panel-resize-handle"
 import { useDockLayout } from "../dock/use-dock-layout"
 import { DevtoolsInspector } from "../inspector/devtools-inspector"
 import type { SourceRendererMap } from "../inspector/source-panel"
+import { type DevtoolsLabels, DevtoolsLabelsProvider, defaultDevtoolsLabels } from "../labels"
 import { DiagnosticsRail } from "../rail/diagnostics-rail"
 import { isApplePlatform, shortcutAriaKeys, shortcutHint } from "./shortcut"
 import { useDevtoolsConnection } from "./use-devtools-connection"
@@ -53,6 +54,12 @@ export interface DevtoolsShellProps {
   readonly clock?: Clock
   /** Rail entries shown before overflow. Defaults to 4. */
   readonly railMaxVisible?: number
+  /**
+   * Overrides for any subset of the devtools copy, merged over {@link defaultDevtoolsLabels}.
+   * Every view beneath the shell, and each custom renderer through its `labels` prop, reads the
+   * result.
+   */
+  readonly labels?: Partial<DevtoolsLabels>
 }
 
 /**
@@ -77,7 +84,9 @@ export function DevtoolsShell({
   tickMs = 1_000,
   clock = systemClock,
   railMaxVisible = 4,
+  labels: labelOverrides,
 }: DevtoolsShellProps): ReactElement {
+  const labels = { ...defaultDevtoolsLabels, ...labelOverrides }
   const { port, store, state } = useDevtoolsConnection(session)
   const [open, setOpen] = useState(false)
   const [target, setTarget] = useState<string>()
@@ -118,72 +127,74 @@ export function DevtoolsShell({
   }
 
   return (
-    <div ref={scopeRef} data-plainworks-devtools="" className="contents">
-      <section
-        aria-label="Plainworks devtools"
-        data-dock={dock.side}
-        className={cn(
-          "@container/bar fixed z-overlay flex items-center gap-2 bg-popover px-2 text-popover-foreground",
-          BAR_LAYOUT[dock.side],
-        )}
-      >
-        <DiagnosticsRail
-          sources={state.sources}
-          failures={state.failures}
-          indicators={state.indicators}
-          droppedAggregate={state.droppedAggregate}
-          clock={clock}
-          staleAfterMs={staleAfterMs}
-          tickMs={tickMs}
-          maxVisible={railMaxVisible}
-          onOpen={openAt}
-        />
-        <Button
-          type="button"
-          variant={open ? "secondary" : "default"}
-          size="sm"
-          aria-expanded={open}
-          aria-controls={open ? panelId : undefined}
-          aria-keyshortcuts={shortcut === null ? undefined : shortcutAriaKeys(shortcut, apple)}
-          onClick={() => (open ? handleOpenChange(false) : openAt(undefined))}
-          className={cn("ms-auto shrink-0", vertical && "h-auto w-7 py-2.5")}
-        >
-          <Bug aria-hidden />
-          Inspect
-          {shortcut === null || vertical ? null : (
-            <Kbd aria-hidden className="@max-md/bar:hidden">
-              {shortcutHint(shortcut, apple)}
-            </Kbd>
+    <DevtoolsLabelsProvider labels={labels}>
+      <div ref={scopeRef} data-plainworks-devtools="" className="contents">
+        <section
+          aria-label={labels.bar}
+          data-dock={dock.side}
+          className={cn(
+            "@container/bar fixed z-overlay flex items-center gap-2 bg-popover px-2 text-popover-foreground",
+            BAR_LAYOUT[dock.side],
           )}
-        </Button>
-      </section>
-      <DevtoolsInspector
-        id={panelId}
-        open={open}
-        onOpenChange={handleOpenChange}
-        side={dock.side}
-        actions={
-          <DockSidePicker
-            side={dock.side}
-            sideDockFits={sideDockFits}
-            onSideChange={(side) => setLayout({ ...layout, side })}
-            {...(failure === undefined ? {} : { failure })}
+        >
+          <DiagnosticsRail
+            sources={state.sources}
+            failures={state.failures}
+            indicators={state.indicators}
+            droppedAggregate={state.droppedAggregate}
+            clock={clock}
+            staleAfterMs={staleAfterMs}
+            tickMs={tickMs}
+            maxVisible={railMaxVisible}
+            onOpen={openAt}
           />
-        }
-        resizeHandle={
-          <PanelResizeHandle
-            dock={dock}
-            controls={panelId}
-            onResize={(size) => setLayout(withPanelSize(layout, dock, size))}
-          />
-        }
-        state={state}
-        store={store}
-        port={port}
-        {...(renderers === undefined ? {} : { renderers })}
-        {...(target === undefined ? {} : { target })}
-      />
-    </div>
+          <Button
+            type="button"
+            variant={open ? "secondary" : "default"}
+            size="sm"
+            aria-expanded={open}
+            aria-controls={open ? panelId : undefined}
+            aria-keyshortcuts={shortcut === null ? undefined : shortcutAriaKeys(shortcut, apple)}
+            onClick={() => (open ? handleOpenChange(false) : openAt(undefined))}
+            className={cn("ms-auto shrink-0", vertical && "h-auto w-7 py-2.5")}
+          >
+            <Bug aria-hidden />
+            {labels.inspect}
+            {shortcut === null || vertical ? null : (
+              <Kbd aria-hidden className="@max-md/bar:hidden">
+                {shortcutHint(shortcut, apple)}
+              </Kbd>
+            )}
+          </Button>
+        </section>
+        <DevtoolsInspector
+          id={panelId}
+          open={open}
+          onOpenChange={handleOpenChange}
+          side={dock.side}
+          actions={
+            <DockSidePicker
+              side={dock.side}
+              sideDockFits={sideDockFits}
+              onSideChange={(side) => setLayout({ ...layout, side })}
+              {...(failure === undefined ? {} : { failure })}
+            />
+          }
+          resizeHandle={
+            <PanelResizeHandle
+              dock={dock}
+              controls={panelId}
+              onResize={(size) => setLayout(withPanelSize(layout, dock, size))}
+            />
+          }
+          state={state}
+          store={store}
+          port={port}
+          {...(renderers === undefined ? {} : { renderers })}
+          {...(target === undefined ? {} : { target })}
+        />
+      </div>
+    </DevtoolsLabelsProvider>
   )
 }
 

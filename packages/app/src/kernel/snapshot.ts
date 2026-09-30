@@ -1,5 +1,4 @@
-import { getErrorMessage, isRecord } from "@plainworks/std"
-import { escapeJsonForHtml, stringifyJson } from "@plainworks/std/encoding"
+import { isRecord } from "@plainworks/std"
 import { raceAbort } from "@plainworks/std/resilience"
 import { AppConfigError } from "../errors"
 import type { AnyCapability, CapabilityResolveContext } from "./capability"
@@ -58,39 +57,15 @@ export async function resolveCapabilities(
 }
 
 /**
- * Serialize a snapshot for transport, safe to inline in server-rendered markup — the **serialize**
- * half of the contract. A resolver returning a value JSON can't hold faithfully (a function,
- * `undefined`, a `BigInt`, a cycle) violates its contract, so serialization fails with a typed
- * {@link AppConfigError} that keeps the std `JsonEncodeError` as its cause, rather than silently
- * dropping the value. The result escapes HTML-hostile characters so an embedded `</script>` in a
- * resolved value cannot break out of the script element (an XSS vector).
+ * Narrow an untrusted value to an {@link AppSnapshot}. The snapshot crosses the server→client
+ * wire, so the reader validates its shape and raises a typed {@link AppConfigError} rather than
+ * returning a fabricated snapshot. Each slice stays `unknown` for its provider to narrow.
  */
-export function serializeSnapshot(snapshot: AppSnapshot): string {
-  try {
-    return escapeJsonForHtml(stringifyJson(snapshot))
-  } catch (cause) {
-    throw new AppConfigError(`Could not serialize the app snapshot: ${getErrorMessage(cause)}`, {
-      cause,
-    })
-  }
-}
-
-/**
- * Parse a serialized snapshot back on the client — the **hydrate** half. Runs at a trust boundary
- * over server-emitted markup, so it validates the shape and raises a typed
- * {@link AppConfigError} on malformed input rather than returning a fabricated snapshot.
- */
-export function deserializeSnapshot(raw: string): AppSnapshot {
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(raw)
-  } catch (cause) {
-    throw new AppConfigError("Could not parse the app snapshot: malformed JSON.", { cause })
-  }
-  if (!isRecord(parsed) || !isRecord(parsed.capabilities)) {
+export function parseSnapshot(value: unknown): AppSnapshot {
+  if (!isRecord(value) || !isRecord(value.capabilities)) {
     throw new AppConfigError("Malformed app snapshot: expected a { capabilities } object.")
   }
-  return { capabilities: parsed.capabilities }
+  return { capabilities: value.capabilities }
 }
 
 /**

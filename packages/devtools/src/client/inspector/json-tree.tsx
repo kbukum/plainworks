@@ -1,9 +1,16 @@
 "use client"
 
+import { Button } from "@plainworks/elements/button"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@plainworks/elements/collapsible"
 import { isRecord } from "@plainworks/std"
 import type { Json } from "@plainworks/std/encoding"
+import { cn } from "@plainworks/theme"
 import { ChevronRight } from "lucide-react"
-import { type ReactElement, useState } from "react"
+import { type ReactElement, type ReactNode, useState } from "react"
 
 /** Props for {@link JsonTree}. */
 export interface JsonTreeProps {
@@ -13,7 +20,7 @@ export interface JsonTreeProps {
 
 /**
  * A read-only, keyboard-operable tree over a sanitized JSON value. Collections nest behind
- * disclosure buttons; the two outermost levels start expanded so a detail answer reads without
+ * collapsible disclosures; the two outermost levels start expanded so a detail answer reads without
  * clicking, and deeper levels collapse to keep large payloads scannable.
  */
 export function JsonTree({ value }: JsonTreeProps): ReactElement {
@@ -36,12 +43,7 @@ function JsonNode({ name, value, depth }: JsonNodeProps): ReactElement {
   if (Array.isArray(value)) {
     if (value.length === 0) return <Leaf name={name} text="[]" />
     return (
-      <Collection
-        name={name}
-        summary={`[${value.length}]`}
-        open={open}
-        onToggle={() => setOpen((current) => !current)}
-      >
+      <Collection name={name} summary={`[${value.length}]`} open={open} onOpenChange={setOpen}>
         {value.map((item, index) => (
           // Sanitized payloads are read-only here, so positional keys never reorder.
           <JsonNode key={index} name={String(index)} value={item} depth={depth + 1} />
@@ -53,12 +55,7 @@ function JsonNode({ name, value, depth }: JsonNodeProps): ReactElement {
     const keys = Object.keys(value)
     if (keys.length === 0) return <Leaf name={name} text="{}" />
     return (
-      <Collection
-        name={name}
-        summary={`{${keys.length}}`}
-        open={open}
-        onToggle={() => setOpen((current) => !current)}
-      >
+      <Collection name={name} summary={`{${keys.length}}`} open={open} onOpenChange={setOpen}>
         {keys.map((key) => (
           <JsonNode key={key} name={key} value={value[key] ?? null} depth={depth + 1} />
         ))}
@@ -72,28 +69,37 @@ interface CollectionProps {
   readonly name: string | undefined
   readonly summary: string
   readonly open: boolean
-  readonly onToggle: () => void
-  readonly children: React.ReactNode
+  readonly onOpenChange: (open: boolean) => void
+  readonly children: ReactNode
 }
 
-function Collection({ name, summary, open, onToggle, children }: CollectionProps): ReactElement {
+function Collection({
+  name,
+  summary,
+  open,
+  onOpenChange,
+  children,
+}: CollectionProps): ReactElement {
   return (
-    <div className="pl-3">
-      <button
-        type="button"
-        aria-expanded={open}
-        onClick={onToggle}
-        className="inline-flex min-h-6 items-center gap-1 rounded-sm text-left hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+    <Collapsible open={open} onOpenChange={onOpenChange} className="pl-3">
+      <CollapsibleTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="xs"
+            className="h-auto min-h-6 justify-start px-1 font-mono font-normal text-muted-foreground aria-expanded:bg-transparent"
+          />
+        }
       >
         <ChevronRight
           aria-hidden
-          className={`size-3 transition-transform motion-reduce:transition-none ${open ? "rotate-90" : ""}`}
+          className={cn("transition-transform motion-reduce:transition-none", open && "rotate-90")}
         />
-        {name === undefined ? null : <span className="text-muted-foreground">{name}</span>}
-        <span className="text-muted-foreground">{summary}</span>
-      </button>
-      {open ? <div className="border-border/60 border-l pl-2">{children}</div> : null}
-    </div>
+        {name === undefined ? null : <span>{name}</span>}
+        <span>{summary}</span>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="border-border/60 border-l pl-2">{children}</CollapsibleContent>
+    </Collapsible>
   )
 }
 

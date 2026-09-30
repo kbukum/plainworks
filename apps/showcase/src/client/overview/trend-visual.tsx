@@ -5,7 +5,7 @@ import { DateValue } from "@plainworks/ui/display/date-value"
 import { NumberValue } from "@plainworks/ui/display/number-value"
 import { Sparkline } from "@plainworks/ui/display/sparkline"
 import type { ReactElement } from "react"
-import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../app/constants"
+import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../neutral/constants"
 import { GrowthBadge } from "./growth-badge"
 
 const CURRENCY = { style: "currency", currency: "USD", maximumFractionDigits: 0 } as const

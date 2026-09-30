@@ -1,5 +1,5 @@
 import type { ReactElement } from "react"
-import { HostOverview } from "../client/host-overview"
+import { HostOverview } from "../client/overview"
 
 /**
  * The public overview: the landing route, reachable without a session. The app frame supplies the

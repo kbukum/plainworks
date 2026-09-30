@@ -6,7 +6,7 @@ import { optimisticMutationOptions } from "@plainworks/query/mutation"
 import type { PaginatedResult } from "@plainworks/std/list"
 import { hashKey, type QueryKey, useMutation } from "@tanstack/react-query"
 import { useCallback, useState } from "react"
-import { updateOrderStatus } from "../../app/order-write"
+import { updateOrderStatus } from "../../neutral/orders"
 
 type OrderPage = PaginatedResult<Order>
 

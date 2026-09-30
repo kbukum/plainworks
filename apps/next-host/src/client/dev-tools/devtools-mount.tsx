@@ -3,7 +3,7 @@
 import type { DevtoolsLauncher } from "@plainworks/devtools/launch"
 import { useQueryClient } from "@tanstack/react-query"
 import { type ReactElement, useEffect } from "react"
-import { useLiveChannel } from "../live-stream"
+import { useLiveChannel } from "../live"
 
 /** Props for {@link DevtoolsMount}. */
 export interface DevtoolsMountProps {

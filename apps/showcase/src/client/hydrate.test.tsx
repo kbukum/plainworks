@@ -10,10 +10,9 @@ import { createTestQueryClient } from "@plainworks/testkit/query"
 import { act } from "react"
 import { hydrateRoot } from "react-dom/client"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import { ROOT_ELEMENT_ID, THEME_COOKIE } from "../app/constants"
+import { ROOT_ELEMENT_ID, THEME_COOKIE } from "../neutral/constants"
 import { renderApp } from "../server/render"
-import { buildClientCapabilities } from "./capabilities"
-import { Showcase } from "./showcase"
+import { buildClientCapabilities, Showcase } from "./bootstrap"
 
 // Proves the zero-mismatch contract end to end: the server markup and the client's first render of
 // the SAME `<Showcase>` tree — hydrated from the SAME embedded snapshot and dehydrated cache —

@@ -80,6 +80,11 @@
       "types": "./dist/query.d.ts",
       "default": "./dist/query.js"
     },
+    "./stream": {
+      "@plainworks/source": "./src/stream/index.ts",
+      "types": "./dist/stream.d.ts",
+      "default": "./dist/stream.js"
+    },
     "./vite-plugin": {
       "@plainworks/source": "./src/vite-plugin.ts",
       "types": "./dist/vite-plugin.d.ts",

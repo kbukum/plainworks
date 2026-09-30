@@ -8,7 +8,7 @@ import { fakeStreamTransport } from "@plainworks/testkit/fakes"
 import { createTestQueryClient } from "@plainworks/testkit/query"
 import { render, waitFor } from "@testing-library/react"
 import { beforeAll, describe, expect, it, vi } from "vitest"
-import { LiveChannelProvider } from "../live-stream"
+import { LiveChannelProvider } from "../live"
 import { DevtoolsMount } from "./devtools-mount"
 
 function inspectorRoot(): Element | null {

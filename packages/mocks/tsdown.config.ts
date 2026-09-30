@@ -15,6 +15,7 @@ export const build: PackageBuild = {
     idp: "src/idp/index.ts",
     lifecycle: "src/lifecycle/index.ts",
     query: "src/query/index.ts",
+    stream: "src/stream/index.ts",
     "vite-plugin": "src/vite-plugin.ts",
   },
 }

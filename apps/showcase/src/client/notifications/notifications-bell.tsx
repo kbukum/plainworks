@@ -4,7 +4,7 @@ import { buttonVariants } from "@plainworks/elements/button"
 import { cn } from "@plainworks/theme"
 import { Bell } from "lucide-react"
 import type { ReactElement } from "react"
-import { NOTIFICATIONS_PATH } from "../../app/navigation"
+import { NOTIFICATIONS_PATH } from "../../neutral/navigation"
 import { routerLinkRender, useRouter } from "../router"
 import { useUnreadCount } from "./use-unread-count"
 

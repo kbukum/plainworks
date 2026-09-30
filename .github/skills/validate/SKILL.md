@@ -63,6 +63,20 @@ turbo run typecheck build test check-packaging --filter=@plainworks/scratch
 rm -rf packages/scratch && bun install
 ```
 
+## Starter changes
+
+`apps/next-host` is the source of the `create-plainworks` starter. If you touched it, the eject, or a package the starter depends on, prove a fresh starter still works outside the monorepo:
+
+```bash
+cd packages/create-plainworks && bun run smoke
+```
+
+The smoke packs the kit, scaffolds a starter, installs it, and runs the starter's own gates: typecheck, build, boot, and e2e. CI runs the same script in the `create-smoke` job.
+
+## Production exclusion
+
+`check-production` builds each host with source maps and fails when a forbidden source (the development inspector) reaches the production bundle, or when the scan can't see the app's expected sources. Each app declares its rule in `devtools-exclusion.json`. Paths starting with `./` are app paths, other entries are package paths resolved like imports, and `allowUnmapped` lists output files without a source map, as globs or `manifest.json#field`.
+
 ## Before you hand work off
 
 The minimum passing standard for a self-contained change is `bun run verify` green over the affected set (`--filter='...[origin/main]'`), Vitest race/shuffle safe, the `elements` tests green when `theme` changed, and a Changeset. Run the unscoped `bun run verify` for an audit or release.

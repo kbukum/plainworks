@@ -8,7 +8,7 @@ import { DescriptionItem, DescriptionList } from "@plainworks/ui/display/descrip
 import { StatusBadge } from "@plainworks/ui/display/status-badge"
 import { Modal } from "@plainworks/ui/overlays/modal"
 import type { ReactElement } from "react"
-import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../app/constants"
+import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../neutral/constants"
 import {
   USER_ROLE_LABEL,
   USER_STATUS_LABEL,

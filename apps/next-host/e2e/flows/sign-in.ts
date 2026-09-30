@@ -7,6 +7,7 @@ export const signInFlow = defineFlow({
   covers: [
     "apps/next-host/e2e/flows/sign-in.ts",
     "apps/next-host/src/app/**",
+    "apps/next-host/src/client/auth/**",
     "packages/auth/src/**",
   ],
   checkpoints: [

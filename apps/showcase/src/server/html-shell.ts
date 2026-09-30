@@ -3,7 +3,7 @@
 // very first paint is the user's theme (zero flash). The hydration payload arrives as a finished,
 // HTML-safe `<script type="application/json">` block from `@plainworks/app/hydration`.
 
-import { ROOT_ELEMENT_ID } from "../app/constants"
+import { ROOT_ELEMENT_ID } from "../neutral/constants"
 
 /** Everything the shell needs to assemble one server response. */
 export interface HtmlShellInput {

@@ -6,7 +6,7 @@
 // server-side: only the identity slice of the snapshot crosses to the client, never a token.
 
 import type { ReactElement, ReactNode } from "react"
-import { Providers } from "../client/providers"
+import { Providers } from "../client/bootstrap"
 import { requestOrigin, resolveDocument } from "../server/session"
 import "./globals.css"
 

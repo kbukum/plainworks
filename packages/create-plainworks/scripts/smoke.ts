@@ -1,11 +1,11 @@
 // End-to-end smoke for the initializer: pack the workspace `@plainworks/*` packages exactly as they
 // would publish (through `plainworks-release pack`, the release workflow's packer), scaffold a
 // project with the built `create-plainworks`, redirect the generated pinned deps to those local
-// tarballs, then install, typecheck, build, and boot it — probing the running app over HTTP. It
-// proves the generated manifest is well-formed and the app compiles AND runs against the real
-// published surfaces, serving seeded data, without needing anything on npm. The CI `create-smoke`
-// job runs this; it also runs locally. Everything happens in temp dirs; nothing in the repo is
-// mutated.
+// tarballs, then install it and run the starter's own gates — typecheck, build, a boot probed over
+// HTTP, and its Playwright browser suite. It proves the generated project works on its own, outside
+// the monorepo, against the real published surfaces, without needing anything on npm. The CI
+// `create-smoke` job runs this (after installing Chromium); it also runs locally. Everything
+// happens in temp dirs; nothing in the repo is mutated.
 
 import { execFileSync, spawn } from "node:child_process"
 import { randomBytes } from "node:crypto"
@@ -219,9 +219,10 @@ try {
   run("bun", ["run", "typecheck"], appDir)
   run("bun", ["run", "build"], appDir)
   await bootAndProbe(appDir)
+  run("bun", ["run", "e2e"], appDir)
 
   process.stdout.write(
-    "\ncreate-plainworks smoke: generated app installed, typechecked, built, and booted ✓\n",
+    "\ncreate-plainworks smoke: generated app typechecked, built, booted, and passed its e2e ✓\n",
   )
 } finally {
   rmSync(workspace, { recursive: true, force: true })

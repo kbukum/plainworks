@@ -6,7 +6,7 @@ import type { DataTableColumn } from "@plainworks/ui/data/data-table"
 import { DateValue } from "@plainworks/ui/display/date-value"
 import { NumberValue } from "@plainworks/ui/display/number-value"
 import { StatusBadge } from "@plainworks/ui/display/status-badge"
-import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../app/constants"
+import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../neutral/constants"
 import { ORDER_STATUS_LABEL, ORDER_STATUS_TONE } from "./order-fields"
 
 /** Options for {@link orderColumns}. */

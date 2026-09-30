@@ -107,4 +107,4 @@ Upstream code does not meet the kit's strictest compiler flags. `tsconfig.shadcn
 
 ## Accessibility
 
-Each interactive atom carries a behavioral test with an axe assertion next to it, and the gallery test (`src/shadcn/gallery.test.tsx`) renders the family under `renderToStaticMarkup` to prove it is SSR-safe. A contract test (`src/theme-variables.test.ts`) checks that every raw CSS variable an atom reads is declared by the theme. Automation is a floor, not proof — the showcase browser gate (`apps/showcase/e2e/atoms.spec.ts`) also checks contrast, target size, visible focus, reflow, and reduced motion on real layout.
+Each interactive atom carries a behavioral test with an axe assertion next to it, and the gallery test (`src/shadcn/gallery.test.tsx`) renders the family under `renderToStaticMarkup` to prove it is SSR-safe. A contract test (`src/theme-variables.test.ts`) checks that every raw CSS variable an atom reads is declared by the theme. Automation is a floor, not proof — the showcase gallery browser gate (`apps/showcase/e2e/gallery.spec.ts`) also checks contrast, visible focus, and reduced motion on real layout.

@@ -1,7 +1,7 @@
 import { TASK_PRIORITIES, type Task } from "@plainworks/demo"
 import { isOneOf, isRecord } from "@plainworks/std"
 import type { StandardSchemaV1 } from "@plainworks/std/seam"
-import { TASK_STATUSES } from "../../app/task-shape"
+import { TASK_STATUSES } from "../../neutral/tasks"
 
 /** The validated shape a submitted task form yields — the editable subset of a {@link Task}. */
 export interface TaskFormValues {

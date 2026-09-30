@@ -12,8 +12,8 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import { USER_LIST_PARAMS } from "../../app/constants"
-import { userList } from "../../app/lists"
+import { USER_LIST_PARAMS } from "../../neutral/constants"
+import { userList } from "../../neutral/lists"
 import { UsersSection } from "./users-section"
 
 // The Users directory proven from the user's vantage: real `@plainworks/ui` composites over an

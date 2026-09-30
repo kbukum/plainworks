@@ -41,7 +41,10 @@ A release is the one time to run the **complete** gates rather than the affected
 
 ```bash
 bun run verify                # every Definition-of-Done gate, in order (`--list` shows them)
+(cd packages/create-plainworks && bun run smoke)   # a fresh starter passes its own gates
 ```
+
+The smoke packs every package the way it will publish, scaffolds a starter against those tarballs, and runs the starter's typecheck, build, boot, and e2e. A red smoke means a published package or the starter breaks outside the monorepo.
 
 Also run the [`review`](../review/SKILL.md) project audit in a fresh agent before a release. Treat green gates as necessary but not sufficient. The packaging gate already lints each built tarball's `exports`/`types` resolution; still sanity-check the artifacts before publishing:
 

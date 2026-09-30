@@ -2,9 +2,9 @@
 
 import { useHttpClient } from "@plainworks/http/client"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
-import { NOTIFICATION_LIST_PARAMS } from "../../app/constants"
-import { notificationList } from "../../app/lists"
-import { countUnread } from "../../app/notification-shape"
+import { NOTIFICATION_LIST_PARAMS } from "../../neutral/constants"
+import { notificationList } from "../../neutral/lists"
+import { countUnread } from "../../neutral/notifications"
 
 /** The unread notifications read the shell and the feed share. */
 export interface UnreadCount {

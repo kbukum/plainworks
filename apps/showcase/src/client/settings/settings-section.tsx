@@ -9,10 +9,10 @@ import { ErrorState } from "@plainworks/ui/feedback/error-state"
 import { LoadingState } from "@plainworks/ui/feedback/loading-state"
 import { useQuery } from "@tanstack/react-query"
 import type { ReactElement } from "react"
-import { settingsQueryPlan } from "../../app/settings-read"
-import { RequireAuth, useIdentity } from "../session"
-import { SettingsFrame } from "./settings-frame"
-import { useSettingsMutation } from "./use-settings-mutation"
+import { settingsQueryPlan } from "../../neutral/settings"
+import { RequireAuth, useIdentity } from "../auth"
+import { useSettingsMutation } from "./data"
+import { SettingsFrame } from "./panels"
 
 /** The sign-in prompt a guest sees in place of the settings — there is no account to manage yet. */
 function GuestPrompt(): ReactElement {

@@ -7,11 +7,12 @@ import type { ListQueryParams, PaginatedResult } from "@plainworks/std/list"
 import type { QueryKey } from "@tanstack/react-query"
 import { useMutation } from "@tanstack/react-query"
 import { useCallback, useRef, useState } from "react"
-import { dropTaskFromPage, reconcileTaskInPage } from "../../app/task-page"
 import {
   createTask as createTaskRequest,
+  dropTaskFromPage,
+  reconcileTaskInPage,
   updateTask as updateTaskRequest,
-} from "../../app/task-write"
+} from "../../neutral/tasks"
 import type { TaskFormValues } from "./task-schema"
 
 type TaskPage = PaginatedResult<Task>

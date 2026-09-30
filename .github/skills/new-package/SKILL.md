@@ -21,7 +21,9 @@ plainworks packages are **born from a golden generator**, never hand-written. Th
 
 Place the package in the [layer map](../../../docs/architecture.md#layer-map). Its single source is [`internal/boundaries/layers.json`](../../../internal/boundaries/layers.json); the boundary gate and every doc copy are generated from it.
 
-A package in `Ln` may import `@plainworks` packages only in a strictly lower layer. If the new package needs something from a higher layer, you have the direction wrong — **define the seam in the lower package and implement it higher** (`std` owns shared contracts/event shapes). Dev/test-only tooling that is never published goes under `internal/` (like `@plainworks/boundaries`, `@plainworks/tsdown-config`), not `packages/`.
+A package in `Ln` may import `@plainworks` packages only in a strictly lower layer. If the new package needs something from a higher layer, you have the direction wrong — **define the seam in the lower package and implement it higher** (`std` owns shared contracts/event shapes). Dev/test-only tooling that is never published goes under `internal/` (like `@plainworks/boundaries`, `@plainworks/tsdown-config`), not `packages/`. Test machinery that consumers use ships in `testkit` or `mocks`, never next to the runtime code it fakes.
+
+The reasoning lives in the ADRs: [0006](../../../docs/adr/0006-seams-go-down.md) (shared seams go down), [0008](../../../docs/adr/0008-placement-and-dependencies.md) (placement and one owner per concern), and [0010](../../../docs/adr/0010-test-versus-runtime-ownership.md) (test versus runtime ownership).
 
 ## Step 3 — Generate it
 
@@ -42,7 +44,7 @@ Then install so the workspace picks it up:
 bun install
 ```
 
-If you add or rename a public subpath, edit `build.entry` in `tsdown.config.ts` and run `bun run sync-shape`. Never hand-edit `exports`, `files`, `sideEffects`, or the standard `build` / `typecheck` / `test` / `check-packaging` scripts.
+Every subpath uses the one entry vocabulary ([ADR 0007](../../../docs/adr/0007-entry-vocabulary.md)): neutral `.` and concern subpaths, `./client`, `./server`, adapter subpaths named after what they do, and `./testing`. If you add or rename a public subpath, edit `build.entry` in `tsdown.config.ts` and run `bun run sync-shape` ([ADR 0009](../../../docs/adr/0009-generated-workspace-shape.md)). Never hand-edit `exports`, `files`, `sideEffects`, or the standard `build` / `typecheck` / `test` / `check-packaging` scripts.
 
 ## Step 4 — Wire it into the layer map
 

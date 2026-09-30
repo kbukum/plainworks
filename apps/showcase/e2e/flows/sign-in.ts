@@ -9,7 +9,8 @@ export const signInFlow = defineFlow({
   covers: [
     "apps/showcase/e2e/flows/sign-in.ts",
     "apps/showcase/src/server/**",
-    "apps/showcase/src/app/auth.ts",
+    "apps/showcase/src/neutral/auth/**",
+    "apps/showcase/src/client/auth/**",
     "packages/auth/src/**",
   ],
   checkpoints: [

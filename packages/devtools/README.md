@@ -179,7 +179,7 @@ const teardown = devtools?.mount({
 })
 ```
 
-Here `./devtools` is your development-only module that imports `styles.css` and re-exports `mountDevtools`. To add your own sources or renderers, return a wrapper around `mountDevtools` instead. See the [Vite composition](../../apps/showcase/src/client/entry-client.tsx) and the [Next composition](../../apps/next-host/src/client/providers.tsx). Next inspects client-owned HTTP, cache, and channel activity, not RSC requests or server sessions.
+Here `./devtools` is your development-only module that imports `styles.css` and re-exports `mountDevtools`. To add your own sources or renderers, return a wrapper around `mountDevtools` instead. See the [Vite composition](../../apps/showcase/src/client/entry-client.tsx) and the [Next composition](../../apps/next-host/src/client/bootstrap/providers.tsx). Next inspects client-owned HTTP, cache, and channel activity, not RSC requests or server sessions.
 
 Run `bun run check-production` in this repository to prove both adopters ship no devtools code. It runs a separate, source-mapped **analysis build**, so the deployable output never carries maps. The scan reads each chunk's **source map**, so it catches a leaked adapter even after minification strips every telltale string. A script without a map fails unless the host lists it as a bundler runtime, manifest, or prebuilt polyfill; those and CSS are checked for devtools markers. Each host lists sources that must appear in the maps, so a build that stops emitting maps fails instead of passing blind. Re-run the check when changing gates, imports, or bundlers.
 

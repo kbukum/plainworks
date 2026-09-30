@@ -3,7 +3,7 @@
 import { assertNever } from "@plainworks/std"
 import { LoadingState } from "@plainworks/ui/feedback/loading-state"
 import { lazy, type ReactElement, Suspense } from "react"
-import type { Section } from "../../app/navigation"
+import type { Section } from "../../neutral/navigation"
 
 const OverviewSection = lazy(async () => {
   const module = await import("../overview")

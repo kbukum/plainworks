@@ -13,7 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@plainworks/elements/tabs"
 import { CheckCheck, Inbox } from "lucide-react"
 import { type ReactElement, type Ref, useEffect, useRef, useState } from "react"
-import { Can, canManageNotifications } from "../session"
+import { Can, canManageNotifications } from "../auth"
 import { NotificationItem } from "./notification-item"
 
 type FeedFilter = "all" | "unread"

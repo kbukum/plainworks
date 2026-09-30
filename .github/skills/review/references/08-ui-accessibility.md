@@ -16,7 +16,7 @@ The client-binding pass. It runs **only when the change touches interactive UI**
 ## Vendored atoms
 
 - **Fix atoms off the atom.** An accessibility gap in a vendored atom (`packages/elements/src/shadcn/`) — low contrast, a missing focus ring, a small target — is fixed on the **deviation ladder**: `@plainworks/theme` tokens/rules (including focus for keyboard stops an atom leaves unmarked) → the call site (props, `className`, `role`) → a `@plainworks/ui` wrapper. Editing the atom, or re-adding a tone variant upstream doesn't ship, is a **blocker**. Note a real upstream bug for upstream reporting.
-- **Proof lives beside the atoms.** `src/theme-variables.test.ts` guards the raw CSS variables atoms read, and the showcase atoms browser gate (`apps/showcase/e2e/atoms.spec.ts`) checks contrast, target size, focus, reflow, and reduced motion on real layout. A theme change that an atom depends on keeps both green.
+- **Proof lives beside the atoms.** `src/theme-variables.test.ts` guards the raw CSS variables atoms read, and the showcase gallery browser gate (`apps/showcase/e2e/gallery.spec.ts`) checks contrast, visible focus, and reduced motion on real layout. A theme change that an atom depends on keeps both green.
 
 ## Responsive & adaptive
 

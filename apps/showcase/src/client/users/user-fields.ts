@@ -1,7 +1,7 @@
 import type { User } from "@plainworks/demo"
 import type { FacetOption } from "@plainworks/ui/data/facet-panel"
 import type { StatusTone } from "@plainworks/ui/display/status-badge"
-import { USER_DEPARTMENTS, USER_ROLES, USER_STATUSES } from "../../app/user-shape"
+import { USER_DEPARTMENTS, USER_ROLES, USER_STATUSES } from "../../neutral/user-shape"
 
 /** Human-readable label for each role. */
 export const USER_ROLE_LABEL: Record<User["role"], string> = {

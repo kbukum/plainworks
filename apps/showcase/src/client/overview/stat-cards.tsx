@@ -6,7 +6,7 @@ import { MetricCard, MetricList } from "@plainworks/ui/display/metric-card"
 import { NumberValue } from "@plainworks/ui/display/number-value"
 import { LoadingState } from "@plainworks/ui/feedback/loading-state"
 import type { ReactElement } from "react"
-import { DISPLAY_LOCALE } from "../../app/constants"
+import { DISPLAY_LOCALE } from "../../neutral/constants"
 import { GrowthBadge } from "./growth-badge"
 
 const STAT_LABELS = ["Total users", "Total orders", "Revenue", "Products"] as const

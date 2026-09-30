@@ -14,8 +14,8 @@ import { act, cleanup, renderHook, waitFor } from "@testing-library/react"
 import { HttpResponse, http } from "msw"
 import type { ReactElement, ReactNode } from "react"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
-import { NOTIFICATION_LIST_PARAMS } from "../../app/constants"
-import { notificationList } from "../../app/lists"
+import { NOTIFICATION_LIST_PARAMS } from "../../neutral/constants"
+import { notificationList } from "../../neutral/lists"
 import { useNotificationMutations } from "./notification-mutations"
 
 // Focused coverage for the mutation concurrency and idempotency edges the section test can't force:

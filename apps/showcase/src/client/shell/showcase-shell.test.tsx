@@ -17,11 +17,9 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import { TASK_LIST_PARAMS } from "../../app/constants"
-import { taskList } from "../../app/lists"
-import { buildClientCapabilities } from "../capabilities"
-import { Showcase } from "../showcase"
-import { createThemeSource } from "../sources"
+import { TASK_LIST_PARAMS } from "../../neutral/constants"
+import { taskList } from "../../neutral/lists"
+import { buildClientCapabilities, createThemeSource, Showcase } from "../bootstrap"
 
 // The shell is the frame every later section renders inside: the section navigation, the active
 // state and breadcrumbs it derives from the router, the account menu, the command palette, and the

@@ -1,5 +1,30 @@
+# Everything this app's own scripts generate. Tailwind's source scan skips ignored paths, so an
+# unlisted report folder (full of escaped class names) would break the stylesheet build.
+
+# Dependencies
+node_modules/
+
 # Next.js
 /.next/
 /out/
 next-env.d.ts
 next-env.d.ts.timestamp
+*.tsbuildinfo
+
+# Tests: coverage, Playwright reports and results, and flow run output
+coverage/
+test-results/
+playwright-report/
+playwright/.cache/
+.ui-artifacts/
+
+# Source-mapped analysis builds
+.bundle-analysis/
+
+# Turbo cache
+.turbo/
+
+# Environment: never commit real env files
+.env
+.env.*
+!.env.example

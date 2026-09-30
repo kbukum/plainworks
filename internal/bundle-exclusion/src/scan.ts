@@ -1,12 +1,15 @@
 import { dirname, join, posix } from "node:path"
 import { isRecord } from "@plainworks/std"
 
-/** What a production build must, and must not, contain. */
+/**
+ * What a production build must, and must not, contain, with every path already resolved to an
+ * absolute location on disk (see `resolveRule`).
+ */
 export interface ExclusionRule {
   /**
-   * Path fragments that must never appear in a source map's `sources`. Minifiers rename
-   * identifiers but not the original file paths a map records, so this proves which modules were
-   * bundled — including code that emits no telltale string.
+   * Paths no source map may record a source under. Minifiers rename identifiers but not the
+   * original file paths a map records, so this proves which modules were bundled — including code
+   * that emits no telltale string. A directory ends with `/`.
    */
   readonly forbiddenSources: readonly string[]
   /**
@@ -15,15 +18,15 @@ export interface ExclusionRule {
    */
   readonly markers: readonly string[]
   /**
-   * Path fragments that must appear in the build's map sources — the positive control. If the app's
-   * own modules are not visible, the maps are missing or unreadable and a clean result would prove
-   * nothing.
+   * Paths the build's map sources must include — the positive control. If the app's own modules
+   * are not visible, the maps are missing or unreadable and a clean result would prove nothing.
    */
   readonly expectedSources: readonly string[]
   /**
-   * Path fragments of scripts allowed to have no source map: bundler runtimes, manifests, and
-   * prebuilt polyfills. They are still searched for markers. Any other unmapped script fails the
-   * scan, because a minified chunk can hide forbidden code that no marker survives in.
+   * Globs of scripts allowed to have no source map: bundler runtimes, manifests, and prebuilt
+   * polyfills. `*` matches within one path segment and `**` across segments. They are still
+   * searched for markers. Any other unmapped script fails the scan, because a minified chunk can
+   * hide forbidden code that no marker survives in.
    */
   readonly allowUnmapped: readonly string[]
 }
@@ -39,7 +42,7 @@ export type Leak =
   | { readonly kind: "source"; readonly file: string; readonly source: string }
   | { readonly kind: "marker"; readonly file: string; readonly marker: string }
   | { readonly kind: "unmapped"; readonly file: string }
-  | { readonly kind: "blind"; readonly fragment: string }
+  | { readonly kind: "blind"; readonly path: string }
 
 /** The outcome of {@link scanArtifacts}. */
 export interface ScanResult {
@@ -54,6 +57,7 @@ const MAP = /\.map$/
 const MAP_URL = /\/[/*][#@] sourceMappingURL=([^\s*]+)/g
 const DATA_URL = /^data:application\/json(?:;charset=[\w-]+)?;base64,(.+)$/
 const URL_SCHEME = /^[a-z][\w+.-]*:/i
+const PROJECT_SOURCE = /^[a-z][\w+.-]*:\/\/\/?\[project\]\/(.*)$/i
 
 /** Whether `path` is a file the scan reads: scripts, styles, and their source maps. */
 export function isArtifact(path: string): boolean {
@@ -91,10 +95,11 @@ export function scanArtifacts(artifacts: readonly Artifact[], rule: ExclusionRul
   const unmapped: string[] = []
   const seen = new Set<string>()
 
+  const allowUnmapped = rule.allowUnmapped.map(globPattern)
   const checkSources = (sources: readonly string[], file: string): void => {
     for (const source of sources) {
       seen.add(source)
-      if (rule.forbiddenSources.some((fragment) => source.includes(fragment))) {
+      if (rule.forbiddenSources.some((path) => isSourceUnder(source, path))) {
         leaks.push({ kind: "source", file, source })
       }
     }
@@ -116,30 +121,38 @@ export function scanArtifacts(artifacts: readonly Artifact[], rule: ExclusionRul
     } else if (
       !paths.has(url === undefined ? `${path}.map` : join(dirname(path), decodeUrl(url)))
     ) {
-      if (rule.allowUnmapped.some((fragment) => path.includes(fragment))) unmapped.push(path)
+      if (allowUnmapped.some((pattern) => pattern.test(toPosix(path)))) unmapped.push(path)
       else leaks.push({ kind: "unmapped", file: path })
     }
   }
 
-  for (const fragment of rule.expectedSources) {
-    if (![...seen].some((source) => source.includes(fragment))) {
-      leaks.push({ kind: "blind", fragment })
+  for (const path of rule.expectedSources) {
+    if (![...seen].some((source) => isSourceUnder(source, path))) {
+      leaks.push({ kind: "blind", path })
     }
   }
   return { leaks, unmapped }
 }
 
-/** Merge rules, keeping each entry once. */
-export function mergeRules(...rules: readonly Partial<ExclusionRule>[]): ExclusionRule {
-  const merged = (key: keyof ExclusionRule): string[] => [
-    ...new Set(rules.flatMap((rule) => rule[key] ?? [])),
-  ]
-  return {
-    forbiddenSources: merged("forbiddenSources"),
-    markers: merged("markers"),
-    expectedSources: merged("expectedSources"),
-    allowUnmapped: merged("allowUnmapped"),
+/**
+ * Whether a recorded `source` is the absolute `path`: inside it when `path` is a directory (ends in
+ * `/`), or exactly it when `path` is a file. A Turbopack source (`turbopack:///[project]/…`) is
+ * relative to a project root the map does not name; that root is the app or one of its ancestors,
+ * so the source matches when some ancestor of `path` completes it.
+ */
+export function isSourceUnder(source: string, path: string): boolean {
+  const relative = source.match(PROJECT_SOURCE)?.[1]
+  if (relative === undefined) return isAt(source, path)
+  let root = path.endsWith("/") ? path.slice(0, -1) : path
+  while (root !== "") {
+    root = root.slice(0, root.lastIndexOf("/"))
+    if (isAt(`${root}/${relative}`, path)) return true
   }
+  return false
+}
+
+function isAt(candidate: string, path: string): boolean {
+  return path.endsWith("/") ? candidate.startsWith(path) : candidate === path
 }
 
 /** A readable one-line description of `leak`. */
@@ -152,7 +165,7 @@ export function describeLeak(leak: Leak): string {
     case "unmapped":
       return `${leak.file} has no source map, so the scan cannot see what it bundles; enable its map or, for a bundler runtime, manifest, or prebuilt polyfill, add it to "allowUnmapped"`
     case "blind":
-      return `no source map records "${leak.fragment}", so the scan cannot see the app's modules`
+      return `no source map records a source under ${leak.path}, so the scan cannot see the app's modules`
   }
 }
 
@@ -192,6 +205,21 @@ function decodeUrl(url: string): string {
   } catch {
     return url
   }
+}
+
+// `**/` matches zero or more whole segments, `**` anything, `*` anything within one segment; every
+// other character is literal, so Next's `[...path]` folders need no escaping.
+function globPattern(glob: string): RegExp {
+  const parts = toPosix(glob).split(/(\*\*\/|\*\*|\*)/)
+  const body = parts
+    .map((part) => {
+      if (part === "**/") return "(?:.*/)?"
+      if (part === "**") return ".*"
+      if (part === "*") return "[^/]*"
+      return part.replaceAll(/[.+?^${}()|[\]\\]/g, "\\$&")
+    })
+    .join("")
+  return new RegExp(`^${body}$`)
 }
 
 function toPosix(path: string): string {

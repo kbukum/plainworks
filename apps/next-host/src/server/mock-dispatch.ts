@@ -31,7 +31,7 @@ import {
 } from "@plainworks/mocks/fixture"
 import { createCrudHandlers, type InputSpec } from "@plainworks/mocks/handlers"
 import { type Clock, systemClock } from "@plainworks/std/time"
-import type { CreateTaskInput, Task } from "../neutral/task"
+import type { CreateTaskInput, Task } from "../neutral/tasks"
 
 /** One MSW request handler, as produced by the `@plainworks/mocks` builders. */
 type MockHandler = ReturnType<typeof createCrudHandlers>[number]

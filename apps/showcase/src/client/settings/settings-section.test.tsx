@@ -16,9 +16,9 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
+import { SessionProvider } from "../auth"
+import { createMotionSource } from "../bootstrap"
 import { RouterProvider } from "../router"
-import { SessionProvider } from "../session"
-import { createMotionSource } from "./motion-preference"
 import { SettingsSection } from "./settings-section"
 
 // The Settings hub proven from the user's vantage over the real kit stack: `@plainworks/ui` forms

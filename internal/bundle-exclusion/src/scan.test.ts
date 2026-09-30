@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest"
-import { RULES } from "./rules"
-import { type Artifact, type ExclusionRule, mergeRules, scanArtifacts, sourcesOf } from "./scan"
+import { type Artifact, type ExclusionRule, scanArtifacts, sourcesOf } from "./scan"
 
-const rule: ExclusionRule = mergeRules(RULES.devtools ?? {}, {
+const rule: ExclusionRule = {
+  forbiddenSources: ["/repo/packages/devtools/"],
+  markers: ["plainworks-devtools", "plainworksDevtools"],
   expectedSources: ["/repo/apps/web/src/"],
-})
+  allowUnmapped: [],
+}
 
 function map(sources: readonly string[]): string {
   return JSON.stringify({ version: 3, sources, mappings: "" })
@@ -88,12 +90,20 @@ describe("scanArtifacts", () => {
   })
 
   it("catches an installed package resolved from a relative source", () => {
-    const leaks = leaksOf([
-      {
-        path: "/repo/apps/web/dist/a.js.map",
-        text: map(["../node_modules/@plainworks/devtools/dist/index.js"]),
-      },
-    ])
+    const installed = {
+      ...rule,
+      forbiddenSources: ["/repo/apps/web/node_modules/@plainworks/devtools/"],
+    }
+    const leaks = scanArtifacts(
+      [
+        ...app,
+        {
+          path: "/repo/apps/web/dist/a.js.map",
+          text: map(["../node_modules/@plainworks/devtools/dist/index.js"]),
+        },
+      ],
+      installed,
+    ).leaks
     expect(leaks).toEqual([
       {
         kind: "source",
@@ -157,7 +167,7 @@ describe("scanArtifacts", () => {
   })
 
   it("marker-checks an allowed unmapped script and reports it", () => {
-    const allowed = mergeRules(rule, { allowUnmapped: ["/polyfill.js"] })
+    const allowed = { ...rule, allowUnmapped: ["/repo/apps/web/dist/polyfill.js"] }
     const result = scanArtifacts(
       [...app, { path: "/repo/apps/web/dist/polyfill.js", text: "plainworksDevtools" }],
       allowed,
@@ -171,12 +181,12 @@ describe("scanArtifacts", () => {
   it("fails when the maps do not show the app's own modules", () => {
     expect(scanArtifacts([{ path: "app.js", text: "" }], rule).leaks).toEqual([
       { kind: "unmapped", file: "app.js" },
-      { kind: "blind", fragment: "/repo/apps/web/src/" },
+      { kind: "blind", path: "/repo/apps/web/src/" },
     ])
   })
 
-  it("applies host-owned entries on top of the shared rule", () => {
-    const hosted = mergeRules(rule, { forbiddenSources: ["/src/client/dev-tools/"] })
+  it("forbids a folder inside the app's own sources", () => {
+    const hosted = { ...rule, forbiddenSources: ["/repo/apps/web/src/client/dev-tools/"] }
     const leaks = scanArtifacts(
       [
         ...app,
@@ -185,5 +195,69 @@ describe("scanArtifacts", () => {
       hosted,
     ).leaks
     expect(leaks.map((leak) => leak.kind)).toEqual(["source"])
+  })
+
+  // Turbopack records `turbopack:///[project]/<path>`, where the project root is the app or one of
+  // its ancestors, so a source matches when some ancestor of the directory completes the path.
+  it("matches a Turbopack project source against the directory it resolves under", () => {
+    const own = "turbopack:///[project]/apps/web/src/page.tsx"
+    const other = "turbopack:///[project]/apps/other/src/client/dev-tools/x.ts"
+    const hosted = { ...rule, forbiddenSources: ["/repo/apps/web/src/client/dev-tools/"] }
+    const result = scanArtifacts(
+      [
+        { path: "/repo/apps/web/dist/a.js", text: "x()" },
+        { path: "/repo/apps/web/dist/a.js.map", text: map([own, other]) },
+      ],
+      hosted,
+    )
+    expect(result.leaks).toEqual([])
+  })
+
+  it("matches a forbidden file exactly, not a longer name it prefixes", () => {
+    const hosted = { ...rule, forbiddenSources: ["/repo/apps/web/src/secret.ts"] }
+    const scan = (source: string) =>
+      scanArtifacts(
+        [...app, { path: "/repo/apps/web/dist/b.js.map", text: map([source]) }],
+        hosted,
+      ).leaks.map((leak) => leak.kind)
+    expect(scan("../src/secret.ts.backup")).toEqual([])
+    expect(scan("turbopack:///[project]/apps/web/src/secret.ts.backup")).toEqual([])
+    expect(scan("../src/secret.ts")).toEqual(["source"])
+    expect(scan("turbopack:///[project]/apps/web/src/secret.ts")).toEqual(["source"])
+  })
+
+  it("does not treat a sibling folder that shares a name prefix as inside the directory", () => {
+    const leaks = leaksOf([
+      { path: "/repo/apps/web/dist/b.js.map", text: map(["../../../packages/devtools-lite/a.ts"]) },
+    ])
+    expect(leaks).toEqual([])
+  })
+
+  it("allows unmapped scripts by glob, with `*` inside one segment and `**` across segments", () => {
+    const allowed = {
+      ...rule,
+      allowUnmapped: [
+        "/repo/apps/web/dist/assets/runtime-*.js",
+        "/repo/apps/web/dist/**/*-manifest.js",
+      ],
+    }
+    const result = scanArtifacts(
+      [
+        ...app,
+        { path: "/repo/apps/web/dist/assets/runtime-Ab1.js", text: "" },
+        { path: "/repo/apps/web/dist/app/[...path]/route_client-reference-manifest.js", text: "" },
+        { path: "/repo/apps/web/dist/build-manifest.js", text: "" },
+        { path: "/repo/apps/web/dist/assets/nested/runtime-Ab1.js", text: "" },
+      ],
+      allowed,
+    )
+    expect(result.unmapped).toEqual([
+      "/repo/apps/web/dist/assets/runtime-Ab1.js",
+      "/repo/apps/web/dist/app/[...path]/route_client-reference-manifest.js",
+      "/repo/apps/web/dist/build-manifest.js",
+    ])
+    expect(result.leaks).toEqual([
+      { kind: "unmapped", file: "/repo/apps/web/dist/assets/nested/runtime-Ab1.js" },
+    ])
   })
 })

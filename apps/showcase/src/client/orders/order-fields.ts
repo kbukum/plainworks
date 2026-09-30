@@ -1,7 +1,7 @@
 import type { Order } from "@plainworks/demo"
 import type { FacetOption } from "@plainworks/ui/data/facet-panel"
 import type { StatusTone } from "@plainworks/ui/display/status-badge"
-import { ORDER_STATUSES } from "../../app/order-shape"
+import { ORDER_STATUSES } from "../../neutral/orders"
 
 /** Human-readable label for each order status. */
 export const ORDER_STATUS_LABEL: Record<Order["status"], string> = {

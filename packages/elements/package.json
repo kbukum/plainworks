@@ -157,6 +157,11 @@
       "types": "./dist/navigation-menu.d.ts",
       "default": "./dist/navigation-menu.js"
     },
+    "./number-field": {
+      "@plainworks/source": "./src/atoms/number-field.tsx",
+      "types": "./dist/number-field.d.ts",
+      "default": "./dist/number-field.js"
+    },
     "./pagination": {
       "types": "./dist/pagination.d.ts",
       "default": "./dist/pagination.js"
@@ -197,10 +202,9 @@
       "types": "./dist/slider.d.ts",
       "default": "./dist/slider.js"
     },
-    "./sonner": {
-      "@plainworks/source": "./src/atoms/sonner.tsx",
-      "types": "./dist/sonner.d.ts",
-      "default": "./dist/sonner.js"
+    "./spinner": {
+      "types": "./dist/spinner.d.ts",
+      "default": "./dist/spinner.js"
     },
     "./switch": {
       "types": "./dist/switch.d.ts",
@@ -217,6 +221,10 @@
     "./textarea": {
       "types": "./dist/textarea.d.ts",
       "default": "./dist/textarea.js"
+    },
+    "./toast": {
+      "types": "./dist/toast.d.ts",
+      "default": "./dist/toast.js"
     },
     "./toggle": {
       "types": "./dist/toggle.d.ts",
@@ -250,8 +258,7 @@
     "cmdk": "catalog:",
     "input-otp": "catalog:",
     "lucide-react": "catalog:",
-    "react-day-picker": "catalog:",
-    "sonner": "catalog:"
+    "react-day-picker": "catalog:"
   },
   "peerDependencies": {
     "react": "catalog:",

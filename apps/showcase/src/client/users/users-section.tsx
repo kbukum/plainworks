@@ -3,16 +3,20 @@
 import { useHttpClient } from "@plainworks/http/client"
 import { asyncStatus } from "@plainworks/ui"
 import { DataTable } from "@plainworks/ui/data/data-table"
+import { FacetPanel } from "@plainworks/ui/data/facet-panel"
+import { ListLayout } from "@plainworks/ui/data/list-layout"
+import { ListSearch } from "@plainworks/ui/data/list-search"
 import { Pagination } from "@plainworks/ui/data/pagination"
+import { useListQueryState } from "@plainworks/ui/data/use-list-query-state"
 import { AsyncState } from "@plainworks/ui/feedback/async-state"
 import { EmptyState } from "@plainworks/ui/feedback/empty-state"
 import { ErrorState } from "@plainworks/ui/feedback/error-state"
 import { LoadingState } from "@plainworks/ui/feedback/loading-state"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { SlidersHorizontal } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import { USER_LIST_PARAMS } from "../../app/constants"
 import { userList } from "../../app/lists"
-import { CatalogLayout, FacetPanel, ListSearch, useCatalogList } from "../catalog"
 import { userColumns } from "./user-columns"
 import { USER_DEPARTMENT_OPTIONS, USER_ROLE_OPTIONS, USER_STATUS_OPTIONS } from "./user-fields"
 import { UserProfile } from "./user-profile"
@@ -28,7 +32,7 @@ const PAGE_SIZE = USER_LIST_PARAMS.pageSize ?? 10
  */
 export function UsersSection(): ReactElement {
   const httpClient = useHttpClient()
-  const list = useCatalogList({
+  const list = useListQueryState({
     pageSize: PAGE_SIZE,
     ...(USER_LIST_PARAMS.sortBy !== undefined ? { sortBy: USER_LIST_PARAMS.sortBy } : {}),
     ...(USER_LIST_PARAMS.order !== undefined ? { order: USER_LIST_PARAMS.order } : {}),
@@ -44,20 +48,20 @@ export function UsersSection(): ReactElement {
 
   return (
     <>
-      <CatalogLayout
-        filtersLabel="Directory filters"
+      <ListLayout
+        labels={{ filters: "Directory filters" }}
+        filtersIcon={<SlidersHorizontal aria-hidden />}
         activeFilters={list.filters.length}
         search={
           <ListSearch
-            label="Search users"
+            labels={{ label: "Search users", placeholder: "Name or email" }}
             value={list.search}
             onChange={list.setSearch}
-            placeholder="Name or email"
           />
         }
         filters={
           <FacetPanel
-            label="Filter by role, status, and department"
+            labels={{ region: "Filter by role, status, and department" }}
             fields={[
               { field: "role", label: "Role", options: USER_ROLE_OPTIONS },
               { field: "status", label: "Status", options: USER_STATUS_OPTIONS },
@@ -106,7 +110,7 @@ export function UsersSection(): ReactElement {
             onPageChange={list.setPage}
           />
         </AsyncState>
-      </CatalogLayout>
+      </ListLayout>
       <UserProfile
         user={selected}
         onOpenChange={(open) => {

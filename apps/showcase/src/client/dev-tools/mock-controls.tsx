@@ -12,7 +12,13 @@ import {
 } from "@plainworks/elements/alert-dialog"
 import { Button } from "@plainworks/elements/button"
 import { Field, FieldDescription, FieldLabel } from "@plainworks/elements/field"
-import { Input } from "@plainworks/elements/input"
+import {
+  NumberField,
+  NumberFieldDecrement,
+  NumberFieldGroup,
+  NumberFieldIncrement,
+  NumberFieldInput,
+} from "@plainworks/elements/number-field"
 import { Switch } from "@plainworks/elements/switch"
 import { MAX_LATENCY_MS } from "@plainworks/mocks"
 import { type KeyboardEvent, type ReactElement, useEffect, useState } from "react"
@@ -42,17 +48,13 @@ export function MockControls({
   onClearLog,
   onReset,
 }: MockControlsProps): ReactElement {
-  const [latencyDraft, setLatencyDraft] = useState(String(latencyMs))
+  const [latencyDraft, setLatencyDraft] = useState<number | null>(latencyMs)
 
-  useEffect(() => setLatencyDraft(String(latencyMs)), [latencyMs])
+  useEffect(() => setLatencyDraft(latencyMs), [latencyMs])
 
+  // The number field clamps to the bounds, so only a cleared draft is left to ignore.
   function applyLatency(): void {
-    const draft = latencyDraft.trim()
-    if (draft === "") return
-    const next = Number(draft)
-    if (Number.isFinite(next) && next >= 0 && next <= MAX_LATENCY_MS) {
-      onLatencyChange(next)
-    }
+    if (latencyDraft !== null) onLatencyChange(latencyDraft)
   }
 
   function submitOnEnter(event: KeyboardEvent<HTMLInputElement>): void {
@@ -87,17 +89,21 @@ export function MockControls({
       <div className="flex flex-wrap items-end gap-2">
         <Field className="max-w-48">
           <FieldLabel htmlFor="mock-latency">Latency in milliseconds</FieldLabel>
-          <Input
+          <NumberField
             id="mock-latency"
-            type="number"
             min={0}
             max={MAX_LATENCY_MS}
             step={25}
             value={latencyDraft}
             disabled={pending}
-            onChange={(event) => setLatencyDraft(event.currentTarget.value)}
-            onKeyDown={submitOnEnter}
-          />
+            onValueChange={setLatencyDraft}
+          >
+            <NumberFieldGroup>
+              <NumberFieldDecrement />
+              <NumberFieldInput onKeyDown={submitOnEnter} />
+              <NumberFieldIncrement />
+            </NumberFieldGroup>
+          </NumberField>
         </Field>
         <Button type="button" variant="outline" disabled={pending} onClick={applyLatency}>
           Apply latency

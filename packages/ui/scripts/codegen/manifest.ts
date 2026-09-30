@@ -61,17 +61,18 @@ export interface Registry {
 
 export const CONCERNS: readonly Concern[] = [
   {
-    name: "hooks",
-    dirs: ["hooks", "client/hooks"],
-    modules: [
-      "use-controllable-state",
-      "use-disclosure",
-      "use-list-state",
-      "use-selection",
-      "use-clipboard",
-      "use-keyboard-shortcuts",
-      "use-media-query",
-    ],
+    name: "state",
+    dirs: ["state"],
+    modules: ["use-controllable-state", "use-disclosure", "use-list-state", "use-selection"],
+  },
+  { name: "clipboard", dirs: ["client/clipboard"], modules: ["use-clipboard"] },
+  { name: "keyboard", dirs: ["client/keyboard"], modules: ["use-keyboard-shortcuts"] },
+  { name: "media", dirs: ["client/media"], modules: ["use-media-query"] },
+  {
+    name: "actions",
+    dirs: ["client/actions"],
+    modules: ["icon-button"],
+    registry: "ui",
   },
   {
     name: "layout",
@@ -83,7 +84,15 @@ export const CONCERNS: readonly Concern[] = [
   {
     name: "feedback",
     dirs: ["client/feedback"],
-    modules: ["async-state", "callout", "empty-state", "error-state", "loading-state", "spinner"],
+    modules: [
+      "async-state",
+      "callout",
+      "empty-state",
+      "error-state",
+      "loading-state",
+      "spinner",
+      "toast",
+    ],
     registry: "ui",
   },
   {
@@ -96,7 +105,14 @@ export const CONCERNS: readonly Concern[] = [
   {
     name: "display",
     dirs: ["client/display"],
-    modules: ["date-value", "number-value", "status-badge"],
+    modules: [
+      "date-value",
+      "number-value",
+      "status-badge",
+      "description-list",
+      "metric-card",
+      "sparkline",
+    ],
     registry: "ui",
   },
   {
@@ -105,10 +121,19 @@ export const CONCERNS: readonly Concern[] = [
     modules: ["breadcrumbs", "nav-list"],
     registry: "ui",
   },
+  { name: "command", dirs: ["client/command"], modules: ["command-palette"], registry: "ui" },
   {
     name: "theme",
     dirs: ["client/theme"],
-    modules: ["theme-mode-group", "theme-mode-menu", "theme-mode-options"],
+    modules: [
+      "theme-mode-group",
+      "theme-mode-menu",
+      "theme-mode-options",
+      "accent-picker",
+      "motion-control",
+      "theme-preview",
+      "theme-studio",
+    ],
     registry: "ui",
   },
   {
@@ -127,15 +152,27 @@ export const CONCERNS: readonly Concern[] = [
       "select-field",
       "checkbox-field",
       "switch-field",
+      "radio-group-field",
     ],
     internal: ["client/forms/field-props.ts"],
     registry: "ui",
   },
-  { name: "shell", dirs: ["client/shell"], modules: ["app-shell"], registry: "ui" },
+  { name: "shell", dirs: ["client/shell"], modules: ["app-shell", "account-menu"], registry: "ui" },
   {
     name: "data",
     dirs: ["client/data"],
-    modules: ["data-table", "filter-bar", "filter-model", "pagination", "pagination-range"],
+    modules: [
+      "data-table",
+      "filter-bar",
+      "filter-model",
+      "pagination",
+      "pagination-range",
+      "facet-panel",
+      "list-layout",
+      "list-search",
+      "range-filter",
+      "use-list-query-state",
+    ],
     registry: "ui",
   },
 ]
@@ -236,7 +273,7 @@ function resolveRelativeImport(root: string, fromFile: string, specifier: string
 /**
  * Every source file a shadcn registry item must ship to install cleanly: the concern folders' own
  * modules plus the transitive closure of the relative imports that escape them (a shared hook, a
- * lower-band component). Without this, an item that imports `../../hooks/use-selection` would
+ * lower-band component). Without this, an item that imports `../../state/use-selection` would
  * install with an unresolved module. Sorted and deduped for stable codegen.
  */
 export function collectItemFiles(root: string, dirs: readonly string[]): string[] {

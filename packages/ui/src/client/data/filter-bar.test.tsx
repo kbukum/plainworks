@@ -84,8 +84,33 @@ describe("FilterBar", () => {
     render(<FilterBar fields={fields} value={value} onChange={onChange} />)
 
     await user.selectOptions(screen.getByRole("combobox", { name: "Field" }), "price")
-    // `like` is not a numeric operator, so the row falls back to the field's first operator.
-    expect(onChange).toHaveBeenCalledWith([{ field: "price", op: "eq", value: "x" }])
+    // `like` is not a numeric operator, so the row falls back to the field's first operator, and
+    // the text value "x" is dropped because the number editor could never show it.
+    expect(onChange).toHaveBeenCalledWith([{ field: "price", op: "eq", value: "" }])
+  })
+
+  it("marks a numeric filter invalid when its value is not a number", async () => {
+    const value: readonly ListFilter[] = [{ field: "price", op: "gt", value: "abc" }]
+    const { container } = render(<FilterBar fields={fields} value={value} onChange={vi.fn()} />)
+
+    const editor = screen.getByRole("textbox", { name: "Value" }) as HTMLInputElement
+    expect(editor.value).toBe("")
+    expect(editor.getAttribute("aria-invalid")).toBe("true")
+    await expectNoAxeViolations(container)
+  })
+
+  it("edits a numeric value as a number field that steps with the arrow keys", async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    const value: readonly ListFilter[] = [{ field: "price", op: "gt", value: 5 }]
+    render(<FilterBar fields={fields} value={value} onChange={onChange} />)
+
+    const editor = screen.getByRole("textbox", { name: "Value" }) as HTMLInputElement
+    expect(editor.value).toBe("5")
+    await user.click(editor)
+    await user.keyboard("{ArrowUp}")
+
+    expect(onChange).toHaveBeenLastCalledWith([{ field: "price", op: "gt", value: 6 }])
   })
 
   it("defaults a scalar select filter to a real option, never a blank value", async () => {

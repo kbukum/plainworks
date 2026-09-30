@@ -3,7 +3,7 @@
 import { jsonSerializer } from "@plainworks/state"
 import { cookieScope } from "@plainworks/state/cookie"
 import type { StateSource } from "@plainworks/std/seam"
-import type { ThemePreference } from "@plainworks/theme"
+import type { ThemePreference } from "@plainworks/theme/preference"
 import { THEME_COOKIE } from "../app/constants"
 
 /**

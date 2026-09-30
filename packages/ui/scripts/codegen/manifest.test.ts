@@ -29,7 +29,7 @@ function discoverModules(root: string): string[] {
     }
   }
   walk(join(root, "src/client"))
-  walk(join(root, "src/hooks"))
+  walk(join(root, "src/state"))
   return modules.sort()
 }
 
@@ -41,7 +41,7 @@ describe("dependency scan", () => {
       'import { Button } from "@plainworks/elements/button"',
       'import { Table } from "@plainworks/elements/table"',
       'import { ChevronDown } from "lucide-react"',
-      'import { useSelection } from "../../hooks"',
+      'import { useSelection } from "../../state/use-selection"',
     ].join("\n")
     expect(scanDependencies(source)).toEqual({
       dependencies: ["@plainworks/elements", "@plainworks/theme", "lucide-react"],
@@ -64,10 +64,10 @@ describe("dependency scan", () => {
     // A component folder inside the concern ships whole.
     expect(files).toContain("src/client/data/data-table/table.tsx")
     expect(files).toContain("src/client/data/data-table/columns.ts")
-    // `table.tsx` imports hooks and a feedback component from outside the concern; they must ship
-    // with the item, or a shadcn install resolves those imports to nothing.
-    expect(files).toContain("src/hooks/use-selection.ts")
-    expect(files).toContain("src/hooks/use-controllable-state.ts")
+    // `table.tsx` imports state hooks and a feedback component from outside the concern; they must
+    // ship with the item, or a shadcn install resolves those imports to nothing.
+    expect(files).toContain("src/state/use-selection.ts")
+    expect(files).toContain("src/state/use-controllable-state.ts")
     expect(files).toContain("src/client/feedback/empty-state.tsx")
   })
 })
@@ -95,8 +95,8 @@ describe("codegen stays in lock-step with disk (cannot drift)", () => {
     expect(entry["layout/page"]).toBe("src/client/layout/page.tsx")
     expect(entry["data/data-table"]).toBe("src/client/data/data-table/index.ts")
     expect(entry["forms/text-field"]).toBe("src/client/forms/text-field.tsx")
-    expect(entry["hooks/use-disclosure"]).toBe("src/hooks/use-disclosure.ts")
-    expect(entry["hooks/use-clipboard"]).toBe("src/client/hooks/use-clipboard.ts")
+    expect(entry["state/use-disclosure"]).toBe("src/state/use-disclosure.ts")
+    expect(entry["clipboard/use-clipboard"]).toBe("src/client/clipboard/use-clipboard.ts")
   })
 
   it("ships no concern aggregate and no `client` aggregate", () => {

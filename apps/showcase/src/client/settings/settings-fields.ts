@@ -1,5 +1,5 @@
-// The option vocabularies the settings panels present — the select choices, the rows-per-page
-// bounds, and the device-local motion choices — in one server-safe place so a form control and its
+// The option vocabularies the settings panels present — the select choices and the rows-per-page
+// bounds — in one server-safe place so a form control and its
 // schema validate against the same set. Neutral: it names no host global.
 
 import {
@@ -41,26 +41,3 @@ const TIMEZONE_LABELS: Readonly<Record<SettingsTimezone, string>> = {
 export const TIMEZONE_OPTIONS: readonly SelectFieldOption[] = SETTINGS_TIMEZONE_VALUES.map(
   (value) => ({ value, label: TIMEZONE_LABELS[value] }),
 )
-
-/** A device-local motion choice — respect the OS or always reduce motion. */
-export type MotionPreference = "system" | "reduce"
-
-/** One motion choice with the copy the radio control renders. */
-export interface MotionOption {
-  readonly value: MotionPreference
-  readonly label: string
-  readonly description: string
-}
-
-/** The motion choices, in display order; `system` is the default and a first-class peer. */
-export const MOTION_OPTIONS: readonly MotionOption[] = [
-  {
-    value: "system",
-    label: "Match system",
-    description: "Follow your device's reduce-motion setting.",
-  },
-  { value: "reduce", label: "Reduced motion", description: "Minimize animation across the app." },
-]
-
-/** The accepted motion values, for the local-preference schema and its migration. */
-export const MOTION_VALUES = MOTION_OPTIONS.map((option) => option.value)

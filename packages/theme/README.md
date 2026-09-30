@@ -39,7 +39,7 @@ Components style against **semantic tokens**, never raw palette values. A token 
 The same names are exported as typed lists (`SEMANTIC_COLOR_ROLES`, `STATUS_TONES`, `STACKING_LAYERS`, …). Use `themeVar` for inline styles:
 
 ```ts
-import { themeVar } from "@plainworks/theme"
+import { themeVar } from "@plainworks/theme/tokens"
 
 themeVar("z-toast") // "var(--pw-z-toast)"
 ```
@@ -49,17 +49,17 @@ What you get by default:
 - **Accessible colors.** Every text pairing meets WCAG 2.2 AA (4.5:1), including the translucent text the shadcn atoms paint. Input borders and the focus ring meet 3:1, including the atoms' half-opacity `ring-ring/50` halo. This holds in light and dark mode, for all nine color schemes, and under `prefers-contrast: more`, which strengthens borders and secondary text.
 - **Safe base rules.** A bare `border` uses the `border` token, not the text color. The body uses the background, foreground, and sans font. Every `:focus-visible` element gets a visible outline. Base rules sit in the `base` cascade layer, so your own styles win. One rule is unlayered on purpose: under forced colors, focus falls back to a `CanvasText` outline, because the browser drops box-shadow rings. Tab panels and slider thumbs, which the atoms leave unmarked, also get the outline.
 - **shadcn names.** `--radius`, `--foreground`, and `--secondary` alias the plain tokens, so atoms that read these names directly get theme values.
-- **Reduced motion.** When the user prefers reduced motion, all durations become `0ms`.
+- **Reduced motion.** When the device prefers reduced motion, or the user picks `reduce` in your app, all durations become `0ms` and animation stops. `useDocumentMotion(motion)` from `@plainworks/theme/client` writes the app choice to `data-motion` on the root.
 - **Status needs more than color.** Status tones are readable, but pair them with text or an icon so color is never the only signal.
 
 ## What's inside
 
 | Concern | Entry | Notes |
 | --- | --- | --- |
-| Token contract | `@plainworks/theme` | Typed token lists and `themeVar`. |
-| 9 color schemes + dark mode | `@plainworks/theme` | `COLOR_SCHEMES`; swapped by class, no JS. |
-| resolve → hydrate runtime | `@plainworks/theme` (neutral) + `@plainworks/theme/client` | `resolveTheme` / `parseThemeCookie` run anywhere; `ThemeProvider` / `useTheme` are `"use client"`. |
-| `cn` class merger | `@plainworks/theme` | `clsx` + `tailwind-merge`. |
+| `cn` class merger, `ThemeError` | `@plainworks/theme` | The prelude: `clsx` + `tailwind-merge`, and the typed theme error. |
+| Token contract | `@plainworks/theme/tokens` | Typed token lists (`DENSITIES`, `STATUS_TONES`, …) and `themeVar`. |
+| Preferences | `@plainworks/theme/preference` | `COLOR_SCHEMES`, `resolveTheme`, `parseThemeCookie`, and `MOTION_PREFERENCES`. Run anywhere. |
+| Client runtime | `@plainworks/theme/client` | `ThemeProvider`, `useTheme`, and `useDocumentMotion`, all `"use client"`. |
 | Stylesheets | `@plainworks/theme/styles.css`, `@plainworks/theme/tokens.css` | Tailwind entry, or plain CSS tokens for any host. |
 
 ## SSR-safe theming
@@ -67,7 +67,7 @@ What you get by default:
 Resolve the `<html>` class on the server, then own the source on the client:
 
 ```tsx
-import { parseThemeCookie, resolveTheme } from "@plainworks/theme"
+import { parseThemeCookie, resolveTheme } from "@plainworks/theme/preference"
 import { ThemeProvider } from "@plainworks/theme/client"
 
 const preference = parseThemeCookie(request.headers.get("cookie") ?? "")
@@ -81,4 +81,4 @@ const { htmlClass } = resolveTheme(preference)
 
 **System mode needs no OS signal on the server.** It adds no mode class, and the stylesheet follows `prefers-color-scheme` itself. A dark-OS visitor gets a dark first paint, the class never changes at hydration, and no inline script is needed, so a strict CSP still works. `useTheme().resolvedMode` still reports the mode the OS resolved to.
 
-The neutral `.` entry is DOM-free (portability gate), so it runs on the server, edge, RSC, and React Native; the provider is the only DOM-touching surface and lives behind `./client`.
+The neutral entries (`.`, `./tokens`, `./preference`) are DOM-free (portability gate), so it runs on the server, edge, RSC, and React Native; the provider is the only DOM-touching surface and lives behind `./client`.

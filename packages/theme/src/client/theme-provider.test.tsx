@@ -6,7 +6,7 @@ import { act, cleanup, render, renderHook, screen, waitFor } from "@testing-libr
 import userEvent from "@testing-library/user-event"
 import type { ReactElement, ReactNode } from "react"
 import { afterEach, describe, expect, it } from "vitest"
-import type { ThemePreference } from "../theme"
+import type { ThemePreference } from "../preference"
 import { ThemeProvider, useTheme } from "./theme-provider"
 
 afterEach(cleanup)

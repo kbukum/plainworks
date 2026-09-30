@@ -4,7 +4,9 @@ import { describe, expect, it } from "vitest"
 
 // The locked shadcn atoms reference a few shadcn variable names directly in arbitrary values (for
 // example `rounded-[calc(var(--radius)-3px)]`). Those names must come from the theme, or the
-// declaration silently falls back to nothing. Variables an atom sets itself are exempt.
+// declaration silently falls back to nothing. Variables an atom sets itself are exempt, and so are
+// the ones a Base UI primitive writes inline at runtime (the toast's stacking and swipe state).
+const PRIMITIVE_RUNTIME = /^--toast-/
 const shadcnDir = new URL("./shadcn/", import.meta.url)
 const themeCss = ["styles.css", "tokens.css"]
   .map((file) =>
@@ -20,7 +22,8 @@ function referencedVariables(): Map<string, string> {
       [...source.matchAll(/(?:"|\[)(--[a-z0-9-]+)(?:"|:)/g)].map(([, name]) => name),
     )
     for (const [, name] of source.matchAll(/var\((--[a-z0-9-]+)/g)) {
-      if (name !== undefined && !local.has(name)) found.set(name, file)
+      if (name !== undefined && !local.has(name) && !PRIMITIVE_RUNTIME.test(name))
+        found.set(name, file)
     }
   }
   return found

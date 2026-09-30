@@ -40,9 +40,25 @@ Tokens, color schemes, and the stylesheet are owned by [`@plainworks/theme`](../
 | Folder | What lives there | Who edits it |
 |---|---|---|
 | `src/shadcn/` | **Vendored** atoms, exactly as the shadcn CLI produces them, **locked** by `shadcn.lock.json`. | Only the pipeline. |
-| `src/atoms/` | Primitives we write ourselves (today, the theme-aware `sonner` Toaster). | Us, under the full lint and type rules. |
+| `src/atoms/` | Primitives we write ourselves, for a need upstream doesn't cover (today, `number-field` on Base UI NumberField). | Us, under the full lint and type rules. |
 
 Both publish under the same `@plainworks/elements/<name>` subpath, and a name may live in only one folder.
+
+## Not vendored, and why
+
+Every upstream atom we don't vendor has a recorded decision, so "not needed yet" never reads as "rejected".
+
+| Upstream atom | Decision |
+|---|---|
+| `sonner` | **Skip.** The vendored `toast` (Base UI) does the same job without a third-party dependency; `@plainworks/ui/feedback/toast` hosts it. |
+| `combobox` | **Vendor when the first searchable picker lands.** Don't build one from `command` + `popover`. |
+| `sidebar` | **Skip.** The `ui` `AppShell` and `Drawer` cover it with less surface. |
+| `drawer` (vaul) | **Skip.** The `ui` `Drawer` is built on `sheet`; add vaul only for a real bottom-sheet need. |
+| `chart` | **Skip.** It pulls in a heavy charting dependency; the `ui` `Sparkline` covers small trends with no dependency. |
+| `form` | **Skip.** `@plainworks/ui/forms` owns form state. |
+| `resizable`, `carousel` | **Skip** until a consumer needs them. |
+| `direction` | **Revisit** with an RTL story; the kit has none today. |
+| Chat set (`message`, `bubble`, `attachment`, `message-scroller`, `marker`, `questionnaire`) | **Vendor together** when the kit adds AI UI. Treat all rendered model output as untrusted. |
 
 ## The ingestion pipeline
 

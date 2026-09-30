@@ -118,7 +118,7 @@ The map has a single source of truth: [`../internal/boundaries/layers.json`](../
 
 ## Vendored atoms
 
-`@plainworks/elements` has two folders. **`src/shadcn/`** holds **vendored** atoms: exact shadcn CLI output plus only the compat transform (`cn` from `@plainworks/theme`, `"use client"`) and Biome safe fixes. They are **locked** by `shadcn.lock.json` (CLI version, style, per-atom hash). **`src/atoms/`** holds primitives we write and own (today, the `sonner` Toaster). A name lives in only one folder.
+`@plainworks/elements` has two folders. **`src/shadcn/`** holds **vendored** atoms: exact shadcn CLI output plus only the compat transform (`cn` from `@plainworks/theme`, `"use client"`) and Biome safe fixes. They are **locked** by `shadcn.lock.json` (CLI version, style, per-atom hash). **`src/atoms/`** holds primitives we write and own (today, `number-field`). A name lives in only one folder.
 
 - **Never hand-edit `src/shadcn/**` or `shadcn.lock.json`.** Change an atom only with `registry:update <atom>` (or `registry:add`), which relocks it and reruns `registry:codegen`. `registry:validate` and the lock test fail on a hand edit, an unlocked atom, or a stale entry.
 - **Never re-add a variant upstream doesn't ship** (a tone, size, or state). Follow the **deviation ladder** and stop at the lowest rung that fixes it:

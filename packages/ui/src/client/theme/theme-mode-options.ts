@@ -1,4 +1,4 @@
-import type { ThemeMode } from "@plainworks/theme"
+import type { ThemeMode } from "@plainworks/theme/preference"
 import type { ReactNode } from "react"
 
 /** Every user-facing string of the color-mode controls, injected so they ship no fixed copy. */

@@ -3,12 +3,11 @@
 import type { RevenueChartData } from "@plainworks/demo"
 import { DateValue } from "@plainworks/ui/display/date-value"
 import { NumberValue } from "@plainworks/ui/display/number-value"
+import { Sparkline } from "@plainworks/ui/display/sparkline"
 import type { ReactElement } from "react"
 import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../app/constants"
 import { GrowthBadge } from "./growth-badge"
 
-const VIEW_WIDTH = 100
-const VIEW_HEIGHT = 30
 const CURRENCY = { style: "currency", currency: "USD", maximumFractionDigits: 0 } as const
 
 /** The smallest 1, 2, 2.5, 5, or 10 multiple of a power of ten at or above `value`. */
@@ -29,18 +28,6 @@ export function revenueTicks(max: number): readonly [number, number, number] {
   return [0, step, step * 2]
 }
 
-/** Project the series onto the SVG viewBox against a zero-to-`top` scale. */
-function toPolyline(points: readonly number[], top: number): string {
-  const step = points.length > 1 ? VIEW_WIDTH / (points.length - 1) : 0
-  return points
-    .map((value, index) => {
-      const x = index * step
-      const y = VIEW_HEIGHT - (value / top) * VIEW_HEIGHT
-      return `${x.toFixed(2)},${y.toFixed(2)}`
-    })
-    .join(" ")
-}
-
 /** Props for {@link TrendVisual}. */
 export interface TrendVisualProps {
   /** The validated revenue series plus its summary total and growth. */
@@ -48,17 +35,15 @@ export interface TrendVisualProps {
 }
 
 /**
- * An accessible revenue chart: a line against a zero baseline with labelled value gridlines and the
- * first and last day under it. The drawing and its axis labels are hidden from assistive tech; the
- * data is exposed as a visually hidden table instead, and the summary states the total and signed
- * change in words, so nothing rests on color or shape alone. It draws statically, so there is no
- * motion to reconcile with `prefers-reduced-motion`.
+ * An accessible revenue chart: the kit `Sparkline` against a zero baseline with labelled value
+ * gridlines and the first and last day under it. The drawing and its axis labels are hidden from
+ * assistive tech; the data is exposed as a visually hidden table instead, and the summary states
+ * the total and signed change in words, so nothing rests on color or shape alone. It draws
+ * statically, so there is no motion to reconcile with `prefers-reduced-motion`.
  */
 export function TrendVisual({ revenue }: TrendVisualProps): ReactElement {
   const values = revenue.data.map((point) => point.value)
   const ticks = revenueTicks(Math.max(0, ...values))
-  const top = ticks[2]
-  const polyline = toPolyline(values, top)
   const firstPoint = revenue.data[0]
   const lastPoint = revenue.data.at(-1)
 
@@ -85,35 +70,7 @@ export function TrendVisual({ revenue }: TrendVisualProps): ReactElement {
             </span>
           ))}
         </div>
-        <svg
-          aria-hidden
-          focusable="false"
-          viewBox={`0 0 ${VIEW_WIDTH} ${VIEW_HEIGHT}`}
-          preserveAspectRatio="none"
-          className="h-40 w-full overflow-visible"
-        >
-          {[0, VIEW_HEIGHT / 2, VIEW_HEIGHT].map((y) => (
-            <line
-              key={y}
-              x1={0}
-              x2={VIEW_WIDTH}
-              y1={y}
-              y2={y}
-              className="stroke-border"
-              strokeWidth={1}
-              vectorEffect="non-scaling-stroke"
-            />
-          ))}
-          <polyline
-            points={polyline}
-            fill="none"
-            className="stroke-primary"
-            strokeWidth={2}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            vectorEffect="non-scaling-stroke"
-          />
-        </svg>
+        <Sparkline values={values} max={ticks[2]} gridlines={ticks} className="h-40" />
         {firstPoint === undefined || lastPoint === undefined ? null : (
           <div data-testid="trend-time-axis" className="col-start-2 flex justify-between pt-1">
             <DateValue

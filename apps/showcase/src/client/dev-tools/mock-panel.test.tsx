@@ -98,7 +98,7 @@ describe("MockPanel", () => {
         expect(state.data.globalError).toBe(true)
       })
 
-      const latency = screen.getByRole("spinbutton", { name: "Latency in milliseconds" })
+      const latency = screen.getByRole("textbox", { name: "Latency in milliseconds" })
       await user.clear(latency)
       await user.type(latency, "40")
       await user.click(screen.getByRole("button", { name: "Apply latency" }))
@@ -128,7 +128,7 @@ describe("MockPanel", () => {
     const { session, port } = setup(client)
     try {
       render(<Harness port={port} />)
-      const latency = screen.getByRole("spinbutton", { name: "Latency in milliseconds" })
+      const latency = screen.getByRole("textbox", { name: "Latency in milliseconds" })
       await waitFor(() => expect((latency as HTMLInputElement).value).toBe("120"))
       await user.clear(latency)
       await user.click(screen.getByRole("button", { name: "Apply latency" }))
@@ -150,7 +150,7 @@ describe("MockPanel", () => {
 
       const errorSwitch = await screen.findByRole("switch", { name: "Simulate API errors" })
       await waitFor(() => expect(errorSwitch.getAttribute("aria-checked")).toBe("true"))
-      const latency = screen.getByRole("spinbutton", { name: "Latency in milliseconds" })
+      const latency = screen.getByRole("textbox", { name: "Latency in milliseconds" })
       await waitFor(() => expect((latency as HTMLInputElement).value).toBe("120"))
     } finally {
       session.dispose()

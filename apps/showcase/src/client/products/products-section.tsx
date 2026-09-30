@@ -2,17 +2,21 @@
 
 import { useHttpClient } from "@plainworks/http/client"
 import { asyncStatus } from "@plainworks/ui"
+import { FacetPanel } from "@plainworks/ui/data/facet-panel"
+import { ListLayout } from "@plainworks/ui/data/list-layout"
+import { ListSearch } from "@plainworks/ui/data/list-search"
 import { Pagination } from "@plainworks/ui/data/pagination"
+import { RangeFilter } from "@plainworks/ui/data/range-filter"
+import { useListQueryState } from "@plainworks/ui/data/use-list-query-state"
 import { AsyncState } from "@plainworks/ui/feedback/async-state"
 import { EmptyState } from "@plainworks/ui/feedback/empty-state"
 import { ErrorState } from "@plainworks/ui/feedback/error-state"
 import { LoadingState } from "@plainworks/ui/feedback/loading-state"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { SlidersHorizontal } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import { PRODUCT_LIST_PARAMS } from "../../app/constants"
 import { productList } from "../../app/lists"
-import { CatalogLayout, FacetPanel, ListSearch, useCatalogList } from "../catalog"
-import { PriceRange } from "./price-range"
 import { ProductCard } from "./product-card"
 import { ProductDetail } from "./product-detail"
 import { PRODUCT_CATEGORY_OPTIONS, PRODUCT_STATUS_OPTIONS } from "./product-fields"
@@ -29,7 +33,7 @@ const PAGE_SIZE = PRODUCT_LIST_PARAMS.pageSize ?? 12
  */
 export function ProductsSection(): ReactElement {
   const httpClient = useHttpClient()
-  const list = useCatalogList({
+  const list = useListQueryState({
     pageSize: PAGE_SIZE,
     ...(PRODUCT_LIST_PARAMS.sortBy !== undefined ? { sortBy: PRODUCT_LIST_PARAMS.sortBy } : {}),
     ...(PRODUCT_LIST_PARAMS.order !== undefined ? { order: PRODUCT_LIST_PARAMS.order } : {}),
@@ -45,21 +49,21 @@ export function ProductsSection(): ReactElement {
 
   return (
     <>
-      <CatalogLayout
-        filtersLabel="Product filters"
+      <ListLayout
+        labels={{ filters: "Product filters" }}
+        filtersIcon={<SlidersHorizontal aria-hidden />}
         activeFilters={list.filters.length}
         search={
           <ListSearch
-            label="Search products"
+            labels={{ label: "Search products", placeholder: "Product name" }}
             value={list.search}
             onChange={list.setSearch}
-            placeholder="Product name"
           />
         }
         filters={
           <>
             <FacetPanel
-              label="Filter by category and status"
+              labels={{ region: "Filter by category and status" }}
               fields={[
                 { field: "category", label: "Category", options: PRODUCT_CATEGORY_OPTIONS },
                 { field: "status", label: "Status", options: PRODUCT_STATUS_OPTIONS },
@@ -68,7 +72,12 @@ export function ProductsSection(): ReactElement {
               value={list.filters}
               onChange={list.setFilters}
             />
-            <PriceRange value={list.filters} onChange={list.setFilters} />
+            <RangeFilter
+              field="price"
+              labels={{ legend: "Price" }}
+              value={list.filters}
+              onChange={list.setFilters}
+            />
           </>
         }
       >
@@ -111,7 +120,7 @@ export function ProductsSection(): ReactElement {
             onPageChange={list.setPage}
           />
         </AsyncState>
-      </CatalogLayout>
+      </ListLayout>
       <ProductDetail
         product={selected}
         onOpenChange={(open) => {

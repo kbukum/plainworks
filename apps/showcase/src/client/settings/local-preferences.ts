@@ -2,9 +2,12 @@
 
 import { createScopedObject } from "@plainworks/state/client"
 import { persistentScope } from "@plainworks/state/web-storage"
-import { isOneOf } from "@plainworks/std"
 import type { StandardSchemaV1 } from "@plainworks/std/seam"
-import { MOTION_VALUES, type MotionPreference } from "./settings-fields"
+import {
+  DEFAULT_MOTION,
+  isMotionPreference,
+  type MotionPreference,
+} from "@plainworks/theme/preference"
 
 // The one genuinely device-local UI preference the hub owns: how much motion to show. Unlike the
 // account settings (which live on the server), this belongs to the browser it was chosen in, so it
@@ -17,7 +20,7 @@ const motionSchema: StandardSchemaV1<unknown, MotionPreference> = {
     version: 1,
     vendor: "showcase",
     validate: (value) =>
-      isOneOf(value, MOTION_VALUES)
+      isMotionPreference(value)
         ? { value }
         : { issues: [{ message: "unknown motion preference" }] },
   },
@@ -36,7 +39,7 @@ export function migrateMotionPreference(oldValue: unknown): MotionPreference {
   if (oldValue === "full") {
     return "system"
   }
-  if (isOneOf(oldValue, MOTION_VALUES)) {
+  if (isMotionPreference(oldValue)) {
     return oldValue
   }
   throw new Error("Unmigratable motion preference.")
@@ -56,7 +59,7 @@ export const useLocalPreferences = createScopedObject<{ motion: MotionPreference
   fields: {
     motion: {
       scope: persistentScope,
-      initial: "system",
+      initial: DEFAULT_MOTION,
       key: "motion-preference",
       schema: motionSchema,
       versioning: { version: MOTION_PREFERENCE_VERSION, migrate: migrateMotionPreference },

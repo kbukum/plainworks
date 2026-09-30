@@ -48,10 +48,10 @@ const LAYERS = Object.fromEntries(
 // (L3) keeps the interwoven `forms`/`data` concerns as subpaths (not separate packages), so their
 // direction is governed here instead of by the package layers. The bands are:
 //
-//   0  foundation   hooks (neutral stately + DOM) · client hooks
-//   1  general      layout · feedback · overlays · display · navigation · theme
+//   0  foundation   state · region · actions · clipboard · keyboard · media
+//   1  general      layout · feedback · overlays · display · navigation · command
 //   2  composites   forms · shell
-//   3  data         data table · filter bar · pagination
+//   3  assemblies   data · theme
 //
 // A concern folder may import only a STRICTLY LOWER band; a same-band sibling import (baseline
 // rule A: "a concern folder never imports a sibling concern") and an upward import are both
@@ -61,23 +61,28 @@ const LAYERS = Object.fromEntries(
 // A concern folder absent from this table has no band; `unmappedUiConcernRules` below fails it
 // closed (it may import no other ui concern) so an unlisted folder never goes vacuously green.
 const UI_CONCERNS = {
-  hooks: { band: 0, dir: "hooks" },
+  state: { band: 0, dir: "state" },
   region: { band: 0, dir: "region" },
-  "client-hooks": { band: 0, dir: "client/hooks" },
+  actions: { band: 0, dir: "client/actions" },
+  clipboard: { band: 0, dir: "client/clipboard" },
+  keyboard: { band: 0, dir: "client/keyboard" },
+  media: { band: 0, dir: "client/media" },
   layout: { band: 1, dir: "client/layout" },
   feedback: { band: 1, dir: "client/feedback" },
   overlays: { band: 1, dir: "client/overlays" },
   display: { band: 1, dir: "client/display" },
   navigation: { band: 1, dir: "client/navigation" },
-  theme: { band: 1, dir: "client/theme" },
+  command: { band: 1, dir: "client/command" },
   forms: { band: 2, dir: "client/forms" },
   shell: { band: 2, dir: "client/shell" },
   data: { band: 3, dir: "client/data" },
+  // Theme controls compose forms (the motion radio group) and display (the preview chart).
+  theme: { band: 3, dir: "client/theme" },
 }
 
 // Directory segments of every classified concern, split by location so the fail-closed catch-all
 // below can name exactly the mapped folders. Neutral concerns sit directly under `src/` (e.g.
-// `hooks`); client concerns sit under `src/client/` (e.g. `layout`, `forms`).
+// `state`); client concerns sit under `src/client/` (e.g. `layout`, `forms`).
 const neutralConcernDirs = Object.values(UI_CONCERNS)
   .map(({ dir }) => dir)
   .filter((dir) => !dir.includes("/"))

@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   // Server project: the `.` entry must stay DOM-free. The client graph (`src/client.ts` +
   // `src/client/`) is excluded here and typechecked with DOM libs via `tsconfig.client.json`. The
-  // neutral tokens/theme/`cn` under `src` stay here so a host-only global on the `.` entry fails to
+  // neutral tokens, preferences, and `cn` under `src` stay here so a host-only global on the `.` entry fails to
   // compile (the portability gate).
   // Tests and the `src/testing/` stylesheet readers use Node and DOM APIs, so they are typechecked
   // by `tsconfig.test.json` instead of this DOM- and Node-free graph.

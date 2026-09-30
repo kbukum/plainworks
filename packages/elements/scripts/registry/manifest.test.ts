@@ -23,11 +23,11 @@ describe("dependency scan", () => {
       'import { Menu } from "@base-ui/react/menu"',
       'import { ChevronDown } from "lucide-react"',
       'import { Button } from "@/shadcn/button"',
-      'import { Toaster } from "@/atoms/sonner"',
+      'import { NumberField } from "@/atoms/number-field"',
     ].join("\n")
     expect(scanDependencies(source)).toEqual({
       dependencies: ["@base-ui/react", "lucide-react"],
-      registryDependencies: ["button", "sonner"],
+      registryDependencies: ["button", "number-field"],
     })
   })
 
@@ -54,7 +54,7 @@ describe("codegen stays in lock-step with disk (cannot drift)", () => {
     expect(entry.index).toBe("src/index.ts")
     for (const { name, path } of sources) expect(entry[name]).toBe(path)
     expect(entry.button).toBe("src/shadcn/button.tsx")
-    expect(entry.sonner).toBe("src/atoms/sonner.tsx")
+    expect(entry["number-field"]).toBe("src/atoms/number-field.tsx")
   })
 
   it("re-derives the committed src/registry.ts manifest exactly", () => {

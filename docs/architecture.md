@@ -127,7 +127,7 @@ flowchart TD
 
 Create a separate UI package only for a **leaf concern** that has heavy, independent dependencies and is not imported by another UI-family package. Keep interdependent concerns inside `ui` so the boundary gate can enforce one direction.
 
-Inside `ui`, concerns follow a second downward-only order: **foundation → general → forms → data**. `data` may use `forms`; `forms` may not import `data`. Shared pieces move to a lower concern instead of creating a back-edge. The boundary configuration enforces this order.
+Inside `ui`, concerns follow a second downward-only order: **foundation → general → composites → assemblies**. Foundation holds state and browser hooks (`state`, `keyboard`, `media`, …) and `actions`. General holds `layout`, `feedback`, `overlays`, `display`, `navigation`, and `command`. Composites are `forms` and `shell`, and assemblies are `data` and `theme`. `data` may use `forms`; `forms` may not import `data`. Shared pieces move to a lower concern instead of creating a back-edge. The boundary configuration enforces this order.
 
 ### Vendored atoms
 
@@ -136,7 +136,7 @@ Inside `ui`, concerns follow a second downward-only order: **foundation → gene
 | Folder | Holds | Changed by |
 |---|---|---|
 | `src/shadcn/` | **Vendored** atoms: exact shadcn CLI output plus the compat transform (`cn` from `theme`, `"use client"`) and Biome safe fixes. | Only `registry:update` / `registry:add`. |
-| `src/atoms/` | Primitives we write, such as the `sonner` Toaster. | Us, under the full lint and type rules. |
+| `src/atoms/` | Primitives we write where upstream has none, such as `number-field`. | Us, under the full lint and type rules. |
 
 `shadcn.lock.json` **locks** the vendored atoms: the CLI version, the style, and a hash per atom. `registry:validate` runs in CI and fails on a hand edit, an unlocked atom, or a stale entry. `registry:codegen` derives `registry.json`, package exports, and tsdown entries from the files on disk.
 

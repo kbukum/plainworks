@@ -1,7 +1,7 @@
 import type { Order } from "@plainworks/demo"
+import type { FacetOption } from "@plainworks/ui/data/facet-panel"
 import type { StatusTone } from "@plainworks/ui/display/status-badge"
 import { ORDER_STATUSES } from "../../app/order-shape"
-import type { FacetOption } from "../catalog"
 
 /** Human-readable label for each order status. */
 export const ORDER_STATUS_LABEL: Record<Order["status"], string> = {
@@ -22,7 +22,7 @@ export const ORDER_STATUS_TONE: Record<Order["status"], StatusTone> = {
 }
 
 /**
- * Status facet options — the same vocabulary, for the shared {@link FacetPanel} and the status
+ * Status facet options — the same vocabulary, for the kit `FacetPanel` and the status
  * select.
  */
 export const ORDER_STATUS_OPTIONS: readonly FacetOption[] = ORDER_STATUSES.map((status) => ({

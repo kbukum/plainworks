@@ -35,7 +35,7 @@ describe("TrendVisual", () => {
     const axis = screen.getByTestId("trend-value-axis")
     expect([...axis.children].map((tick) => tick.textContent)).toEqual(["$0", "$100", "$200"])
     const polyline = container.querySelector("polyline")
-    expect(polyline?.getAttribute("points")).toBe("0.00,15.00 100.00,7.50")
+    expect(polyline?.getAttribute("points")).toBe("0,15 100,7.5")
     await expectNoAxeViolations(container)
   })
 
@@ -59,7 +59,7 @@ describe("TrendVisual", () => {
         revenue={{ total: 100, growth: 0, data: [{ date: "2024-01-01", value: 100 }] }}
       />,
     )
-    expect(container.querySelector("polyline")?.getAttribute("points")).toBe("0.00,0.00")
+    expect(container.querySelector("polyline")?.getAttribute("points")).toBe("50,0")
     expect(screen.getByText(/no change over the period/)).toBeDefined()
   })
 })

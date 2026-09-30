@@ -55,6 +55,18 @@ describe("isolateStylesheet scoping", () => {
     expect(flat(isolateStylesheet(":root .x { color: red }", S))).toBe(`${S} .x { color: red }`)
   })
 
+  it("keeps a document-root condition on the root and scopes the descendants beneath the style root", () => {
+    expect(
+      flat(isolateStylesheet(':root[data-motion="reduce"] *::after { transition: none }', S)),
+    ).toBe(`:root[data-motion="reduce"] ${S} *::after { transition: none }`)
+    expect(flat(isolateStylesheet("html.dark > .x { color: red }", S))).toBe(
+      `html.dark ${S} > .x { color: red }`,
+    )
+    expect(flat(isolateStylesheet(':root[data-motion="reduce"] { --pw-a: 0ms }', S))).toBe(
+      `:root[data-motion="reduce"] ${S} { --pw-a: 0ms }`,
+    )
+  })
+
   it("scopes token-only rules as ancestor conditions so host modes cascade in", () => {
     expect(flat(isolateStylesheet(".dark { --pw-bg: black; color-scheme: dark }", S))).toBe(
       `.dark ${S} { --pw-bg: black; color-scheme: dark }`,

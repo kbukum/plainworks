@@ -7,13 +7,14 @@ import { PageHeader } from "@plainworks/ui/layout/page-header"
 import { Breadcrumbs } from "@plainworks/ui/navigation/breadcrumbs"
 import { AppShell } from "@plainworks/ui/shell/app-shell"
 import { ThemeModeMenu } from "@plainworks/ui/theme/theme-mode-menu"
+import { defaultThemeStudioLabels } from "@plainworks/ui/theme/theme-studio"
 import { Menu } from "lucide-react"
 import type { ReactElement } from "react"
 import { breadcrumbTrail, sectionForPath } from "../../app/navigation"
 import { CommandMenu } from "../command"
 import { NotificationsBell } from "../notifications/notifications-bell"
 import { routerLinkRender, useRouter } from "../router"
-import { THEME_ERROR_MESSAGE, THEME_MODE_ICONS } from "../theme-studio"
+import { THEME_MODE_ICONS } from "../theme-mode-icons"
 import { AccountMenu } from "./account-menu"
 import { SectionNav } from "./section-nav"
 import { SectionOutlet } from "./section-outlet"
@@ -72,7 +73,9 @@ export function ShowcaseShell(): ReactElement {
               }
             : {})}
         />
-        {error === undefined ? null : <Callout tone="danger">{THEME_ERROR_MESSAGE}</Callout>}
+        {error === undefined ? null : (
+          <Callout tone="danger">{defaultThemeStudioLabels.error}</Callout>
+        )}
         <SectionOutlet section={active} />
       </Page>
     </AppShell>

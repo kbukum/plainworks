@@ -184,17 +184,18 @@ test("the app kernel importing ui trips the ui-free rule", async () => {
 /**
  * `@plainworks/ui` (L3) keeps the interwoven `forms`/`data` concerns as internal subpaths rather
  * than separate packages, so their direction is enforced one band below the package layers: a
- * concern folder may import only a strictly lower band (`foundation → general → forms → data`), and
- * a sibling or upward concern import is rejected just like an upward package import. The rule is
- * fail-closed: it also blocks laundering an upward import through a top-level re-exporting module.
- * All three are proven from fixtures — `forms` (band 2) reaching UP into `data` (band 3) trips
- * `no-ui-upward-forms` and only it, the general sibling edge `layout → feedback` (both band 1)
- * trips `no-ui-upward-layout`, and a foundation `client-hooks` (band 0) reaching `data` THROUGH the
- * re-exporting module trips `no-ui-upward-client-hooks` — proving neither a sideways, an upward,
- * nor a via-barrel edge slips through. The legal counterpart is proven too: `data` (band 3)
- * importing the lower `forms` (band 2) is the sanctioned downward direction and trips nothing.
+ * concern folder may import only a strictly lower band
+ * (`foundation → general → composites → assemblies`), and a sibling or upward concern import is
+ * rejected just like an upward package import. The rule is fail-closed: it also blocks laundering
+ * an upward import through a top-level re-exporting module. All three are proven from fixtures —
+ * `forms` (band 2) reaching UP into `data` (band 3) trips `no-ui-upward-forms` and only it, the
+ * general sibling edge `layout → feedback` (both band 1) trips `no-ui-upward-layout`, and a
+ * foundation `keyboard` (band 0) reaching `data` THROUGH the re-exporting module trips
+ * `no-ui-upward-keyboard` — proving neither a sideways, an upward, nor a via-barrel edge slips
+ * through. The legal counterpart is proven too: `data` (band 3) importing the lower `forms` (band
+ * 2) is the sanctioned downward direction and trips nothing.
  */
-test("ui concern imports respect the internal foundation → general → forms → data order", async () => {
+test("ui concern imports respect the internal foundation → general → composites → assemblies order", async () => {
   const violations = await cruiseFixtures()
 
   const formsIntoData = violations.filter((v) =>
@@ -207,10 +208,10 @@ test("ui concern imports respect the internal foundation → general → forms �
   )
   expect(layoutIntoFeedback.map((v) => v.rule.name)).toEqual(["no-ui-upward-layout"])
 
-  const hooksViaBarrel = violations.filter((v) =>
-    v.from.endsWith("ui/src/client/hooks/uses-barrel.ts"),
+  const keyboardViaBarrel = violations.filter((v) =>
+    v.from.endsWith("ui/src/client/keyboard/uses-barrel.ts"),
   )
-  expect(hooksViaBarrel.map((v) => v.rule.name)).toEqual(["no-ui-upward-client-hooks"])
+  expect(keyboardViaBarrel.map((v) => v.rule.name)).toEqual(["no-ui-upward-keyboard"])
 
   // The legal counterpart: `data` (band 3) importing the strictly-lower `forms` (band 2) is the
   // sanctioned downward direction; no rule may flag it, mirroring the `auth -> std` package check.

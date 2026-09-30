@@ -14,8 +14,8 @@ import {
 } from "@plainworks/elements/table"
 import { cn } from "@plainworks/theme"
 import { Fragment, type ReactElement, useEffect, useId, useRef, useState } from "react"
-import { useControllableState } from "../../../hooks/use-controllable-state"
-import { useSelection } from "../../../hooks/use-selection"
+import { useControllableState } from "../../../state/use-controllable-state"
+import { useSelection } from "../../../state/use-selection"
 import { EmptyState } from "../../feedback/empty-state"
 import {
   type ColumnAlign,

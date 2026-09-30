@@ -1,6 +1,6 @@
 import type { Product } from "@plainworks/demo"
+import type { FacetOption } from "@plainworks/ui/data/facet-panel"
 import type { StatusTone } from "@plainworks/ui/display/status-badge"
-import type { FacetOption } from "../catalog"
 
 const CATALOG_PRODUCT_STATUSES = [
   "available",
@@ -37,12 +37,12 @@ export const PRODUCT_STATUS_TONE: Record<Product["status"], StatusTone> = {
   archived: "neutral",
 }
 
-/** Category facet options for the shared {@link FacetPanel}. */
+/** Category facet options for the kit `FacetPanel`. */
 export const PRODUCT_CATEGORY_OPTIONS: readonly FacetOption[] = PRODUCT_CATEGORIES.map(
   (category) => ({ value: category, label: category }),
 )
 
-/** Status facet options for the shared {@link FacetPanel}. */
+/** Status facet options for the kit `FacetPanel`. */
 export const PRODUCT_STATUS_OPTIONS: readonly FacetOption[] = CATALOG_PRODUCT_STATUSES.map(
   (status) => ({
     value: status,

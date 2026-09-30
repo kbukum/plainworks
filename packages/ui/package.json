@@ -39,40 +39,45 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./hooks/use-controllable-state": {
-      "@plainworks/source": "./src/hooks/use-controllable-state.ts",
-      "types": "./dist/hooks/use-controllable-state.d.ts",
-      "default": "./dist/hooks/use-controllable-state.js"
+    "./state/use-controllable-state": {
+      "@plainworks/source": "./src/state/use-controllable-state.ts",
+      "types": "./dist/state/use-controllable-state.d.ts",
+      "default": "./dist/state/use-controllable-state.js"
     },
-    "./hooks/use-disclosure": {
-      "@plainworks/source": "./src/hooks/use-disclosure.ts",
-      "types": "./dist/hooks/use-disclosure.d.ts",
-      "default": "./dist/hooks/use-disclosure.js"
+    "./state/use-disclosure": {
+      "@plainworks/source": "./src/state/use-disclosure.ts",
+      "types": "./dist/state/use-disclosure.d.ts",
+      "default": "./dist/state/use-disclosure.js"
     },
-    "./hooks/use-list-state": {
-      "@plainworks/source": "./src/hooks/use-list-state.ts",
-      "types": "./dist/hooks/use-list-state.d.ts",
-      "default": "./dist/hooks/use-list-state.js"
+    "./state/use-list-state": {
+      "@plainworks/source": "./src/state/use-list-state.ts",
+      "types": "./dist/state/use-list-state.d.ts",
+      "default": "./dist/state/use-list-state.js"
     },
-    "./hooks/use-selection": {
-      "@plainworks/source": "./src/hooks/use-selection.ts",
-      "types": "./dist/hooks/use-selection.d.ts",
-      "default": "./dist/hooks/use-selection.js"
+    "./state/use-selection": {
+      "@plainworks/source": "./src/state/use-selection.ts",
+      "types": "./dist/state/use-selection.d.ts",
+      "default": "./dist/state/use-selection.js"
     },
-    "./hooks/use-clipboard": {
-      "@plainworks/source": "./src/client/hooks/use-clipboard.ts",
-      "types": "./dist/hooks/use-clipboard.d.ts",
-      "default": "./dist/hooks/use-clipboard.js"
+    "./clipboard/use-clipboard": {
+      "@plainworks/source": "./src/client/clipboard/use-clipboard.ts",
+      "types": "./dist/clipboard/use-clipboard.d.ts",
+      "default": "./dist/clipboard/use-clipboard.js"
     },
-    "./hooks/use-keyboard-shortcuts": {
-      "@plainworks/source": "./src/client/hooks/use-keyboard-shortcuts.ts",
-      "types": "./dist/hooks/use-keyboard-shortcuts.d.ts",
-      "default": "./dist/hooks/use-keyboard-shortcuts.js"
+    "./keyboard/use-keyboard-shortcuts": {
+      "@plainworks/source": "./src/client/keyboard/use-keyboard-shortcuts.ts",
+      "types": "./dist/keyboard/use-keyboard-shortcuts.d.ts",
+      "default": "./dist/keyboard/use-keyboard-shortcuts.js"
     },
-    "./hooks/use-media-query": {
-      "@plainworks/source": "./src/client/hooks/use-media-query.ts",
-      "types": "./dist/hooks/use-media-query.d.ts",
-      "default": "./dist/hooks/use-media-query.js"
+    "./media/use-media-query": {
+      "@plainworks/source": "./src/client/media/use-media-query.ts",
+      "types": "./dist/media/use-media-query.d.ts",
+      "default": "./dist/media/use-media-query.js"
+    },
+    "./actions/icon-button": {
+      "@plainworks/source": "./src/client/actions/icon-button.tsx",
+      "types": "./dist/actions/icon-button.d.ts",
+      "default": "./dist/actions/icon-button.js"
     },
     "./layout/stack": {
       "@plainworks/source": "./src/client/layout/stack.tsx",
@@ -139,6 +144,11 @@
       "types": "./dist/feedback/spinner.d.ts",
       "default": "./dist/feedback/spinner.js"
     },
+    "./feedback/toast": {
+      "@plainworks/source": "./src/client/feedback/toast.tsx",
+      "types": "./dist/feedback/toast.d.ts",
+      "default": "./dist/feedback/toast.js"
+    },
     "./overlays/drawer": {
       "@plainworks/source": "./src/client/overlays/drawer.tsx",
       "types": "./dist/overlays/drawer.d.ts",
@@ -164,6 +174,21 @@
       "types": "./dist/display/status-badge.d.ts",
       "default": "./dist/display/status-badge.js"
     },
+    "./display/description-list": {
+      "@plainworks/source": "./src/client/display/description-list.tsx",
+      "types": "./dist/display/description-list.d.ts",
+      "default": "./dist/display/description-list.js"
+    },
+    "./display/metric-card": {
+      "@plainworks/source": "./src/client/display/metric-card.tsx",
+      "types": "./dist/display/metric-card.d.ts",
+      "default": "./dist/display/metric-card.js"
+    },
+    "./display/sparkline": {
+      "@plainworks/source": "./src/client/display/sparkline.tsx",
+      "types": "./dist/display/sparkline.d.ts",
+      "default": "./dist/display/sparkline.js"
+    },
     "./navigation/breadcrumbs": {
       "@plainworks/source": "./src/client/navigation/breadcrumbs.tsx",
       "types": "./dist/navigation/breadcrumbs.d.ts",
@@ -173,6 +198,11 @@
       "@plainworks/source": "./src/client/navigation/nav-list.tsx",
       "types": "./dist/navigation/nav-list.d.ts",
       "default": "./dist/navigation/nav-list.js"
+    },
+    "./command/command-palette": {
+      "@plainworks/source": "./src/client/command/command-palette.tsx",
+      "types": "./dist/command/command-palette.d.ts",
+      "default": "./dist/command/command-palette.js"
     },
     "./theme/theme-mode-group": {
       "@plainworks/source": "./src/client/theme/theme-mode-group.tsx",
@@ -188,6 +218,26 @@
       "@plainworks/source": "./src/client/theme/theme-mode-options.ts",
       "types": "./dist/theme/theme-mode-options.d.ts",
       "default": "./dist/theme/theme-mode-options.js"
+    },
+    "./theme/accent-picker": {
+      "@plainworks/source": "./src/client/theme/accent-picker.tsx",
+      "types": "./dist/theme/accent-picker.d.ts",
+      "default": "./dist/theme/accent-picker.js"
+    },
+    "./theme/motion-control": {
+      "@plainworks/source": "./src/client/theme/motion-control.tsx",
+      "types": "./dist/theme/motion-control.d.ts",
+      "default": "./dist/theme/motion-control.js"
+    },
+    "./theme/theme-preview": {
+      "@plainworks/source": "./src/client/theme/theme-preview.tsx",
+      "types": "./dist/theme/theme-preview.d.ts",
+      "default": "./dist/theme/theme-preview.js"
+    },
+    "./theme/theme-studio": {
+      "@plainworks/source": "./src/client/theme/theme-studio.tsx",
+      "types": "./dist/theme/theme-studio.d.ts",
+      "default": "./dist/theme/theme-studio.js"
     },
     "./forms/form": {
       "@plainworks/source": "./src/client/forms/form.tsx",
@@ -249,10 +299,20 @@
       "types": "./dist/forms/switch-field.d.ts",
       "default": "./dist/forms/switch-field.js"
     },
+    "./forms/radio-group-field": {
+      "@plainworks/source": "./src/client/forms/radio-group-field.tsx",
+      "types": "./dist/forms/radio-group-field.d.ts",
+      "default": "./dist/forms/radio-group-field.js"
+    },
     "./shell/app-shell": {
       "@plainworks/source": "./src/client/shell/app-shell.tsx",
       "types": "./dist/shell/app-shell.d.ts",
       "default": "./dist/shell/app-shell.js"
+    },
+    "./shell/account-menu": {
+      "@plainworks/source": "./src/client/shell/account-menu.tsx",
+      "types": "./dist/shell/account-menu.d.ts",
+      "default": "./dist/shell/account-menu.js"
     },
     "./data/data-table": {
       "@plainworks/source": "./src/client/data/data-table/index.ts",
@@ -278,6 +338,31 @@
       "@plainworks/source": "./src/client/data/pagination-range.ts",
       "types": "./dist/data/pagination-range.d.ts",
       "default": "./dist/data/pagination-range.js"
+    },
+    "./data/facet-panel": {
+      "@plainworks/source": "./src/client/data/facet-panel.tsx",
+      "types": "./dist/data/facet-panel.d.ts",
+      "default": "./dist/data/facet-panel.js"
+    },
+    "./data/list-layout": {
+      "@plainworks/source": "./src/client/data/list-layout.tsx",
+      "types": "./dist/data/list-layout.d.ts",
+      "default": "./dist/data/list-layout.js"
+    },
+    "./data/list-search": {
+      "@plainworks/source": "./src/client/data/list-search.tsx",
+      "types": "./dist/data/list-search.d.ts",
+      "default": "./dist/data/list-search.js"
+    },
+    "./data/range-filter": {
+      "@plainworks/source": "./src/client/data/range-filter.tsx",
+      "types": "./dist/data/range-filter.d.ts",
+      "default": "./dist/data/range-filter.js"
+    },
+    "./data/use-list-query-state": {
+      "@plainworks/source": "./src/client/data/use-list-query-state.ts",
+      "types": "./dist/data/use-list-query-state.d.ts",
+      "default": "./dist/data/use-list-query-state.js"
     },
     "./styles.css": "./dist/styles.css"
   },

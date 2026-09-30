@@ -1,7 +1,7 @@
 import type { User } from "@plainworks/demo"
+import type { FacetOption } from "@plainworks/ui/data/facet-panel"
 import type { StatusTone } from "@plainworks/ui/display/status-badge"
 import { USER_DEPARTMENTS, USER_ROLES, USER_STATUSES } from "../../app/user-shape"
-import type { FacetOption } from "../catalog"
 
 /** Human-readable label for each role. */
 export const USER_ROLE_LABEL: Record<User["role"], string> = {
@@ -28,19 +28,19 @@ export const USER_STATUS_TONE: Record<User["status"], StatusTone> = {
   suspended: "danger",
 }
 
-/** Role facet options for the shared {@link FacetPanel}. */
+/** Role facet options for the kit `FacetPanel`. */
 export const USER_ROLE_OPTIONS: readonly FacetOption[] = USER_ROLES.map((role) => ({
   value: role,
   label: USER_ROLE_LABEL[role],
 }))
 
-/** Status facet options for the shared {@link FacetPanel}. */
+/** Status facet options for the kit `FacetPanel`. */
 export const USER_STATUS_OPTIONS: readonly FacetOption[] = USER_STATUSES.map((status) => ({
   value: status,
   label: USER_STATUS_LABEL[status],
 }))
 
-/** Department facet options for the shared {@link FacetPanel}. */
+/** Department facet options for the kit `FacetPanel`. */
 export const USER_DEPARTMENT_OPTIONS: readonly FacetOption[] = USER_DEPARTMENTS.map(
   (department) => ({ value: department, label: department }),
 )

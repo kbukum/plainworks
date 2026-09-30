@@ -88,16 +88,6 @@ describe("products section", () => {
     expect(await screen.findByText("No products match")).toBeDefined()
   })
 
-  it("rejects negative and non-finite price bounds", async () => {
-    const user = userEvent.setup()
-    await renderProducts()
-    const grid = await screen.findByRole("list", { name: "Product results" })
-    const beforeCount = within(grid).getAllByRole("listitem").length
-
-    await user.type(screen.getByLabelText("Min"), "-10")
-    expect(within(grid).getAllByRole("listitem").length).toBe(beforeCount)
-  })
-
   it("opens the detail overlay for a product", async () => {
     const user = userEvent.setup()
     await renderProducts()

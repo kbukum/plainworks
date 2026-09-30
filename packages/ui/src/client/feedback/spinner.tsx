@@ -1,5 +1,6 @@
 "use client"
 
+import { Spinner as SpinnerAtom } from "@plainworks/elements/spinner"
 import { cn } from "@plainworks/theme"
 import type { ReactElement } from "react"
 
@@ -15,36 +16,20 @@ export interface SpinnerProps {
 const SIZE_CLASS = { sm: "size-4", md: "size-6", lg: "size-8" } as const
 
 /**
- * A busy indicator with an accessible `status` role and an `sr-only` label. The SVG is
- * `aria-hidden` so only the label is announced; the theme stops its animation under
- * `prefers-reduced-motion`.
+ * A busy indicator with an accessible `status` role and an `sr-only` label. The visual is the
+ * vendored spinner atom, hidden from assistive tech so only the label is announced; the theme stops
+ * its animation under reduced motion.
  */
 export function Spinner({ label = "Loading", size = "md", className }: SpinnerProps): ReactElement {
   return (
     <span role="status" className={cn("inline-flex items-center align-middle", className)}>
-      <svg
-        data-slot="spinner"
+      {/* The atom names itself "Loading"; the wrapper owns the name, so the visual is decorative. */}
+      <SpinnerAtom
+        role="none"
+        aria-label={undefined}
         aria-hidden="true"
-        viewBox="0 0 24 24"
-        className={cn("animate-spin text-muted-foreground", SIZE_CLASS[size])}
-      >
-        <circle
-          cx="12"
-          cy="12"
-          r="10"
-          fill="none"
-          stroke="currentColor"
-          strokeOpacity="0.25"
-          strokeWidth="4"
-        />
-        <path
-          d="M12 2a10 10 0 0 1 10 10"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="4"
-          strokeLinecap="round"
-        />
-      </svg>
+        className={cn("text-muted-foreground", SIZE_CLASS[size])}
+      />
       <span className="sr-only">{label}</span>
     </span>
   )

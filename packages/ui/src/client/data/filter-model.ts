@@ -110,15 +110,13 @@ export function parseListValues(raw: string): string[] {
     .filter((line) => line !== "")
 }
 
-// Coerce one editor string to the neutral scalar the list contract compares against: a finite
-// number for a numeric field, the raw string otherwise. An empty or non-numeric entry stays a
-// string so the filter still round-trips through the editor.
+// Coerce one editor string to the neutral scalar the list contract compares against: the raw
+// string for a text field, and a finite number for a numeric one. A numeric field never keeps text
+// the number editor cannot show: an empty or non-numeric entry becomes the empty draft `""`.
 function coerceScalar(raw: string, type: FilterFieldType | undefined): FilterValue {
-  if (type === "number" && raw.trim() !== "") {
-    const parsed = Number(raw)
-    if (Number.isFinite(parsed)) return parsed
-  }
-  return raw
+  if (type !== "number") return raw
+  const parsed = raw.trim() === "" ? Number.NaN : Number(raw)
+  return Number.isFinite(parsed) ? parsed : ""
 }
 
 // Resolve a `select` field's single value to a real option — a matching option's value, or its
@@ -146,7 +144,9 @@ export function buildFilter(def: FilterFieldDef, op: FilterOperator, raw: string
     return { field: def.field, op }
   }
   if (isListOperator(op)) {
-    const value = parseListValues(raw).map((part) => coerceScalar(part, def.type))
+    const value = parseListValues(raw)
+      .map((part) => coerceScalar(part, def.type))
+      .filter((part) => part !== "")
     return { field: def.field, op, value }
   }
   return { field: def.field, op, value: coerceSelectScalar(def, raw) }
@@ -159,4 +159,132 @@ export function filterToInputValue(filter: ListFilter): string {
     return encodeListValues(filter.value)
   }
   return String(filter.value)
+}
+
+/**
+ * The editor value a row carries across an operator change. A presence target takes no value, and
+ * a list operator switching to a scalar keeps only its first value, so a scalar builder is never
+ * fed the multi-line list text (which would emit `eq: "a\nb"`). Anything else carries through.
+ */
+export function carryFilterValue(filter: ListFilter, targetOp: FilterOperator): string {
+  if (isPresenceOperator(targetOp)) return ""
+  if (isListOperator(filter.op) && !isListOperator(targetOp)) {
+    return parseListValues(filterToInputValue(filter))[0] ?? ""
+  }
+  return filterToInputValue(filter)
+}
+
+/**
+ * `fields` with `field` first when it isn't defined, so a filter on an unknown field stays visible
+ * and editable instead of snapping to the first defined field.
+ */
+export function withFilterField(
+  fields: readonly FilterFieldDef[],
+  field: string,
+): readonly FilterFieldDef[] {
+  if (fields.some((candidate) => candidate.field === field)) return fields
+  return [{ field, label: field }, ...fields]
+}
+
+/**
+ * `operators` with `op` first when the field doesn't allow it (for example after the field
+ * changed), so the current operator is never silently dropped.
+ */
+export function withFilterOperator(
+  operators: readonly FilterOperator[],
+  op: FilterOperator,
+): readonly FilterOperator[] {
+  return operators.includes(op) ? operators : [op, ...operators]
+}
+
+/** Whether two filter sets hold the same filters, in the same order, with equal values. */
+export function filterSetsEqual(
+  left: readonly ListFilter[],
+  right: readonly ListFilter[],
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((filter, index) => {
+      const candidate = right[index]
+      if (
+        candidate === undefined ||
+        filter.field !== candidate.field ||
+        filter.op !== candidate.op
+      ) {
+        return false
+      }
+      if (!("value" in filter) || !("value" in candidate)) {
+        return !("value" in filter) && !("value" in candidate)
+      }
+      const filterValue = filter.value
+      const candidateValue = candidate.value
+      if (isFilterValueList(filterValue) || isFilterValueList(candidateValue)) {
+        return (
+          isFilterValueList(filterValue) &&
+          isFilterValueList(candidateValue) &&
+          filterValue.length === candidateValue.length &&
+          filterValue.every((item, valueIndex) => item === candidateValue[valueIndex])
+        )
+      }
+      return filterValue === candidateValue
+    })
+  )
+}
+
+function isFilterValueList(
+  value: FilterValue | readonly FilterValue[],
+): value is readonly FilterValue[] {
+  return Array.isArray(value)
+}
+
+/** The values selected for a facet `field`: its `in` filter's values, or none when unfiltered. */
+export function selectedFacetValues(
+  filters: readonly ListFilter[],
+  field: string,
+): readonly string[] {
+  const filter = filters.find((candidate) => candidate.field === field && candidate.op === "in")
+  if (filter === undefined || !("value" in filter) || !isFilterValueList(filter.value)) return []
+  return filter.value.map((value) => String(value))
+}
+
+/**
+ * `filters` with one facet value of `field` turned on or off. The field keeps a single `in` filter,
+ * which is dropped once no value is left; its other filters, such as range bounds, stay.
+ */
+export function toggleFacetValue(
+  filters: readonly ListFilter[],
+  field: string,
+  value: string,
+  on: boolean,
+): readonly ListFilter[] {
+  const current = selectedFacetValues(filters, field).filter((existing) => existing !== value)
+  const next = on ? [...current, value] : current
+  const others = filters.filter((filter) => !(filter.field === field && filter.op === "in"))
+  return next.length > 0 ? [...others, { field, op: "in", value: next }] : others
+}
+
+/** The two operators a numeric range filter writes: its lower and upper bound. */
+export type RangeBoundOperator = "gte" | "lte"
+
+/** The numeric bound set for `field` under `op`, or `null` when that side is open. */
+export function rangeBound(
+  filters: readonly ListFilter[],
+  field: string,
+  op: RangeBoundOperator,
+): number | null {
+  const filter = filters.find((candidate) => candidate.field === field && candidate.op === op)
+  return filter !== undefined && "value" in filter && typeof filter.value === "number"
+    ? filter.value
+    : null
+}
+
+/** `filters` with the `op` bound of `field` replaced by `value`, or removed when it is `null`. */
+export function withRangeBound(
+  filters: readonly ListFilter[],
+  field: string,
+  op: RangeBoundOperator,
+  value: number | null,
+): readonly ListFilter[] {
+  const without = filters.filter((filter) => !(filter.field === field && filter.op === op))
+  return value === null ? without : [...without, { field, op, value }]
 }

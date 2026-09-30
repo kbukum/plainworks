@@ -3,16 +3,20 @@
 import { useHttpClient } from "@plainworks/http/client"
 import { asyncStatus } from "@plainworks/ui"
 import { DataTable } from "@plainworks/ui/data/data-table"
+import { FacetPanel } from "@plainworks/ui/data/facet-panel"
+import { ListLayout } from "@plainworks/ui/data/list-layout"
+import { ListSearch } from "@plainworks/ui/data/list-search"
 import { Pagination } from "@plainworks/ui/data/pagination"
+import { useListQueryState } from "@plainworks/ui/data/use-list-query-state"
 import { AsyncState } from "@plainworks/ui/feedback/async-state"
 import { EmptyState } from "@plainworks/ui/feedback/empty-state"
 import { ErrorState } from "@plainworks/ui/feedback/error-state"
 import { LoadingState } from "@plainworks/ui/feedback/loading-state"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
+import { SlidersHorizontal } from "lucide-react"
 import { type ReactElement, useState } from "react"
 import { ORDER_LIST_PARAMS } from "../../app/constants"
 import { orderList } from "../../app/lists"
-import { CatalogLayout, FacetPanel, ListSearch, useCatalogList } from "../catalog"
 import { orderColumns } from "./order-columns"
 import { OrderDetail } from "./order-detail"
 import { ORDER_STATUS_OPTIONS } from "./order-fields"
@@ -29,7 +33,7 @@ const PAGE_SIZE = ORDER_LIST_PARAMS.pageSize ?? 8
  */
 export function OrdersSection(): ReactElement {
   const httpClient = useHttpClient()
-  const list = useCatalogList({
+  const list = useListQueryState({
     pageSize: PAGE_SIZE,
     ...(ORDER_LIST_PARAMS.sortBy !== undefined ? { sortBy: ORDER_LIST_PARAMS.sortBy } : {}),
     ...(ORDER_LIST_PARAMS.order !== undefined ? { order: ORDER_LIST_PARAMS.order } : {}),
@@ -45,20 +49,20 @@ export function OrdersSection(): ReactElement {
 
   return (
     <>
-      <CatalogLayout
-        filtersLabel="Order filters"
+      <ListLayout
+        labels={{ filters: "Order filters" }}
+        filtersIcon={<SlidersHorizontal aria-hidden />}
         activeFilters={list.filters.length}
         search={
           <ListSearch
-            label="Search orders"
+            labels={{ label: "Search orders", placeholder: "Customer name or email" }}
             value={list.search}
             onChange={list.setSearch}
-            placeholder="Customer name or email"
           />
         }
         filters={
           <FacetPanel
-            label="Filter by status"
+            labels={{ region: "Filter by status" }}
             fields={[{ field: "status", label: "Status", options: ORDER_STATUS_OPTIONS }]}
             facets={query.data?.facets}
             value={list.filters}
@@ -108,7 +112,7 @@ export function OrdersSection(): ReactElement {
             onPageChange={list.setPage}
           />
         </AsyncState>
-      </CatalogLayout>
+      </ListLayout>
       <OrderDetail
         order={selectedOrder ?? undefined}
         onOpenChange={(open) => {

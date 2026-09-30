@@ -9,7 +9,7 @@ export const createTaskFlow = defineFlow({
   covers: [
     "apps/showcase/e2e/flows/create-task.ts",
     "apps/showcase/src/client/tasks/**",
-    "apps/showcase/src/app/task-*.ts",
+    "apps/showcase/src/neutral/tasks/**",
     "packages/ui/src/client/{data-table,forms,overlays,list,feedback}/**",
   ],
   checkpoints: [

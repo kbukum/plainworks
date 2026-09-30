@@ -4,8 +4,8 @@ import { createHttpClient } from "@plainworks/http"
 import { createMockIdp } from "@plainworks/mocks/idp"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
-import { createShowcaseAuth, type ShowcaseAuth } from "../app/auth"
-import { THEME_COOKIE } from "../app/constants"
+import { createShowcaseAuth, type ShowcaseAuth } from "../neutral/auth"
+import { THEME_COOKIE } from "../neutral/constants"
 import { renderApp } from "./render"
 
 // The SSR render proven the way a consumer assembles the kit: the composition kernel resolves the

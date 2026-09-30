@@ -1,5 +1,5 @@
 import type { ReactElement } from "react"
-import { SignInInterrupted } from "../../../client/sign-in-interrupted"
+import { SignInInterrupted } from "../../../client/auth"
 
 /**
  * Where the login callback sends a sign-in it could not complete. Public, like the overview; the

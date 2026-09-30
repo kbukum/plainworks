@@ -3,7 +3,7 @@
 import type { ProductSales } from "@plainworks/demo"
 import { NumberValue } from "@plainworks/ui/display/number-value"
 import type { ReactElement } from "react"
-import { DISPLAY_LOCALE } from "../../app/constants"
+import { DISPLAY_LOCALE } from "../../neutral/constants"
 
 const BAR_WIDTH = 100
 const BAR_HEIGHT = 8

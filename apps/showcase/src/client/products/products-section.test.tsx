@@ -12,8 +12,8 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import { PRODUCT_LIST_PARAMS } from "../../app/constants"
-import { productList } from "../../app/lists"
+import { PRODUCT_LIST_PARAMS } from "../../neutral/constants"
+import { productList } from "../../neutral/lists"
 import { ProductsSection } from "./products-section"
 
 // The Products catalog proven from the user's vantage: real `@plainworks/ui` composites over an

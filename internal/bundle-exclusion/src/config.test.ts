@@ -5,8 +5,13 @@ import { BundleExclusionError } from "./error"
 const valid = {
   rule: "devtools",
   directories: ["dist"],
-  expectedSources: ["/apps/web/src/"],
+  expectedSources: ["./src/"],
 }
+
+const RELATIVE = (key: string) =>
+  `host.json: "${key}" entries must be paths relative to the config file`
+const SOURCE = (key: string) =>
+  `host.json: "${key}" entries must be app paths ("./src/") or package paths ("@scope/name/src/")`
 
 function parse(value: unknown) {
   return parseHostConfig("host.json", JSON.stringify(value))
@@ -17,11 +22,26 @@ describe("parseHostConfig", () => {
     expect(parse(valid)).toEqual({
       rule: "devtools",
       directories: ["dist"],
-      expectedSources: ["/apps/web/src/"],
+      expectedSources: ["./src/"],
       forbiddenSources: [],
       markers: [],
       allowUnmapped: [],
     })
+  })
+
+  test("accepts app paths, package paths, globs, and manifest references", () => {
+    const config = parse({
+      ...valid,
+      directories: ["../out/dist"],
+      forbiddenSources: ["../shared/src/", "@plainworks/mocks/src/control/", "lodash/"],
+      allowUnmapped: ["dist/**/*-manifest.js", "dist/build-manifest.json#polyfillFiles"],
+    })
+    expect(config.forbiddenSources).toEqual([
+      "../shared/src/",
+      "@plainworks/mocks/src/control/",
+      "lodash/",
+    ])
+    expect(config.allowUnmapped).toHaveLength(2)
   })
 
   test("preserves the JSON parse error as the cause", () => {
@@ -63,6 +83,12 @@ describe("parseHostConfig", () => {
     ],
     [{ ...valid, markers: [1] }, 'host.json: "markers" must be an array of strings'],
     [{ ...valid, allowUnmapped: [1] }, 'host.json: "allowUnmapped" must be an array of strings'],
+    [{ ...valid, directories: ["/abs/dist"] }, RELATIVE("directories")],
+    [{ ...valid, allowUnmapped: ["/abs/runtime.js"] }, RELATIVE("allowUnmapped")],
+    [{ ...valid, allowUnmapped: ["C:\\app\\runtime.js"] }, RELATIVE("allowUnmapped")],
+    [{ ...valid, expectedSources: ["/apps/web/src/"] }, SOURCE("expectedSources")],
+    [{ ...valid, forbiddenSources: [".src/"] }, SOURCE("forbiddenSources")],
+    [{ ...valid, forbiddenSources: ["@plainworks"] }, SOURCE("forbiddenSources")],
   ])("rejects invalid config %#", (input, message) => {
     expect(() => parse(input)).toThrow(message)
   })

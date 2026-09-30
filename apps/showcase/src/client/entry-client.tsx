@@ -7,10 +7,9 @@ import { type DevtoolsLauncher, launchDevtools } from "@plainworks/devtools/laun
 import { createHttpClient } from "@plainworks/http"
 import { createQueryClient } from "@plainworks/query"
 import { hydrateRoot } from "react-dom/client"
-import { ROOT_ELEMENT_ID } from "../app/constants"
-import { buildClientCapabilities } from "./capabilities"
+import { ROOT_ELEMENT_ID } from "../neutral/constants"
+import { buildClientCapabilities, Showcase } from "./bootstrap"
 import { devtoolsEnabled } from "./dev-tools/enabled"
-import { Showcase } from "./showcase"
 
 function hydrate(): void {
   const root = document.getElementById(ROOT_ELEMENT_ID)

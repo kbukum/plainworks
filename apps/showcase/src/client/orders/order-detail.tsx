@@ -17,8 +17,8 @@ import { StatusBadge } from "@plainworks/ui/display/status-badge"
 import { Callout } from "@plainworks/ui/feedback/callout"
 import { Modal } from "@plainworks/ui/overlays/modal"
 import { type ReactElement, useId } from "react"
-import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../app/constants"
-import { Can, canManageOrders } from "../session"
+import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../neutral/constants"
+import { Can, canManageOrders } from "../auth"
 import { ORDER_STATUS_LABEL, ORDER_STATUS_OPTIONS, ORDER_STATUS_TONE } from "./order-fields"
 
 /** Props for {@link OrderDetail}. */

@@ -16,9 +16,9 @@ import { act, cleanup, render, screen, waitFor, within } from "@testing-library/
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import { TASK_LIST_PARAMS } from "../../app/constants"
-import { taskList } from "../../app/lists"
-import { SessionProvider } from "../session"
+import { TASK_LIST_PARAMS } from "../../neutral/constants"
+import { taskList } from "../../neutral/lists"
+import { SessionProvider } from "../auth"
 import { TasksSection } from "./tasks-section"
 
 // The flagship Tasks board proven from the user's vantage over the real kit stack: `@plainworks/ui`

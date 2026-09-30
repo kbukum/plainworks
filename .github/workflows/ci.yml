@@ -174,7 +174,7 @@ jobs:
   create-smoke:
     name: create-plainworks smoke
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -184,7 +184,11 @@ jobs:
         with:
           node-version: "24"
 
-      - name: Scaffold, install, typecheck, and build a generated app
+      - name: Install Chromium
+        working-directory: apps/next-host
+        run: bunx playwright install --with-deps chromium
+
+      - name: Scaffold a generated app and run its own gates
         run: bun run --filter create-plainworks smoke
 
   # The browser gate: boots each reference host and runs its flows and functional specs in real

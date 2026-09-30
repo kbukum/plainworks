@@ -1,3 +1,4 @@
+import { posix } from "node:path"
 import { describe, expect, test } from "vitest"
 import { type BundleExclusionEnvironment, type CommandOutput, runBundleExclusion } from "./command"
 
@@ -16,7 +17,7 @@ function config(extra: Record<string, unknown> = {}): string {
   return JSON.stringify({
     rule: "devtools",
     directories: ["dist"],
-    expectedSources: ["/repo/app/src/"],
+    expectedSources: ["./src/"],
     ...extra,
   })
 }
@@ -35,9 +36,10 @@ function run(args: readonly string[], fixture: Fixture) {
   const env: BundleExclusionEnvironment = {
     cwd: () => fixture.cwd ?? "/repo/app",
     resolve: (path) => (path.startsWith("/") ? path : `/repo/app/${path}`),
-    dirname: (path) => path.slice(0, path.lastIndexOf("/")) || "/",
-    join: (...parts) => parts.join("/").replaceAll(/\/+/g, "/"),
-    isAbsolute: (path) => path.startsWith("/"),
+    dirname: posix.dirname,
+    join: posix.join,
+    exists: (path) => path === "/repo/node_modules/@plainworks/devtools",
+    realpath: (path) => path.replace("/repo/node_modules/@plainworks/", "/repo/packages/"),
     relative: (from, to) => to.replace(`${from}/`, ""),
     readText: (path) => {
       const text = fixture.files.get(path)
@@ -76,7 +78,7 @@ describe("runBundleExclusion", () => {
   test("lists at most twenty leaks and reports the remaining count", () => {
     const sources = Array.from(
       { length: 23 },
-      (_, index) => `../../../packages/devtools/src/${index}.ts`,
+      (_, index) => `../../packages/devtools/src/${index}.ts`,
     )
     const result = run(["devtools-exclusion.json"], {
       files: new Map([
@@ -88,7 +90,7 @@ describe("runBundleExclusion", () => {
     expect(result.code).toBe(1)
     expect(result.stdout).toBe("")
     expect(result.stderr).toContain(
-      "/repo/app/dist/app.js.map bundles /packages/devtools/src/0.ts\n",
+      "/repo/app/dist/app.js.map bundles /repo/packages/devtools/src/0.ts\n",
     )
     expect(result.stderr).toContain("…and 3 more\n")
     expect(result.stderr).toContain("devtools-exclusion.json: the production build is not clean\n")
@@ -120,6 +122,21 @@ describe("runBundleExclusion", () => {
       stdout: "",
       stderr:
         "Cannot read /repo/app/dist (Error: no dist); run the host's production build first\n",
+    })
+  })
+
+  test("reports a package path that is not installed", () => {
+    const result = run(["devtools-exclusion.json"], {
+      files: new Map([
+        ["/repo/app/devtools-exclusion.json", config({ forbiddenSources: ["@acme/debug/"] })],
+      ]),
+    })
+
+    expect(result).toEqual({
+      code: 1,
+      stdout: "",
+      stderr:
+        '"@acme/debug/" names the package @acme/debug, which is not installed; start an app path with "./"\n',
     })
   })
 

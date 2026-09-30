@@ -24,8 +24,15 @@ describe("isSkippedEntry", () => {
     }
   })
 
-  it("skips the test suite and the workspace-only task/test config at the app root", () => {
-    for (const name of ["test", "turbo.json", "vitest.config.ts", "next-env.d.ts"]) {
+  it("skips the test suite and the workspace-only task/test/gate config at the app root", () => {
+    const names = [
+      "test",
+      "turbo.json",
+      "vitest.config.ts",
+      "next-env.d.ts",
+      "devtools-exclusion.json",
+    ]
+    for (const name of names) {
       expect(isSkippedEntry(name)).toBe(true)
     }
     expect(isSkippedEntry("page.test.tsx")).toBe(true)

@@ -12,7 +12,7 @@ export const overlaysFlow = defineFlow({
   name: "overlays",
   covers: [
     "apps/showcase/e2e/flows/overlays.ts",
-    "apps/showcase/src/client/{shell,command,catalog,notifications,tasks,feedback}/**",
+    "apps/showcase/src/client/{shell,command,notifications,tasks,bootstrap}/**",
     "packages/ui/src/client/{shell,navigation,overlays,feedback,forms}/**",
     "packages/elements/src/**",
   ],

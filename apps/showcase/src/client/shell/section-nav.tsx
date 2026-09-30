@@ -2,7 +2,7 @@
 
 import { NavList } from "@plainworks/ui/navigation/nav-list"
 import type { ReactElement } from "react"
-import { SECTIONS, sectionForPath } from "../../app/navigation"
+import { SECTIONS, sectionForPath } from "../../neutral/navigation"
 import { routerLinkRender, useRouter } from "../router"
 
 /** Props for {@link SectionNav}. */

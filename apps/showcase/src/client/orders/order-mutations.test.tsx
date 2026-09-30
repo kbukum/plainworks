@@ -14,8 +14,8 @@ import { act, renderHook } from "@testing-library/react"
 import { HttpResponse, http } from "msw"
 import type { ReactElement, ReactNode } from "react"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
-import { ORDER_LIST_PARAMS } from "../../app/constants"
-import { orderList } from "../../app/lists"
+import { ORDER_LIST_PARAMS } from "../../neutral/constants"
+import { orderList } from "../../neutral/lists"
 import { useOrderMutations } from "./order-mutations"
 
 // The order status mutation proven where the UI cannot reach it: two changes fired before either

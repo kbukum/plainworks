@@ -7,8 +7,9 @@ export const navigationFlow = defineFlow({
   covers: [
     "apps/showcase/e2e/flows/navigation.ts",
     "apps/showcase/src/client/{shell,overview,notifications}/**",
-    "apps/showcase/src/app/navigation/**",
-    "apps/showcase/src/app/{overview,notification}-*.ts",
+    "apps/showcase/src/client/{router,theme-mode-icons}.tsx",
+    "apps/showcase/src/neutral/{navigation,notifications}/**",
+    "apps/showcase/src/neutral/{overview-read,section-prefetch}.ts",
     "packages/ui/src/client/{shell,navigation,layout,page,display}/**",
   ],
   checkpoints: [

@@ -25,9 +25,10 @@ export const contentFlow = defineFlow({
         await openRoute(page, appRoute("notifications"), signal)
         await page.getByRole("button", { name: "Mark all read" }).click({ signal })
         await expect(page.getByRole("button", { name: /^Mark read/ })).toHaveCount(0)
-        await expect(page.getByText("All notifications marked read")).toBeHidden({
-          timeout: 10_000,
-        })
+        // Wait for the toast to show before waiting it out, or a late toast lands in the frame.
+        const toast = page.getByText("All notifications marked read")
+        await expect(toast).toBeVisible()
+        await expect(toast).toBeHidden({ timeout: 10_000 })
       },
       ready: (page) => page.getByRole("list", { name: "Notifications" }),
       frame: PAGE_FRAME,

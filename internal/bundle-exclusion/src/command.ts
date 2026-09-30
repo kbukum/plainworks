@@ -1,17 +1,14 @@
 import { parseHostConfig } from "./config"
 import { BundleExclusionError } from "./error"
-import { RULES } from "./rules"
-import { type Artifact, describeLeak, mergeRules, scanArtifacts } from "./scan"
+import { type ResolveEnvironment, resolveRule } from "./resolve"
+import { mergeRules, RULES } from "./rules"
+import { type Artifact, describeLeak, scanArtifacts } from "./scan"
 
 /** File-system and path operations used by the bundle-exclusion command. */
-export interface BundleExclusionEnvironment {
+export interface BundleExclusionEnvironment extends ResolveEnvironment {
   cwd(): string
   resolve(path: string): string
-  dirname(path: string): string
-  join(...parts: readonly string[]): string
-  isAbsolute(path: string): boolean
   relative(from: string, to: string): string
-  readText(path: string): string
   listArtifactFiles(directory: string): readonly string[]
 }
 
@@ -41,9 +38,9 @@ export function runBundleExclusion(
     const configFile = env.resolve(configArg)
     const config = parseHostConfig(configFile, env.readText(configFile))
     const base = env.dirname(configFile)
-    const rule = mergeRules(RULES[config.rule] ?? {}, config)
+    const rule = resolveRule(mergeRules(RULES[config.rule] ?? {}, config), base, env)
     const artifacts = config.directories.flatMap((directory) =>
-      readArtifacts(env.isAbsolute(directory) ? directory : env.join(base, directory), env),
+      readArtifacts(env.join(base, directory), env),
     )
     const { leaks, unmapped } = scanArtifacts(artifacts, rule)
     const label = env.relative(env.cwd(), configFile)

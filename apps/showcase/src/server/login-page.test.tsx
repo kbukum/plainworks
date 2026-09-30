@@ -2,7 +2,7 @@
 
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { afterEach, describe, expect, it } from "vitest"
-import { THEME_COOKIE } from "../app/constants"
+import { THEME_COOKIE } from "../neutral/constants"
 import { renderLoginPage } from "./login-page"
 
 const STYLES = ["/src/client/styles.css"]

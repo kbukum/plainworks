@@ -19,7 +19,7 @@ import {
 import { DEFAULT_THEME, parseThemeCookie, resolveTheme } from "@plainworks/theme/preference"
 import type { ReactElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
-import { LOGIN_PATH, THEME_COOKIE } from "../app/constants"
+import { LOGIN_PATH, THEME_COOKIE } from "../neutral/constants"
 
 /** Everything the login page needs for one response. */
 export interface LoginPageInput {

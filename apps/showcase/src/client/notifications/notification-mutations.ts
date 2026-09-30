@@ -6,16 +6,14 @@ import { optimisticMutationOptions } from "@plainworks/query/mutation"
 import { type QueryKey, useMutation } from "@tanstack/react-query"
 import { useCallback, useState } from "react"
 import {
+  dismissNotification,
+  markAllNotificationsRead,
   markEveryNotificationRead,
+  markNotificationRead,
   type NotificationPage,
   removeNotificationFromPage,
   replaceNotificationInPage,
-} from "../../app/notification-page"
-import {
-  dismissNotification,
-  markAllNotificationsRead,
-  markNotificationRead,
-} from "../../app/notification-write"
+} from "../../neutral/notifications"
 
 /** The notification act-on mutations bound to the feed under one query key, plus the last failure. */
 export interface NotificationMutations {

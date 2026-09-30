@@ -3,7 +3,7 @@
 // `Can` gate and the server session gate compose. The app frame supplies the page title.
 
 import type { ReactElement } from "react"
-import { AccountPanel } from "../../client/account-panel"
+import { AccountPanel } from "../../client/account"
 import { ACCOUNT_PATH } from "../../neutral/constants"
 import { requireSession } from "../../server/session"
 

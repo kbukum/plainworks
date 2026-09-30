@@ -1,6 +1,6 @@
 #!/usr/bin/env -S bun --conditions=@plainworks/source
-import { readdirSync, readFileSync } from "node:fs"
-import { dirname, isAbsolute, join, relative, resolve } from "node:path"
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs"
+import { dirname, join, relative, resolve } from "node:path"
 import { runBundleExclusion } from "./command"
 import { isArtifact } from "./scan"
 
@@ -19,8 +19,9 @@ process.exitCode = runBundleExclusion(
     resolve,
     dirname,
     join,
-    isAbsolute,
     relative,
+    exists: existsSync,
+    realpath: realpathSync,
     readText: (path) => readFileSync(path, "utf8"),
     listArtifactFiles: walk,
   },

@@ -2,7 +2,7 @@ import { TASK_PRIORITIES, type Task } from "@plainworks/demo"
 import type { FilterFieldOption } from "@plainworks/ui/data/filter-model"
 import type { StatusTone } from "@plainworks/ui/display/status-badge"
 import type { SelectFieldOption } from "@plainworks/ui/forms/select-field"
-import { TASK_STATUSES } from "../../app/task-shape"
+import { TASK_STATUSES } from "../../neutral/tasks"
 
 /** Human-readable label for each task status. */
 export const STATUS_LABEL: Record<Task["status"], string> = {

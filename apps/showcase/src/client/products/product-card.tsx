@@ -7,7 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@plainwork
 import { NumberValue } from "@plainworks/ui/display/number-value"
 import { StatusBadge } from "@plainworks/ui/display/status-badge"
 import type { ReactElement } from "react"
-import { DISPLAY_LOCALE } from "../../app/constants"
+import { DISPLAY_LOCALE } from "../../neutral/constants"
 import { PRODUCT_STATUS_LABEL, PRODUCT_STATUS_TONE, productInStock } from "./product-fields"
 
 const currency = { style: "currency", currency: "USD" } as const

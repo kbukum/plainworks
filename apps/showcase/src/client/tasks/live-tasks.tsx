@@ -9,8 +9,7 @@ import type { StreamFrame } from "@plainworks/std/seam"
 import type { QueryKey } from "@tanstack/react-query"
 import { useQueryClient } from "@tanstack/react-query"
 import { type ReactElement, useState } from "react"
-import { reconcileTaskInPage } from "../../app/task-page"
-import { isTask } from "../../app/task-shape"
+import { isTask, reconcileTaskInPage } from "../../neutral/tasks"
 
 /** The live task event this stream carries: a full, validated task upsert. */
 export const LIVE_EVENT = "task.upserted"

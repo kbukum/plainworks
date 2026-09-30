@@ -12,7 +12,7 @@ bun add @plainworks/mocks
 
 ## What's here
 
-The root exports the latency prelude. Each larger concern has one named subpath: `./data`, `./handlers`, `./fixture`, `./query`, `./filter`, `./control`, `./dispatch`, `./lifecycle`, and `./idp`. The `./vite-plugin` entry serves any MSW handler set over real HTTP.
+The root exports the latency prelude. Each larger concern has one named subpath: `./data`, `./handlers`, `./fixture`, `./query`, `./filter`, `./control`, `./dispatch`, `./lifecycle`, `./stream`, and `./idp`. The `./vite-plugin` entry serves any MSW handler set over real HTTP.
 
 Want a worked example rather than building from scratch? The kit's dev-only `@plainworks/demo` fixtures package wires these primitives into a full commerce/SaaS mock graph (`createMockApi()`), and is what the showcase and integration tests run against.
 
@@ -86,6 +86,17 @@ import { installMockServer } from "@plainworks/mocks/lifecycle"
 import { afterAll, afterEach, beforeAll } from "vitest"
 
 const server = installMockServer({ handlers, hooks: { beforeAll, afterEach, afterAll } })
+```
+
+Stand in for a live SSE or WebSocket backend with a scheduled stream. It sends one frame per interval and plugs in wherever a `StreamTransportFactory` goes:
+
+```ts
+import { createScheduledStream } from "@plainworks/mocks/stream"
+
+const transport = createScheduledStream({
+  intervalMs: 2000,
+  frame: (seq) => ({ type: "task.upserted", data: JSON.stringify({ id: `task-${seq % 5}` }) }),
+})
 ```
 
 A few behaviors worth knowing:

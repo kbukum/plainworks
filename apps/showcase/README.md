@@ -97,9 +97,9 @@ bun run --filter @plainworks/showcase ui:host                        # optional:
 
 | Path | Responsibility |
 |---|---|
-| `src/app` | Host-neutral navigation, validated reads and writes, authorization, cache reconciliation, and theme resolution. |
+| `src/neutral` | Host-neutral code with no React or DOM. One folder per domain (`tasks`, `orders`, `notifications`, `settings`, `auth`) holds its shape guards, validated writes, and authorization; `navigation` holds the route table. |
 | `src/server` | Streaming server rendering, the HTML document, and request-boundary handling. |
-| `src/client` | The shared React tree, capabilities, sections, router, development inspector, and composed styles. |
+| `src/client` | The React tree. `bootstrap` builds the root and its capabilities, `auth` holds the session and gates, `shell` holds the frame, `router.tsx` the in-app router, and each section has its own folder. |
 | `e2e` | The browser gate: flows in `flows/` (run by `ui:capture`), functional specs at the top level, shared helpers in `support/`, and test-only pages in `fixtures/`. |
 | `docs/images` | Screenshots for this README, written by `ui:capture --docs`. Don't edit them by hand. |
 | `server.ts` | Development composition for authentication, SSR, Vite, and isolated demo mock graphs. |

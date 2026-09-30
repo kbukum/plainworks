@@ -14,9 +14,9 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import { ORDER_LIST_PARAMS } from "../../app/constants"
-import { orderList } from "../../app/lists"
-import { SessionProvider } from "../session"
+import { ORDER_LIST_PARAMS } from "../../neutral/constants"
+import { orderList } from "../../neutral/lists"
+import { SessionProvider } from "../auth"
 import { OrdersSection } from "./orders-section"
 
 // The Orders catalog proven from the user's vantage over the real kit stack: `@plainworks/ui`

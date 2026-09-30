@@ -4,7 +4,7 @@ import { NumberValue } from "@plainworks/ui/display/number-value"
 import { StatusBadge } from "@plainworks/ui/display/status-badge"
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react"
 import type { ReactElement } from "react"
-import { DISPLAY_LOCALE } from "../../app/constants"
+import { DISPLAY_LOCALE } from "../../neutral/constants"
 
 /** Props for {@link GrowthBadge}. */
 export interface GrowthBadgeProps {

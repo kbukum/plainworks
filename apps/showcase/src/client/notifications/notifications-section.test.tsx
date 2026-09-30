@@ -16,9 +16,9 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import { NOTIFICATION_LIST_PARAMS } from "../../app/constants"
-import { notificationList } from "../../app/lists"
-import { SessionProvider } from "../session"
+import { NOTIFICATION_LIST_PARAMS } from "../../neutral/constants"
+import { notificationList } from "../../neutral/lists"
+import { SessionProvider } from "../auth"
 import { NotificationsSection } from "./notifications-section"
 
 // The Notifications catalog proven from the user's vantage over the real kit stack:

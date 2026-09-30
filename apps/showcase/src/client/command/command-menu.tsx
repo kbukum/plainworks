@@ -6,7 +6,7 @@ import { CommandPalette, type CommandPaletteGroup } from "@plainworks/ui/command
 import { useToast } from "@plainworks/ui/feedback/toast"
 import { Moon, Search, Sun } from "lucide-react"
 import type { ReactElement } from "react"
-import { SECTIONS } from "../../app/navigation"
+import { SECTIONS } from "../../neutral/navigation"
 import { useRouter } from "../router"
 
 /**

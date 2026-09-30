@@ -45,7 +45,7 @@ The mock backend is a catch-all Route Handler (`/api/[...path]`) that dispatches
 |---|---|
 | `src/neutral` | Host-agnostic constants, the page table (titles and summaries), and the theme validation and the task list shared by every bucket. |
 | `src/server` | Server-only request resolution, the auth composition, the mock-backend dispatch, and the BFF cookie plumbing. |
-| `src/client` | The `"use client"` providers, the app frame (`HostShell`), live stream, task list, and session gates. |
+| `src/client` | The `"use client"` tree, one folder per concern: `bootstrap` (providers), `auth` (session gates), `shell` (the app frame), `live` (the demo stream), and one folder per page. |
 | `src/app` | The App Router tree: RSC layout and pages, the BFF route handlers, and the mock-backend catch-all. |
 | `e2e` | The browser gate: flows over every page and overlay, plus sign-in, prefetch hydration, the live feed, and the account menu. |
 

@@ -16,8 +16,8 @@ import { DateValue } from "@plainworks/ui/display/date-value"
 import { StatusBadge } from "@plainworks/ui/display/status-badge"
 import { Check, X } from "lucide-react"
 import type { ReactElement, Ref } from "react"
-import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../app/constants"
-import { Can, canManageNotifications } from "../session"
+import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE } from "../../neutral/constants"
+import { Can, canManageNotifications } from "../auth"
 import { NOTIFICATION_TYPE_META } from "./notification-fields"
 
 /** Props for {@link NotificationItem}. */

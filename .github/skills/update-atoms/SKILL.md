@@ -4,7 +4,7 @@ description: >-
     Refresh plainworks' vendored shadcn atoms the canonical way — bump the shadcn CLI in the
     catalog, rerun registry:update for every locked atom, reconcile any upstream change through the
     deviation ladder (theme tokens → call sites → @plainworks/ui wrappers) instead of editing the
-    atom, and rerun the atoms browser gate. Use when bumping the shadcn CLI, pulling upstream atom
+    atom, and rerun the gallery browser gate. Use when bumping the shadcn CLI, pulling upstream atom
     fixes, adding an atom, or when registry:validate reports a lock mismatch.
 ---
 
@@ -60,10 +60,10 @@ Don't re-add a variant (a tone, size, or state) that upstream dropped or never s
 bun run --filter @plainworks/elements registry:validate
 bun run lint
 turbo run typecheck build test --filter=@plainworks/elements...   # elements and its dependents
-(cd apps/showcase && bun run e2e e2e/atoms.spec.ts)                    # atoms browser gate
+(cd apps/showcase && bun run e2e e2e/gallery.spec.ts)                  # gallery browser gate
 ```
 
-The browser gate checks contrast, target size, visible focus, reflow, and reduced motion on real layout. Run the full showcase `e2e` too if `ui` wrappers or theme rules changed. See [`validate`](../validate/SKILL.md) for the rest of the gates.
+The gallery gate checks contrast, visible focus, and reduced motion on real layout. Run the full showcase `e2e` too if `ui` wrappers or theme rules changed. See [`validate`](../validate/SKILL.md) for the rest of the gates.
 
 Add a Changeset for `@plainworks/elements` (and any package you reconciled). Name the CLI version in it when you bumped it.
 
@@ -72,6 +72,6 @@ Add a Changeset for `@plainworks/elements` (and any package you reconciled). Nam
 - [ ] Changes under `src/shadcn/` and `shadcn.lock.json` come only from `registry:update` / `registry:add`
 - [ ] After a CLI bump, every locked atom was refreshed; the lock's `cli` matches the catalog pin
 - [ ] Fallout fixed on the deviation ladder, not in an atom; no re-added non-upstream variants
-- [ ] `registry:validate`, the scoped gates, and the atoms browser gate green; Changeset added
+- [ ] `registry:validate`, the scoped gates, and the gallery browser gate green; Changeset added
 
 Per repo workflow, **create the branch and make edits only** — the maintainer commits and pushes.

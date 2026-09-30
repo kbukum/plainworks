@@ -16,10 +16,10 @@ export const STANDALONE_TSCONFIG: StandaloneTsconfig = NEXT_STANDALONE_TSCONFIG
 export const NEUTRALIZED_TSCONFIG_EXTENDS = "../../tsconfig.app.json"
 
 // Entries never copied into a generated project. Build and browser-test run output (`node_modules`,
-// `dist`, `playwright-report`, …) is dropped at any depth; the workspace-only task/test config
-// (`test/`, `turbo.json`, …) is dropped only at the app root, so a real nested route like
-// `src/app/test/page.tsx` survives. Per-file patterns (`*.test.ts(x)`, `*.tsbuildinfo`) are dropped
-// at any depth.
+// `dist`, `playwright-report`, …) is dropped at any depth; the workspace-only task/test config and
+// the production-exclusion gate config (`test/`, `turbo.json`, `devtools-exclusion.json`, …) are
+// dropped only at the app root, so a real nested route like `src/app/test/page.tsx` survives.
+// Per-file patterns (`*.test.ts(x)`, `*.tsbuildinfo`) are dropped at any depth.
 const SKIP_ANY_DEPTH = new Set([
   "node_modules",
   "dist",
@@ -31,7 +31,13 @@ const SKIP_ANY_DEPTH = new Set([
   "test-results",
   ".ui-artifacts",
 ])
-const SKIP_AT_ROOT = new Set(["test", "turbo.json", "vitest.config.ts", "next-env.d.ts"])
+const SKIP_AT_ROOT = new Set([
+  "test",
+  "turbo.json",
+  "vitest.config.ts",
+  "next-env.d.ts",
+  "devtools-exclusion.json",
+])
 
 /** Whether an entry (by its path relative to the app root) is dropped from the ejected output. */
 export function isSkippedEntry(relativePath: string): boolean {

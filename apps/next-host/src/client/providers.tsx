@@ -3,6 +3,8 @@
 import type { AppSnapshot } from "@plainworks/app"
 import { AppProvider } from "@plainworks/app/client"
 import type { ChannelOptions } from "@plainworks/channel"
+import { createHttpClient } from "@plainworks/http"
+import { HttpClientProvider } from "@plainworks/http/client"
 import { createQueryClient } from "@plainworks/query"
 import dynamic from "next/dynamic"
 import { type ComponentType, type ReactElement, type ReactNode, useState } from "react"
@@ -10,7 +12,6 @@ import { buildClientCapabilities } from "./capabilities"
 import type { DevtoolsMountProps } from "./dev-tools/devtools-mount"
 import { createDevtoolsSeams, type DevtoolsSeams } from "./dev-tools/seams"
 import { HostShell } from "./host-shell"
-import { HttpClientProvider } from "./http-client"
 import { createDemoTransport, LiveChannelProvider, LiveTaskSink } from "./live-stream"
 import { createLiveTasksSource, createThemeSource } from "./sources"
 
@@ -65,6 +66,13 @@ export function Providers({ snapshot, origin, children }: ProvidersProps): React
       return undefined
     }
   })
+  // Built on the server-resolved origin, so SSR and hydration share one base URL.
+  const [httpClient] = useState(() =>
+    createHttpClient({
+      baseUrl: origin,
+      ...(seams ? { interceptors: [seams.http.interceptor] } : {}),
+    }),
+  )
   const [queryClient] = useState(() => createQueryClient())
   const [themeSource] = useState(() => createThemeSource())
   const [liveSource] = useState(() => createLiveTasksSource())
@@ -77,10 +85,7 @@ export function Providers({ snapshot, origin, children }: ProvidersProps): React
 
   return (
     <AppProvider capabilities={capabilities} snapshot={snapshot}>
-      <HttpClientProvider
-        origin={origin}
-        {...(seams ? { interceptors: [seams.http.interceptor] } : {})}
-      >
+      <HttpClientProvider client={httpClient}>
         <LiveChannelProvider options={channelOptions}>
           <LiveTaskSink source={liveSource}>
             <HostShell liveSource={liveSource}>{children}</HostShell>

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { createAuthStore } from "@plainworks/auth"
+import { createAuthStore } from "@plainworks/auth/session"
 import { createQueryClient } from "@plainworks/query"
 import { QueryProvider } from "@plainworks/query/client"
 import { createSuppliedStoreContext } from "@plainworks/state/client"

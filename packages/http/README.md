@@ -95,6 +95,21 @@ Bodies pass through a `BodyCodec`. `jsonCodec` is the default; supply your own �
 - **Encoding** a non-serializable value (cyclic, `BigInt`, a bare function or symbol) raises a typed `http/encode` error, not a raw `TypeError`.
 - **Decoding** runs through a bounded streaming reader that refuses a body larger than `maxBytes` (10 MiB default) and honors the attempt's timeout/abort signal — so a stalled or dishonest body can neither hang the call nor exhaust memory.
 
+## React binding (`./client`)
+
+`HttpClientProvider` hands one client to your components, and `useHttpClient` reads it. You build the client, so it is never a module-level singleton. It is pure React context with no DOM, so it also runs on React Native.
+
+```tsx
+"use client"
+import { createHttpClient } from "@plainworks/http"
+import { HttpClientProvider } from "@plainworks/http/client"
+
+export function Providers({ origin, children }: { origin: string; children: React.ReactNode }) {
+  const [client] = useState(() => createHttpClient({ baseUrl: origin }))
+  return <HttpClientProvider client={client}>{children}</HttpClientProvider>
+}
+```
+
 ## List reads (`buildListQuery`) — the PostgREST list contract
 
 plainworks defines a canonical **PostgREST/Supabase-style** list-read wire: filter, sort, paginate (offset **or** cursor), free-text search, eager-load, and facet. `buildListQuery` serializes a typed `ListQueryParams` into exactly that query string, so the frontend speaks the same list language a backend implementing this contract parses — no stringly-typed caller API. The result flows through the same URL safety, credential guard, auth injection, timeout, retry, and codec as any other request.

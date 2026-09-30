@@ -1,3 +1,6 @@
+// Re-export-only barrel for the adapter concern: the config-selected authentication adapters
+// (`jwt`, `apikey`, `custom`, the OIDC config), the adapter seam, and the injected registry. The
+// OIDC factory holds tokens, so it ships on `@plainworks/auth/server`.
 export { apiKeyAdapter } from "./apikey/adapter"
 export type { ApiKeyAdapterConfig, ApiKeyVerifier } from "./apikey/config"
 export { APIKEY_ADAPTER_KIND, validateApiKeyAdapterConfig } from "./apikey/config"

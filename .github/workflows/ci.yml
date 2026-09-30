@@ -118,11 +118,12 @@ jobs:
           # The dashboard is session-gated. A POST to the login BFF begins the in-process mock-IdP
           # flow (login -> mock IdP -> /auth/callback -> /), so a broken PKCE/cookie handoff fails
           # here rather than passing on a redirect alone; the skip link is authenticated shell
-          # chrome the signed-out login page never emits.
+          # chrome the signed-out login page never emits. The `Origin` header is what a browser's
+          # same-origin form post sends; the BFF rejects a state-changing post without it.
           jar="$(mktemp)"
           authenticated_html="$(
             curl -sfL --max-time 60 -c "$jar" -b "$jar" -d "returnTo=/" \
-              "http://127.0.0.1:5173/login"
+              -H "Origin: http://127.0.0.1:5173" "http://127.0.0.1:5173/login"
           )"
           grep -qF "Skip to main content" <<<"$authenticated_html"
 
@@ -132,6 +133,9 @@ jobs:
           APP_ORIGIN: "http://127.0.0.1:3000"
           AUTH_REDIRECT_ORIGIN: "http://127.0.0.1:3000"
         run: |
+          # A production boot needs a configured signing key; the host never mints one there.
+          SESSION_SIGNING_KEY="$(openssl rand -base64 32)"
+          export SESSION_SIGNING_KEY
           (cd apps/next-host && bunx next start -p 3000) &
           pid=$!
           trap 'kill "$pid" 2>/dev/null || true' EXIT

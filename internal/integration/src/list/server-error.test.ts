@@ -6,7 +6,7 @@ import { createQueryClient } from "@plainworks/query"
 import { listQueryOptions } from "@plainworks/query/list"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
-import { readUserPage } from "./user-reads"
+import { userList } from "./user-reads"
 
 // A failing backend must surface as a typed `HttpError` through `http` and `query`, and must leave
 // no success-shaped value in the cache — the half a green-path scenario never reaches.
@@ -32,7 +32,7 @@ const usersPlan = () =>
   listQueryOptions<User>({
     resource: "users",
     params: { pageSize: 5 },
-    fetch: (params, signal) => readUserPage(client, params, signal),
+    fetch: (params, signal) => userList.read(client, params, signal),
   })
 
 bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
@@ -77,7 +77,7 @@ describe("server error through the cache", () => {
 
     // Dropping the override restores the real handler; the same client now reads a live page.
     handle.server.resetHandlers()
-    const body = await readUserPage(client)
+    const body = await userList.read(client, {})
     expect(body.data.length).toBeGreaterThan(0)
   })
 })

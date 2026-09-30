@@ -1,6 +1,6 @@
 "use client"
 
-import { createAllowListPolicy, requireClaim } from "@plainworks/auth"
+import { createAllowListPolicy, requireClaim } from "@plainworks/auth/authz"
 import { createAuthGates, createSessionContext } from "@plainworks/auth/client"
 
 // One shared session React context for the app: the auth client capability seeds its `Provider`

@@ -1,5 +1,6 @@
 "use client"
 
+import { useHttpClient } from "@plainworks/http/client"
 import { asyncStatus } from "@plainworks/ui"
 import { DataTable } from "@plainworks/ui/data/data-table"
 import { Pagination } from "@plainworks/ui/data/pagination"
@@ -10,9 +11,8 @@ import { LoadingState } from "@plainworks/ui/feedback/loading-state"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { type ReactElement, useState } from "react"
 import { USER_LIST_PARAMS } from "../../app/constants"
-import { userListPlan } from "../../app/user-read"
+import { userList } from "../../app/lists"
 import { CatalogLayout, FacetPanel, ListSearch, useCatalogList } from "../catalog"
-import { useHttpClient } from "../http-client"
 import { userColumns } from "./user-columns"
 import { USER_DEPARTMENT_OPTIONS, USER_ROLE_OPTIONS, USER_STATUS_OPTIONS } from "./user-fields"
 import { UserProfile } from "./user-profile"
@@ -34,7 +34,7 @@ export function UsersSection(): ReactElement {
     ...(USER_LIST_PARAMS.order !== undefined ? { order: USER_LIST_PARAMS.order } : {}),
     ...(USER_LIST_PARAMS.facets !== undefined ? { facets: USER_LIST_PARAMS.facets } : {}),
   })
-  const plan = userListPlan(httpClient, list.params)
+  const plan = userList.options(httpClient, list.params)
   const query = useQuery({ ...plan, placeholderData: keepPreviousData })
   const [selectedId, setSelectedId] = useState<string | null>(null)
 

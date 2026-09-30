@@ -1,14 +1,15 @@
-// The users list endpoint read through its validation boundary, shared by every list scenario: the
-// mock's decoded `unknown` body is narrowed to the typed envelope by a Standard Schema at the
-// `client.get` seam — the same validation path a consumer uses — so a malformed mock response fails
-// the read instead of being trusted by an unchecked cast.
+// The users list endpoint read through its validation boundary, shared by every list scenario. The
+// offset read is the kit's `httpListQuery`; the cursor read narrows the body with a Standard Schema
+// at the `client.get` seam. Either way a malformed mock response fails the read instead of being
+// trusted by an unchecked cast.
 
 import type { User, UserDepartment, UserRole, UserStatus } from "@plainworks/demo"
 import type { createHttpClient } from "@plainworks/http"
 import { buildListQuery } from "@plainworks/http/list"
+import { type HttpListQuery, httpListQuery } from "@plainworks/query/http-list"
 import { isAbsentOr, isNonEmptyString, isOneOf, isRecord } from "@plainworks/std"
-import type { CursorResult, ListQueryParams, PaginatedResult } from "@plainworks/std/list"
-import { isCursorResult, isPaginatedResult } from "@plainworks/std/list"
+import type { CursorResult, ListQueryParams } from "@plainworks/std/list"
+import { isCursorResult } from "@plainworks/std/list"
 import { guardSchema, type StandardSchemaV1 } from "@plainworks/std/seam"
 import type { WebAbortSignal } from "@plainworks/std/web"
 
@@ -52,30 +53,17 @@ function isUserRow(value: unknown): value is User {
   )
 }
 
-const userPageSchema: StandardSchemaV1<unknown, PaginatedResult<User>> = guardSchema(
-  (value): value is PaginatedResult<User> => isPaginatedResult(value, isUserRow),
-  "response is not a PaginatedResult<User>",
-)
-
 const userCursorSchema: StandardSchemaV1<unknown, CursorResult<User>> = guardSchema(
   (value): value is CursorResult<User> => isCursorResult(value, isUserRow),
   "response is not a CursorResult<User>",
 )
 
-/** Read one offset page of users, validated at the boundary. A bodyless (204) response is a read failure here — never a fabricated empty page. */
-export async function readUserPage(
-  client: HttpClient,
-  params?: ListQueryParams,
-  signal?: WebAbortSignal,
-): Promise<PaginatedResult<User>> {
-  const page = await client.get("/api/users", {
-    ...(params ? { query: buildListQuery(params) } : {}),
-    ...(signal ? { signal } : {}),
-    schema: userPageSchema,
-  })
-  if (page === undefined) throw new Error("GET /api/users returned no body")
-  return page
-}
+/** The users offset list through the kit's validated HTTP list reader. */
+export const userList: HttpListQuery<User> = httpListQuery<User>({
+  path: "/api/users",
+  resource: "users",
+  row: isUserRow,
+})
 
 /** Read one cursor page of users, validated at the boundary; `params.cursor` selects the page (empty string = first). */
 export async function readUserCursorPage(

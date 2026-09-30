@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Test project: every `*.test.*` file — neutral or React — is typechecked here, DOM-free with the
+  // universal-web shim. Client tests render with jsdom at runtime but reference no DOM lib type, so
+  // they compile without `DOM`; that is what lets a test import neutral, shim-typed source without the
+  // shim's `WebHeaders`/`WebAbortSignal` clashing with the DOM lib. The shipped `.` and `./client`
+  // programs exclude tests for the same reason.
+  "include": ["src/**/*.test.ts", "src/**/*.test.tsx", "../../types/universal-web.d.ts"]
+}

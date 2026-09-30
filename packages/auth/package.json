@@ -37,6 +37,46 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./adapter": {
+      "@plainworks/source": "./src/adapter/index.ts",
+      "types": "./dist/adapter.d.ts",
+      "default": "./dist/adapter.js"
+    },
+    "./authz": {
+      "@plainworks/source": "./src/authz/index.ts",
+      "types": "./dist/authz.d.ts",
+      "default": "./dist/authz.js"
+    },
+    "./crypto": {
+      "@plainworks/source": "./src/crypto/index.ts",
+      "types": "./dist/crypto.d.ts",
+      "default": "./dist/crypto.js"
+    },
+    "./csrf": {
+      "@plainworks/source": "./src/csrf/index.ts",
+      "types": "./dist/csrf.d.ts",
+      "default": "./dist/csrf.js"
+    },
+    "./redirect": {
+      "@plainworks/source": "./src/redirect/index.ts",
+      "types": "./dist/redirect.d.ts",
+      "default": "./dist/redirect.js"
+    },
+    "./session": {
+      "@plainworks/source": "./src/session/index.ts",
+      "types": "./dist/session.d.ts",
+      "default": "./dist/session.js"
+    },
+    "./session-store": {
+      "@plainworks/source": "./src/session-store/index.ts",
+      "types": "./dist/session-store.d.ts",
+      "default": "./dist/session-store.js"
+    },
+    "./signer": {
+      "@plainworks/source": "./src/signer/index.ts",
+      "types": "./dist/signer.d.ts",
+      "default": "./dist/signer.js"
+    },
     "./server": {
       "@plainworks/source": "./src/server.ts",
       "types": "./dist/server.d.ts",

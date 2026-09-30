@@ -16,14 +16,14 @@ import { type AuthGuardConfig, sanitizeReturnTo, unauthenticatedRedirect } from 
 import type { TokenSet } from "../session"
 import {
   decodeSession,
-  decodeSessionEnvelope,
   encodeSession,
   type RevocationCheck,
   type RevocationRegistry,
   type SessionCodec,
 } from "../session-store"
+import { decodeSessionEnvelope } from "../session-store/envelope"
 import type { SessionSigner } from "../signer"
-import { signPayload, verifyPayload } from "../signer"
+import { signPayload, verifyPayload } from "../signer/signed-payload"
 
 /** How to build a {@link ServerSession} — the assembled BFF login/session flow. */
 export interface ServerSessionConfig<Schema extends StandardSchemaV1> {

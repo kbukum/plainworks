@@ -1,5 +1,6 @@
 "use client"
 
+import { useHttpClient } from "@plainworks/http/client"
 import { asyncStatus } from "@plainworks/ui"
 import { DataTable, type DataTableColumn } from "@plainworks/ui/data/data-table"
 import { StatusBadge, type StatusTone } from "@plainworks/ui/display/status-badge"
@@ -11,8 +12,7 @@ import { useQuery } from "@tanstack/react-query"
 import type { ReactElement } from "react"
 import { TASK_LIST_PARAMS } from "../neutral/constants"
 import type { Task } from "../neutral/task"
-import { taskListPlan } from "../neutral/task-read"
-import { useHttpClient } from "./http-client"
+import { taskList } from "../neutral/task-list"
 
 const STATUS: Record<Task["status"], { readonly label: string; readonly tone: StatusTone }> = {
   todo: { label: "To do", tone: "neutral" },
@@ -58,13 +58,13 @@ const COLUMNS: readonly DataTableColumn<Task>[] = [
 
 /**
  * The query-driven task list, server-prefetched and hydrated with no flash. It reads the same
- * `taskListPlan` under the identical key the RSC page prefetched, through the request-scoped
+ * `taskList.options` under the identical key the RSC page prefetched, through the request-scoped
  * browser HTTP client, so the warm cache renders immediately. The region shows exactly one state:
  * an announced loading state, a failure the reader can retry, an empty state, or the table.
  */
 export function TaskList(): ReactElement {
   const httpClient = useHttpClient()
-  const tasks = useQuery(taskListPlan(httpClient, TASK_LIST_PARAMS))
+  const tasks = useQuery(taskList.options(httpClient, TASK_LIST_PARAMS))
   const rows = tasks.data?.data ?? []
 
   return (

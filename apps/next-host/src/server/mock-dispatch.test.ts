@@ -2,7 +2,7 @@ import { createHttpClient } from "@plainworks/http"
 import type { WebFetch, WebResponse } from "@plainworks/std/web"
 import { describe, expect, it } from "vitest"
 import { TASK_LIST_PARAMS } from "../neutral/constants"
-import { readTaskPage } from "../neutral/task-read"
+import { taskList } from "../neutral/task-list"
 import { createDemoBackend } from "./mock-dispatch"
 
 // The host serves its task domain from a Next route handler that dispatches an incoming `Request`
@@ -89,7 +89,7 @@ describe("neutral server read over the mock backend", () => {
     const routeThroughBackend: WebFetch = (input) =>
       backend.dispatch(new Request(String(input))) as unknown as Promise<WebResponse>
     const client = createHttpClient({ baseUrl: ORIGIN, fetch: routeThroughBackend })
-    const page = await readTaskPage(client, TASK_LIST_PARAMS)
+    const page = await taskList.read(client, TASK_LIST_PARAMS)
     expect(page.data.length).toBeGreaterThan(0)
     expect(page.pagination.page).toBe(1)
   })

@@ -52,6 +52,16 @@
       "types": "./dist/list.d.ts",
       "default": "./dist/list.js"
     },
+    "./mutation": {
+      "@plainworks/source": "./src/mutation/index.ts",
+      "types": "./dist/mutation.d.ts",
+      "default": "./dist/mutation.js"
+    },
+    "./http-list": {
+      "@plainworks/source": "./src/http-list/index.ts",
+      "types": "./dist/http-list.d.ts",
+      "default": "./dist/http-list.js"
+    },
     "./remote": {
       "@plainworks/source": "./src/remote/index.ts",
       "types": "./dist/remote.d.ts",
@@ -74,6 +84,7 @@
     "@plainworks/std": "workspace:*"
   },
   "devDependencies": {
+    "@plainworks/http": "workspace:*",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",
@@ -94,11 +105,15 @@
     "vitest": "catalog:"
   },
   "peerDependencies": {
+    "@plainworks/http": "workspace:*",
     "@tanstack/query-core": "catalog:",
     "@tanstack/react-query": "catalog:",
     "react": "catalog:"
   },
   "peerDependenciesMeta": {
+    "@plainworks/http": {
+      "optional": true
+    },
     "@tanstack/react-query": {
       "optional": true
     },

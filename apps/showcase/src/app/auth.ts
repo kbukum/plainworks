@@ -7,13 +7,7 @@
 // smoke test), so the render graph never imports the dev/test provider.
 
 import { type Capability, defineCapability } from "@plainworks/app"
-import {
-  ANONYMOUS_AUTH,
-  type AuthSnapshot,
-  decodeSession,
-  defaultAuthCrypto,
-  type SessionCodec,
-} from "@plainworks/auth"
+import { defaultAuthCrypto } from "@plainworks/auth/crypto"
 import {
   createServerSession,
   hmacSessionSigner,
@@ -21,6 +15,8 @@ import {
   type ServerSession,
   type ServerSessionJar,
 } from "@plainworks/auth/server"
+import { ANONYMOUS_AUTH, type AuthSnapshot } from "@plainworks/auth/session"
+import { decodeSession, type SessionCodec } from "@plainworks/auth/session-store"
 import { isAbsentOr, isRecord } from "@plainworks/std"
 import { guardSchema, type StandardSchemaV1 } from "@plainworks/std/seam"
 import { systemClock } from "@plainworks/std/time"

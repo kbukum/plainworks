@@ -3,6 +3,7 @@
 import type { Notification } from "@plainworks/demo"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { HttpClientProvider } from "@plainworks/http/client"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import type { PaginatedResult } from "@plainworks/std/list"
@@ -14,9 +15,8 @@ import { HttpResponse, http } from "msw"
 import type { ReactElement, ReactNode } from "react"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { NOTIFICATION_LIST_PARAMS } from "../../app/constants"
-import { notificationListPlan } from "../../app/notification-read"
-import { HttpClientProvider } from "../http-client"
-import { type NotificationMutationResult, useNotificationMutations } from "./notification-mutations"
+import { notificationList } from "../../app/lists"
+import { useNotificationMutations } from "./notification-mutations"
 
 // Focused coverage for the mutation concurrency and idempotency edges the section test can't force:
 // an already-read no-op, a cache-less run, and a rollback that loses to a newer cache write.
@@ -37,7 +37,7 @@ function harness(options: { rows?: Notification[]; observe?: boolean } = {}) {
   const queryClient = createTestQueryClient(createQueryClient, {
     defaultOptions: { queries: { retry: false, staleTime: 0 } },
   })
-  const plan = notificationListPlan(httpClient, NOTIFICATION_LIST_PARAMS)
+  const plan = notificationList.options(httpClient, NOTIFICATION_LIST_PARAMS)
   const key = plan.queryKey
   if (options.rows !== undefined) {
     queryClient.setQueryData<Page>(key, seedPage(options.rows))
@@ -67,7 +67,7 @@ describe("notification mutations", () => {
     const read = { ...(handle.api.stores.notifications.getAll()[0] as Notification), read: true }
 
     // Any request would hit MSW's `onUnhandledRequest: "error"`; resolving proves none was made.
-    await expect(result.current.markRead(read)).resolves.toBe("success")
+    await expect(result.current.markRead(read)).resolves.toBe(true)
   })
 
   it("runs a bulk mark without an optimistic write when the cache is empty", async () => {
@@ -95,7 +95,7 @@ describe("notification mutations", () => {
       }),
     )
 
-    let settled: Promise<NotificationMutationResult> = Promise.resolve("success")
+    let settled: Promise<boolean> = Promise.resolve(true)
     act(() => {
       settled = result.current.markRead(base)
     })
@@ -172,8 +172,8 @@ describe("notification mutations", () => {
     const { queryClient, result } = harness({ rows: [base] })
     const invalidate = vi.spyOn(queryClient, "invalidateQueries")
 
-    let markSettled: Promise<NotificationMutationResult> = Promise.resolve("failure")
-    let dismissSettled: Promise<NotificationMutationResult> = Promise.resolve("failure")
+    let markSettled: Promise<boolean> = Promise.resolve(false)
+    let dismissSettled: Promise<boolean> = Promise.resolve(false)
     act(() => {
       markSettled = result.current.markRead(base)
       dismissSettled = result.current.dismiss(base)
@@ -192,28 +192,28 @@ describe("notification mutations", () => {
     expect(invalidate).toHaveBeenCalledTimes(1)
   })
 
-  it("rolls back without reporting failure when unmount cancels a write", async () => {
+  it("finishes a write after unmount and re-syncs the feed", async () => {
     const base = { ...(handle.api.stores.notifications.getAll()[0] as Notification), read: false }
-    const started = deferred<void>()
+    const release = deferred<void>()
     handle.server.use(
-      http.patch("*/api/notifications/:id", async ({ request }) => {
-        started.resolve()
-        await new Promise<void>((resolve) => {
-          request.signal.addEventListener("abort", () => resolve(), { once: true })
-        })
+      http.patch("*/api/notifications/:id", async () => {
+        await release.promise
         return HttpResponse.json({ data: { ...base, read: true } })
       }),
     )
     const { queryClient, key, result, unmount } = harness({ rows: [base] })
-    let settled: Promise<NotificationMutationResult> = Promise.resolve("failure")
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries")
+    let settled: Promise<boolean> = Promise.resolve(false)
     act(() => {
       settled = result.current.markRead(base)
     })
-    await started.promise
+    await waitFor(() => expect(queryClient.getQueryData<Page>(key)?.data[0]?.read).toBe(true))
 
+    // Leaving the page never undoes a write the server may already have committed.
     unmount()
+    release.resolve()
 
-    await expect(settled).resolves.toBe("cancelled")
-    expect(queryClient.getQueryData<Page>(key)?.data[0]?.read).toBe(false)
+    await expect(settled).resolves.toBe(true)
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: key })
   })
 })

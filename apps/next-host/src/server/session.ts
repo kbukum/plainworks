@@ -8,7 +8,8 @@ import "server-only"
 // (never a token) crosses to the client via the snapshot.
 
 import { type AppSnapshot, createApp, defineCapability } from "@plainworks/app"
-import { type AuthSnapshot, unauthenticatedRedirect } from "@plainworks/auth"
+import { unauthenticatedRedirect } from "@plainworks/auth/redirect"
+import type { AuthSnapshot } from "@plainworks/auth/session"
 import { DEFAULT_THEME, parseThemeCookie, type ThemePreference } from "@plainworks/theme"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"

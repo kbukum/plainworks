@@ -9,7 +9,8 @@
 
 import { Writable } from "node:stream"
 import { createApp, serializeSnapshot, snapshotFor } from "@plainworks/app"
-import { authSnapshotOf, unauthenticatedRedirect } from "@plainworks/auth"
+import { unauthenticatedRedirect } from "@plainworks/auth/redirect"
+import { authSnapshotOf } from "@plainworks/auth/session"
 import type { HttpClient } from "@plainworks/http"
 import { createQueryClient } from "@plainworks/query"
 import { dehydrateClient } from "@plainworks/query/hydration"

@@ -1,7 +1,7 @@
 {
   "name": "@plainworks/http",
   "version": "0.1.0-alpha.1",
-  "description": "Host-independent typed fetch client (ergonomic resource methods, idempotency-key writes, interceptors, auth-header injection, safe URL building, codec seam) — the REST/JSON client.",
+  "description": "Host-independent typed fetch client (ergonomic resource methods, idempotency-key writes, interceptors, auth-header injection, safe URL building, codec seam) \u2014 the REST/JSON client.",
   "type": "module",
   "sideEffects": false,
   "license": "MIT",
@@ -45,23 +45,43 @@
       "@plainworks/source": "./src/list/index.ts",
       "types": "./dist/list.d.ts",
       "default": "./dist/list.js"
+    },
+    "./client": {
+      "@plainworks/source": "./src/client.ts",
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
     }
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.test.json",
     "test": "vitest run --coverage",
     "check-packaging": "plainworks-release check-packaging"
   },
   "dependencies": {
     "@plainworks/std": "workspace:*"
   },
+  "peerDependencies": {
+    "react": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",
+    "@testing-library/react": "catalog:",
     "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "axe-core": "catalog:",
+    "jsdom": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"

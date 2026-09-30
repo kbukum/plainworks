@@ -2,6 +2,7 @@
 
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { HttpClientProvider } from "@plainworks/http/client"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { prefetchQuery } from "@plainworks/query/hydration"
@@ -12,8 +13,7 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { USER_LIST_PARAMS } from "../../app/constants"
-import { userListPlan } from "../../app/user-read"
-import { HttpClientProvider } from "../http-client"
+import { userList } from "../../app/lists"
 import { UsersSection } from "./users-section"
 
 // The Users directory proven from the user's vantage: real `@plainworks/ui` composites over an
@@ -38,7 +38,7 @@ async function renderUsers(options: { prefetch?: boolean } = {}) {
     defaultOptions: { queries: { retry: false } },
   })
   if (prefetch) {
-    await prefetchQuery(queryClient, userListPlan(httpClient, USER_LIST_PARAMS))
+    await prefetchQuery(queryClient, userList.options(httpClient, USER_LIST_PARAMS))
   }
   const ui = render(
     <TestQueryClientProvider client={queryClient}>

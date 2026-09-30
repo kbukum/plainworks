@@ -11,7 +11,7 @@ import { dehydrateClient, prefetchQuery } from "@plainworks/query/hydration"
 import type { ReactElement } from "react"
 import { TaskList } from "../../client/task-list"
 import { TASK_LIST_PARAMS, TASKS_PATH } from "../../neutral/constants"
-import { taskListPlan } from "../../neutral/task-read"
+import { taskList } from "../../neutral/task-list"
 import { requestOrigin, requireSession } from "../../server/session"
 
 export const dynamic = "force-dynamic"
@@ -20,7 +20,7 @@ export default async function TasksPage(): Promise<ReactElement> {
   await requireSession(TASKS_PATH)
   const httpClient = createHttpClient({ baseUrl: requestOrigin() })
   const queryClient = createQueryClient()
-  await prefetchQuery(queryClient, taskListPlan(httpClient, TASK_LIST_PARAMS))
+  await prefetchQuery(queryClient, taskList.options(httpClient, TASK_LIST_PARAMS))
   // Ship only successful queries across the RSC boundary: a failed prefetch caches an `HttpError`
   // instance Next cannot serialize, so dehydrating it would break the page. Skipping it lets
   // `TaskList` mount cold and refetch on the client instead.

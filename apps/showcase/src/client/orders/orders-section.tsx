@@ -1,5 +1,6 @@
 "use client"
 
+import { useHttpClient } from "@plainworks/http/client"
 import { asyncStatus } from "@plainworks/ui"
 import { DataTable } from "@plainworks/ui/data/data-table"
 import { Pagination } from "@plainworks/ui/data/pagination"
@@ -10,9 +11,8 @@ import { LoadingState } from "@plainworks/ui/feedback/loading-state"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { type ReactElement, useState } from "react"
 import { ORDER_LIST_PARAMS } from "../../app/constants"
-import { orderListPlan } from "../../app/order-read"
+import { orderList } from "../../app/lists"
 import { CatalogLayout, FacetPanel, ListSearch, useCatalogList } from "../catalog"
-import { useHttpClient } from "../http-client"
 import { orderColumns } from "./order-columns"
 import { OrderDetail } from "./order-detail"
 import { ORDER_STATUS_OPTIONS } from "./order-fields"
@@ -35,9 +35,9 @@ export function OrdersSection(): ReactElement {
     ...(ORDER_LIST_PARAMS.order !== undefined ? { order: ORDER_LIST_PARAMS.order } : {}),
     ...(ORDER_LIST_PARAMS.facets !== undefined ? { facets: ORDER_LIST_PARAMS.facets } : {}),
   })
-  const plan = orderListPlan(httpClient, list.params)
+  const plan = orderList.options(httpClient, list.params)
   const query = useQuery({ ...plan, placeholderData: keepPreviousData })
-  const mutations = useOrderMutations(plan.queryKey, list.params)
+  const mutations = useOrderMutations(plan.queryKey)
 
   const rows = query.data?.data ?? []
   const total = query.data?.pagination.total ?? 0

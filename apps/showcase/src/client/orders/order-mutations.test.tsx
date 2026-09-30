@@ -3,6 +3,7 @@
 import type { Order } from "@plainworks/demo"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { HttpClientProvider } from "@plainworks/http/client"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { prefetchQuery } from "@plainworks/query/hydration"
@@ -14,8 +15,7 @@ import { HttpResponse, http } from "msw"
 import type { ReactElement, ReactNode } from "react"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { ORDER_LIST_PARAMS } from "../../app/constants"
-import { orderListPlan } from "../../app/order-read"
-import { HttpClientProvider } from "../http-client"
+import { orderList } from "../../app/lists"
 import { useOrderMutations } from "./order-mutations"
 
 // The order status mutation proven where the UI cannot reach it: two changes fired before either
@@ -37,14 +37,14 @@ async function setup() {
   const queryClient = createTestQueryClient(createQueryClient, {
     defaultOptions: { queries: { retry: false } },
   })
-  const plan = orderListPlan(httpClient, ORDER_LIST_PARAMS)
+  const plan = orderList.options(httpClient, ORDER_LIST_PARAMS)
   await prefetchQuery(queryClient, plan)
   const wrapper = ({ children }: { children: ReactNode }): ReactElement => (
     <TestQueryClientProvider client={queryClient}>
       <HttpClientProvider client={httpClient}>{children}</HttpClientProvider>
     </TestQueryClientProvider>
   )
-  const { result } = renderHook(() => useOrderMutations(plan.queryKey, ORDER_LIST_PARAMS), {
+  const { result } = renderHook(() => useOrderMutations(plan.queryKey), {
     wrapper,
   })
   const order = queryClient.getQueryData<OrderPage>(plan.queryKey)?.data[0]

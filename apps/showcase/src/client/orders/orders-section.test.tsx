@@ -3,6 +3,7 @@
 import type { Order } from "@plainworks/demo"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { HttpClientProvider } from "@plainworks/http/client"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { prefetchQuery } from "@plainworks/query/hydration"
@@ -14,8 +15,7 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { ORDER_LIST_PARAMS } from "../../app/constants"
-import { orderListPlan } from "../../app/order-read"
-import { HttpClientProvider } from "../http-client"
+import { orderList } from "../../app/lists"
 import { SessionProvider } from "../session"
 import { OrdersSection } from "./orders-section"
 
@@ -45,7 +45,7 @@ async function renderOrders(options: { authed?: boolean; prefetch?: boolean } = 
     defaultOptions: { queries: { retry: false } },
   })
   if (prefetch) {
-    await prefetchQuery(queryClient, orderListPlan(httpClient, ORDER_LIST_PARAMS))
+    await prefetchQuery(queryClient, orderList.options(httpClient, ORDER_LIST_PARAMS))
   }
   const ui = render(
     <TestQueryClientProvider client={queryClient}>

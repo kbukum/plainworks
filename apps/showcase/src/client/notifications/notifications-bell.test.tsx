@@ -2,6 +2,7 @@
 
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { HttpClientProvider } from "@plainworks/http/client"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { prefetchQuery } from "@plainworks/query/hydration"
@@ -12,8 +13,7 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest"
 import { NOTIFICATION_LIST_PARAMS } from "../../app/constants"
-import { notificationListPlan } from "../../app/notification-read"
-import { HttpClientProvider } from "../http-client"
+import { notificationList } from "../../app/lists"
 import { RouterProvider } from "../router"
 import { NotificationsBell } from "./notifications-bell"
 
@@ -37,7 +37,7 @@ async function renderBell(options: { prefetch?: boolean } = {}) {
     defaultOptions: { queries: { retry: false } },
   })
   if (prefetch) {
-    await prefetchQuery(queryClient, notificationListPlan(httpClient, NOTIFICATION_LIST_PARAMS))
+    await prefetchQuery(queryClient, notificationList.options(httpClient, NOTIFICATION_LIST_PARAMS))
   }
   const ui = render(
     <TestQueryClientProvider client={queryClient}>
@@ -74,7 +74,7 @@ describe("notifications bell", () => {
     const queryClient = createTestQueryClient(createQueryClient, {
       defaultOptions: { queries: { retry: false } },
     })
-    await prefetchQuery(queryClient, notificationListPlan(httpClient, NOTIFICATION_LIST_PARAMS))
+    await prefetchQuery(queryClient, notificationList.options(httpClient, NOTIFICATION_LIST_PARAMS))
     for (const row of handle.api.stores.notifications.getAll()) {
       if (!row.read) {
         const index = handle.api.stores.notifications.findIndex((n) => n.id === row.id)

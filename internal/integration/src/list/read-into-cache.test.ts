@@ -6,7 +6,7 @@ import { createQueryClient } from "@plainworks/query"
 import { listQueryOptions } from "@plainworks/query/list"
 import type { PaginatedResult } from "@plainworks/std/list"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
-import { readUserPage } from "./user-reads"
+import { userList } from "./user-reads"
 
 // The data spine assembled the way an app wires it: a TanStack cache (`@plainworks/query`), a typed
 // fetch client (`@plainworks/http`), and the MSW mock service (`@plainworks/demo`) standing in for
@@ -28,7 +28,7 @@ describe("offset read into cache", () => {
     const plan = listQueryOptions<User>({
       resource: "users",
       params: { sortBy: "name", order: "asc", page: 1, pageSize: 5 },
-      fetch: (params, signal) => readUserPage(client, params, signal),
+      fetch: (params, signal) => userList.read(client, params, signal),
     })
 
     const fetched = await queryClient.fetchQuery(plan)

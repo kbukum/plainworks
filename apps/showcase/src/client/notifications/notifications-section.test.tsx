@@ -2,6 +2,7 @@
 
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { HttpClientProvider } from "@plainworks/http/client"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { prefetchQuery } from "@plainworks/query/hydration"
@@ -15,9 +16,8 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { NOTIFICATION_LIST_PARAMS } from "../../app/constants"
-import { notificationListPlan } from "../../app/notification-read"
+import { notificationList } from "../../app/lists"
 import { ToastProvider } from "../feedback"
-import { HttpClientProvider } from "../http-client"
 import { SessionProvider } from "../session"
 import { NotificationsSection } from "./notifications-section"
 
@@ -50,7 +50,7 @@ async function renderNotifications(options: { authed?: boolean; prefetch?: boole
     defaultOptions: { queries: { retry: false } },
   })
   if (prefetch) {
-    await prefetchQuery(queryClient, notificationListPlan(httpClient, NOTIFICATION_LIST_PARAMS))
+    await prefetchQuery(queryClient, notificationList.options(httpClient, NOTIFICATION_LIST_PARAMS))
   }
   const ui = render(
     <TestQueryClientProvider client={queryClient}>

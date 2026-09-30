@@ -8,7 +8,6 @@ import type { CreateTaskInput, Task, UpdateTaskInput } from "@plainworks/demo"
 import type { createHttpClient } from "@plainworks/http"
 import { isRecord } from "@plainworks/std"
 import { guardSchema } from "@plainworks/std/seam"
-import type { WebAbortSignal } from "@plainworks/std/web"
 import { encodeIdSegment } from "./id-segment"
 import { isTask } from "./task-shape"
 
@@ -21,14 +20,9 @@ const taskEnvelopeSchema = guardSchema<{ readonly data: Task }>(
 )
 
 /** Create a task, returning the persisted row validated at the boundary; a bodyless response fails. */
-export async function createTask(
-  client: HttpClient,
-  input: CreateTaskInput,
-  signal?: WebAbortSignal,
-): Promise<Task> {
+export async function createTask(client: HttpClient, input: CreateTaskInput): Promise<Task> {
   const created = await client.post("/api/tasks", {
     body: input,
-    ...(signal ? { signal } : {}),
     schema: taskEnvelopeSchema,
   })
   if (created === undefined) {
@@ -42,12 +36,10 @@ export async function updateTask(
   client: HttpClient,
   id: string,
   input: UpdateTaskInput,
-  signal?: WebAbortSignal,
 ): Promise<Task> {
   const segment = encodeIdSegment("task", id)
   const updated = await client.patch(`/api/tasks/${segment}`, {
     body: input,
-    ...(signal ? { signal } : {}),
     schema: taskEnvelopeSchema,
   })
   if (updated === undefined) {

@@ -1,13 +1,12 @@
 // The order status write through its validation boundary. A status change PATCHes the order and the
 // mock echoes the persisted row, decoded from `unknown` and narrowed by the same {@link isOrder}
 // guard the list read uses — so an optimistic cache update reconciles against a trusted shape, not
-// a fabricated one. Neutral and server-safe: it names no host global and the write is cancellable.
+// a fabricated one. Neutral and server-safe: it names no host global.
 
 import type { Order } from "@plainworks/demo"
 import type { createHttpClient } from "@plainworks/http"
 import { isRecord } from "@plainworks/std"
 import { guardSchema } from "@plainworks/std/seam"
-import type { WebAbortSignal } from "@plainworks/std/web"
 import { encodeIdSegment } from "./id-segment"
 import { isOrder } from "./order-shape"
 
@@ -27,12 +26,10 @@ export async function updateOrderStatus(
   client: HttpClient,
   id: string,
   status: Order["status"],
-  signal?: WebAbortSignal,
 ): Promise<Order> {
   const segment = encodeIdSegment("order", id)
   const updated = await client.patch(`/api/orders/${segment}`, {
     body: { status },
-    ...(signal ? { signal } : {}),
     schema: orderEnvelopeSchema,
   })
   if (updated === undefined) {

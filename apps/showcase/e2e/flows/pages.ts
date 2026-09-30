@@ -1,4 +1,4 @@
-import { defineFlow, type FlowCheckpoint } from "@plainworks/testkit/browser"
+import { defineFlow, type FlowCheckpoint } from "@plainworks/testkit/playwright"
 import { APP_ROUTES, type AppRoute, openPausedTasks, openRoute } from "../support/app"
 import { PAGE_FRAME } from "./frame"
 

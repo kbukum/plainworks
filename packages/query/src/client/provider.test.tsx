@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
+
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { useQuery } from "@tanstack/react-query"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
-import axe from "axe-core"
 import { createElement, type ReactNode } from "react"
 import { afterEach, describe, expect, it } from "vitest"
 import { dehydrateClient, prefetchQuery } from "../hydration/prefetch"
@@ -67,7 +68,6 @@ describe("QueryProvider", () => {
         </main>
       </QueryProvider>,
     )
-    const results = await axe.run(container)
-    expect(results.violations).toEqual([])
+    await expectNoAxeViolations(container)
   })
 })

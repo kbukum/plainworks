@@ -2,7 +2,7 @@
 "@plainworks/auth": minor
 "@plainworks/std": patch
 "@plainworks/state": patch
-"@plainworks/testkit": patch
+"@plainworks/mocks": patch
 ---
 
 Add `@plainworks/auth`, the pluggable authentication and authorization layer. Its core runs anywhere and builds on what the kit already has — the state store and the shared seams — rather than reinventing them.
@@ -17,4 +17,4 @@ Add `@plainworks/auth`, the pluggable authentication and authorization layer. It
 
 `@plainworks/std` gains a shared cookie grammar and text encoder, and `@plainworks/state` reuses that grammar and relocates its secret guard so auth's session store enforces the same rule. No behavior change to state.
 
-`@plainworks/testkit` adds a deterministic in-process OpenID Provider double (`createMockIdp`) that mints real, JWKS-verifiable tokens with `jose`, so an OIDC adapter runs its genuine discovery, PKCE, nonce, and token-verification path with only the network faked — no MSW and no real sockets. It drives the failure paths too: forced token-exchange failure, replayed codes, nonce mismatch, and PKCE verifier mismatch.
+`@plainworks/mocks/idp` adds a deterministic in-process OpenID Provider double (`createMockIdp`) that mints real, JWKS-verifiable tokens with `jose`, so an OIDC adapter runs its genuine discovery, PKCE, nonce, and token-verification path with only the network faked — no MSW and no real sockets. It drives the failure paths too: forced token-exchange failure, replayed codes, nonce mismatch, and PKCE verifier mismatch.

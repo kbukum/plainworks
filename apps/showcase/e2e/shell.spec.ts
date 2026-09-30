@@ -1,4 +1,4 @@
-import { horizontalOverflow } from "@plainworks/testkit/browser"
+import { horizontalOverflow } from "@plainworks/testkit/playwright"
 import { APP_ROUTES, appRoute, navigateTo, openRoute } from "./support/app"
 import { expect, test } from "./support/gate"
 

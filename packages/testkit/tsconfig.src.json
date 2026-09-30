@@ -1,9 +1,9 @@
 {
   "extends": "../../tsconfig.base.json",
   // Server project: the `.` entry must stay DOM-free. The client graph (`src/client/`) and the
-  // Playwright browser gate (`src/browser/`) are excluded here and typechecked with DOM libs via
-  // `tsconfig.client.json` and `tsconfig.browser.json`, so the projects are exclusive rather than
+  // Playwright browser gate (`src/playwright/`) are excluded here and typechecked with DOM libs via
+  // `tsconfig.client.json` and `tsconfig.playwright.json`, so the projects are exclusive rather than
   // additive — a host-only global on the `.` entry fails to compile.
-  "exclude": ["src/client", "src/browser"],
+  "exclude": ["src/client", "src/playwright", "src/query"],
   "include": ["src", "../../types/universal-web.d.ts"]
 }

@@ -1,9 +1,11 @@
 // @vitest-environment jsdom Client hooks run against jsdom per file; the package default stays
 //   `node` so the neutral `.` entry can never lean on a DOM global unnoticed.
+
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { createFakeConnectTransport, EchoService } from "@plainworks/testkit/connect"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { createTestQueryClient, TestQueryClientProvider } from "@plainworks/testkit/query"
+import { QueryClient } from "@tanstack/react-query"
 import { cleanup, render, screen } from "@testing-library/react"
-import axe from "axe-core"
 import type { ReactNode } from "react"
 import { afterEach, describe, expect, test } from "vitest"
 import { TransportProvider, useQuery } from "./hooks"
@@ -16,12 +18,12 @@ function EchoView(): ReactNode {
 }
 
 function renderWithProviders(fakeTransport: ReturnType<typeof createFakeConnectTransport>) {
-  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const queryClient = createTestQueryClient((options) => new QueryClient(options))
   return render(
     <TransportProvider transport={fakeTransport.transport}>
-      <QueryClientProvider client={queryClient}>
+      <TestQueryClientProvider client={queryClient}>
         <EchoView />
-      </QueryClientProvider>
+      </TestQueryClientProvider>
     </TransportProvider>,
   )
 }
@@ -44,7 +46,6 @@ describe("client hooks", () => {
     const { container } = renderWithProviders(fake)
     await screen.findByText("pong")
 
-    const results = await axe.run(container)
-    expect(results.violations).toEqual([])
+    await expectNoAxeViolations(container)
   })
 })

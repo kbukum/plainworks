@@ -3,9 +3,11 @@
 import { deserializeSnapshot } from "@plainworks/app"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import type { DehydratedState } from "@plainworks/query/hydration"
 import { installMatchMedia } from "@plainworks/testkit/client"
+import { createTestQueryClient } from "@plainworks/testkit/query"
 import { act } from "react"
 import { hydrateRoot } from "react-dom/client"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
@@ -44,17 +46,15 @@ function readEmbedded(id: string): string {
   return text
 }
 
-beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
+bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
 beforeEach(() => {
   // jsdom has no `matchMedia`; install the shared deterministic fake.
   installMatchMedia()
 })
 afterEach(() => {
-  handle.server.resetHandlers()
   handle.api.reset()
   vi.unstubAllGlobals()
 })
-afterAll(() => handle.server.close())
 
 describe("hydration", () => {
   it("hydrates the server markup with no React mismatch", async () => {
@@ -87,7 +87,7 @@ describe("hydration", () => {
     })
 
     const capabilities = buildClientCapabilities({
-      queryClient: createQueryClient(),
+      queryClient: createTestQueryClient(createQueryClient),
       themeSource: createThemeSource(),
     })
 

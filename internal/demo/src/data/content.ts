@@ -4,13 +4,10 @@
 
 import {
   createEntityFactory,
-  daysAgo,
   type EntityFactory,
   type FixtureSources,
-  nowISOString,
-  randomElement,
-  randomInt,
-} from "@plainworks/mocks"
+} from "@plainworks/mocks/data"
+import { daysAgo, nowISOString, randomElement, randomInt } from "@plainworks/mocks/fixture"
 import type { ContentPage, CreateContentPageInput } from "../types/content"
 
 const CATEGORIES = ["Blog", "News", "Tutorial", "Documentation", "Announcement", "Case Study"]

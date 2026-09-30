@@ -12,7 +12,7 @@ bun add @plainworks/mocks
 
 ## What's here
 
-The `@plainworks/mocks` entry is the **framework**: entity factories, an in-memory store, CRUD handler generation, a mock control plane, the PostgREST-style filter dialect, and the pure query (filter/sort/paginate) and fixture (seeded random/id/date) utilities — the pieces you compose to mock *your own* API. The `@plainworks/mocks/vite-plugin` entry is a Vite dev-server middleware that serves any MSW handler set over real HTTP.
+The root exports the latency prelude. Each larger concern has one named subpath: `./data`, `./handlers`, `./fixture`, `./query`, `./filter`, `./control`, `./dispatch`, `./lifecycle`, and `./idp`. The `./vite-plugin` entry serves any MSW handler set over real HTTP.
 
 Want a worked example rather than building from scratch? The kit's dev-only `@plainworks/demo` fixtures package wires these primitives into a full commerce/SaaS mock graph (`createMockApi()`), and is what the showcase and integration tests run against.
 
@@ -21,16 +21,10 @@ Want a worked example rather than building from scratch? The kit's dev-only `@pl
 Compose the primitives to mock an entity end to end — a seeded factory feeds an in-memory store, CRUD handlers expose it over REST with filtering/sorting/pagination, and (optionally) the Vite plugin serves the handler set over real HTTP in dev:
 
 ```ts
-import {
-  createCrudHandlers,
-  createEntityFactory,
-  createFixtureSources,
-  createLatency,
-  createStore,
-  nowISOString,
-  randomInt,
-  type InputSpec,
-} from "@plainworks/mocks"
+import { createLatency } from "@plainworks/mocks"
+import { createEntityFactory, createFixtureSources, createStore } from "@plainworks/mocks/data"
+import { nowISOString, randomInt } from "@plainworks/mocks/fixture"
+import { createCrudHandlers, type InputSpec } from "@plainworks/mocks/handlers"
 
 interface Todo {
   id: string
@@ -85,9 +79,30 @@ import { mockServerPlugin } from "@plainworks/mocks/vite-plugin"
 mockServerPlugin(handlers)
 ```
 
+Bind an MSW server to any runner that provides lifecycle hooks:
+
+```ts
+import { installMockServer } from "@plainworks/mocks/lifecycle"
+import { afterAll, afterEach, beforeAll } from "vitest"
+
+const server = installMockServer({ handlers, hooks: { beforeAll, afterEach, afterAll } })
+```
+
 A few behaviors worth knowing:
 
 - **Input is validated at the boundary** — a malformed body or query param returns `400`.
-- **Latency is off by default** for deterministic tests. Set a fixed delay with `createLatency(ms)`, or add the control plane (`createMockControl`) to drive it per server over `/mock/latency`. `createMockControlClient` is the typed, validating client for those `/mock/*` routes.
+- **Latency is off by default** for deterministic tests. Set a fixed delay with `createLatency(ms)`, or use `createMockControl` and `createMockControlClient` from `./control`.
 - **Handlers match any origin**, so the same set intercepts both same-origin requests and the absolute URLs `msw/node` uses.
 - **Everything is a factory** — importing this module creates no stores, workers, or other state.
+
+## OpenID Provider double — `createMockIdp`
+
+A deterministic, in-process OpenID Provider for testing an OIDC adapter end to end. It mints **real, JWKS-verifiable** tokens with `jose`, so the adapter runs its genuine discovery, PKCE, nonce, and token-verification path — only the network is faked (no MSW, no sockets). It exposes the `fetch` seam the adapter consumes plus an `authorize` helper that stands in for the user-agent's visit to the authorization endpoint, and it drives the failure paths: `failNextTokenExchange`, replayed codes, PKCE-verifier mismatch, and `idTokenNonceOverride` for a replay test.
+
+```ts
+import { createMockIdp } from "@plainworks/mocks/idp"
+
+const idp = await createMockIdp({ claims: { email: "user@idp.test" } })
+// Configure the adapter's `fetch` seam with `idp.fetch`, then, after building the authorization URL:
+const { callbackUrl } = idp.authorize(authorizationUrl) // redirect-back URL with code + state
+```

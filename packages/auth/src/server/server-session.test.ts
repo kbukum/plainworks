@@ -1,6 +1,6 @@
+import { createMockIdp } from "@plainworks/mocks/idp"
 import { guardSchema } from "@plainworks/std/seam"
 import { systemClock } from "@plainworks/std/time"
-import { createMockIdp } from "@plainworks/testkit"
 import { describe, expect, test } from "vitest"
 import { oidcAdapter } from "../adapter/oidc"
 import { defaultAuthCrypto } from "../crypto"

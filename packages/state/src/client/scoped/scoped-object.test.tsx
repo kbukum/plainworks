@@ -2,7 +2,8 @@
 // Client tests opt into jsdom per file; the package default stays `node`.
 
 import type { StateSource } from "@plainworks/std/seam"
-import { asyncStateSource, fakeStateSource } from "@plainworks/testkit"
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
+import { asyncStateSource, fakeStateSource } from "@plainworks/testkit/fakes"
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ReactNode } from "react"
@@ -59,7 +60,7 @@ describe("createScopedObject — one object, a scope per field", () => {
         </button>
       )
     }
-    render(
+    const { container } = render(
       <usePrefs.Provider>
         <View />
       </usePrefs.Provider>,
@@ -71,6 +72,7 @@ describe("createScopedObject — one object, a scope per field", () => {
     expect(themeSource.current).toBe("dark")
     expect(sidebarSource.current).toBeUndefined()
     expect(draftSource.current).toBeUndefined()
+    await expectNoAxeViolations(container)
   })
 
   test("relocating a field is a one-line scope change with unchanged call sites", async () => {

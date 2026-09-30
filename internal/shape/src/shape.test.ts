@@ -150,7 +150,7 @@ describe("checkShape", () => {
   it("rejects an entry named after a host instead of what it does", async () => {
     const builds = shapedBuilds()
     builds["packages/std"] = {
-      entry: { index: "src/index.ts", browser: "src/browser.ts", "web/node": "src/web/node.ts" },
+      entry: { index: "src/index.ts", browser: "src/playwright.ts", "web/node": "src/web/node.ts" },
     }
     expect((await messages(repo(), builds)).filter((m) => m.includes("host"))).toEqual([
       'packages/std: entry "browser" is named after a host; name an adapter after what it does (e.g. "web-storage")',

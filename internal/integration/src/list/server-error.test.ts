@@ -1,6 +1,7 @@
 import type { User } from "@plainworks/demo"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient, HttpError } from "@plainworks/http"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { listQueryOptions } from "@plainworks/query/list"
 import { HttpResponse, http } from "msw"
@@ -34,12 +35,10 @@ const usersPlan = () =>
     fetch: (params, signal) => readUserPage(client, params, signal),
   })
 
-beforeAll(() => handle.server.listen({ onUnhandledRequest: "error" }))
+bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
 afterEach(() => {
-  handle.server.resetHandlers()
   handle.api.reset()
 })
-afterAll(() => handle.server.close())
 
 describe("server error through the cache", () => {
   it("surfaces a server error as a typed HttpError and rejects the query without caching", async () => {

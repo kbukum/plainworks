@@ -3,6 +3,7 @@ import { HttpResponse, http } from "msw"
 import { setupServer } from "msw/node"
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest"
 import { createLatency, MAX_LATENCY_MS } from "../latency"
+import { bindMockServerLifecycle } from "../lifecycle"
 import { createMockControlClient, MockControlError, type MockControlTransport } from "./client"
 import { MAX_REQUEST_LOG_SIZE } from "./limits"
 import { MOCK_CONTROL_PATHS } from "./paths"
@@ -39,15 +40,13 @@ const transport: MockControlTransport = {
 }
 const control = createMockControlClient({ client: transport })
 
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }))
+bindMockServerLifecycle(server, { hooks: { beforeAll, afterEach, afterAll } })
 afterEach(() => {
-  server.resetHandlers()
   graph.control.clearRequestLog()
   graph.control.setError(false)
   latency.set(0)
   onReset.mockClear()
 })
-afterAll(() => server.close())
 
 describe("createMockControlClient", () => {
   it("reads the control state and request log the server holds", async () => {
@@ -72,6 +71,38 @@ describe("createMockControlClient", () => {
 
     await control.reset()
     expect(onReset).toHaveBeenCalledOnce()
+  })
+
+  it("restores errors, latency, data, and the request log together", async () => {
+    await control.setError(true)
+    await control.setLatency(120)
+    await control.restore()
+
+    expect(graph.control.isErrorEnabled()).toBe(false)
+    expect(latency.get()).toBe(0)
+    expect(onReset).toHaveBeenCalledOnce()
+  })
+
+  it("resets data before forcing the final error and latency state", async () => {
+    const paths: string[] = []
+    const orderedTransport: MockControlTransport = {
+      get: async () => undefined,
+      delete: async () => undefined,
+      post: async (path) => {
+        paths.push(path)
+        if (path === MOCK_CONTROL_PATHS.reset) return { success: true }
+        if (path === MOCK_CONTROL_PATHS.error) return { data: { globalError: false } }
+        return { data: { globalLatency: 0 } }
+      },
+    }
+
+    await createMockControlClient({ client: orderedTransport }).restore()
+
+    expect(paths).toEqual([
+      MOCK_CONTROL_PATHS.reset,
+      MOCK_CONTROL_PATHS.error,
+      MOCK_CONTROL_PATHS.latency,
+    ])
   })
 
   it("rejects an out-of-range latency before sending anything", async () => {
@@ -108,6 +139,18 @@ describe("createMockControlClient", () => {
           : control.reset()
 
     const error = await call.catch((cause: unknown) => cause)
+    expect(error).toBeInstanceOf(MockControlError)
+    expect(error).toMatchObject({ kind: "mocks/invalid-control-response", path })
+  })
+
+  it.each([
+    ["error", { data: { globalError: true } }],
+    ["latency", { data: { globalLatency: 1 } }],
+  ] as const)("rejects a malformed %s response while restoring", async (key, body) => {
+    const path = MOCK_CONTROL_PATHS[key]
+    server.use(http.post(`*${path}`, () => HttpResponse.json(body)))
+
+    const error = await control.restore().catch((cause: unknown) => cause)
     expect(error).toBeInstanceOf(MockControlError)
     expect(error).toMatchObject({ kind: "mocks/invalid-control-response", path })
   })

@@ -1,4 +1,4 @@
-import { defineFlow } from "@plainworks/testkit/browser"
+import { defineFlow } from "@plainworks/testkit/playwright"
 import { GALLERY_GROUPS } from "../../fixtures/gallery/groups"
 import { openGalleryGroup } from "../../support/gallery"
 import { PAGE_FRAME } from "../frame"

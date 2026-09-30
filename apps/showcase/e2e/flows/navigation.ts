@@ -1,4 +1,4 @@
-import { defineFlow } from "@plainworks/testkit/browser"
+import { defineFlow } from "@plainworks/testkit/playwright"
 import { appRoute, navigateTo } from "../support/app"
 
 /** Land on the overview, then reach the notifications feed through the app's own navigation. */

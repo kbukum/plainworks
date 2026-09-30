@@ -1,7 +1,8 @@
 import { Code, ConnectError, createClient } from "@connectrpc/connect"
 import type { WebResponse } from "@plainworks/std/web"
-import { fakeAuthHeaderProvider, fakeFetch, manualDelay } from "@plainworks/testkit"
+import { manualDelay } from "@plainworks/testkit"
 import { EchoService } from "@plainworks/testkit/connect"
+import { fakeAuthHeaderProvider, fakeFetch } from "@plainworks/testkit/fakes"
 import { describe, expect, test } from "vitest"
 import { createConnectRpcTransport } from "./rpc"
 

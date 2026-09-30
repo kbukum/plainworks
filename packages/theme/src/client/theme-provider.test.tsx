@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { deferredStateSource, fakeStateSource } from "@plainworks/testkit"
 import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/client"
+import { deferredStateSource, fakeStateSource } from "@plainworks/testkit/fakes"
 import { act, cleanup, render, renderHook, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ReactElement, ReactNode } from "react"

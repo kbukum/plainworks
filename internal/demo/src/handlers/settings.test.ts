@@ -1,3 +1,4 @@
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { createMockApi } from "../api"
 import { createMockServer } from "../server"
@@ -11,9 +12,8 @@ const api = createMockApi({
 const server = createMockServer(api)
 const base = "http://localhost"
 
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }))
+bindMockServerLifecycle(server, { hooks: { beforeAll, afterEach, afterAll } })
 afterEach(() => api.reset())
-afterAll(() => server.close())
 
 describe("settings authorization", () => {
   it("denies reads, PATCH writes, and resets before touching the store", async () => {

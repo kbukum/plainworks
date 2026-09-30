@@ -1,4 +1,4 @@
-import { defineFlow } from "@plainworks/testkit/browser"
+import { defineFlow } from "@plainworks/testkit/playwright"
 import { expect } from "@playwright/test"
 import { appRoute, openPausedTasks, openRoute } from "../../support/app"
 import { PAGE_FRAME } from "../frame"

@@ -1,4 +1,4 @@
-// Public `./browser` entry for `@plainworks/testkit`: the shared Playwright gate every reference
+// Public `./playwright` entry for `@plainworks/testkit`: the shared gate every reference
 // host drives, the checks it runs, the flow engine, change review, and `ui:capture`. Re-export-only
 // barrel. It runs in the Playwright test runner, so its peers (`@playwright/test`,
 // `@axe-core/playwright`) are optional and only this subpath loads them.
@@ -26,6 +26,10 @@ export {
   BROWSER_AXE_TAGS,
   CHECK_IDS,
   capFindingsPerCheck,
+  expectNoPageAxeViolations,
+  expectPageFocusVisible,
+  expectPageHydrated,
+  expectPageReflow,
   findFocusProblems,
   findOverlaysOutsideViewport,
   focusWithKeyboard,
@@ -111,6 +115,7 @@ export {
   DEVICE_IDS,
   DEVICE_PROFILES,
   defineFlow,
+  defineThemeAxes,
   describeChangeTotals,
   deviceContextOptions,
   expandFlowMatrix,

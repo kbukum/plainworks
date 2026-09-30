@@ -21,7 +21,7 @@ Accessibility — WCAG 2.2 AA, non-negotiable:
 - **Semantic HTML first, ARIA to fill gaps.** Real `button`/`a`/`label`/`nav`/heading structure over `div` + `onClick`. Every control has an accessible name; form controls are label-associated.
 - **Keyboard + focus.** Everything operable by pointer is operable by keyboard; focus order is logical; the focus ring is visible and **not obscured** (2.4.11); no keyboard traps.
 - **Target size** ≥ `24×24` CSS px for pointer targets (2.5.8); **contrast** ≥ 4.5:1 text / 3:1 UI (1.4.3/1.4.11).
-- **Prove it in the test.** Every client component test includes an axe assertion (`expect(await axe(container)).toHaveNoViolations()`). Automation catches ~57% of issues — it is a floor; keyboard operability, focus order, and role correctness are still asserted behaviorally.
+- **Prove it in the test.** Every client component test runs `await expectNoAxeViolations(container)` from `@plainworks/testkit/client`; `bun run check-axe-coverage` fails a render test file that never awaits it. Automation catches ~57% of issues — it is a floor; keyboard operability, focus order, and role correctness are still asserted behaviorally.
 
 Responsive & adaptive:
 
@@ -37,8 +37,8 @@ Performance:
 Tests (Vitest + React Testing Library, test-first, DOM env):
 
 - Write the failing test first. Query the way a user perceives the UI — `getByRole`/`getByLabelText` first, `getByTestId` only as a last resort; drive interaction with `@testing-library/user-event` (`userEvent.setup()`), **not** `fireEvent`. Never assert on class names or internal state. Component tests run under jsdom (the generated client `vitest.config.ts`, or a per-file `// @vitest-environment jsdom`).
-- Mock the network at the boundary with **MSW** (`server.listen({ onUnhandledRequest: "error" })`, reset between tests), not by stubbing `fetch`. Injected clock / seeded RNG for anything time- or random-dependent.
-- Reuse render harnesses, fake transports, and the axe helper from `@plainworks/testkit` — never hand-roll a one-off. Coverage ≥ 80% (the generated `vitest.config.ts` sets it).
+- Mock the network at the boundary with **MSW** through `@plainworks/mocks/lifecycle`, not by stubbing `fetch`. Injected clock / seeded RNG for anything time- or random-dependent.
+- Reuse render harnesses and fake transports from `@plainworks/testkit`. Await `expectNoAxeViolations` from `@plainworks/testkit/client` in every client render test file; `check-axe-coverage` rejects a file that never does. Coverage ≥ 80% (the generated `vitest.config.ts` sets it).
 
 Scope every gate to the package you changed:
 

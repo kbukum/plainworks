@@ -1,4 +1,8 @@
-import { BROWSER_GATE_NOW, createBrowserGate, FIXED_NOW_ENV } from "@plainworks/testkit/browser"
+import {
+  createApiRequestMockControlTransport,
+  createMockControlClient,
+} from "@plainworks/mocks/control"
+import { BROWSER_GATE_NOW, createBrowserGate, FIXED_NOW_ENV } from "@plainworks/testkit/playwright"
 import { expect } from "@playwright/test"
 import { signIn } from "./session"
 
@@ -29,14 +33,10 @@ export const test = createBrowserGate({
   },
   signIn,
   resetHost: async (request) => {
-    for (const [path, data] of [
-      ["/api/mock/reset", undefined],
-      ["/api/mock/error", { enabled: false }],
-      ["/api/mock/latency", { latency: 0 }],
-    ] as const) {
-      const response = await request.post(path, data === undefined ? {} : { data })
-      expect(response.ok(), `${path} answered ${response.status()}`).toBe(true)
-    }
+    const control = createMockControlClient({
+      client: createApiRequestMockControlTransport(request, { basePath: "/api" }),
+    })
+    await control.restore()
   },
 })
 

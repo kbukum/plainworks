@@ -37,6 +37,7 @@ export const GATES: readonly Gate[] = [
   repoGate("check-layer-map", "layer-map docs match internal/boundaries/layers.json"),
   repoGate("check-registry", "vendored atoms match shadcn.lock.json"),
   repoGate("check-shape", "every workspace matches its generated profile"),
+  repoGate("check-axe-coverage", "every React render test file awaits the shared axe assertion"),
   turboGate("typecheck", "tsc --noEmit for every project and the generator", [
     "tsc",
     "-p",

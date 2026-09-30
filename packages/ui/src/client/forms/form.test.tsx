@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { fakeSchema } from "@plainworks/testkit"
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
+import { fakeSchema } from "@plainworks/testkit/fakes"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"

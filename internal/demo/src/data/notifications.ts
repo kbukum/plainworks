@@ -4,13 +4,10 @@
 
 import {
   createEntityFactory,
-  daysAgo,
   type EntityFactory,
   type FixtureSources,
-  randomBoolean,
-  randomElement,
-  randomInt,
-} from "@plainworks/mocks"
+} from "@plainworks/mocks/data"
+import { daysAgo, randomBoolean, randomElement, randomInt } from "@plainworks/mocks/fixture"
 import type { CreateNotificationInput, Notification } from "../types"
 
 const NOTIFICATION_TEMPLATES = [

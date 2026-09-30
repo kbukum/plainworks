@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { fakeStateSource } from "@plainworks/testkit"
 import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/client"
+import { fakeStateSource } from "@plainworks/testkit/fakes"
 import type { ThemePreference } from "@plainworks/theme"
 import { COLOR_SCHEMES } from "@plainworks/theme"
 import { ThemeProvider } from "@plainworks/theme/client"

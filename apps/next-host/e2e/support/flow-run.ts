@@ -1,4 +1,4 @@
-import { setupFlowRun } from "@plainworks/testkit/browser"
+import { setupFlowRun } from "@plainworks/testkit/playwright"
 
 /** Where flow runs land, relative to the Next host. Gitignored. */
 export const UI_ARTIFACTS = ".ui-artifacts"

@@ -2,10 +2,10 @@
 //   so the server-safe `.` entry can never lean on DOM globals unnoticed.
 
 import type { StreamFrame } from "@plainworks/std/seam"
-import { fakeStreamTransport } from "@plainworks/testkit"
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
+import { fakeStreamTransport } from "@plainworks/testkit/fakes"
 import { act, cleanup, render, renderHook, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import axe from "axe-core"
 import { type ReactNode, StrictMode } from "react"
 import { afterEach, describe, expect, test, vi } from "vitest"
 import type { ChannelOptions } from "../lifecycle"
@@ -272,8 +272,7 @@ describe("createChannelContext", () => {
         <StatusLabel />
       </ChannelProvider>,
     )
-    const results = await axe.run(container)
-    expect(results.violations).toEqual([])
+    await expectNoAxeViolations(container)
   })
 
   test("a hook used outside its Provider throws a config error", () => {

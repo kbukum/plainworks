@@ -94,6 +94,33 @@ export interface ThemeAxes {
   }) => ThemeRoot
 }
 
+/** Define host theme axes while keeping theme and density values type-safe. */
+export function defineThemeAxes<const Theme extends string, const Density extends string>(options: {
+  readonly themes: readonly Theme[]
+  readonly densities: readonly Density[]
+  readonly defaultTheme: Theme
+  readonly defaultDensity: Density
+  readonly root: (variant: {
+    readonly mode: FlowMode
+    readonly theme: Theme
+    readonly density: Density
+  }) => ThemeRoot
+}): ThemeAxes {
+  return {
+    themes: options.themes,
+    densities: options.densities,
+    defaultTheme: options.defaultTheme,
+    defaultDensity: options.defaultDensity,
+    root: ({ mode, theme, density }) => {
+      const knownTheme = options.themes.find((candidate) => candidate === theme)
+      const knownDensity = options.densities.find((candidate) => candidate === density)
+      if (knownTheme === undefined) throw new RangeError(`Unknown theme: ${theme}`)
+      if (knownDensity === undefined) throw new RangeError(`Unknown density: ${density}`)
+      return options.root({ mode, theme: knownTheme, density: knownDensity })
+    },
+  }
+}
+
 /**
  * The theme axes of a host without brand themes or densities: one value each, and a root that
  * carries only the mode class.

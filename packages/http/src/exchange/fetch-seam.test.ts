@@ -1,5 +1,5 @@
 import type { WebFetch } from "@plainworks/std/web"
-import { fakeFetch } from "@plainworks/testkit"
+import { fakeFetch } from "@plainworks/testkit/fakes"
 import { expect, test } from "vitest"
 import { createHttpClient } from "./client"
 

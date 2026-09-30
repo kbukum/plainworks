@@ -3,6 +3,7 @@ import { createAuthStore } from "@plainworks/auth"
 import { createQueryClient } from "@plainworks/query"
 import { QueryProvider } from "@plainworks/query/client"
 import { createSuppliedStoreContext } from "@plainworks/state/client"
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { useQueryClient } from "@tanstack/react-query"
 import { cleanup, render, screen } from "@testing-library/react"
 import { createContext, createElement, type ReactNode, useContext } from "react"
@@ -27,7 +28,7 @@ function authedStore() {
 }
 
 describe("full recipe assembly", () => {
-  it("composes query + auth in dependency order and reads both below", () => {
+  it("composes query + auth in dependency order and reads both below", async () => {
     const client = createQueryClient()
     const auth = authedStore()
     const { capability: authCapability, useSession } = createAuthCapability({
@@ -44,12 +45,13 @@ describe("full recipe assembly", () => {
         `${sameClient ? "cache" : "no-cache"}:${session.identity?.subject ?? "anon"}`,
       )
     }
-    render(
+    const { container } = render(
       <AppProvider capabilities={[authCapability, createQueryCapability({ client })]}>
         <Screen />
       </AppProvider>,
     )
     expect(screen.getByText("cache:ada")).toBeDefined()
+    await expectNoAxeViolations(container)
   })
 })
 

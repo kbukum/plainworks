@@ -1,13 +1,12 @@
 import { createHttpClient } from "@plainworks/http"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { HttpResponse, http } from "msw"
 import { setupServer } from "msw/node"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { createTask, updateTask } from "./task-write"
 
 const server = setupServer()
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }))
-afterEach(() => server.resetHandlers())
-afterAll(() => server.close())
+bindMockServerLifecycle(server, { hooks: { beforeAll, afterEach, afterAll } })
 
 describe("task-write", () => {
   const client = createHttpClient({ baseUrl: "http://test.local" })

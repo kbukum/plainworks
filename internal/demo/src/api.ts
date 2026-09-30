@@ -12,18 +12,16 @@
  * runs (sources rewind and replay exactly).
  */
 
-import type { MutationAuthorizer } from "@plainworks/mocks"
+import { createLatency, type LatencyController } from "@plainworks/mocks"
+import { createMockControl, type MockControl } from "@plainworks/mocks/control"
 import {
   createFixtureSources,
-  createLatency,
-  createMockControl,
   createReloadableFixtureSources,
   createStore,
   type EntityStore,
-  type LatencyController,
-  type MockControl,
   type ReloadableFixtureSources,
-} from "@plainworks/mocks"
+} from "@plainworks/mocks/data"
+import type { MutationAuthorizer } from "@plainworks/mocks/handlers"
 import { type Clock, systemClock } from "@plainworks/std/time"
 import type { HttpHandler } from "msw"
 import { createContentFactory } from "./data/content"

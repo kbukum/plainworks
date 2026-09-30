@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { cleanup, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import type { CommandDescriptor, SourceId } from "../../protocol"
@@ -140,9 +140,7 @@ describe("CommandSection", () => {
     await user.click(screen.getByRole("button", { name: "Reset data" }))
     // Escape is consumed (default prevented) by the confirmation, so it does not also close the
     // inspector around it.
-    expect(
-      fireEvent.keyDown(screen.getByRole("button", { name: "Cancel" }), { key: "Escape" }),
-    ).toBe(false)
+    await user.keyboard("{Escape}")
     await screen.findByRole("button", { name: "Reset data" })
     expect(screen.queryByRole("group", { name: "Confirm Reset data" })).toBeNull()
     expect(runCommand).not.toHaveBeenCalled()

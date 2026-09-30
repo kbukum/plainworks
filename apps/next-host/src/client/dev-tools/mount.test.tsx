@@ -3,7 +3,8 @@
 import { type Channel, createChannel } from "@plainworks/channel"
 import { createQueryClient } from "@plainworks/query"
 import type { Subscription } from "@plainworks/std/seam"
-import { fakeStreamTransport } from "@plainworks/testkit"
+import { fakeStreamTransport } from "@plainworks/testkit/fakes"
+import { createTestQueryClient } from "@plainworks/testkit/query"
 import { describe, expect, it, vi } from "vitest"
 import { mountNextHostDevtools } from "./mount"
 import { createDevtoolsSeams, type DevtoolsSeams } from "./seams"
@@ -42,7 +43,7 @@ describe("mountNextHostDevtools", () => {
 
     const teardown = mountNextHostDevtools({
       seams: tracked.seams,
-      queryClient: createQueryClient(),
+      queryClient: createTestQueryClient(createQueryClient),
       channel: idleChannel(),
     })
     await vi.waitFor(() =>
@@ -62,7 +63,11 @@ describe("mountNextHostDevtools", () => {
     }
 
     expect(() =>
-      mountNextHostDevtools({ seams, queryClient: createQueryClient(), channel: idleChannel() }),
+      mountNextHostDevtools({
+        seams,
+        queryClient: createTestQueryClient(createQueryClient),
+        channel: idleChannel(),
+      }),
     ).toThrow()
     expect(tracked.released()).toBe(true)
   })

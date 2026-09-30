@@ -8,8 +8,8 @@
 //
 // Authentication runs through `@plainworks/auth`'s own `createServerSession` composition: the BFF
 // routes `/login`, `/auth/callback`, and `/logout` drive begin/complete/logout, and the SSR render
-// is session-gated. The identity provider is `@plainworks/testkit`'s in-process mock IdP — this is
-// a dev harness, never bundled or published; run it with `bun run server.ts`.
+// is session-gated. The identity provider is `@plainworks/mocks/idp`'s in-process mock IdP — this
+// is a dev harness, never bundled or published; run it with `bun run server.ts`.
 
 import { readFile } from "node:fs/promises"
 import {
@@ -22,10 +22,10 @@ import type { ServerSessionJar } from "@plainworks/auth/server"
 import { createMockApi } from "@plainworks/demo"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { createMockIdp } from "@plainworks/mocks/idp"
 import { mockServerPlugin } from "@plainworks/mocks/vite-plugin"
 import { fixedClock, systemClock } from "@plainworks/std/time"
 import { PayloadTooLargeError, parseCookieHeader } from "@plainworks/std/web"
-import { createMockIdp } from "@plainworks/testkit"
 import { createServer as createViteServer, type ViteDevServer } from "vite"
 import { createShowcaseAuth } from "./src/app/auth"
 import { AUTH_CALLBACK_PATH, LOGIN_PATH, LOGOUT_PATH } from "./src/app/constants"

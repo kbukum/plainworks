@@ -36,6 +36,11 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./fakes": {
+      "@plainworks/source": "./src/fakes/index.ts",
+      "types": "./dist/fakes.d.ts",
+      "default": "./dist/fakes.js"
+    },
     "./connect": {
       "@plainworks/source": "./src/connect/index.ts",
       "types": "./dist/connect.d.ts",
@@ -46,15 +51,20 @@
       "types": "./dist/client.d.ts",
       "default": "./dist/client.js"
     },
-    "./browser": {
-      "@plainworks/source": "./src/browser/index.ts",
-      "types": "./dist/browser.d.ts",
-      "default": "./dist/browser.js"
+    "./query": {
+      "@plainworks/source": "./src/query/index.ts",
+      "types": "./dist/query.d.ts",
+      "default": "./dist/query.js"
+    },
+    "./playwright": {
+      "@plainworks/source": "./src/playwright/index.ts",
+      "types": "./dist/playwright.d.ts",
+      "default": "./dist/playwright.js"
     }
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.browser.json",
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.playwright.json",
     "test": "vitest run --coverage",
     "gen:proto": "buf generate",
     "check-packaging": "plainworks-release check-packaging"
@@ -62,8 +72,6 @@
   "dependencies": {
     "@plainworks/std": "workspace:*",
     "@testing-library/react": "catalog:",
-    "axe-core": "catalog:",
-    "jose": "catalog:",
     "pixelmatch": "catalog:",
     "pngjs": "catalog:"
   },
@@ -76,11 +84,13 @@
     "@plainworks/tsdown-config": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",
     "@playwright/test": "catalog:",
+    "@tanstack/react-query": "catalog:",
     "@types/node": "catalog:",
     "@types/pngjs": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitest/coverage-v8": "catalog:",
+    "axe-core": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
@@ -90,6 +100,8 @@
     "@bufbuild/protobuf": "catalog:",
     "@connectrpc/connect": "catalog:",
     "@playwright/test": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "axe-core": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
@@ -104,6 +116,12 @@
       "optional": true
     },
     "@playwright/test": {
+      "optional": true
+    },
+    "@tanstack/react-query": {
+      "optional": true
+    },
+    "axe-core": {
       "optional": true
     },
     "react-dom": {

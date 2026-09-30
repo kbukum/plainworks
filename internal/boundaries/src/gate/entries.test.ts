@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { dirname, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import ts from "typescript"
-import { expect, test } from "vitest"
+import { beforeAll, expect, test } from "vitest"
 
 /**
  * One import path per name. Every public name in a package is reachable from exactly one of its
@@ -27,11 +27,21 @@ const COMPILER_OPTIONS: ts.CompilerOptions = {
   customConditions: [SOURCE_CONDITION],
   allowImportingTsExtensions: true,
   noEmit: true,
+  // Export resolution needs neither the default libs nor ambient `@types` packages; loading them
+  // only slows the program.
+  noLib: true,
+  types: [],
+}
+
+function createEntryProgram(files: Iterable<string>): ts.Program {
+  return ts.createProgram([...files], COMPILER_OPTIONS)
 }
 
 /** Maps each declaration exported by more than one entry to those entries. */
-function sharedExports(entries: ReadonlyMap<string, string>): Map<string, string[]> {
-  const program = ts.createProgram([...entries.values()], COMPILER_OPTIONS)
+function sharedExports(
+  entries: ReadonlyMap<string, string>,
+  program: ts.Program = createEntryProgram(entries.values()),
+): Map<string, string[]> {
   const checker = program.getTypeChecker()
   const owners = new Map<string, string[]>()
   for (const [entry, file] of entries) {
@@ -81,10 +91,20 @@ test("the check catches a name exported by two entries", () => {
 const packages = readdirSync(packagesDir).filter((name) =>
   existsSync(join(packagesDir, name, "package.json")),
 )
+const packageEntries = new Map(
+  packages.map((name) => [name, sourceEntries(join(packagesDir, name))]),
+)
+
+// One program over every package's entries, so shared sources are parsed once rather than once per
+// package. It compiles the whole workspace, so it gets its own budget instead of the per-test one.
+let allEntries: ts.Program
+beforeAll(() => {
+  allEntries = createEntryProgram([...packageEntries.values()].flatMap((e) => [...e.values()]))
+}, 120_000)
 
 test.each(packages)("every public name in %s has one import path", (name) => {
-  const entries = sourceEntries(join(packagesDir, name))
-  const shared = [...sharedExports(entries)].map(
+  const entries = packageEntries.get(name) ?? new Map<string, string>()
+  const shared = [...sharedExports(entries, allEntries)].map(
     ([id, paths]) => `${id.slice(id.lastIndexOf("#") + 1)} → ${paths.join(", ")}`,
   )
   expect(shared).toEqual([])

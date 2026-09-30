@@ -1,9 +1,6 @@
 import type { BackoffPolicy } from "@plainworks/std/resilience"
 import type { AuthHeaderProvider } from "@plainworks/std/seam"
 import {
-  type FakeStreamTransport,
-  fakeAuthHeaderProvider,
-  fakeStreamTransport,
   flushMicrotasks,
   type ManualClock,
   type ManualDelay,
@@ -11,6 +8,11 @@ import {
   manualDelay,
   seededRandom,
 } from "@plainworks/testkit"
+import {
+  type FakeStreamTransport,
+  fakeAuthHeaderProvider,
+  fakeStreamTransport,
+} from "@plainworks/testkit/fakes"
 import { beforeEach, describe, expect, test, vi } from "vitest"
 import { ChannelError } from "../errors"
 import { type Channel, type ChannelOptions, createChannel } from "./channel"

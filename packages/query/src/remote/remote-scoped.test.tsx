@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { createScopedState } from "@plainworks/state/client"
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { createElement, type ReactNode } from "react"
@@ -31,8 +32,9 @@ describe("remote scope through the scoped-state surface", () => {
       )
     }
 
-    render(createElement(useCount.Provider, null, createElement(Counter)))
+    const { container } = render(createElement(useCount.Provider, null, createElement(Counter)))
     expect(screen.getByRole("button", { name: "count: 0" })).toBeDefined()
+    await expectNoAxeViolations(container)
 
     const user = userEvent.setup()
     await user.click(screen.getByRole("button"))

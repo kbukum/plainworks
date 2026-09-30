@@ -1,4 +1,4 @@
-import type { Flow } from "@plainworks/testkit/browser"
+import type { Flow } from "@plainworks/testkit/playwright"
 import { overlaysFlow } from "./overlays"
 import { pagesFlow } from "./pages"
 import { signInFlow } from "./sign-in"

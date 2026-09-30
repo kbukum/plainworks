@@ -19,17 +19,19 @@ import { ok } from "@plainworks/std"
 import {
   manualClock,
   seededRandom,
+  expectOk,
+  expectErr,
+  deferred,
+  flushMicrotasks,
+} from "@plainworks/testkit"
+import {
   fakeAuthHeaderProvider,
   fakeSchema,
   guardSchema,
   recordEvents,
   recordTelemetry,
   fakeCacheInvalidator,
-  expectOk,
-  expectErr,
-  deferred,
-  flushMicrotasks,
-} from "@plainworks/testkit"
+} from "@plainworks/testkit/fakes"
 
 // Deterministic time for anything that takes a `clock?: Clock` option. Use std's `fixedClock`
 // when time never needs to move.
@@ -64,7 +66,23 @@ cache.isStale(["users", 1]) // true
 expectOk(ok(42)) // === 42; throws a typed PlainError on an Err
 ```
 
-Server-safe only: this package pulls in no DOM or React code.
+The root and `./fakes` entries are server-safe. React and DOM helpers stay on their named subpaths.
+
+## Query testing — `@plainworks/testkit/query`
+
+Use one isolated query client per test. Retries are disabled unless the test opts back in.
+
+```tsx
+import { createQueryClient } from "@plainworks/query"
+import { createTestQueryClient, TestQueryClientProvider } from "@plainworks/testkit/query"
+
+const client = createTestQueryClient(createQueryClient)
+render(
+  <TestQueryClientProvider client={client}>
+    <Tasks />
+  </TestQueryClientProvider>,
+)
+```
 
 ## Connect testing — `@plainworks/testkit/connect`
 
@@ -96,13 +114,13 @@ expect(fake.calls[0]?.header.get("authorization")).toBe("Bearer …")
 
 The proto is the source of truth; regenerate the checked-in `*_pb.ts` with `bun run gen:proto` (dev-only buf + `protoc-gen-es` — build, typecheck, and test never need buf).
 
-## Browser gate — `@plainworks/testkit/browser`
+## Playwright gate — `@plainworks/testkit/playwright`
 
 The shared Playwright harness the reference hosts run, and the **flow engine** on top of it. Every test starts from a fixed "now", locale, and time zone, signs in once per worker, and fails on any runtime error, hydration error, or off-origin request. A flow then replays a journey and checks axe, reflow, overlays, focus, and layout at each checkpoint — no committed screenshots. `@playwright/test` and `@axe-core/playwright` are **optional peers**, loaded only by this subpath.
 
 ```ts
 // playwright.config.ts: a fixed locale, time zone, and motion.
-import { browserGateUse } from "@plainworks/testkit/browser"
+import { browserGateUse } from "@plainworks/testkit/playwright"
 
 export default defineConfig({
   fullyParallel: true,
@@ -112,7 +130,7 @@ export default defineConfig({
 
 ```ts
 // A gated test: each worker starts its own host and signs in once, then resets the host per test.
-import { BROWSER_GATE_NOW, createBrowserGate, FIXED_NOW_ENV } from "@plainworks/testkit/browser"
+import { BROWSER_GATE_NOW, createBrowserGate, FIXED_NOW_ENV } from "@plainworks/testkit/playwright"
 
 const test = createBrowserGate({
   host: {
@@ -249,7 +267,7 @@ Exit codes: **0** when every flow captured, **1** when a flow broke (it errored,
 A scripted `StreamTransportFactory` for testing anything built on the `@plainworks/std/seam` stream seam — a channel, an app's live view, or an integration flow — without SSE or WebSocket sockets. You drive each connection attempt by hand: open it, push frames, then end it cleanly or with an error. It honors the abort seam like a real transport, so reconnect, resume-from-cursor, and teardown all exercise the same double.
 
 ```ts
-import { fakeStreamTransport } from "@plainworks/testkit"
+import { fakeStreamTransport } from "@plainworks/testkit/fakes"
 
 const transport = fakeStreamTransport()
 const channel = createChannel({ transport: transport.factory /* ... */ })
@@ -262,16 +280,4 @@ attempt.endError(new Error("drop")) // or endOk() to close cleanly
 // The consumer resumes with the last cursor it saw:
 expect(transport.attempts[1]?.context.lastEventId).toBe("42")
 transport.assertClosed() // throws if any attempt leaked (never torn down)
-```
-
-## OpenID Provider double — `createMockIdp`
-
-A deterministic, in-process OpenID Provider for testing an OIDC adapter end to end. It mints **real, JWKS-verifiable** tokens with `jose`, so the adapter runs its genuine discovery, PKCE, nonce, and token-verification path — only the network is faked (no MSW, no sockets). It exposes the `fetch` seam the adapter consumes plus an `authorize` helper that stands in for the user-agent's visit to the authorization endpoint, and it drives the failure paths: `failNextTokenExchange`, replayed codes, PKCE-verifier mismatch, and `idTokenNonceOverride` for a replay test.
-
-```ts
-import { createMockIdp } from "@plainworks/testkit"
-
-const idp = await createMockIdp({ claims: { email: "user@idp.test" } })
-// Configure the adapter's `fetch` seam with `idp.fetch`, then, after building the authorization URL:
-const { callbackUrl } = idp.authorize(authorizationUrl) // redirect-back URL with code + state
 ```

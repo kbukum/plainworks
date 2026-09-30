@@ -1,7 +1,7 @@
 // Default `node` environment: proves composite hydration renders per-field seeds on the server with
 // no host and that two concurrent requests never share state.
 
-import { fakeStateSource } from "@plainworks/testkit"
+import { fakeStateSource } from "@plainworks/testkit/fakes"
 import type { ReactNode } from "react"
 import { renderToString } from "react-dom/server"
 import { describe, expect, test } from "vitest"

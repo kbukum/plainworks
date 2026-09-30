@@ -1,13 +1,8 @@
 import type { OverflowPolicy } from "@plainworks/std/resilience"
 import type { PlainEvent, StateSource } from "@plainworks/std/seam"
 import type { WebAbortSignal } from "@plainworks/std/web"
-import {
-  deferred,
-  fakeStateSource,
-  fakeStreamTransport,
-  flushMicrotasks,
-  recordTelemetry,
-} from "@plainworks/testkit"
+import { deferred, flushMicrotasks } from "@plainworks/testkit"
+import { fakeStateSource, fakeStreamTransport, recordTelemetry } from "@plainworks/testkit/fakes"
 import { describe, expect, test, vi } from "vitest"
 import { createChannel } from "../lifecycle"
 import { jsonDecoder } from "./event"

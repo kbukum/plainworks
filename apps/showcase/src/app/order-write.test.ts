@@ -1,14 +1,13 @@
 import type { Order } from "@plainworks/demo"
 import { createHttpClient } from "@plainworks/http"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { HttpResponse, http } from "msw"
 import { setupServer } from "msw/node"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { updateOrderStatus } from "./order-write"
 
 const server = setupServer()
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }))
-afterEach(() => server.resetHandlers())
-afterAll(() => server.close())
+bindMockServerLifecycle(server, { hooks: { beforeAll, afterEach, afterAll } })
 
 describe("order-write", () => {
   const client = createHttpClient({ baseUrl: "http://test.local" })

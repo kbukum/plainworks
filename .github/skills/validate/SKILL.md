@@ -69,7 +69,7 @@ The minimum passing standard for a self-contained change is `bun run verify` gre
 
 Treat a green run as **necessary but not sufficient**: it does not catch unbounded streams/buffers, missing timeouts/cancellation, module-level singletons, import-time side effects, or a token leaking into a URL. Those are on the reviewer.
 
-For a client/UI package, accessibility and responsiveness are part of the acceptance bar (review pass [`08`](../review/references/08-ui-accessibility.md)): each component test asserts axe cleanliness in-band with the scoped `turbo run test`. There is **no separate a11y CI script** — don't invent one; the axe assertion lives in the component's own Vitest test.
+For a client/UI package, accessibility and responsiveness are part of the acceptance bar (review pass [`08`](../review/references/08-ui-accessibility.md)): each component test runs `expectNoAxeViolations` in-band with the scoped `turbo run test`. `bun run check-axe-coverage` is the repo-wide gate that fails any render test file that never awaits that assertion or importing `axe-core` directly.
 
 For a change an app user can see, `verify` is not enough: also meet the [UI Definition of Done](../../copilot-instructions.md#build-test-and-lint) in the app. Run the touched flows in the app's e2e suite (`bun run e2e -- e2e/flows.spec.ts --grep "<flow>"`); a failed check leaves its evidence in `.ui-artifacts/latest/report.md`. Then `bun run ui:capture --flow <flow>` and look at the frames. Exit code 1 means a flow broke; exit code 2 means the harness could not run: fix the setup, don't retry blindly. Start `bun run ui:host` once to keep captures fast.
 

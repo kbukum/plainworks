@@ -2,8 +2,9 @@
  * User API handlers
  */
 
-import type { EntityFactory, EntityStore, LatencyController } from "@plainworks/mocks"
-import { createCrudHandlers, type InputSpec } from "@plainworks/mocks"
+import type { LatencyController } from "@plainworks/mocks"
+import type { EntityFactory, EntityStore } from "@plainworks/mocks/data"
+import { createCrudHandlers, type InputSpec } from "@plainworks/mocks/handlers"
 import type { Clock } from "@plainworks/std/time"
 import type { HttpHandler } from "msw"
 import type { CreateUserInput, User } from "../types"

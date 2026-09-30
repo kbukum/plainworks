@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { fakeStateSource } from "@plainworks/testkit"
 import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/client"
+import { fakeStateSource } from "@plainworks/testkit/fakes"
 import { ThemeProvider } from "@plainworks/theme/client"
 import { cleanup, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"

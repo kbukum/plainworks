@@ -1,4 +1,4 @@
-import type { Flow } from "@plainworks/testkit/browser"
+import type { Flow } from "@plainworks/testkit/playwright"
 import { createTaskFlow } from "./create-task"
 import { dialogsFlow } from "./dialogs"
 import { galleryFlow, galleryModalsFlow, galleryPopupsFlow } from "./gallery"

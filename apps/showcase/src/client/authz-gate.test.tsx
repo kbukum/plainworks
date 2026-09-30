@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { afterEach, describe, expect, it } from "vitest"
@@ -20,7 +21,7 @@ function AccountAction(): ReactNode {
 
 describe("showcase account authorization", () => {
   it("shows the account action for the authenticated named identity", async () => {
-    render(
+    const { container } = render(
       <SessionProvider
         initialSnapshot={{
           status: "authenticated",
@@ -33,6 +34,7 @@ describe("showcase account authorization", () => {
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Account settings" })).toBeDefined(),
     )
+    await expectNoAxeViolations(container)
   })
 
   it("denies the account action for a guest by default", async () => {

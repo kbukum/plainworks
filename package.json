@@ -25,6 +25,7 @@
     "check-boundaries": "bun run --filter @plainworks/boundaries check",
     "check-layer-map": "bun run --filter @plainworks/boundaries layer-map:check",
     "sync-layer-map": "bun run --filter @plainworks/boundaries layer-map:write",
+    "check-axe-coverage": "plainworks-axe-coverage packages apps internal",
     "check-comments": "plainworks-comment-format check packages apps internal",
     "format-comments": "plainworks-comment-format write packages apps internal",
     "check-packaging": "turbo run check-packaging",
@@ -41,6 +42,7 @@
   "devDependencies": {
     "@biomejs/biome": "catalog:",
     "@changesets/cli": "catalog:",
+    "@plainworks/axe-coverage": "workspace:*",
     "@plainworks/bundle-exclusion": "workspace:*",
     "@plainworks/comment-format": "workspace:*",
     "@plainworks/release": "workspace:*",

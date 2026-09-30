@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { createAuthStore } from "@plainworks/auth"
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { act, cleanup, render, screen } from "@testing-library/react"
 import { createElement, type ReactNode } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
@@ -10,7 +11,7 @@ import { createAuthCapability } from "./auth"
 afterEach(cleanup)
 
 describe("createAuthCapability", () => {
-  it("publishes the authenticated session to the subtree through auth's own store", () => {
+  it("publishes the authenticated session to the subtree through auth's own store", async () => {
     const auth = createAuthStore()
     auth.setSession({
       accessToken: "in-memory-only",
@@ -27,13 +28,14 @@ describe("createAuthCapability", () => {
         session.status === "authenticated" ? `Welcome, ${session.identity?.subject}` : "Sign in",
       )
     }
-    render(
+    const { container } = render(
       <AppProvider capabilities={[capability]}>
         <Greeting />
       </AppProvider>,
     )
     // Synchronous read (getByText, not findByText): the snapshot is present on the first paint.
     expect(screen.getByText("Welcome, ada")).toBeDefined()
+    await expectNoAxeViolations(container)
   })
 
   it("reads a reference-stable slice via a selector, never the token", () => {

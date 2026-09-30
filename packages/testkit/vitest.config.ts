@@ -7,10 +7,10 @@ export default testConfig({
   coverage: {
     exclude: [
       "src/connect/gen/**",
-      "src/browser/gate.ts",
-      "src/browser/checks/{animation,axe,focus,layout,layout-facts}.ts",
-      "src/browser/flow/{page-session,runner}.ts",
-      "src/browser/ui-capture/node-runtime.ts",
+      "src/playwright/gate.ts",
+      "src/playwright/checks/{animation,axe,focus,layout,layout-facts}.ts",
+      "src/playwright/flow/{page-session,runner}.ts",
+      "src/playwright/ui-capture/node-runtime.ts",
     ],
   },
 })

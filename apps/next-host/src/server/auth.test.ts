@@ -1,4 +1,4 @@
-import { createMockIdp } from "@plainworks/testkit"
+import { createMockIdp } from "@plainworks/mocks/idp"
 import { beforeAll, describe, expect, it } from "vitest"
 import { SIGN_IN_INTERRUPTED_PATH } from "../neutral/constants"
 import { createNextAuth, type NextAuth } from "./auth"

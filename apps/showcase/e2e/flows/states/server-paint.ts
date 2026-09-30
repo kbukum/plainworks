@@ -1,4 +1,4 @@
-import { defineFlow, type FlowCheckpoint } from "@plainworks/testkit/browser"
+import { defineFlow, type FlowCheckpoint } from "@plainworks/testkit/playwright"
 import { appRoute } from "../../support/app"
 import { PAGE_FRAME } from "../frame"
 

@@ -1,4 +1,4 @@
-import { defineFlow } from "@plainworks/testkit/browser"
+import { defineFlow } from "@plainworks/testkit/playwright"
 import { openPausedTasks } from "../support/app"
 
 const TITLE = "Verify flagship journeys"

@@ -1,13 +1,13 @@
 import "server-only"
 
 // The server-only identity wiring for the running host: it binds `@plainworks/auth`'s session flow
-// to `@plainworks/testkit`'s in-process mock OpenID Provider. The provider mints real,
+// to `@plainworks/mocks/idp`'s in-process mock OpenID Provider. The provider mints real,
 // JWKS-verifiable tokens, so the adapter runs its genuine Authorization Code + PKCE + nonce path —
 // only the network is faked. This module carries the `server-only` marker: it custodies the signing
 // key and the provider's token endpoint, so a `"use client"` graph importing it fails the build.
 
-import type { MockIdp } from "@plainworks/testkit"
-import { createMockIdp } from "@plainworks/testkit"
+import type { MockIdp } from "@plainworks/mocks/idp"
+import { createMockIdp } from "@plainworks/mocks/idp"
 import { AUTH_CALLBACK_PATH } from "../neutral/constants"
 import { createNextAuth, type NextAuth } from "./auth"
 import { appOrigin } from "./origin"

@@ -18,15 +18,28 @@ test("advance moves time forward cumulatively", () => {
   expect(clock.now()).toBe(175)
 })
 
-test("advance rejects a negative duration", () => {
-  const clock = manualClock()
-  expect(() => clock.advance(-1)).toThrow(RangeError)
+test("advance rejects a negative or non-finite duration and keeps the current time", () => {
+  const clock = manualClock(100)
+  for (const ms of [-1, Number.NaN, Number.POSITIVE_INFINITY]) {
+    expect(() => clock.advance(ms), String(ms)).toThrow(RangeError)
+  }
+  expect(clock.now()).toBe(100)
 })
 
 test("set replaces the absolute current time", () => {
   const clock = manualClock(100)
   clock.set(5_000)
   expect(clock.now()).toBe(5_000)
+  clock.set("2026-01-15T12:00:00.000Z")
+  expect(clock.now()).toBe(Date.UTC(2026, 0, 15, 12))
+})
+
+test("set rejects a time that is not a finite instant and keeps the current time", () => {
+  const clock = manualClock(100)
+  for (const at of [Number.NaN, Number.POSITIVE_INFINITY, "2026-01-15T12:00:00"]) {
+    expect(() => clock.set(at), String(at)).toThrow(RangeError)
+  }
+  expect(clock.now()).toBe(100)
 })
 
 test("manualClock starts at an ISO-8601 instant", () => {

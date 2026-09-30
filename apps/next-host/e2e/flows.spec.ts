@@ -1,4 +1,4 @@
-import { planFlowSuite, runFlow } from "@plainworks/testkit/browser"
+import { planFlowSuite, runFlow } from "@plainworks/testkit/playwright"
 import { NEXT_HOST_FLOWS } from "./flows/suite"
 import { test } from "./support/gate"
 import { NEXT_HOST_THEME_AXES } from "./support/theme-axes"

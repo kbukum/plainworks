@@ -1,3 +1,4 @@
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { createMockApi } from "../api"
 import { createMockServer } from "../server"
@@ -18,9 +19,8 @@ describe("notification mark-all-read", () => {
   const api = createMockApi({ seed: 3 })
   const server = createMockServer(api)
 
-  beforeAll(() => server.listen({ onUnhandledRequest: "error" }))
+  bindMockServerLifecycle(server, { hooks: { beforeAll, afterEach, afterAll } })
   afterEach(() => api.reset())
-  afterAll(() => server.close())
 
   it("flips every unread notification in one request and reports the count", async () => {
     const before = await json<ListResponse>(await fetch(`${base}/api/notifications?pageSize=100`))
@@ -56,9 +56,8 @@ describe("notification authorization", () => {
   const api = createMockApi({ seed: 3, authorizeNotificationMutation: () => false })
   const server = createMockServer(api)
 
-  beforeAll(() => server.listen({ onUnhandledRequest: "error" }))
+  bindMockServerLifecycle(server, { hooks: { beforeAll, afterEach, afterAll } })
   afterEach(() => api.reset())
-  afterAll(() => server.close())
 
   it("denies both the per-row write and the bulk endpoint with 403 for an unauthorized caller", async () => {
     const bulk = await fetch(`${base}/api/notifications/read-all`, { method: "POST" })

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
+
+import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { cleanup, render, screen } from "@testing-library/react"
-import axe from "axe-core"
 import { createElement, type ReactNode } from "react"
 import { afterEach, describe, expect, expectTypeOf, it } from "vitest"
 import { AppConfigError } from "../errors"
@@ -159,7 +160,6 @@ describe("accessibility", () => {
         </main>
       </AppProvider>,
     )
-    const results = await axe.run(container)
-    expect(results.violations).toEqual([])
+    await expectNoAxeViolations(container)
   })
 })

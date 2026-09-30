@@ -1,7 +1,10 @@
-import { settleAnimations } from "@plainworks/testkit/browser"
+import {
+  expectNoPageAxeViolations,
+  expectPageFocusVisible,
+  settleAnimations,
+} from "@plainworks/testkit/playwright"
 import { COLOR_SCHEMES } from "@plainworks/theme"
 import { GALLERY_GROUPS } from "./fixtures/gallery/groups"
-import { expectFocusVisible, expectNoAxeViolations } from "./support/checks"
 import { GALLERY_OVERLAYS, openGalleryGroup, openGalleryOverlay } from "./support/gallery"
 import { expect, test } from "./support/gate"
 
@@ -26,7 +29,7 @@ for (const group of ["form-controls", "feedback"] as const) {
             },
             { scheme, dark: mode === "dark" },
           )
-          await expectNoAxeViolations(page)
+          await expectNoPageAxeViolations(page)
         })
       }
     })
@@ -48,7 +51,7 @@ for (const group of GALLERY_GROUPS) {
         () => document.activeElement?.closest("main") !== null && document.activeElement !== null,
       )
       if (!inMain) break
-      await expectFocusVisible(page)
+      await expectPageFocusVisible(page)
     }
   })
 }

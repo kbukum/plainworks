@@ -27,6 +27,7 @@ export {
   DEFAULT_MATRIX_PRESET,
   DEVICE_IDS,
   DEVICE_PROFILES,
+  defineThemeAxes,
   deviceContextOptions,
   expandFlowMatrix,
   FLOW_MODES,

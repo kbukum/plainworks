@@ -277,17 +277,39 @@ test("import cycles trip the no-circular rule", async () => {
  * carve-out — either forbidding a legitimate test import or letting production pull in test tooling
  * — fails here.
  */
-test("test files may import testkit, but production source may not", async () => {
+test("test files may import test tooling, but production source may not", async () => {
   const violations = await cruiseFixtures()
   // The production edge (`state/src/uses-testkit.ts` -> testkit) must trip the dedicated rule...
   const production = violations.find(
     (v) =>
       v.from.endsWith("state/src/uses-testkit.ts") &&
-      v.rule.name === "no-production-testkit-import",
+      v.rule.name === "no-production-test-tooling-import",
   )
   expect(production).toBeDefined()
   // ...while the test-file edge (`state/src/uses-testkit.test.ts` -> testkit) must trip no rule.
   const testEdge = violations.find((v) => v.from.endsWith("state/src/uses-testkit.test.ts"))
+  expect(testEdge).toBeUndefined()
+  const mocksProduction = violations.find(
+    (v) =>
+      v.from.endsWith("state/src/uses-mocks.ts") &&
+      v.rule.name === "no-production-test-tooling-import",
+  )
+  expect(mocksProduction).toBeDefined()
+  const mocksTest = violations.find((v) => v.from.endsWith("state/src/uses-mocks.test.ts"))
+  expect(mocksTest).toBeUndefined()
+})
+
+test("app production modules may not import testkit", async () => {
+  const violations = await cruiseFixtures()
+  const production = violations.find(
+    (violation) =>
+      violation.from.endsWith("apps/demo/src/uses-testkit.ts") &&
+      violation.rule.name === "no-app-production-testkit-import",
+  )
+  expect(production).toBeDefined()
+  const testEdge = violations.find((violation) =>
+    violation.from.endsWith("apps/demo/src/uses-testkit.test.ts"),
+  )
   expect(testEdge).toBeUndefined()
 })
 

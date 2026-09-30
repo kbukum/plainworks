@@ -1,4 +1,4 @@
-import { defineFlow } from "@plainworks/testkit/browser"
+import { defineFlow } from "@plainworks/testkit/playwright"
 import { HOST_ROUTES, openRoute } from "../support/host"
 
 /**

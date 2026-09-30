@@ -3,7 +3,7 @@ import {
   type FlowCheckpoint,
   focusWithKeyboard,
   pressWithKeyboard,
-} from "@plainworks/testkit/browser"
+} from "@plainworks/testkit/playwright"
 import { hostRoute, openRoute } from "../support/host"
 
 // The Next host registers the HTTP and channel sources, so its inspector covers the channel panel

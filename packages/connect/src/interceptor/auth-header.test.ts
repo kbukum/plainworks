@@ -1,6 +1,6 @@
 import type { Interceptor } from "@connectrpc/connect"
-import { fakeAuthHeaderProvider } from "@plainworks/testkit"
 import { EchoService, fakeUnaryRequest, fakeUnaryResponse } from "@plainworks/testkit/connect"
+import { fakeAuthHeaderProvider } from "@plainworks/testkit/fakes"
 import { describe, expect, test } from "vitest"
 import { authHeaderInterceptor, injectedAuthHeadersKey } from "./auth-header"
 

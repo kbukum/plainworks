@@ -8,7 +8,14 @@ export type {
   ThemeAxes,
   ThemeRoot,
 } from "./axes"
-export { FLOW_MODES, MODE_ONLY_THEME_AXES, PREFERENCE_IDS, PREFERENCES, pageVariant } from "./axes"
+export {
+  defineThemeAxes,
+  FLOW_MODES,
+  MODE_ONLY_THEME_AXES,
+  PREFERENCE_IDS,
+  PREFERENCES,
+  pageVariant,
+} from "./axes"
 export type { DeviceContextOptions, DeviceId, DeviceProfile, ViewportSize } from "./devices"
 export { DEVICE_IDS, DEVICE_PROFILES, deviceContextOptions } from "./devices"
 export type { DevicePlan } from "./expand"

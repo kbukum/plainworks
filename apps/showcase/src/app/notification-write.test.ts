@@ -1,5 +1,6 @@
 import type { Notification } from "@plainworks/demo"
 import { createHttpClient } from "@plainworks/http"
+import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { HttpResponse, http } from "msw"
 import { setupServer } from "msw/node"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
@@ -11,9 +12,7 @@ import {
 } from "./notification-write"
 
 const server = setupServer()
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }))
-afterEach(() => server.resetHandlers())
-afterAll(() => server.close())
+bindMockServerLifecycle(server, { hooks: { beforeAll, afterEach, afterAll } })
 
 const client = createHttpClient({ baseUrl: "http://test.local" })
 const notification: Notification = {

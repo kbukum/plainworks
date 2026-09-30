@@ -1,12 +1,11 @@
-// The showcase authenticates through
-// `@plainworks/auth`'s own `createServerSession` composition, never a hand-assembled cookie/signer/
-// CSRF flow. This neutral (server) module assembles the OIDC Authorization Code + PKCE adapter and
-// the HMAC session signer behind an injected `fetch` seam, resolves the session from the request
-// cookie into the AppSnapshot so the dashboard can be gated, and exposes the read seam the SSR
-// render consumes. React-free, and the IdP `fetch` is injected by the caller (the dev server / the
-// smoke test), so the render graph never imports the dev/test provider.
+// The showcase authenticates through `@plainworks/auth`'s own `createServerSession` composition,
+// never a hand-assembled cookie/signer/ CSRF flow. This neutral (server) module assembles the OIDC
+// Authorization Code + PKCE adapter and the HMAC session signer behind an injected `fetch` seam,
+// resolves the session from the request cookie so the dashboard can be gated, and exposes the read
+// seam the SSR render hands to the `@plainworks/app` auth resolver. React-free, and the IdP `fetch`
+// is injected by the caller (the dev server / the smoke test), so the render graph never imports
+// the dev/test provider.
 
-import { type Capability, defineCapability } from "@plainworks/app"
 import { defaultAuthCrypto } from "@plainworks/auth/crypto"
 import {
   createServerSession,
@@ -21,7 +20,7 @@ import { isAbsentOr, isRecord } from "@plainworks/std"
 import { guardSchema, type StandardSchemaV1 } from "@plainworks/std/seam"
 import { systemClock } from "@plainworks/std/time"
 import { parseCookieHeader, readCookie, type WebFetch } from "@plainworks/std/web"
-import { AUTH_CAPABILITY_ID, LOGIN_PATH, SESSION_COOKIE, SESSION_COOKIE_NAME } from "./constants"
+import { LOGIN_PATH, SESSION_COOKIE, SESSION_COOKIE_NAME } from "./constants"
 
 /** The value persisted in the signed session cookie — identity only, never a token. */
 export interface ShowcaseSessionValue {
@@ -153,12 +152,4 @@ function readOnlyJar(cookieHeader: string): ServerSessionJar {
       throw new Error("read-only cookie jar cannot set cookies")
     },
   }
-}
-
-/** The auth capability — joins the neutral session read to the AppSnapshot under a stable id. */
-export function authServerCapability(read: ReadShowcaseSession): Capability<AuthSnapshot> {
-  return defineCapability<AuthSnapshot>({
-    id: AUTH_CAPABILITY_ID,
-    resolve: ({ headers }) => read(headers.get("cookie") ?? ""),
-  })
 }

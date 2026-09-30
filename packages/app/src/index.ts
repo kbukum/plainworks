@@ -1,10 +1,8 @@
-// Server-safe public entry for `@plainworks/app` — the composition kernel. Re-export-only barrel
-// (no logic here; implementation lives in concern-named modules under `./kernel`). No React or DOM
-// imports, so the `.` entry runs anywhere (Node, edge, workers, RSC, React Native): it builds the
-// per-request app value, orders the injected capability registry (the canonical composition idiom),
-// and runs the zero-flash SSR resolve→serialize→hydrate contract as plain data. The `"use client"`
-// React binding — `AppProvider`, hooks, the error boundary — lives in the separate `./client`
-// entry; the test harness in `./testing`.
+// Server-safe public entry for `@plainworks/app`: the composition kernel every other module builds
+// on. It builds the per-request app, orders the capability registry, and resolves the snapshot.
+// Re-export-only barrel with no React or DOM imports, so it runs anywhere (Node, edge, workers,
+// RSC, React Native). The SSR data writer and reader live on `./hydration`, the capability recipes
+// on `./capabilities/*`, the React binding on `./client`, and the test harness on `./testing`.
 export { AppConfigError, AppContextError } from "./errors"
 export type {
   AnyCapability,
@@ -19,10 +17,8 @@ export type {
 export {
   createApp,
   defineCapability,
-  deserializeSnapshot,
   EMPTY_SNAPSHOT,
   orderCapabilities,
   resolveCapabilities,
-  serializeSnapshot,
   snapshotFor,
 } from "./kernel"

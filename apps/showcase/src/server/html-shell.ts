@@ -1,23 +1,18 @@
 // The server HTML document shell. It is a plain string template — no host global, no React — so it
 // stays in the neutral graph. The resolved theme class is written straight onto `<html>` so the
-// very first paint is the user's theme (zero flash), and the serialized snapshot plus the
-// dehydrated query cache ride inline `<script type="application/json">` blocks the client reads
-// back on hydration. Both JSON payloads are embedded with `<` escaped so a value can never close
-// the script element early.
+// very first paint is the user's theme (zero flash). The hydration payload arrives as a finished,
+// HTML-safe `<script type="application/json">` block from `@plainworks/app/hydration`.
 
-import { escapeJsonForHtml } from "@plainworks/std/encoding"
-import { QUERY_STATE_SCRIPT_ID, ROOT_ELEMENT_ID, SNAPSHOT_SCRIPT_ID } from "../app/constants"
+import { ROOT_ELEMENT_ID } from "../app/constants"
 
 /** Everything the shell needs to assemble one server response. */
 export interface HtmlShellInput {
-  /** The `<html>` class the theme resolver produced — applied before paint for zero flash. */
+  /** The `<html>` class the app resolved — attribute-safe, since `App.htmlClass` validates it. */
   readonly htmlClass: string
   /** The rendered application markup placed inside the root element. */
   readonly appHtml: string
-  /** The serialized {@link import("@plainworks/app").AppSnapshot} (already HTML-safe). */
-  readonly snapshotJson: string
-  /** The JSON-encoded dehydrated query cache. */
-  readonly queryJson: string
+  /** The hydration data block from `renderHydrationScript` (already HTML-safe). */
+  readonly hydrationScript: string
   /** Stylesheet URLs loaded in the document head before the browser paints the server markup. */
   readonly stylesheets: readonly string[]
   /** The client entry module URL the browser boots hydration from. */
@@ -40,8 +35,7 @@ ${stylesheetLinks}
   </head>
   <body>
     <div id="${ROOT_ELEMENT_ID}">${input.appHtml}</div>
-    <script type="application/json" id="${SNAPSHOT_SCRIPT_ID}">${escapeJsonForHtml(input.snapshotJson)}</script>
-    <script type="application/json" id="${QUERY_STATE_SCRIPT_ID}">${escapeJsonForHtml(input.queryJson)}</script>
+    ${input.hydrationScript}
     <script type="module" src="${input.clientEntry}"></script>
   </body>
 </html>`

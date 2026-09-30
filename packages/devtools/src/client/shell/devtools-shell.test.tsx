@@ -150,6 +150,49 @@ describe("DevtoolsShell", () => {
     expect(screen.getByRole("tab", { name: "http" }).getAttribute("aria-selected")).toBe("true")
   })
 
+  it("renders injected labels, including value-bearing ones, across the shell", async () => {
+    const user = userEvent.setup()
+    const { session, source } = setup()
+    for (const id of ["a", "b", "c"]) {
+      source.indicate({
+        id,
+        label: `Probe ${id}`,
+        value: "up",
+        severity: "info",
+        updatedAt: 1_000,
+      })
+    }
+    const { container } = render(
+      <Host
+        session={session}
+        layoutSource={fakeStateSource()}
+        clock={{ now: () => 1_000 }}
+        railMaxVisible={1}
+        labels={{
+          bar: "Outils",
+          inspect: "Inspecter",
+          railEntry: (label, value) => `${label} vaut ${value}`,
+          showMore: (count) => `${count} de plus`,
+          inspectorTitle: "Inspecteur",
+          closeInspector: "Fermer",
+          overview: "Aperçu",
+        }}
+      />,
+    )
+    expect(screen.getByRole("region", { name: "Outils" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Probe a vaut up" })).toBeTruthy()
+    await user.click(screen.getByRole("button", { name: "2 de plus" }))
+    expect(screen.getByRole("region", { name: "Inspecteur" })).toBeTruthy()
+    expect(screen.getByRole("tab", { name: "Aperçu" })).toBeTruthy()
+    // Fields the override leaves out keep their English defaults.
+    expect(screen.getByRole("tab", { name: "Timeline" })).toBeTruthy()
+    await expectNoAxeViolations(container)
+    await user.click(screen.getByRole("button", { name: "Fermer" }))
+    expect(screen.getByRole("button", { name: "Inspecter" }).getAttribute("aria-expanded")).toBe(
+      "false",
+    )
+  })
+
   it("publishes the host contract on the document root and clears it on unmount", async () => {
     const user = userEvent.setup()
     const { unmount } = renderHost()

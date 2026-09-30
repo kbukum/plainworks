@@ -1,6 +1,7 @@
 import type { ErrorSnapshot } from "@plainworks/std"
 import { type Severity, type SourceDescriptor, type SourceId, sourceKey } from "../../protocol"
 import type { IndicatorEntry } from "../../session/client-port"
+import type { DevtoolsLabels } from "../labels"
 
 /**
  * One row of the diagnostics rail: either a source indicator or a synthesized failure signal,
@@ -35,6 +36,8 @@ export interface RailInput {
   readonly now: number
   /** Age in milliseconds after which an indicator is stale. */
   readonly staleAfterMs: number
+  /** Copy for the entries the rail synthesizes itself: failures and the dropped-event warning. */
+  readonly labels: Pick<DevtoolsLabels, "failed" | "timeline" | "railDropped">
 }
 
 const SEVERITY_RANK: Readonly<Record<Severity, number>> = {
@@ -58,7 +61,7 @@ export function buildRailEntries(input: RailInput): readonly RailEntry[] {
       key: `failure:${key}`,
       source: source.id,
       label: source.label,
-      value: "Failed",
+      value: input.labels.failed,
       severity: "error",
       stale: false,
       target: source.id.kind,
@@ -78,8 +81,8 @@ export function buildRailEntries(input: RailInput): readonly RailEntry[] {
       entry: {
         key: "dropped:aggregate",
         source: { kind: "timeline", instance: "aggregate" },
-        label: "Timeline",
-        value: `${input.droppedAggregate} dropped`,
+        label: input.labels.timeline,
+        value: input.labels.railDropped(input.droppedAggregate),
         severity: "warn",
         stale: false,
         target: "timeline",

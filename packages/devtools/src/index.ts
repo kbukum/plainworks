@@ -1,13 +1,8 @@
-// Server-safe public entry for `@plainworks/devtools` — a re-export-only barrel over the neutral
-// concern modules (protocol, privacy, retention, bridge, source, session). No React, DOM, or host
+// Server-safe public entry for `@plainworks/devtools`: the prelude every source, adapter, and panel
+// speaks — the serializable protocol vocabulary and the `Source` contract. The session lives on
+// `./session`, the client-side store on `./store`, the transport on `./bridge`, redaction on
+// `./privacy`, and bounded history on `./retention`. Re-export-only barrel. No React, DOM, or host
 // global appears here, so the `.` entry runs anywhere: Node, edge, RSC, and React Native.
-export {
-  type Bridge,
-  type BridgePort,
-  createMemoryBridge,
-  type MemoryBridgeOptions,
-} from "./bridge"
-export { type SanitizeOptions, sanitize } from "./privacy"
 export {
   type CommandDescriptor,
   type CommandRisk,
@@ -32,36 +27,4 @@ export {
   validateMessageEnvelope,
   validateRequestEnvelope,
 } from "./protocol"
-export {
-  createEventSampler,
-  createRetentionBuffer,
-  type EventSampler,
-  type EventSamplerOptions,
-  type RetentionBuffer,
-  type RetentionCapacity,
-  type RetentionEntry,
-  type SamplingMode,
-} from "./retention"
-export {
-  createDevtoolsSession,
-  type DetailResult,
-  type DevtoolsClientPort,
-  type DevtoolsSession,
-  type DevtoolsSessionOptions,
-  type DevtoolsSnapshot,
-  type DroppedSourceEntry,
-  DuplicateSourceError,
-  type FailureEntry,
-  type IndicatorEntry,
-  RequestError,
-  type RequestErrorKind,
-} from "./session"
 export type { Source, SourceHandle, SourceObserver } from "./source"
-export {
-  createDevtoolsStore,
-  type DevtoolsStore,
-  type DevtoolsStoreOptions,
-  type DevtoolsStoreState,
-  type EventFilter,
-  filterEvents,
-} from "./store"

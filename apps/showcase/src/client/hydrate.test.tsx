@@ -1,26 +1,19 @@
 // @vitest-environment jsdom
 
-import { deserializeSnapshot } from "@plainworks/app"
+import { readHydration } from "@plainworks/app/hydration"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
-import type { DehydratedState } from "@plainworks/query/hydration"
 import { installMatchMedia } from "@plainworks/testkit/client"
 import { createTestQueryClient } from "@plainworks/testkit/query"
 import { act } from "react"
 import { hydrateRoot } from "react-dom/client"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
-import {
-  QUERY_STATE_SCRIPT_ID,
-  ROOT_ELEMENT_ID,
-  SNAPSHOT_SCRIPT_ID,
-  THEME_COOKIE,
-} from "../app/constants"
+import { ROOT_ELEMENT_ID, THEME_COOKIE } from "../app/constants"
 import { renderApp } from "../server/render"
 import { buildClientCapabilities } from "./capabilities"
 import { Showcase } from "./showcase"
-import { createThemeSource } from "./sources"
 
 // Proves the zero-mismatch contract end to end: the server markup and the client's first render of
 // the SAME `<Showcase>` tree — hydrated from the SAME embedded snapshot and dehydrated cache —
@@ -36,14 +29,6 @@ const CLIENT_ENTRY = "/src/client/entry-client.tsx"
 
 function themeCookie(mode: string, colorScheme: string): string {
   return `${THEME_COOKIE}=${encodeURIComponent(JSON.stringify({ mode, colorScheme }))}`
-}
-
-function readEmbedded(id: string): string {
-  const text = document.getElementById(id)?.textContent
-  if (text == null || text.length === 0) {
-    throw new Error(`Missing embedded payload #${id}`)
-  }
-  return text
 }
 
 bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
@@ -71,8 +56,7 @@ describe("hydration", () => {
     document.write(html)
     document.close()
 
-    const snapshot = deserializeSnapshot(readEmbedded(SNAPSHOT_SCRIPT_ID))
-    const dehydratedState = JSON.parse(readEmbedded(QUERY_STATE_SCRIPT_ID)) as DehydratedState
+    const { snapshot, query } = readHydration(document)
     const root = document.getElementById(ROOT_ELEMENT_ID)
     if (root === null) {
       throw new Error("missing root")
@@ -88,7 +72,7 @@ describe("hydration", () => {
 
     const capabilities = buildClientCapabilities({
       queryClient: createTestQueryClient(createQueryClient),
-      themeSource: createThemeSource(),
+      httpClient: createHttpClient({ baseUrl: "http://showcase.test" }),
     })
 
     const rootHandle = await act(async () =>
@@ -97,9 +81,8 @@ describe("hydration", () => {
         <Showcase
           capabilities={capabilities}
           snapshot={snapshot}
-          dehydratedState={dehydratedState}
+          dehydratedState={query}
           initialPath="/tasks"
-          httpClient={createHttpClient({ baseUrl: "http://showcase.test" })}
         />,
       ),
     )

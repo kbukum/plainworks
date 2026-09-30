@@ -6,6 +6,12 @@ export const build: PackageBuild = {
   entry: {
     index: "src/index.ts",
     client: "src/client.ts",
+    bridge: "src/bridge/index.ts",
+    privacy: "src/privacy/index.ts",
+    retention: "src/retention/index.ts",
+    session: "src/session/index.ts",
+    store: "src/store/index.ts",
+    launch: "src/launch/index.ts",
     query: "src/adapters/query/index.ts",
     state: "src/adapters/state/index.ts",
     http: "src/adapters/http/index.ts",

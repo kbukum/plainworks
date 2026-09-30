@@ -13,6 +13,7 @@ import {
 import type { RetentionEntry } from "../../retention"
 import type { DevtoolsClientPort, IndicatorEntry } from "../../session"
 import type { DevtoolsStoreState } from "../../store"
+import { type DevtoolsLabels, defaultDevtoolsLabels } from "../labels"
 import { CommandSection } from "./command-section"
 import { EventList } from "./event-list"
 
@@ -32,6 +33,8 @@ export interface SourcePanelProps {
   readonly failure: ErrorSnapshot | undefined
   /** The client port, for on-demand detail and commands. */
   readonly port: DevtoolsClientPort
+  /** The devtools copy in effect, for any kit text a panel renders. */
+  readonly labels: DevtoolsLabels
 }
 
 /** A panel component for one source kind, injected at the call site. */
@@ -42,12 +45,14 @@ export type SourceRendererMap = Readonly<Record<string, SourcePanel>>
 
 /**
  * Derive the {@link SourcePanelProps} for one source from store state. Shared by the shell's kind
- * panels and available to tests of custom renderers.
+ * panels and available to tests of custom renderers. `labels` defaults to
+ * {@link defaultDevtoolsLabels}.
  */
 export function panelPropsFor(
   state: DevtoolsStoreState,
   id: SourceId,
   port: DevtoolsClientPort,
+  labels: DevtoolsLabels = defaultDevtoolsLabels,
 ): SourcePanelProps {
   const key = sourceKey(id)
   const source = state.sources.find((candidate) => sourceKey(candidate.id) === key)
@@ -57,6 +62,7 @@ export function panelPropsFor(
     indicators: state.indicators.filter((entry) => sourceKey(entry.id) === key),
     failure: state.failures.get(key),
     port,
+    labels,
   }
 }
 
@@ -78,11 +84,14 @@ export function GenericSourcePanel({
   indicators,
   failure,
   port,
+  labels,
 }: SourcePanelProps): ReactElement {
   return (
     <div className="grid gap-4">
       {failure === undefined ? null : (
-        <Callout tone="danger">{`${source.label} failed: ${failure.message}`}</Callout>
+        <Callout tone="danger">
+          {labels.sourceFailed(source.label, String(failure.message))}
+        </Callout>
       )}
       {indicators.length === 0 ? null : (
         <dl className="grid grid-cols-[repeat(auto-fit,minmax(8rem,1fr))] gap-2">
@@ -106,12 +115,7 @@ export function GenericSourcePanel({
         </dl>
       )}
       <CommandSection port={port} source={source} />
-      <EventList
-        entries={events}
-        sources={[source]}
-        port={port}
-        emptyLabel="No events recorded yet"
-      />
+      <EventList entries={events} sources={[source]} port={port} emptyLabel={labels.noEvents} />
     </div>
   )
 }

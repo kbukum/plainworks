@@ -72,6 +72,17 @@ describe("DiagnosticsRail", () => {
     expect(onOpen).toHaveBeenCalledWith("http")
   })
 
+  it("renders entries as real buttons operable from the keyboard", async () => {
+    const user = userEvent.setup()
+    const { onOpen } = renderRail()
+    const entry = screen.getByRole("button", { name: "HTTP: 2 in flight" })
+    expect(entry.tagName).toBe("BUTTON")
+    await user.tab()
+    expect(document.activeElement).toBe(entry)
+    await user.keyboard("{Enter}")
+    expect(onOpen).toHaveBeenCalledWith("http")
+  })
+
   it("announces stale values", () => {
     renderRail({ clock: { now: () => 10_000 } })
     expect(screen.getByRole("button", { name: /HTTP: 2 in flight \(stale\)/ })).toBeTruthy()

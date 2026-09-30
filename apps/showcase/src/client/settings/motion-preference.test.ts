@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { migrateMotionPreference } from "./local-preferences"
+import { migrateMotionPreference } from "./motion-preference"
 
 describe("migrateMotionPreference", () => {
   it("upgrades a legacy reduce-motion boolean to the current choices", () => {

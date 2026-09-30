@@ -6,6 +6,7 @@ import { EmptyState } from "@plainworks/ui/feedback/empty-state"
 import type { ReactElement } from "react"
 import { sourceKey } from "../../protocol"
 import type { DevtoolsStoreState } from "../../store"
+import { useDevtoolsLabels } from "../labels"
 
 /** Props for {@link OverviewView}. */
 export interface OverviewViewProps {
@@ -19,23 +20,19 @@ export interface OverviewViewProps {
  * events are reported explicitly so an incomplete timeline is never mistaken for a quiet system.
  */
 export function OverviewView({ state }: OverviewViewProps): ReactElement {
+  const labels = useDevtoolsLabels()
   if (state.sources.length === 0) {
-    return (
-      <EmptyState
-        title="No sources registered"
-        description="Construct adapters beside your runtime instances and register them with the devtools session."
-      />
-    )
+    return <EmptyState title={labels.noSources} description={labels.noSourcesDescription} />
   }
 
   return (
-    <section aria-label="Overview" className="grid gap-3">
+    <section aria-label={labels.overview} className="grid gap-3">
       {state.droppedAggregate === 0 ? null : (
-        <Callout tone="info" title="The timeline is incomplete">
-          {`${state.droppedAggregate} events dropped — retention is bounded, so the oldest events were released.`}
+        <Callout tone="info" title={labels.timelineIncomplete}>
+          {labels.eventsReleased(state.droppedAggregate)}
         </Callout>
       )}
-      <ul aria-label="Sources" className="grid gap-2">
+      <ul aria-label={labels.sources} className="grid gap-2">
         {state.sources.map((source) => {
           const failure = state.failures.get(sourceKey(source.id))
           const dropped = state.droppedBySource.get(sourceKey(source.id)) ?? 0
@@ -51,21 +48,23 @@ export function OverviewView({ state }: OverviewViewProps): ReactElement {
                 </span>
                 {failure === undefined ? (
                   <Badge variant="outline" className="ms-auto">
-                    Observing
+                    {labels.observing}
                   </Badge>
                 ) : (
                   <Badge variant="destructive" className="ms-auto">
-                    Failed
+                    {labels.failed}
                   </Badge>
                 )}
               </div>
               {failure === undefined ? null : (
-                <Callout tone="danger">{`${source.label}: ${failure.message}`}</Callout>
+                <Callout tone="danger">
+                  {labels.sourceFailed(source.label, String(failure.message))}
+                </Callout>
               )}
               <p className="text-muted-foreground text-xs">
                 {[
-                  `${source.commands.length} command${source.commands.length === 1 ? "" : "s"}`,
-                  dropped > 0 ? `${dropped} events dropped` : undefined,
+                  labels.commandCount(source.commands.length),
+                  dropped > 0 ? labels.sourceDropped(dropped) : undefined,
                 ]
                   .filter(Boolean)
                   .join(" · ")}

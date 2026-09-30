@@ -1,15 +1,13 @@
 // The RSC root layout — the neutral render seam under Next. It resolves the per-request snapshot
-// (theme + session) through the composition kernel, writes the persisted theme class onto `<html>`,
-// and mounts the client `Providers` that assemble the published surfaces. A `system` preference is
-// intentionally light-first until the client can read the OS preference. Token custody stays
+// (theme + session) through the `@plainworks/app` recipes, writes the persisted theme class onto
+// `<html>`, and mounts the client `Providers`. React serializes the snapshot across the RSC
+// boundary, so this host needs no hydration script of its own. A `system` preference gets no mode
+// class, so the stylesheet follows the OS preference on the first paint. Token custody stays
 // server-side: only the identity slice of the snapshot crosses to the client, never a token.
 
-import { snapshotFor } from "@plainworks/app"
 import type { ReactElement, ReactNode } from "react"
 import { Providers } from "../client/providers"
-import { THEME_CAPABILITY_ID } from "../neutral/constants"
-import { resolveHtmlClass } from "../neutral/theme"
-import { requestOrigin, resolveSnapshot } from "../server/session"
+import { requestOrigin, resolveDocument } from "../server/session"
 import "./globals.css"
 
 export const dynamic = "force-dynamic"
@@ -24,9 +22,8 @@ export default async function RootLayout({
 }: {
   readonly children: ReactNode
 }): Promise<ReactElement> {
-  const snapshot = await resolveSnapshot()
+  const { snapshot, htmlClass } = await resolveDocument()
   const origin = requestOrigin()
-  const htmlClass = resolveHtmlClass(snapshotFor(snapshot, THEME_CAPABILITY_ID))
   return (
     <html lang="en" className={htmlClass}>
       <body>

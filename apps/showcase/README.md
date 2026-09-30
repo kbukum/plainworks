@@ -62,7 +62,7 @@ flowchart LR
 
 ## Rendering flow
 
-The server resolves the session and theme for each request, prefetches the active section, and streams the shared `<Showcase>` tree. The HTML carries an escaped application snapshot and dehydrated query cache. The browser reconstructs per-app clients and sources, validates the embedded payloads at their owning boundaries, and hydrates the same tree.
+The server resolves the session and theme for each request, prefetches the active section, and streams the shared `<Showcase>` tree. The HTML carries one escaped JSON block, written by `renderHydrationScript`, with the application snapshot and dehydrated query cache. The browser validates it with `readHydration`, rebuilds per-app clients and sources, and hydrates the same tree.
 
 Every section is a route-level lazy boundary. The persistent shell, command palette, toast host, and navigation load once; Overview, Tasks, Orders, Products, Users, Notifications, and Settings load on demand. Lists use bounded server pagination, so virtualization would add cost without improving the current data sizes.
 

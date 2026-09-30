@@ -1,6 +1,6 @@
 "use client"
 
-import type { RetentionEntry } from "@plainworks/devtools"
+import type { RetentionEntry } from "@plainworks/devtools/retention"
 import { Badge } from "@plainworks/elements/badge"
 import { ScrollArea } from "@plainworks/elements/scroll-area"
 import { isRecord } from "@plainworks/std"

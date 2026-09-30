@@ -1,12 +1,9 @@
 // @vitest-environment jsdom
 
 import { createMockServerHandle } from "@plainworks/demo/server"
-import {
-  createDevtoolsSession,
-  createDevtoolsStore,
-  type DevtoolsClientPort,
-} from "@plainworks/devtools"
-import { panelPropsFor } from "@plainworks/devtools/client"
+import { defaultDevtoolsLabels, panelPropsFor } from "@plainworks/devtools/client"
+import { createDevtoolsSession, type DevtoolsClientPort } from "@plainworks/devtools/session"
+import { createDevtoolsStore } from "@plainworks/devtools/store"
 import { createHttpClient, type HttpClient } from "@plainworks/http"
 import type { MockControlClient } from "@plainworks/mocks/control"
 import { createMockControlClient } from "@plainworks/mocks/control"
@@ -74,6 +71,7 @@ describe("MockPanel", () => {
             indicators={[]}
             failure={undefined}
             port={port}
+            labels={defaultDevtoolsLabels}
           />
         </StrictMode>,
       )

@@ -8,9 +8,9 @@ import { PlainError, type PlainErrorOptions } from "@plainworks/std"
  * - a **malformed capability registry**, detected while assembling the app before any render — two
  *   capabilities share an `id`, a capability depends on an unknown id, or the `dependsOn` graph has
  *   a cycle (including a self-dependency);
- * - a **malformed snapshot** at the SSR hydrate boundary — `deserializeSnapshot` received markup
- *   that is not valid JSON or is not a `{ capabilities }` object, and `serializeSnapshot` was
- *   handed a value that is not JSON-serializable.
+ * - a **malformed hydration payload** at the SSR boundary — `readHydration` found no block, or
+ *   markup that is not valid JSON or not a `{ snapshot }` object, and `renderHydrationScript` was
+ *   handed a value that is not faithful JSON or an unsafe element id.
  *
  * The kind stays uniform because all are "bad composition input"; read the message for the specific
  * case.

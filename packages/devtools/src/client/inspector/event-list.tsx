@@ -1,11 +1,18 @@
 "use client"
 
 import { Badge } from "@plainworks/elements/badge"
+import { Button } from "@plainworks/elements/button"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@plainworks/elements/collapsible"
 import { EmptyState } from "@plainworks/ui/feedback/empty-state"
 import { type ReactElement, useState } from "react"
 import { type Severity, type SourceDescriptor, sourceKey } from "../../protocol"
 import type { RetentionEntry } from "../../retention"
 import type { DevtoolsClientPort } from "../../session"
+import { useDevtoolsLabels } from "../labels"
 import { DetailPanel } from "./detail-panel"
 
 /** Props for {@link EventList}. */
@@ -30,26 +37,31 @@ const SEVERITY_VARIANT: Readonly<Record<Severity, "destructive" | "secondary" | 
 /**
  * A bounded, newest-first timeline of retained events. The list is bounded by the session's
  * retention, so every retained row renders — there is nothing to virtualize beyond the cap.
- * Detail is fetched on demand for the selected row only, and rows are identified by source key +
+ * Detail is fetched on demand for the selected row only — one row's detail is disclosed at a time —
+ * and rows are identified by source key +
  * sequence so updates never reshuffle identity.
  */
 export function EventList({ entries, sources, port, emptyLabel }: EventListProps): ReactElement {
+  const labels = useDevtoolsLabels()
   const [selected, setSelected] = useState<string>()
   const newestFirst = [...entries].reverse()
-  const labels = new Map(sources.map((source) => [sourceKey(source.id), source.label]))
+  const sourceLabels = new Map(sources.map((source) => [sourceKey(source.id), source.label]))
 
   if (newestFirst.length === 0) {
     return <EmptyState title={emptyLabel} className="p-6" />
   }
 
   return (
-    <ul aria-label="Events" className="grid divide-y divide-border">
+    <ul aria-label={labels.events} className="grid divide-y divide-border">
       {newestFirst.map((entry) => {
         const key = `${sourceKey(entry.id)}:${entry.seq}`
         const isSelected = selected === key
         return (
-          <li
+          <Collapsible
             key={key}
+            render={<li />}
+            open={isSelected}
+            onOpenChange={(open) => setSelected(open ? key : undefined)}
             className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-2 gap-y-1 py-2"
           >
             <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs">
@@ -59,32 +71,31 @@ export function EventList({ entries, sources, port, emptyLabel }: EventListProps
               >
                 {formatEventTime(entry.event.at)}
               </time>
-              <Badge variant={SEVERITY_VARIANT[entry.event.severity]}>{entry.event.severity}</Badge>
+              <Badge variant={SEVERITY_VARIANT[entry.event.severity]}>
+                {labels.severity(entry.event.severity)}
+              </Badge>
               <span className="min-w-0 truncate text-muted-foreground">
-                {labels.get(sourceKey(entry.id)) ?? entry.id.kind}
+                {sourceLabels.get(sourceKey(entry.id)) ?? entry.id.kind}
               </span>
               <span className="min-w-0 truncate rounded bg-muted px-1 py-0.5 font-mono text-caption">
                 {entry.event.kind}
               </span>
             </div>
             {entry.event.detail === undefined ? null : (
-              <button
-                type="button"
-                aria-expanded={isSelected}
-                aria-label={`Details for ${entry.event.label}`}
-                onClick={() => setSelected(isSelected ? undefined : key)}
-                className="min-h-6 rounded-md px-2 text-primary text-xs hover:bg-muted focus-visible:outline-2 focus-visible:outline-ring"
+              <CollapsibleTrigger
+                aria-label={labels.eventDetails(entry.event.label)}
+                render={<Button variant="ghost" size="xs" className="text-primary" />}
               >
-                Details
-              </button>
+                {labels.details}
+              </CollapsibleTrigger>
             )}
             <p className="col-span-2 wrap-anywhere font-mono text-xs">{entry.event.label}</p>
-            {isSelected && entry.event.detail !== undefined ? (
-              <div className="col-span-2 min-w-0">
+            {entry.event.detail === undefined ? null : (
+              <CollapsibleContent className="col-span-2 min-w-0">
                 <DetailPanel port={port} source={entry.id} detailRef={entry.event.detail} />
-              </div>
-            ) : null}
-          </li>
+              </CollapsibleContent>
+            )}
+          </Collapsible>
         )
       })}
     </ul>

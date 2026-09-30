@@ -6,6 +6,7 @@ import { Spinner } from "@plainworks/ui/feedback/spinner"
 import { type ReactElement, useEffect, useState } from "react"
 import type { SourceId } from "../../protocol"
 import type { DevtoolsClientPort, RequestError } from "../../session"
+import { useDevtoolsLabels } from "../labels"
 import { JsonTree } from "./json-tree"
 
 /** Props for {@link DetailPanel}. */
@@ -20,7 +21,7 @@ export interface DetailPanelProps {
 
 type LoadState =
   | { readonly status: "loading" }
-  | { readonly status: "failed"; readonly error: string }
+  | { readonly status: "failed"; readonly error: string | undefined }
   | { readonly status: "loaded"; readonly value: Json }
   | { readonly status: "superseded" }
 
@@ -30,6 +31,7 @@ type LoadState =
  * panels compose this instead of re-implementing request lifecycle.
  */
 export function DetailPanel({ port, source, detailRef }: DetailPanelProps): ReactElement | null {
+  const labels = useDevtoolsLabels()
   const [state, setState] = useState<LoadState>({ status: "loading" })
 
   useEffect(() => {
@@ -54,12 +56,12 @@ export function DetailPanel({ port, source, detailRef }: DetailPanelProps): Reac
   if (state.status === "loading") {
     return (
       <div className="flex items-center gap-2 py-2 text-muted-foreground text-xs">
-        <Spinner label="Loading detail" size="sm" />
+        <Spinner label={labels.loadingDetail} size="sm" />
       </div>
     )
   }
   if (state.status === "failed") {
-    return <Callout tone="danger">{state.error}</Callout>
+    return <Callout tone="danger">{state.error ?? labels.detailFailed}</Callout>
   }
   return <JsonTree value={state.value} />
 }
@@ -68,7 +70,7 @@ function isSuperseded(error: RequestError): boolean {
   return error.kind === "devtools/request-superseded" || error.kind === "devtools/request-cancelled"
 }
 
-function errorText(error: RequestError): string {
+function errorText(error: RequestError): string | undefined {
   const cause = error.cause
   if (
     typeof cause === "object" &&
@@ -78,5 +80,5 @@ function errorText(error: RequestError): string {
   ) {
     return cause.message
   }
-  return "The detail could not be loaded."
+  return undefined
 }

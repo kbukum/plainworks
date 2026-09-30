@@ -1,6 +1,10 @@
+import { AppConfigError } from "../errors"
 import type { AnyCapability, CapabilityResolveContext } from "./capability"
 import { assertUniqueIds } from "./ordering"
-import { type AppSnapshot, resolveCapabilities } from "./snapshot"
+import { type AppSnapshot, resolveCapabilities, snapshotFor } from "./snapshot"
+
+// Root classes land in an HTML attribute on every host, so only attribute-inert tokens pass.
+const HTML_CLASS_TOKEN = /^[A-Za-z0-9_:-]+$/
 
 /** Configuration for {@link createApp}. */
 export interface AppConfig {
@@ -29,6 +33,14 @@ export interface App {
    * from. Resolvers run concurrently, each bounded by `context.signal`.
    */
   resolve(context: CapabilityResolveContext): Promise<AppSnapshot>
+  /**
+   * The document root's class list for a resolved snapshot: every capability's
+   * {@link import("./capability").Capability.htmlClass} for its own slice, joined by spaces.
+   * A host writes it on `<html>` so the first paint needs no client script (the no-flash theme).
+   *
+   * @throws {AppConfigError} When a class token is not letters, digits, `-`, `_`, or `:`.
+   */
+  htmlClass(snapshot: AppSnapshot): string
 }
 
 /**
@@ -46,5 +58,28 @@ export function createApp(config: AppConfig = {}): App {
   return {
     capabilities,
     resolve: (context) => resolveCapabilities(capabilities, context),
+    htmlClass: (snapshot) => joinHtmlClasses(capabilities, snapshot),
   }
+}
+
+function joinHtmlClasses(capabilities: readonly AnyCapability[], snapshot: AppSnapshot): string {
+  const classes: string[] = []
+  for (const capability of capabilities) {
+    if (
+      capability.htmlClass === undefined ||
+      !Object.hasOwn(snapshot.capabilities, capability.id)
+    ) {
+      continue
+    }
+    for (const name of capability.htmlClass(snapshotFor(snapshot, capability.id)).split(/\s+/)) {
+      if (name.length === 0) continue
+      if (!HTML_CLASS_TOKEN.test(name)) {
+        throw new AppConfigError(
+          `Capability "${capability.id}" derived an unsafe root class; use letters, digits, "-", "_", or ":".`,
+        )
+      }
+      classes.push(name)
+    }
+  }
+  return classes.join(" ")
 }

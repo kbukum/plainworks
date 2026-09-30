@@ -1,13 +1,9 @@
 "use client"
 
-import { createScopedObject } from "@plainworks/state/client"
+import { jsonSerializer } from "@plainworks/state"
 import { persistentScope } from "@plainworks/state/web-storage"
-import type { StandardSchemaV1 } from "@plainworks/std/seam"
-import {
-  DEFAULT_MOTION,
-  isMotionPreference,
-  type MotionPreference,
-} from "@plainworks/theme/preference"
+import type { StandardSchemaV1, StateSource } from "@plainworks/std/seam"
+import { isMotionPreference, type MotionPreference } from "@plainworks/theme/preference"
 
 // The one genuinely device-local UI preference the hub owns: how much motion to show. Unlike the
 // account settings (which live on the server), this belongs to the browser it was chosen in, so it
@@ -49,20 +45,15 @@ export function migrateMotionPreference(oldValue: unknown): MotionPreference {
 export const MOTION_PREFERENCE_VERSION = 3
 
 /**
- * The device-local preferences surface — one versioned, validated field in the persistent scope.
- * Built once at module load (a factory, not a store), it is safe to mount per request: its
- * `Provider` owns the per-mount backend and mirror, seeding from `initial` on the server and
- * reconciling with the stored value on the client with no hydration flash.
+ * Build the motion choice's backing {@link StateSource} in the persistent scope. The motion
+ * capability reads and writes through it. Host access is deferred to the first read, so building it
+ * during SSR touches no `localStorage`.
  */
-export const useLocalPreferences = createScopedObject<{ motion: MotionPreference }>({
-  namespace: "showcase",
-  fields: {
-    motion: {
-      scope: persistentScope,
-      initial: DEFAULT_MOTION,
-      key: "motion-preference",
-      schema: motionSchema,
-      versioning: { version: MOTION_PREFERENCE_VERSION, migrate: migrateMotionPreference },
-    },
-  },
-})
+export function createMotionSource(): StateSource<MotionPreference> {
+  return persistentScope.createSource<MotionPreference>({
+    key: "showcase:motion-preference",
+    serializer: jsonSerializer<MotionPreference>(),
+    schema: motionSchema,
+    versioning: { version: MOTION_PREFERENCE_VERSION, migrate: migrateMotionPreference },
+  })
+}

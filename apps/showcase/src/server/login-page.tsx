@@ -16,11 +16,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@plainworks/elements/card"
-import { DEFAULT_THEME, parseThemeCookie } from "@plainworks/theme/preference"
+import { DEFAULT_THEME, parseThemeCookie, resolveTheme } from "@plainworks/theme/preference"
 import type { ReactElement } from "react"
 import { renderToStaticMarkup } from "react-dom/server"
 import { LOGIN_PATH, THEME_COOKIE } from "../app/constants"
-import { resolveHtmlClass } from "../app/theme"
 
 /** Everything the login page needs for one response. */
 export interface LoginPageInput {
@@ -40,7 +39,7 @@ function LoginDocument({
   stylesheets,
   interrupted = false,
 }: LoginPageInput): ReactElement {
-  const htmlClass = resolveHtmlClass(parseThemeCookie(cookieHeader, THEME_COOKIE, DEFAULT_THEME))
+  const { htmlClass } = resolveTheme(parseThemeCookie(cookieHeader, THEME_COOKIE, DEFAULT_THEME))
   return (
     <html lang="en" className={htmlClass}>
       <head>

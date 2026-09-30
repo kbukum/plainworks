@@ -6,7 +6,22 @@ Part of the [plainworks](../../README.md) kit.
 
 `@plainworks/devtools` gives you one place to watch a composed Plainworks runtime — requests, state, cache, channel status — without tying your app to a browser extension, a dev server, or one host. You mount the inspector with the **sources** you care about — each one describing what can be observed — and it drives a bounded, redacted, serializable **session** behind the panel.
 
-This entry (`.`) is host-independent: it touches no React, DOM, or host global, so it runs anywhere.
+## Entry points
+
+Import each name from the one entry that owns it. Everything except `./client` and `styles.css` is host-independent: it touches no React, DOM, or host global, so it runs anywhere.
+
+| Entry | What it gives you | Key exports |
+| --- | --- | --- |
+| `.` | The vocabulary every source, adapter, and panel speaks. | `Source`, `SourceObserver`, `SourceId`, `SourceEvent`, `CommandDescriptor`, `sourceKey` |
+| `./session` | The session that redacts, bounds, and orders what sources publish. | `createDevtoolsSession`, `DevtoolsClientPort`, `RequestError` |
+| `./store` | The client-side view state over a port, with timeline filters. | `createDevtoolsStore`, `filterEvents` |
+| `./retention` | Bounded history and burst sampling. | `createRetentionBuffer`, `createEventSampler`, `RetentionEntry` |
+| `./privacy` | The redaction the session applies. | `sanitize` |
+| `./bridge` | The session-to-client transport seam. | `Bridge`, `createMemoryBridge` |
+| `./launch` | Instruments your runtime at startup and mounts the inspector once the app runs. | `launchDevtools`, `DevtoolsLauncher`, `DevtoolsInspector` |
+| `./query`, `./state`, `./http`, `./connect`, `./channel`, `./observability` | Optional adapters for kit runtimes. | `createQuerySource`, `createHttpSource`, … |
+| `./client` | The inspector UI (DOM). | `mountDevtools`, `DevtoolsShell`, `DevtoolsLabels` |
+| `./styles.css` | The precompiled, scoped inspector stylesheet. | — |
 
 ## Install
 
@@ -90,6 +105,25 @@ The shell is a **docked bar** along one edge of the viewport — the diagnostics
 | `layoutSource` | `localStorage` | Where the dock side and panel sizes persist (key `plainworks-devtools-layout`). Pass any `StateSource<DevtoolsLayout>` to keep it elsewhere. |
 | `reserveSpace` | `true` | Pads `<html>` so the chrome never covers your content or a focused control. |
 | `renderers` | — | Kind-keyed custom panels. They render in a slot the package CSS leaves to your own styles. |
+| `labels` | English | Overrides for any of the inspector's text. See [Labels](#labels). |
+
+### Labels
+
+Every word the inspector shows or announces comes from `DevtoolsLabels`. Pass any subset through `labels`; the rest keep their English defaults from `defaultDevtoolsLabels`. Text that includes a value is a function of that value:
+
+```ts
+mountDevtools({
+  sources,
+  labels: {
+    inspect: "Inspecter",
+    closeInspector: "Fermer l'inspecteur",
+    showMore: (count) => `${count} diagnostics de plus`,
+    sourceFailed: (source, message) => `${source} a échoué : ${message}`,
+  },
+})
+```
+
+Custom renderers receive the resolved labels as `labels` in `SourcePanelProps`.
 
 ### Host space
 
@@ -115,30 +149,37 @@ Give every source a stable **kind + instance** pair and a readable label. Multip
 | Next.js App Router | `process.env.NODE_ENV !== "production"` inside a client effect | Keep DOM/CSS imports in a dynamically loaded module. Construct pure interceptor seams beside the client, under the same gate. |
 | Webpack | `process.env.NODE_ENV !== "production"` with Webpack's `mode: "production"` | Webpack substitutes the condition at build time. Keep the import inside that condition; no runtime environment fallback. |
 
-For Next, the component can mount the quickstart's `startInspector` without doing DOM work during SSR:
+### Observe your runtime with `launchDevtools`
 
-```tsx
-"use client"
-import { useEffect } from "react"
+Do not build a second HTTP client, channel, or query cache for inspection. `launchDevtools` (from `./launch`) observes the real ones in two phases:
 
-export function Inspector() {
-  useEffect(() => {
-    if (process.env.NODE_ENV === "production") return
-    let active = true
-    let stop: (() => void) | undefined
-    void import("./devtools").then(({ startInspector }) => {
-      if (active) stop = startInspector()
-    })
-    return () => {
-      active = false
-      stop?.()
-    }
-  }, [])
-  return null
-}
+1. **At startup**, it builds the seams your runtime is constructed with: an HTTP interceptor and channel options instrumentation.
+2. **Once the app runs**, `mount` loads the inspector, adds the query source, observes the live channel, and returns teardown.
+
+The launcher touches no DOM and loads no styles, so you can call it before hydration. Every failure goes to your `report` function and the app keeps running uninstrumented. Teardown cancels a pending load and is idempotent.
+
+```ts
+import { launchDevtools } from "@plainworks/devtools/launch"
+
+const devtools = import.meta.env.DEV
+  ? launchDevtools({ report: console.error, http: { instance: "api" }, channel: { instance: "live" } })
+  : undefined
+
+const http = createHttpClient({
+  baseUrl,
+  interceptors: devtools?.http ? [devtools.http.interceptor] : [],
+})
+const channelOptions = devtools?.channel ? devtools.channel.instrument(options) : options
+
+// After the app renders:
+const teardown = devtools?.mount({
+  load: () => import("./devtools").then((module) => module.mountDevtools),
+  query: { client: queryClient, instance: "app" },
+  channel,
+})
 ```
 
-Do not construct a second HTTP client, store, or query cache for inspection. Create adapter seams **before** constructing the real client, then pass their sources to the mount. See the Vite composition ([seams](../../apps/showcase/src/client/dev-tools/seams.ts) created before hydration, [mount](../../apps/showcase/src/client/dev-tools/mount.tsx) loaded after it) and [Next composition](../../apps/next-host/src/client/dev-tools/seams.ts) for working examples. Next inspects client-owned HTTP, cache, and channel activity, not RSC requests or server sessions.
+Here `./devtools` is your development-only module that imports `styles.css` and re-exports `mountDevtools`. To add your own sources or renderers, return a wrapper around `mountDevtools` instead. See the [Vite composition](../../apps/showcase/src/client/entry-client.tsx) and the [Next composition](../../apps/next-host/src/client/providers.tsx). Next inspects client-owned HTTP, cache, and channel activity, not RSC requests or server sessions.
 
 Run `bun run check-production` in this repository to prove both adopters ship no devtools code. It runs a separate, source-mapped **analysis build**, so the deployable output never carries maps. The scan reads each chunk's **source map**, so it catches a leaked adapter even after minification strips every telltale string. A script without a map fails unless the host lists it as a bundler runtime, manifest, or prebuilt polyfill; those and CSS are checked for devtools markers. Each host lists sources that must appear in the maps, so a build that stops emitting maps fails instead of passing blind. Re-run the check when changing gates, imports, or bundlers.
 
@@ -209,13 +250,13 @@ Implement `Source.connect(observer, signal)` beside the runtime it observes. Pub
 
 Declare commands with an ID, label, availability, and risk (`safe`, `mutating`, or `destructive`). Validate command inputs inside the handler. The generic panel separates mutations and confirms destructive actions; **custom renderers must provide their own confirmation** and forward an abort signal to `port.runCommand`.
 
-Pass a kind-keyed `renderers` map to the shell. A renderer receives `SourcePanelProps` with the selected instance, events, indicators, failure, and port. It is styled by **your** CSS (it renders in a slot the package stylesheet skips), and it still inherits the kit theme tokens from the inspector. The [showcase mock source](../../apps/showcase/src/client/dev-tools/mock-source.ts) and [mock panel](../../apps/showcase/src/client/dev-tools/mock-panel.tsx) demonstrate allowlisted probes, latency/error controls, and a confirmed reset. Neither fixture knowledge nor components belong in the package's neutral protocol.
+Pass a kind-keyed `renderers` map to the shell. A renderer receives `SourcePanelProps` with the selected instance, events, indicators, failure, port, and the inspector's labels. It is styled by **your** CSS (it renders in a slot the package stylesheet skips), and it still inherits the kit theme tokens from the inspector. The [showcase mock source](../../apps/showcase/src/client/dev-tools/mock-source.ts) and [mock panel](../../apps/showcase/src/client/dev-tools/mock-panel.tsx) demonstrate allowlisted probes, latency/error controls, and a confirmed reset. Neither fixture knowledge nor components belong in the package's neutral protocol.
 
 ## What the session guarantees
 
 - **Serializable and versioned.** Every message carries a protocol version and contains only JSON-safe values — no functions, class instances, or cycles reach a consumer.
 - **Private by default.** First-party adapters omit credentials and bodies by default. Custom sources must whitelist safe fields; session redaction and size limits are defense in depth, not a way to make arbitrary payloads safe.
-- **Bounded.** Per-source and aggregate history are fixed-capacity rings that drop the oldest entry and report the loss. High-frequency sources can wrap their emit with `createEventSampler` to coalesce or sample a burst before it reaches the ring.
+- **Bounded.** Per-source and aggregate history are fixed-capacity rings that drop the oldest entry and report the loss. High-frequency sources can wrap their emit with `createEventSampler` (from `./retention`) to coalesce or sample a burst before it reaches the ring.
 - **Cancellable and owned.** Detail and command requests are cancellable and superseded cleanly; disposing the session releases every source, pending request, subscription, and buffer.
 - **Read-only by default.** A source exposes a command only by opting in with a descriptor and a handler; the protocol never carries an executable callback.
 
@@ -247,4 +288,4 @@ The session defaults to 200 retained events per source and 500 aggregate events.
 
 ## Runtime primitives
 
-`@plainworks/devtools` is a **neutral (`.`)** package. It uses only the **universal** `AbortController` / `AbortSignal` value primitives directly and depends on no non-universal seam, so it runs on every target runtime (Node, edge, workers, RSC, React Native). The transport to the client is an injected `Bridge`; the default is a host-free in-memory bridge. The interactive inspector lives behind the **DOM (`./client`)** entry and is never the default import. See [`docs/architecture.md › Axis 2`](../../docs/architecture.md) for the primitive contract and the three entry buckets.
+`@plainworks/devtools` is a **neutral (`.`)** package, and so are its concern and adapter subpaths. It uses only the **universal** `AbortController` / `AbortSignal` value primitives directly and depends on no non-universal seam, so it runs on every target runtime (Node, edge, workers, RSC, React Native). The transport to the client is an injected `Bridge` (from `./bridge`); the default is a host-free in-memory bridge. The interactive inspector lives behind the **DOM (`./client`)** entry and is never the default import. See [`docs/architecture.md › Axis 2`](../../docs/architecture.md) for the primitive contract and the three entry buckets.

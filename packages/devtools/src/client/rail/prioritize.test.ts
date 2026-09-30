@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { SourceDescriptor, SourceId } from "../../protocol"
 import type { IndicatorEntry } from "../../session/client-port"
+import { defaultDevtoolsLabels as labels } from "../labels"
 import { buildRailEntries, splitRailOverflow } from "./prioritize"
 
 const http: SourceId = { kind: "http", instance: "api" }
@@ -43,6 +44,7 @@ describe("buildRailEntries", () => {
       ],
       now: 1_000,
       staleAfterMs: 500,
+      labels,
     })
     expect(entries.map((entry) => entry.value)).toEqual(["stale-cache", "recent", "fresh"])
   })
@@ -55,6 +57,7 @@ describe("buildRailEntries", () => {
       indicators: [indicator(http, "older", "warn", 200), indicator(query, "newer", "warn", 800)],
       now: 1_000,
       staleAfterMs: 500,
+      labels,
     })
     expect(entries.map((entry) => entry.value)).toEqual(["newer", "older"])
   })
@@ -67,6 +70,7 @@ describe("buildRailEntries", () => {
       indicators: [indicator(http, "critical", "error", 900)],
       now: 1_000,
       staleAfterMs: 500,
+      labels,
     })
     expect(entries[0]?.severity).toBe("error")
     expect(entries[0]?.value).toBe("critical")
@@ -82,6 +86,7 @@ describe("buildRailEntries", () => {
       indicators: [indicator(http, "old", "ok", 100)],
       now: 1_000,
       staleAfterMs: 500,
+      labels,
     })
     expect(entry?.stale).toBe(true)
     expect(entry?.label).toBe("HTTP")
@@ -95,6 +100,7 @@ describe("buildRailEntries", () => {
       indicators: [indicator(query, "healthy", "ok", 1_000)],
       now: 1_000,
       staleAfterMs: 500,
+      labels,
     })
     expect(entries[0]).toMatchObject({
       label: "HTTP api",
@@ -113,6 +119,7 @@ describe("buildRailEntries", () => {
       indicators: [indicator(query, "3 stale", "warn", 1_000, "query")],
       now: 1_000,
       staleAfterMs: 500,
+      labels,
     })
     expect(entry?.target).toBe("query")
   })
@@ -125,6 +132,7 @@ describe("buildRailEntries", () => {
       indicators: [],
       now: 1_000,
       staleAfterMs: 500,
+      labels,
     })
     expect(entries).toHaveLength(1)
     expect(entries[0]).toMatchObject({
@@ -148,6 +156,7 @@ describe("splitRailOverflow", () => {
     ],
     now: 5,
     staleAfterMs: 100,
+    labels,
   })
 
   it("keeps everything visible at or under the cap", () => {

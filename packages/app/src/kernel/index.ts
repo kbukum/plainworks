@@ -9,10 +9,4 @@ export { defineCapability } from "./capability"
 export type { OrderedNode } from "./ordering"
 export { orderCapabilities } from "./ordering"
 export type { AppSnapshot } from "./snapshot"
-export {
-  deserializeSnapshot,
-  EMPTY_SNAPSHOT,
-  resolveCapabilities,
-  serializeSnapshot,
-  snapshotFor,
-} from "./snapshot"
+export { EMPTY_SNAPSHOT, resolveCapabilities, snapshotFor } from "./snapshot"

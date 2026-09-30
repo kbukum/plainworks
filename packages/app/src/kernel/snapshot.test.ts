@@ -1,12 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { AppConfigError } from "../errors"
 import type { AnyCapability } from "./capability"
-import {
-  deserializeSnapshot,
-  resolveCapabilities,
-  serializeSnapshot,
-  snapshotFor,
-} from "./snapshot"
+import { parseSnapshot, resolveCapabilities, snapshotFor } from "./snapshot"
 
 function themeCapability(): AnyCapability {
   return {
@@ -113,55 +108,19 @@ describe("resolveCapabilities", () => {
   })
 })
 
-describe("serialize/deserialize round-trip", () => {
-  it("survives a round-trip through the wire", async () => {
-    const snapshot = await resolveCapabilities([themeCapability()], context("theme=dark"))
-    const revived = deserializeSnapshot(serializeSnapshot(snapshot))
-    expect(revived).toEqual(snapshot)
-  })
-
-  it("rejects malformed JSON with a typed error", () => {
-    expect(() => deserializeSnapshot("{not json")).toThrow(AppConfigError)
-  })
-
-  it("rejects a well-formed-JSON but wrong-shape snapshot", () => {
-    expect(() => deserializeSnapshot(JSON.stringify({ nope: true }))).toThrow(AppConfigError)
-  })
-
-  it("rejects an array-valued capabilities field", () => {
-    expect(() => deserializeSnapshot(JSON.stringify({ capabilities: [] }))).toThrow(AppConfigError)
-  })
-
-  it("escapes HTML-hostile characters so a resolved value cannot break out of a <script>", () => {
-    const serialized = serializeSnapshot({ capabilities: { note: "</script><b>x</b>" } })
-    expect(serialized).not.toContain("</script>")
-    expect(serialized).toContain("\\u003c/script\\u003e")
-    // The escaped form still parses back to the original value — escaping is lossless.
-    expect(deserializeSnapshot(serialized)).toEqual({
-      capabilities: { note: "</script><b>x</b>" },
+describe("parseSnapshot", () => {
+  it("keeps a well-formed snapshot's slices", () => {
+    expect(parseSnapshot({ capabilities: { theme: "dark" } })).toEqual({
+      capabilities: { theme: "dark" },
     })
   })
 
-  it("throws a typed error when a resolved value is not JSON-serializable", () => {
-    // A top-level non-JSON value makes `JSON.stringify` return undefined — surfaced, not swallowed.
-    expect(() =>
-      serializeSnapshot(undefined as unknown as Parameters<typeof serializeSnapshot>[0]),
-    ).toThrow(AppConfigError)
-    // A nested function/undefined/symbol would be silently dropped by raw JSON, turning a resolved
-    // capability into an absent client slice — the replacer rejects it instead of corrupting
-    // hydration.
-    for (const bad of [() => 1, undefined, Symbol("x"), 1n]) {
-      expect(() =>
-        serializeSnapshot({ capabilities: { bad } } as unknown as Parameters<
-          typeof serializeSnapshot
-        >[0]),
-      ).toThrow(AppConfigError)
-    }
-    // A native `TypeError` (a circular reference) is wrapped as the typed error, never leaked raw.
-    const circular: Record<string, unknown> = {}
-    circular.self = circular
-    expect(() => serializeSnapshot({ capabilities: { circular } })).toThrow(AppConfigError)
-  })
+  it.each([null, [], { nope: true }, { capabilities: [] }, { capabilities: "x" }])(
+    "rejects %j with a typed error",
+    (value) => {
+      expect(() => parseSnapshot(value)).toThrow(AppConfigError)
+    },
+  )
 })
 
 describe("snapshotFor", () => {

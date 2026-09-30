@@ -1,5 +1,5 @@
 ---
-description: Treat each PR review comment as a pattern to fix across the whole change set (not a one-off), judged against plainworks' engineering baseline — apply, validate, commit, and resolve every thread. Use when asked to address PR reviews.
+description: Evaluate a pull request's review comments as signals of an underlying pattern, not one-off spot fixes — judge each comment against plainworks' engineering baseline, then apply the pattern across the whole change set (e.g. one typo comment → sweep every changed file for typos), validate, commit the fixes, and resolve the threads. Use when asked to go over, address, or act on PR reviews in plainworks.
 ---
 
 # /fix-reviews — router to the canonical skill

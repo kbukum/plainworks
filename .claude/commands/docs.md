@@ -1,5 +1,5 @@
 ---
-description: Review and update plainworks' documentation so it reads naturally and matches the kit as it is today — sync commands/structure/gates/examples with the code, drop history narration, keep prose humanized, add mermaid where it clarifies. Use when writing or auditing docs.
+description: Review and update plainworks' documentation so it reads naturally and reflects the kit as it is today — keep Markdown paragraphs flowing without hard column wrapping, preserve intentional structure, sync commands, package/layer structure, gates, and examples with the actual code, fix stale links, drop history/plan narration, keep prose humanized and scannable with a task-first quickstart, and add mermaid diagrams where they clarify architecture or flow. Use when writing or auditing docs, repairing AI-generated hard wraps, after a change that makes docs outdated, or before a release.
 ---
 
 # /docs — router to the canonical skill

@@ -1,5 +1,5 @@
 ---
-description: Apply a single step of a tmp/ plan test-first against plainworks' engineering baseline — read the README and prior steps for context, implement, validate the affected packages, mark it done. Use to execute one plan step.
+description: Apply a single step of a tmp/ plan — read the plan README and all previous steps for accumulated context and decisions, then implement the current step test-first against plainworks' engineering baseline, validate the affected package(s), and mark the step done. Use to execute one specific plan step, or as the per-step unit that apply-plan drives.
 ---
 
 # /apply-step — router to the canonical skill

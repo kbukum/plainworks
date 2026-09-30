@@ -1,5 +1,5 @@
 ---
-description: Execute an existing tmp/ plan from its first unfinished step onward — resumable and idempotent, applying each step via apply-step and validating after each. Use when asked to apply, continue, or resume a plainworks plan.
+description: Execute an existing plan folder under tmp/ from its first unfinished step onward — read the plan's README for order and dependencies, then apply each remaining step in turn (via the apply-step workflow), validating after each. Resumable and idempotent. Use when asked to apply, execute, continue, or resume a plainworks plan.
 ---
 
 # /apply-plan — router to the canonical skill

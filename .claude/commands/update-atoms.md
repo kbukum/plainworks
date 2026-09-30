@@ -1,5 +1,5 @@
 ---
-description: Refresh plainworks' vendored shadcn atoms — bump the shadcn CLI, rerun registry:update for every locked atom, reconcile through theme tokens, call sites, or ui wrappers (never the atom), and rerun the gallery browser gate. Use when bumping shadcn or when registry:validate reports a lock mismatch.
+description: Refresh plainworks' vendored shadcn atoms the canonical way — bump the shadcn CLI in the catalog, rerun registry:update for every locked atom, reconcile any upstream change through the deviation ladder (theme tokens → call sites → @plainworks/ui wrappers) instead of editing the atom, and rerun the gallery browser gate. Use when bumping the shadcn CLI, pulling upstream atom fixes, adding an atom, or when registry:validate reports a lock mismatch.
 ---
 
 # /update-atoms — router to the canonical skill

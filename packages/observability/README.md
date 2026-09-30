@@ -12,7 +12,7 @@ bun add @plainworks/observability
 
 ## Usage
 
-Each concern has its own import path, and none locks you into a vendor.
+Choose the concern you need. Each import path stays vendor-neutral.
 
 | Import | What it gives you |
 |---|---|
@@ -33,7 +33,7 @@ const telemetry = createTelemetry({ logger: createConsoleLogger({ base: { servic
 const http = createHttpClient({ baseUrl: "/api", telemetry })
 ```
 
-**Structured, redacting logger.** Every record passes through defense-in-depth redaction before it reaches a sink. Recognizable token shapes and sensitively named fields are masked; callers must name or redact bare secrets at the source.
+**Structured, redacting logger.** Every record passes through defense-in-depth redaction before it reaches a sink. Recognizable token shapes and sensitive field names are masked; callers must name or redact bare secrets at the source.
 
 ```ts
 import { createConsoleLogger } from "@plainworks/observability/logging"
@@ -52,7 +52,7 @@ const reporter = createErrorReporter({ backends: [myBackend] })
 reporter.report(error, { severity: "error", tags: { route: "/orders" } })
 ```
 
-**Web Vitals.** The browser collector sends measurements to an injected callback.
+**Web Vitals.** The browser collector forwards measurements to your callback.
 
 ```ts
 import { observeWebVitals } from "@plainworks/observability/web-vitals"
@@ -63,4 +63,4 @@ const stop = observeWebVitals((metric) => log.info("web-vital", { ...metric }))
 
 ## Runtime primitives
 
-The neutral entries (everything except `./web-vitals`) are host-free. The console logger resolves the host console only when it writes its first record, and consumers can inject another console. The `./web-vitals` collector uses an injectable `PerformanceObserver` and becomes an inert no-op when the runtime does not provide one. See [`docs/architecture.md › Axis 2`](../../docs/architecture.md) for the runtime model.
+The neutral entries — everything except `./web-vitals` — are host-free. The console logger resolves the host console only when it writes its first record, and you can inject another console. The `./web-vitals` collector uses an injectable `PerformanceObserver` and becomes an inert no-op when the runtime does not provide one. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives) for the runtime model.

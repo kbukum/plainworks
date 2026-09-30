@@ -1,5 +1,5 @@
 ---
-description: Cut a plainworks release with Changesets — verify pending changesets, run the full pre-release gates, version the affected packages, and publish @plainworks/* to npm in dependency order. Use when preparing or checking a release.
+description: Cut a release of the plainworks monorepo with Changesets — verify pending changesets, run the full pre-release gates, version the affected packages, and publish the @plainworks/* packages to npm in dependency order. Use when preparing or publishing a plainworks release or checking release readiness.
 ---
 
 # /release — router to the canonical skill

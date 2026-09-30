@@ -1,5 +1,5 @@
 ---
-description: Add a pluggable adapter/backend — a state store, connection transport, auth mechanism, or query wiring — implementing the core package's seam, selected via explicit register()/createX({...}), no import-time side effects. Use when integrating a backend.
+description: Add a pluggable adapter/backend to plainworks the canonical way — a state store, channel transport (sse/ws), auth mechanism (oidc/jwt/apikey/BYO), or query wiring — implementing the core package's seam, selected via config through an explicit register()/createX({...}), with no import-time side effects and the lean default kept in core. Use when integrating a transport, an auth style, or a state/query backend.
 ---
 
 # /new-backend — router to the canonical skill

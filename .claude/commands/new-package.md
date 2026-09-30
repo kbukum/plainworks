@@ -1,5 +1,5 @@
 ---
-description: Scaffold a new @plainworks/* package the canonical way — drive the turbo gen golden generator (never hand-roll files), pick the one-plain-word name, place it in the layer map, and wire it into internal/boundaries/layers.json. Use when adding a package.
+description: Scaffold a new @plainworks/* package the canonical way — drive the turbo gen golden generator (never hand-roll files), pick the one-plain-word concern name, place it in the layer map, and wire it into the boundaries layer map (layers.json) so it is enforced from birth. Use when adding a new capability or package to plainworks, or when unsure where a package belongs.
 ---
 
 # /new-package — router to the canonical skill

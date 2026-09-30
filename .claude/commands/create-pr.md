@@ -1,5 +1,5 @@
 ---
-description: Open a reviewer-friendly pull request — fill the repo PR template honestly with a concise high-level summary (no file-by-file dumps), always in draft. Use only when explicitly asked to open a PR in plainworks.
+description: Open a pull request that reads well for a reviewer — understand the change set at a high level, fill the repo PR template honestly, and keep the description a concise, organized, developer-friendly summary (no file-by-file dumps, no internal/batch/plan detail). Always open in draft. Bound to plainworks' engineering baseline. Use only when explicitly asked to create or open a PR.
 ---
 
 # /create-pr — router to the canonical skill

@@ -6,6 +6,8 @@ Part of the [plainworks](../../README.md) kit.
 
 ## Quickstart
 
+> **Not on npm yet.** These commands work once `create-plainworks` is published.
+
 ```sh
 npm create plainworks my-app
 # or

@@ -1,5 +1,5 @@
 ---
-description: Build, typecheck, lint, boundary-check, version-check, and test plainworks changes through bun run and turbo — scoped to the packages that changed. Use to run the DoD gates or reproduce CI locally before handing work off.
+description: Build, typecheck, lint, boundary-check, version-check, and test plainworks changes through bun run and turbo — scoped to the packages that actually changed. Use whenever you need to validate a plainworks change, run the DoD gates, reproduce CI locally, or check the affected area of an edit before handing it off.
 ---
 
 # /validate — router to the canonical skill

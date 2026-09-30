@@ -8,6 +8,8 @@ export const build: PackageBuild = {
     cache: "src/cache/index.ts",
     hydration: "src/hydration/index.ts",
     list: "src/list/index.ts",
+    mutation: "src/mutation/index.ts",
+    "http-list": "src/http-list/index.ts",
     remote: "src/remote/index.ts",
     client: "src/client.ts",
   },

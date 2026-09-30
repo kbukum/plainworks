@@ -590,12 +590,25 @@
         "@plainworks/testkit": "workspace:*",
         "@plainworks/tsdown-config": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",
+        "@testing-library/react": "catalog:",
         "@types/node": "catalog:",
+        "@types/react": "catalog:",
+        "@types/react-dom": "catalog:",
         "@vitest/coverage-v8": "catalog:",
+        "axe-core": "catalog:",
+        "jsdom": "catalog:",
+        "react": "catalog:",
+        "react-dom": "catalog:",
         "tsdown": "catalog:",
         "typescript": "catalog:",
         "vitest": "catalog:",
       },
+      "peerDependencies": {
+        "react": "catalog:",
+      },
+      "optionalPeers": [
+        "react",
+      ],
     },
     "packages/mocks": {
       "name": "@plainworks/mocks",
@@ -649,6 +662,7 @@
         "@plainworks/std": "workspace:*",
       },
       "devDependencies": {
+        "@plainworks/http": "workspace:*",
         "@plainworks/testkit": "workspace:*",
         "@plainworks/tsdown-config": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",
@@ -669,11 +683,13 @@
         "vitest": "catalog:",
       },
       "peerDependencies": {
+        "@plainworks/http": "workspace:*",
         "@tanstack/query-core": "catalog:",
         "@tanstack/react-query": "catalog:",
         "react": "catalog:",
       },
       "optionalPeers": [
+        "@plainworks/http",
         "@tanstack/react-query",
         "react",
       ],

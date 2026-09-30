@@ -3,7 +3,7 @@ import { createHttpClient, HttpError } from "@plainworks/http"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
-import { readUserPage } from "./user-reads"
+import { userList } from "./user-reads"
 
 // The builder ↔ parser ↔ envelope agreement, proven end-to-end and in one place: `@plainworks/http`
 // serializes a typed param object to the exact PostgREST wire, the `@plainworks/demo` MSW service
@@ -23,7 +23,7 @@ afterEach(() => {
 
 describe("list wire serialization", () => {
   it("serializes, parses, and applies a scalar filter with sort and paging into the exact envelope", async () => {
-    const page = await readUserPage(client, {
+    const page = await userList.read(client, {
       filters: [{ field: "status", op: "eq", value: "active" }],
       sortBy: "name",
       order: "asc",
@@ -44,7 +44,7 @@ describe("list wire serialization", () => {
   })
 
   it("round-trips multi-segment tokens (in / nin / not.is.null) through the longest-first parse", async () => {
-    const included = await readUserPage(client, {
+    const included = await userList.read(client, {
       filters: [{ field: "role", op: "in", value: ["admin", "editor"] }],
       pageSize: 50,
     })
@@ -53,7 +53,7 @@ describe("list wire serialization", () => {
       true,
     )
 
-    const excluded = await readUserPage(client, {
+    const excluded = await userList.read(client, {
       filters: [{ field: "role", op: "nin", value: ["admin", "editor"] }],
       pageSize: 50,
     })
@@ -63,8 +63,8 @@ describe("list wire serialization", () => {
 
     // The longest-first parse must match `not.is.null` before `is.null`/`in`; every seeded user has
     // a `role`, so a presence check returns the whole set — its total equals the unfiltered total.
-    const baseline = await readUserPage(client, { pageSize: 1 })
-    const present = await readUserPage(client, {
+    const baseline = await userList.read(client, { pageSize: 1 })
+    const present = await userList.read(client, {
       filters: [{ field: "role", op: "notNull" }],
       pageSize: 50,
     })
@@ -82,11 +82,11 @@ describe("list wire serialization", () => {
         }),
       ),
     )
-    await expect(readUserPage(client, { pageSize: 5 })).rejects.toBeInstanceOf(HttpError)
+    await expect(userList.read(client, { pageSize: 5 })).rejects.toBeInstanceOf(HttpError)
   })
 
   it("rolls facet counts up alongside the page, summing to the unfiltered total", async () => {
-    const page = await readUserPage(client, { pageSize: 5, facets: ["status"] })
+    const page = await userList.read(client, { pageSize: 5, facets: ["status"] })
     // With facets requested, the envelope carries exactly the third `facets` field.
     expect(Object.keys(page).sort()).toEqual(["data", "facets", "pagination"])
     expect(page.facets?.status).toBeDefined()

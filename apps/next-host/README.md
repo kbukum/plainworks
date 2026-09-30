@@ -18,7 +18,7 @@ The app starts anonymous on the public overview (`/`). Signing in routes through
 | Variable | Purpose |
 |---|---|
 | `APP_ORIGIN` (or `AUTH_REDIRECT_ORIGIN`) | The absolute origin the app is served on. Backs the `/api/*` base URL and the OIDC redirect URI. Defaults to `http://localhost:3000`. |
-| `SESSION_SIGNING_KEY` | The HMAC key (32 bytes or more) for the identity-only session cookie. Unset, the host mints a random key at startup, so sessions do not survive a restart. |
+| `SESSION_SIGNING_KEY` | The HMAC key (32 bytes or more) for the identity-only session cookie. **Required for `start`** (production). Under `dev` it may be unset: the host then mints a random key, so sessions end on restart. A shorter key is rejected. |
 
 The mock backend is a catch-all Route Handler (`/api/[...path]`) that dispatches each request through the published `@plainworks/mocks` handlers — the same seeded fixtures the browser's `/api/*` reads and the RSC prefetch reads, over real HTTP.
 
@@ -43,7 +43,7 @@ The mock backend is a catch-all Route Handler (`/api/[...path]`) that dispatches
 
 | Path | Responsibility |
 |---|---|
-| `src/neutral` | Host-agnostic constants, the page table (titles and summaries), and the theme/task-read validation shared by every bucket. |
+| `src/neutral` | Host-agnostic constants, the page table (titles and summaries), and the theme validation and the task list shared by every bucket. |
 | `src/server` | Server-only request resolution, the auth composition, the mock-backend dispatch, and the BFF cookie plumbing. |
 | `src/client` | The `"use client"` providers, the app frame (`HostShell`), live stream, task list, and session gates. |
 | `src/app` | The App Router tree: RSC layout and pages, the BFF route handlers, and the mock-backend catch-all. |

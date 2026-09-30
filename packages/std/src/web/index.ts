@@ -21,6 +21,7 @@ export type {
   WebHeadersInit,
   WebReadableStream,
   WebReadableStreamDefaultReader,
+  WebRequest,
   WebRequestInit,
   WebResponse,
   WebResponseInit,

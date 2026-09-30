@@ -15,13 +15,9 @@ import {
   TASK_LIST_PARAMS,
   USER_LIST_PARAMS,
 } from "./constants"
+import { notificationList, orderList, productList, taskList, userList } from "./lists"
 import type { SectionId } from "./navigation"
-import { notificationListPlan } from "./notification-read"
-import { orderListPlan } from "./order-read"
 import { overviewStatsPlan, productSalesPlan, revenueTrendPlan } from "./overview-read"
-import { productListPlan } from "./product-read"
-import { taskListPlan } from "./task-read"
-import { userListPlan } from "./user-read"
 
 /** Prefetch the active section's queries so its first paint has data while freshness is checked. */
 export async function prefetchSection(
@@ -35,23 +31,26 @@ export async function prefetchSection(
         prefetchQuery(queryClient, overviewStatsPlan(httpClient)),
         prefetchQuery(queryClient, revenueTrendPlan(httpClient)),
         prefetchQuery(queryClient, productSalesPlan(httpClient)),
-        prefetchQuery(queryClient, taskListPlan(httpClient, RECENT_ACTIVITY_PARAMS)),
+        prefetchQuery(queryClient, taskList.options(httpClient, RECENT_ACTIVITY_PARAMS)),
       ])
       return
     case "tasks":
-      await prefetchQuery(queryClient, taskListPlan(httpClient, TASK_LIST_PARAMS))
+      await prefetchQuery(queryClient, taskList.options(httpClient, TASK_LIST_PARAMS))
       return
     case "orders":
-      await prefetchQuery(queryClient, orderListPlan(httpClient, ORDER_LIST_PARAMS))
+      await prefetchQuery(queryClient, orderList.options(httpClient, ORDER_LIST_PARAMS))
       return
     case "products":
-      await prefetchQuery(queryClient, productListPlan(httpClient, PRODUCT_LIST_PARAMS))
+      await prefetchQuery(queryClient, productList.options(httpClient, PRODUCT_LIST_PARAMS))
       return
     case "users":
-      await prefetchQuery(queryClient, userListPlan(httpClient, USER_LIST_PARAMS))
+      await prefetchQuery(queryClient, userList.options(httpClient, USER_LIST_PARAMS))
       return
     case "notifications":
-      await prefetchQuery(queryClient, notificationListPlan(httpClient, NOTIFICATION_LIST_PARAMS))
+      await prefetchQuery(
+        queryClient,
+        notificationList.options(httpClient, NOTIFICATION_LIST_PARAMS),
+      )
       return
     default:
       return

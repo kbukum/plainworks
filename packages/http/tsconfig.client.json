@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Client project, but React-without-DOM: the `./client` provider is pure React context, so it
+  // compiles against the universal-web shim, never the DOM libs. That keeps `@plainworks/http/client`
+  // usable on React Native/Expo as well as in the browser. Tests live in `tsconfig.test.json`.
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
+  "include": ["src/client.ts", "src/client", "../../types/universal-web.d.ts"]
+}

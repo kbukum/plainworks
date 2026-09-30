@@ -1,6 +1,7 @@
 "use client"
 
 import type { Notification } from "@plainworks/demo"
+import { useHttpClient } from "@plainworks/http/client"
 import { asyncStatus } from "@plainworks/ui"
 import { AsyncState } from "@plainworks/ui/feedback/async-state"
 import { ErrorState } from "@plainworks/ui/feedback/error-state"
@@ -8,10 +9,9 @@ import { LoadingState } from "@plainworks/ui/feedback/loading-state"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import type { ReactElement } from "react"
 import { NOTIFICATION_LIST_PARAMS } from "../../app/constants"
-import { notificationListPlan } from "../../app/notification-read"
+import { notificationList } from "../../app/lists"
 import { countUnread } from "../../app/notification-shape"
 import { useToast } from "../feedback"
-import { useHttpClient } from "../http-client"
 import { useNotificationMutations } from "./notification-mutations"
 import { NotificationsFeed } from "./notifications-feed"
 
@@ -25,7 +25,7 @@ import { NotificationsFeed } from "./notifications-feed"
 export function NotificationsSection(): ReactElement {
   const httpClient = useHttpClient()
   const toast = useToast()
-  const plan = notificationListPlan(httpClient, NOTIFICATION_LIST_PARAMS)
+  const plan = notificationList.options(httpClient, NOTIFICATION_LIST_PARAMS)
   const query = useQuery({ ...plan, placeholderData: keepPreviousData })
   const mutations = useNotificationMutations(plan.queryKey)
 
@@ -33,28 +33,28 @@ export function NotificationsSection(): ReactElement {
   const unreadCount = countUnread(rows)
 
   const handleMarkRead = (notification: Notification): void => {
-    void mutations.markRead(notification).then((outcome) => {
-      if (outcome === "success") {
+    void mutations.markRead(notification).then((saved) => {
+      if (saved) {
         toast.success("Marked as read")
-      } else if (outcome === "failure") {
+      } else {
         toast.error("That notification could not be updated")
       }
     })
   }
   const handleDismiss = (notification: Notification): void => {
-    void mutations.dismiss(notification).then((outcome) => {
-      if (outcome === "success") {
+    void mutations.dismiss(notification).then((saved) => {
+      if (saved) {
         toast.success("Notification dismissed")
-      } else if (outcome === "failure") {
+      } else {
         toast.error("That notification could not be dismissed")
       }
     })
   }
   const handleMarkAllRead = (): void => {
-    void mutations.markAllRead().then((outcome) => {
-      if (outcome === "success") {
+    void mutations.markAllRead().then((saved) => {
+      if (saved) {
         toast.success("All notifications marked read")
-      } else if (outcome === "failure") {
+      } else {
         toast.error("Notifications could not be marked read")
       }
     })

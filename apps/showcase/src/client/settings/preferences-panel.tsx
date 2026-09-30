@@ -24,10 +24,10 @@ export function PreferencesPanel({ settings, save }: SettingsPanelProps): ReactE
   const toast = useToast()
 
   const onSubmit = async (input: UpdateSettingsInput): Promise<void> => {
-    const outcome = await save(input)
-    if (outcome === "success") {
+    const saved = await save(input)
+    if (saved) {
       toast.success("Preferences saved")
-    } else if (outcome === "failure") {
+    } else {
       toast.error("Your preferences could not be saved")
     }
   }

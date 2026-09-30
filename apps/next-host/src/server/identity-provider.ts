@@ -6,12 +6,12 @@ import "server-only"
 // only the network is faked. This module carries the `server-only` marker: it custodies the signing
 // key and the provider's token endpoint, so a `"use client"` graph importing it fails the build.
 
+import { resolveSigningKey } from "@plainworks/auth/server"
 import type { MockIdp } from "@plainworks/mocks/idp"
 import { createMockIdp } from "@plainworks/mocks/idp"
 import { AUTH_CALLBACK_PATH } from "../neutral/constants"
 import { createNextAuth, type NextAuth } from "./auth"
 import { appOrigin } from "./origin"
-import { resolveSigningKey } from "./signing-key"
 
 /** The assembled host session flow plus the mock provider that stands in for the interactive login. */
 export interface HostAuth {
@@ -43,7 +43,12 @@ async function build(): Promise<HostAuth> {
     issuer: idp.issuer,
     clientId: idp.clientId,
     redirectUri: `${appOrigin()}${AUTH_CALLBACK_PATH}`,
-    signingKey: resolveSigningKey(),
+    // A deployment supplies `SESSION_SIGNING_KEY`; outside production a missing key falls back to
+    // a random per-process key, so sessions end on restart but nobody can forge a cookie.
+    signingKey: resolveSigningKey({
+      configured: process.env.SESSION_SIGNING_KEY,
+      allowEphemeral: process.env.NODE_ENV !== "production",
+    }),
   })
   return { auth, idp }
 }

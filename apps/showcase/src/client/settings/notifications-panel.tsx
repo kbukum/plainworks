@@ -25,10 +25,10 @@ export function NotificationsPanel({ settings, save }: SettingsPanelProps): Reac
   ].join(":")
 
   const onSubmit = async (input: UpdateSettingsInput): Promise<void> => {
-    const outcome = await save(input)
-    if (outcome === "success") {
+    const saved = await save(input)
+    if (saved) {
       toast.success("Notification settings saved")
-    } else if (outcome === "failure") {
+    } else {
       toast.error("Your notification settings could not be saved")
     }
   }

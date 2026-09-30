@@ -68,6 +68,19 @@ export interface WebRequestInit {
   signal?: WebAbortSignal | null
 }
 
+/**
+ * The inbound `Request` surface a server helper reads: the URL, method, headers, streamed body, and
+ * the signal that fires when the client disconnects. A platform `Request` (Node, Bun, Deno, edge,
+ * workers) satisfies it structurally.
+ */
+export interface WebRequest {
+  readonly url: string
+  readonly method: string
+  readonly headers: WebHeaders
+  readonly body: WebReadableStream<Uint8Array> | null
+  readonly signal: WebAbortSignal
+}
+
 /** The `Response` init the kit uses to build a synthetic response. */
 export interface WebResponseInit {
   status?: number

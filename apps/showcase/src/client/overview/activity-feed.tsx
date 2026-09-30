@@ -1,5 +1,6 @@
 "use client"
 
+import { useHttpClient } from "@plainworks/http/client"
 import { DateValue } from "@plainworks/ui/display/date-value"
 import { StatusBadge } from "@plainworks/ui/display/status-badge"
 import { Callout } from "@plainworks/ui/feedback/callout"
@@ -7,8 +8,7 @@ import { LoadingState } from "@plainworks/ui/feedback/loading-state"
 import { useQuery } from "@tanstack/react-query"
 import type { ReactElement } from "react"
 import { DISPLAY_LOCALE, DISPLAY_TIME_ZONE, RECENT_ACTIVITY_PARAMS } from "../../app/constants"
-import { taskListPlan } from "../../app/task-read"
-import { useHttpClient } from "../http-client"
+import { taskList } from "../../app/lists"
 import { routerLinkRender, useRouter } from "../router"
 import { STATUS_LABEL, STATUS_TONE } from "../tasks/task-fields"
 
@@ -21,7 +21,7 @@ export function ActivityFeed(): ReactElement {
   const httpClient = useHttpClient()
   const { navigate } = useRouter()
   const renderLink = routerLinkRender(navigate)
-  const query = useQuery(taskListPlan(httpClient, RECENT_ACTIVITY_PARAMS))
+  const query = useQuery(taskList.options(httpClient, RECENT_ACTIVITY_PARAMS))
 
   if (query.isPending) {
     return <LoadingState label="Loading recent activity" lines={5} />

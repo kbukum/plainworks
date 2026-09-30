@@ -9,7 +9,6 @@ import type { Notification } from "@plainworks/demo"
 import type { createHttpClient } from "@plainworks/http"
 import { isRecord } from "@plainworks/std"
 import { guardSchema } from "@plainworks/std/seam"
-import type { WebAbortSignal } from "@plainworks/std/web"
 import { NOTIFICATION_MUTATION_HEADER, NOTIFICATION_MUTATION_HEADER_VALUE } from "./constants"
 import { encodeIdSegment } from "./id-segment"
 import { isNotification } from "./notification-shape"
@@ -43,16 +42,11 @@ const markAllEnvelopeSchema = guardSchema<{ readonly data: { readonly updated: n
  * response fails. Only the read flag is written, so the optimistic update reconciles against
  * exactly one changed field.
  */
-export async function markNotificationRead(
-  client: HttpClient,
-  id: string,
-  signal?: WebAbortSignal,
-): Promise<Notification> {
+export async function markNotificationRead(client: HttpClient, id: string): Promise<Notification> {
   const segment = encodeIdSegment("notification", id)
   const updated = await client.patch(`/api/notifications/${segment}`, {
     body: { read: true },
     headers: { [NOTIFICATION_MUTATION_HEADER]: NOTIFICATION_MUTATION_HEADER_VALUE },
-    ...(signal ? { signal } : {}),
     schema: notificationEnvelopeSchema,
   })
   if (updated === undefined) {
@@ -65,15 +59,10 @@ export async function markNotificationRead(
  * Dismiss one notification, removing it from the backend. Resolves once the delete is acknowledged;
  * a bodyless response fails.
  */
-export async function dismissNotification(
-  client: HttpClient,
-  id: string,
-  signal?: WebAbortSignal,
-): Promise<void> {
+export async function dismissNotification(client: HttpClient, id: string): Promise<void> {
   const segment = encodeIdSegment("notification", id)
   const result = await client.delete(`/api/notifications/${segment}`, {
     headers: { [NOTIFICATION_MUTATION_HEADER]: NOTIFICATION_MUTATION_HEADER_VALUE },
-    ...(signal ? { signal } : {}),
     schema: dismissEnvelopeSchema,
   })
   if (result === undefined) {
@@ -85,13 +74,9 @@ export async function dismissNotification(
  * Mark every notification read in one request, returning the count the backend flipped; a bodyless
  * response fails. The one round-trip a real inbox's "mark all read" makes, gated at the server.
  */
-export async function markAllNotificationsRead(
-  client: HttpClient,
-  signal?: WebAbortSignal,
-): Promise<number> {
+export async function markAllNotificationsRead(client: HttpClient): Promise<number> {
   const result = await client.post("/api/notifications/read-all", {
     headers: { [NOTIFICATION_MUTATION_HEADER]: NOTIFICATION_MUTATION_HEADER_VALUE },
-    ...(signal ? { signal } : {}),
     schema: markAllEnvelopeSchema,
   })
   if (result === undefined) {

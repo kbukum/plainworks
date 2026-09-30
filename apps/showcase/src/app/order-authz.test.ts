@@ -1,4 +1,4 @@
-import { encodeSession } from "@plainworks/auth"
+import { encodeSession } from "@plainworks/auth/session-store"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"

@@ -1,4 +1,7 @@
 // @vitest-environment jsdom
+
+import { createHttpClient } from "@plainworks/http"
+import { HttpClientProvider } from "@plainworks/http/client"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { QueryProvider } from "@plainworks/query/client"
@@ -10,13 +13,12 @@ import { HttpResponse, http } from "msw"
 import { setupServer } from "msw/node"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { createDemoBackend } from "../server/mock-dispatch"
-import { HttpClientProvider } from "./http-client"
 import { TaskList } from "./task-list"
 
 // The query-driven list read through the browser HTTP client against the seeded mock backend — the
-// same `taskListPlan` the RSC page prefetches, so the client mounts under the identical key. The
-// in-process backend routes through MSW with `onUnhandledRequest: "error"`, so requests are
-// intercepted at the network boundary rather than by stubbing `fetch`.
+// same `taskList.options` plan the RSC page prefetches, so the client mounts under the identical
+// key. The in-process backend routes through MSW with `onUnhandledRequest: "error"`, so requests
+// are intercepted at the network boundary rather than by stubbing `fetch`.
 
 const ORIGIN = "http://next-host.test"
 const backend = createDemoBackend({ seed: 7 })
@@ -34,7 +36,7 @@ function renderList() {
   })
   return render(
     <QueryProvider client={queryClient}>
-      <HttpClientProvider origin={ORIGIN}>
+      <HttpClientProvider client={createHttpClient({ baseUrl: ORIGIN })}>
         <TaskList />
       </HttpClientProvider>
     </QueryProvider>,

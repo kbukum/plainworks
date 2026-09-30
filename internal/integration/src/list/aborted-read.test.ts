@@ -5,7 +5,7 @@ import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { listQueryOptions } from "@plainworks/query/list"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
-import { readUserPage } from "./user-reads"
+import { userList } from "./user-reads"
 
 // An abandoned read must reject and never populate the cache: the plan threads the query signal
 // into the http fetch, so the abort propagates through mock → http → plan before a value can
@@ -18,7 +18,7 @@ const usersPlan = () =>
   listQueryOptions<User>({
     resource: "users",
     params: { pageSize: 5 },
-    fetch: (params, signal) => readUserPage(client, params, signal),
+    fetch: (params, signal) => userList.read(client, params, signal),
   })
 
 bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })

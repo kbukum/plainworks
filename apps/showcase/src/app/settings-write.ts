@@ -1,11 +1,10 @@
 // The settings write through its validation boundary: PATCH one or more setting groups and read the
 // persisted record back. The response is decoded from `unknown` and narrowed by the same
 // {@link isUserSettings} guard the read uses, so the cache reconciles against a trusted shape, not
-// a fabricated one. Neutral and server-safe: it names no host global and the write is cancellable.
+// a fabricated one. Neutral and server-safe: it names no host global.
 
 import type { UpdateSettingsInput, UserSettings } from "@plainworks/demo"
 import type { createHttpClient } from "@plainworks/http"
-import type { WebAbortSignal } from "@plainworks/std/web"
 import { SETTINGS_MUTATION_HEADER, SETTINGS_MUTATION_HEADER_VALUE } from "./constants"
 import { settingsEnvelopeSchema } from "./settings-shape"
 
@@ -20,13 +19,11 @@ export async function updateSettings(
   client: HttpClient,
   userId: string,
   input: UpdateSettingsInput,
-  signal?: WebAbortSignal,
 ): Promise<UserSettings> {
   const updated = await client.patch("/api/settings", {
     query: { userId },
     body: input,
     headers: { [SETTINGS_MUTATION_HEADER]: SETTINGS_MUTATION_HEADER_VALUE },
-    ...(signal ? { signal } : {}),
     schema: settingsEnvelopeSchema,
   })
   if (updated === undefined) {

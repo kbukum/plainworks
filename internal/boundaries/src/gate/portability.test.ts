@@ -57,7 +57,15 @@ const EXPECTED_NEUTRAL = [
  * DOM-only packages (`theme`, `elements`, `ui`, `devtools`, `testkit`) declare `dom` in their build
  * and are not here.
  */
-const EXPECTED_NATIVE_CLIENT = ["state", "query", "channel", "auth", "connect", "app"] as const
+const EXPECTED_NATIVE_CLIENT = [
+  "state",
+  "http",
+  "query",
+  "channel",
+  "auth",
+  "connect",
+  "app",
+] as const
 
 interface NeutralProject {
   /** The package declares host-independence by pulling in the universal-web shim. */

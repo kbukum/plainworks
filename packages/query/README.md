@@ -25,6 +25,8 @@ bun add @plainworks/query @tanstack/query-core @tanstack/react-query
 | `@plainworks/query/hydration` | RSC prefetch, dehydrate, and hydrate. |
 | `@plainworks/query/remote` | The `remote` state scope. |
 | `@plainworks/query/list` | List cache keys and query options. |
+| `@plainworks/query/http-list` | `httpListQuery`: one validated HTTP list read plus its query plan. |
+| `@plainworks/query/mutation` | `optimisticMutationOptions`: an optimistic write with rollback and a re-sync. |
 | `@plainworks/query/client` | The React `QueryProvider` and `HydrationBoundary`. |
 
 ## The client factory (`.`)
@@ -162,3 +164,47 @@ const plan = listQueryOptions({
 ```
 
 `listQueryOptions`/`infiniteListQueryOptions` are optional conveniences — a host may build keys by hand. `fetch` is any function returning the `PaginatedResult<T>`/`CursorResult<T>` envelope, so `query` never learns a protocol.
+
+## HTTP lists (`./http-list`)
+
+Most lists are a `GET` against the list contract. `httpListQuery` describes one once, and you get a validated read plus a query plan that share one cache key. A server prefetch and the client query then hit the same entry, so a hydrated page never refetches. Params go on the wire through `buildListQuery`, and every page is checked against the list envelope and your row guard before it is trusted.
+
+```ts
+import { httpListQuery } from "@plainworks/query/http-list"
+
+export const taskList = httpListQuery<Task>({ path: "/api/tasks", resource: "tasks", row: isTask })
+
+// Server: prefetch. Client: the same plan.
+await queryClient.prefetchQuery(taskList.options(httpClient, params))
+const tasks = useQuery(taskList.options(httpClient, params))
+
+// Outside a query: one page, cancelled by the signal.
+const page = await taskList.read(httpClient, params, signal)
+```
+
+A malformed page fails as an `HttpError` with kind `http/validate`. `@plainworks/http` is an optional peer, needed only for this entry.
+
+## Optimistic writes (`./mutation`)
+
+`optimisticMutationOptions` wraps the optimistic-write steps: cancel the list's in-flight fetches, apply the change to the cache, roll back on failure, and re-sync from the server when the last pending write settles. Spread the result into `useMutation`.
+
+```ts
+import { optimisticMutationOptions } from "@plainworks/query/mutation"
+
+const rename = useMutation(
+  optimisticMutationOptions({
+    queryKey,
+    mutationFn: (vars: { id: string; name: string }) => saveName(vars),
+    apply: (page: PaginatedResult<Task> | undefined, vars) => page && renameRow(page, vars),
+    // Optional: fold the server's answer in before the re-sync lands.
+    reconcile: (page, saved) => page && replaceRow(page, saved),
+  }),
+)
+```
+
+| Option | What it does |
+|---|---|
+| `queryKey` | The cache entry the write changes. It is cancelled, patched, and re-synced once the last overlapping write to it settles. |
+| `apply` | Returns the optimistic cache value. Skipped when nothing is cached. |
+| `reconcile` | Optional. Writes the server's result into the cache on success. |
+| `scope` | Optional TanStack scope. Writes in one scope run one at a time. |

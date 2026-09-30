@@ -2,6 +2,7 @@
 
 import type { Task } from "@plainworks/demo"
 import { Button } from "@plainworks/elements/button"
+import { useHttpClient } from "@plainworks/http/client"
 import type { ListFilter, ListQueryParams } from "@plainworks/std/list"
 import type { StreamTransportFactory } from "@plainworks/std/seam"
 import type { DataTableSort } from "@plainworks/ui/data/data-table"
@@ -13,8 +14,7 @@ import { ErrorState } from "@plainworks/ui/feedback/error-state"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { type ReactElement, useMemo, useState } from "react"
 import { TASK_LIST_PARAMS } from "../../app/constants"
-import { taskListPlan } from "../../app/task-read"
-import { useHttpClient } from "../http-client"
+import { taskList } from "../../app/lists"
 import { Can, canManageTasks, hasName, useIdentity } from "../session"
 import { createDemoTaskStream } from "./demo-task-stream"
 import { LiveTaskChannelProvider, LiveTaskFold, LiveToggle } from "./live-tasks"
@@ -73,7 +73,7 @@ export function TasksSection({ streamFactory }: TasksSectionProps): ReactElement
     [page, sort, filters],
   )
 
-  const plan = taskListPlan(httpClient, params)
+  const plan = taskList.options(httpClient, params)
   const query = useQuery({ ...plan, placeholderData: keepPreviousData })
   const mutations = useTaskMutations(plan.queryKey, params)
 

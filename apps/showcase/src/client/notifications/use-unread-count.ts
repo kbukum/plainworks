@@ -1,10 +1,10 @@
 "use client"
 
+import { useHttpClient } from "@plainworks/http/client"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { NOTIFICATION_LIST_PARAMS } from "../../app/constants"
-import { notificationListPlan } from "../../app/notification-read"
+import { notificationList } from "../../app/lists"
 import { countUnread } from "../../app/notification-shape"
-import { useHttpClient } from "../http-client"
 
 /** The unread notifications read the shell and the feed share. */
 export interface UnreadCount {
@@ -25,7 +25,7 @@ export interface UnreadCount {
 export function useUnreadCount(): UnreadCount {
   const httpClient = useHttpClient()
   const query = useQuery({
-    ...notificationListPlan(httpClient, NOTIFICATION_LIST_PARAMS),
+    ...notificationList.options(httpClient, NOTIFICATION_LIST_PARAMS),
     placeholderData: keepPreviousData,
   })
   const count = query.data === undefined ? undefined : countUnread(query.data.data)

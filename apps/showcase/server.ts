@@ -17,15 +17,23 @@ import {
   type IncomingMessage,
   type ServerResponse,
 } from "node:http"
-import { isAuthErrorKind, sanitizeReturnTo } from "@plainworks/auth"
-import type { ServerSessionJar } from "@plainworks/auth/server"
+import { isAuthErrorKind } from "@plainworks/auth"
+import { sanitizeReturnTo } from "@plainworks/auth/redirect"
+import {
+  createRequestJar,
+  isSameOriginRequest,
+  readFormBody,
+  redirectToPath,
+  redirectToUrl,
+  resolveSigningKey,
+} from "@plainworks/auth/server"
 import { createMockApi } from "@plainworks/demo"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import { createMockIdp } from "@plainworks/mocks/idp"
 import { mockServerPlugin } from "@plainworks/mocks/vite-plugin"
 import { fixedClock, systemClock } from "@plainworks/std/time"
-import { PayloadTooLargeError, parseCookieHeader } from "@plainworks/std/web"
+import { PayloadTooLargeError } from "@plainworks/std/web"
 import { createServer as createViteServer, type ViteDevServer } from "vite"
 import { createShowcaseAuth } from "./src/app/auth"
 import { AUTH_CALLBACK_PATH, LOGIN_PATH, LOGOUT_PATH } from "./src/app/constants"
@@ -38,7 +46,7 @@ import {
 import type { RenderApp } from "./src/entry-server"
 import { respondWithInternalError } from "./src/server/internal-error"
 import { renderLoginPage } from "./src/server/login-page"
-import { readRequestBody, resolveSigningKey } from "./src/server/request-body"
+import { sendWebResponse, toWebRequest } from "./src/server/web-bridge"
 
 const PORT = Number(process.env.PORT ?? 5173)
 const HOST = "127.0.0.1"
@@ -52,7 +60,12 @@ const ORIGIN = `http://${HOST}:${PORT}`
 // host never has to be reachable.
 const SSR_ORIGIN = "http://showcase.local"
 
-const SIGNING_KEY = resolveSigningKey()
+// A configured `SESSION_SIGNING_KEY` must be at least 32 bytes. Without one this dev harness signs
+// with a random per-process key, so sessions end on restart but nobody can forge a cookie.
+const SIGNING_KEY = resolveSigningKey({
+  configured: process.env.SESSION_SIGNING_KEY,
+  allowEphemeral: true,
+})
 
 // The browser gate pins the demo backend's clock to the same instant it pins the browser's, so
 // every fixture date is identical on each run and on each machine.
@@ -68,26 +81,18 @@ interface EntryServerModule {
   readonly renderApp: RenderApp
 }
 
-/**
- * A cookie jar over a Node request/response — reads inbound cookies, buffers outbound
- * `Set-Cookie`.
- */
-function nodeJar(req: IncomingMessage): { jar: ServerSessionJar; cookies: string[] } {
-  const inbound = parseCookieHeader(req.headers.cookie ?? "")
-  const cookies: string[] = []
-  return {
-    jar: { get: (name) => inbound.get(name), set: (cookie) => cookies.push(cookie) },
-    cookies,
-  }
+/** Redirect to a path on this origin; the kit sanitizes it and attaches any minted cookies. */
+function redirect(
+  res: ServerResponse,
+  path: string,
+  cookies: readonly string[] = [],
+): Promise<void> {
+  return sendWebResponse(res, redirectToPath({ origin: ORIGIN, path, cookies }))
 }
 
-function redirect(res: ServerResponse, location: string, cookies: string[]): void {
-  res.statusCode = 302
-  res.setHeader("location", location)
-  if (cookies.length > 0) {
-    res.setHeader("set-cookie", cookies)
-  }
-  res.end()
+function sendStatus(res: ServerResponse, status: number, message: string): void {
+  res.statusCode = status
+  res.end(message)
 }
 
 function sendHtml(res: ServerResponse, html: string, headOnly = false): void {
@@ -131,7 +136,27 @@ async function main(): Promise<void> {
     res: ServerResponse,
     url: URL,
   ): Promise<void> {
-    const { jar, cookies } = nodeJar(req)
+    const request = toWebRequest(req, res, ORIGIN)
+    const { jar, cookies } = createRequestJar(request)
+
+    // Read a same-origin form POST under the kit's body cap. Answers 403 for a cross-site request
+    // and 413 for an oversized body, then returns `undefined` so the route stops.
+    const readSameOriginForm = async (): Promise<URLSearchParams | undefined> => {
+      if (!isSameOriginRequest(request, ORIGIN)) {
+        sendStatus(res, 403, "Forbidden")
+        return undefined
+      }
+      try {
+        return await readFormBody(request)
+      } catch (err) {
+        if (err instanceof PayloadTooLargeError) {
+          sendStatus(res, 413, "Payload Too Large")
+          return undefined
+        }
+        throw err
+      }
+    }
+
     if (url.pathname === LOGIN_PATH) {
       // A signed-out landing page, not an automatic redirect: the mock IdP approves in-process, so
       // auto-starting the flow here would let the session gate re-authenticate the instant a user
@@ -155,23 +180,13 @@ async function main(): Promise<void> {
         methodNotAllowed(res, "GET, HEAD, POST")
         return
       }
-      let body: string
-      try {
-        body = await readRequestBody(req)
-      } catch (err) {
-        if (err instanceof PayloadTooLargeError) {
-          res.statusCode = 413
-          res.end("Payload Too Large")
-          return
-        }
-        throw err
-      }
-      const returnTo = new URLSearchParams(body).get("returnTo") ?? "/"
-      const begin = await auth.session.beginLogin(jar, { returnTo })
+      const form = await readSameOriginForm()
+      if (form === undefined) return
+      const begin = await auth.session.beginLogin(jar, { returnTo: form.get("returnTo") ?? "/" })
       // The mock IdP approves in-process, so we bounce straight to the callback rather than to a
       // real provider login page.
       const { callbackUrl } = idp.authorize(begin.authorizationUrl)
-      redirect(res, callbackUrl, cookies)
+      await sendWebResponse(res, redirectToUrl(callbackUrl, cookies))
       return
     }
     if (url.pathname === AUTH_CALLBACK_PATH) {
@@ -190,7 +205,7 @@ async function main(): Promise<void> {
         if (!isAuthErrorKind(err, "auth/login-transaction")) throw err
         returnTo = `${LOGIN_PATH}?${LOGIN_REASON_PARAM}=${LOGIN_INTERRUPTED}`
       }
-      redirect(res, returnTo, cookies)
+      await redirect(res, returnTo, cookies)
       return
     }
     if (url.pathname === LOGOUT_PATH) {
@@ -198,34 +213,18 @@ async function main(): Promise<void> {
         methodNotAllowed(res, "POST")
         return
       }
-      let body: string
-      try {
-        body = await readRequestBody(req)
-      } catch (err) {
-        if (err instanceof PayloadTooLargeError) {
-          res.statusCode = 413
-          res.end("Payload Too Large")
-          return
-        }
-        throw err
-      }
-      const params = new URLSearchParams(body)
-      const csrfToken = params.get("csrf") ?? req.headers["x-csrf-token"] ?? ""
-      const valid = await auth.session.verifyCsrf(
-        jar,
-        typeof csrfToken === "string" ? csrfToken : "",
-      )
-      if (!valid) {
-        res.statusCode = 403
-        res.end("Forbidden")
+      const form = await readSameOriginForm()
+      if (form === undefined) return
+      const csrfToken = form.get("csrf") ?? request.headers.get("x-csrf-token") ?? ""
+      if (!(await auth.session.verifyCsrf(jar, csrfToken))) {
+        sendStatus(res, 403, "Forbidden")
         return
       }
       await auth.session.logout(jar)
-      redirect(res, "/", cookies)
+      await redirect(res, "/", cookies)
       return
     }
-    res.statusCode = 404
-    res.end("Not Found")
+    sendStatus(res, 404, "Not Found")
   }
 
   async function serveFixturePage(name: string, url: URL, res: ServerResponse): Promise<void> {
@@ -292,7 +291,7 @@ async function main(): Promise<void> {
           readSession: auth.read,
         })
         if (location !== undefined) {
-          redirect(res, location, [])
+          await redirect(res, location)
           return
         }
         const document = await vite.transformIndexHtml(rawPath, html)

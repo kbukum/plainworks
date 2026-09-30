@@ -6,7 +6,7 @@ import { createQueryClient } from "@plainworks/query"
 import { listQueryOptions } from "@plainworks/query/list"
 import type { PaginatedResult } from "@plainworks/std/list"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
-import { readUserPage } from "./user-reads"
+import { userList } from "./user-reads"
 
 // A filter that matches nothing must yield a *real* empty envelope through the assembled spine, not
 // a `null`/`undefined` masquerading as a page, and that empty envelope must still cache — no
@@ -27,7 +27,7 @@ describe("empty page through the cache", () => {
       resource: "users",
       // No seeded user has this status, so the mock returns a genuinely empty page.
       params: { filters: [{ field: "status", op: "eq", value: "does-not-exist" }], pageSize: 5 },
-      fetch: (params, signal) => readUserPage(client, params, signal),
+      fetch: (params, signal) => userList.read(client, params, signal),
     })
 
     const fetched = await queryClient.fetchQuery(plan)

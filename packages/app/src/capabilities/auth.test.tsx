@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { createAuthStore } from "@plainworks/auth"
+import { createAuthStore } from "@plainworks/auth/session"
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { act, cleanup, render, screen } from "@testing-library/react"
 import { createElement, type ReactNode } from "react"

@@ -352,3 +352,39 @@ describe("createServerSession revocation wiring", () => {
     await expect(session.refresh(jar)).rejects.toMatchObject({ kind: "auth/session-revoked" })
   })
 })
+
+describe("createServerSession cookie hardening", () => {
+  test("mints only __Host- cookies that are Secure, Path=/, and SameSite, HttpOnly unless CSRF", async () => {
+    const { session, idp } = await buildSession()
+    const jar = browserJar()
+    const minted: string[] = []
+    const recording: ServerSessionJar = {
+      get: (name) => jar.get(name),
+      set(setCookie) {
+        minted.push(setCookie)
+        jar.set(setCookie)
+      },
+    }
+    const begin = await session.beginLogin(recording, { returnTo: "/tasks" })
+    jar.commit()
+    const { callbackUrl } = idp.authorize(begin.authorizationUrl)
+    await session.completeLogin(recording, {
+      params: Object.fromEntries(new URL(callbackUrl).searchParams),
+    })
+    jar.commit()
+    await session.logout(recording)
+
+    expect(minted.length).toBeGreaterThanOrEqual(4)
+    for (const cookie of minted) {
+      const attributes = cookie.split(";").map((part) => part.trim())
+      expect(cookie).toMatch(/^__Host-/)
+      expect(attributes).toContain("Secure")
+      expect(attributes).toContain("Path=/")
+      expect(attributes.some((part) => /^Domain=/i.test(part))).toBe(false)
+      expect(attributes.some((part) => /^SameSite=(Strict|Lax)$/.test(part))).toBe(true)
+      expect(attributes.includes("HttpOnly")).toBe(!cookie.startsWith("__Host-csrf="))
+    }
+    const sessionCookies = minted.filter((cookie) => cookie.startsWith("__Host-session="))
+    expect(sessionCookies.every((cookie) => cookie.includes("SameSite=Strict"))).toBe(true)
+  })
+})

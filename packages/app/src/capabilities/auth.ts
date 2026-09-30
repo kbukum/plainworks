@@ -5,7 +5,7 @@
 // subpath** on purpose: `@plainworks/auth` is an optional peer (a type-only import here) that a
 // query-only consumer never loads, so the à-la-carte kernel stays dependency-free. Pure React
 // context (DOM-free) — it also runs on React Native/Expo.
-import type { SessionSnapshot } from "@plainworks/auth"
+import type { SessionSnapshot } from "@plainworks/auth/session"
 import type { Store } from "@plainworks/state"
 import { createSuppliedStoreContext } from "@plainworks/state/client"
 import { createElement } from "react"

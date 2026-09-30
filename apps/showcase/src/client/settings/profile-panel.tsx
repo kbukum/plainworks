@@ -19,10 +19,10 @@ export function ProfilePanel({ settings, save }: SettingsPanelProps): ReactEleme
   const toast = useToast()
 
   const onSubmit = async (input: UpdateSettingsInput): Promise<void> => {
-    const outcome = await save(input)
-    if (outcome === "success") {
+    const saved = await save(input)
+    if (saved) {
       toast.success("Profile saved")
-    } else if (outcome === "failure") {
+    } else {
       toast.error("Your profile could not be saved")
     }
   }

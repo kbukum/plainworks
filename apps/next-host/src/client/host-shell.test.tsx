@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { SessionSnapshot } from "@plainworks/auth"
+import type { SessionSnapshot } from "@plainworks/auth/session"
 import type { StateSource } from "@plainworks/std/seam"
 import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/client"
 import { fakeStateSource } from "@plainworks/testkit/fakes"

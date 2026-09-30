@@ -1,5 +1,6 @@
 "use client"
 
+import { useHttpClient } from "@plainworks/http/client"
 import { asyncStatus } from "@plainworks/ui"
 import { Pagination } from "@plainworks/ui/data/pagination"
 import { AsyncState } from "@plainworks/ui/feedback/async-state"
@@ -9,9 +10,8 @@ import { LoadingState } from "@plainworks/ui/feedback/loading-state"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { type ReactElement, useState } from "react"
 import { PRODUCT_LIST_PARAMS } from "../../app/constants"
-import { productListPlan } from "../../app/product-read"
+import { productList } from "../../app/lists"
 import { CatalogLayout, FacetPanel, ListSearch, useCatalogList } from "../catalog"
-import { useHttpClient } from "../http-client"
 import { PriceRange } from "./price-range"
 import { ProductCard } from "./product-card"
 import { ProductDetail } from "./product-detail"
@@ -35,7 +35,7 @@ export function ProductsSection(): ReactElement {
     ...(PRODUCT_LIST_PARAMS.order !== undefined ? { order: PRODUCT_LIST_PARAMS.order } : {}),
     ...(PRODUCT_LIST_PARAMS.facets !== undefined ? { facets: PRODUCT_LIST_PARAMS.facets } : {}),
   })
-  const plan = productListPlan(httpClient, list.params)
+  const plan = productList.options(httpClient, list.params)
   const query = useQuery({ ...plan, placeholderData: keepPreviousData })
   const [selectedId, setSelectedId] = useState<string | null>(null)
 

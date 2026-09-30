@@ -1,17 +1,17 @@
 "use client"
 
 import type { CreateTaskInput, Task, UpdateTaskInput } from "@plainworks/demo"
-import { optimisticUpdate, writeQueryData } from "@plainworks/query/cache"
+import { useHttpClient } from "@plainworks/http/client"
+import { optimisticMutationOptions } from "@plainworks/query/mutation"
 import type { ListQueryParams, PaginatedResult } from "@plainworks/std/list"
 import type { QueryKey } from "@tanstack/react-query"
-import { useQueryClient } from "@tanstack/react-query"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useMutation } from "@tanstack/react-query"
+import { useCallback, useRef, useState } from "react"
 import { dropTaskFromPage, reconcileTaskInPage } from "../../app/task-page"
 import {
   createTask as createTaskRequest,
   updateTask as updateTaskRequest,
 } from "../../app/task-write"
-import { useHttpClient } from "../http-client"
 import type { TaskFormValues } from "./task-schema"
 
 type TaskPage = PaginatedResult<Task>
@@ -48,171 +48,110 @@ function toUpdateInput(values: TaskFormValues): UpdateTaskInput {
   }
 }
 
+interface CreateVariables {
+  readonly values: TaskFormValues
+  /** The row shown until the server answers; its `optimistic-N` id is swapped for the real one. */
+  readonly provisional: Task
+}
+
+interface EditVariables {
+  readonly task: Task
+  readonly values: TaskFormValues
+}
+
+function provisionalTask(id: string, values: TaskFormValues): Task {
+  const now = new Date().toISOString()
+  return {
+    id,
+    title: values.title,
+    status: values.status,
+    priority: values.priority,
+    ...(values.description ? { description: values.description } : {}),
+    ...(values.dueDate ? { dueDate: values.dueDate } : {}),
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
+function editedTask(task: Task, values: TaskFormValues): Task {
+  const { description: _description, dueDate: _dueDate, ...rest } = task
+  return {
+    ...rest,
+    title: values.title,
+    status: values.status,
+    priority: values.priority,
+    ...(values.description ? { description: values.description } : {}),
+    ...(values.dueDate ? { dueDate: values.dueDate } : {}),
+    updatedAt: new Date().toISOString(),
+  }
+}
+
 /**
- * The optimistic create/edit mutations for the task list under `queryKey`. Each writes the change
- * into the cache immediately, performs the real request, reconciles the cache with the persisted
- * row on success, and rolls the optimistic write back on failure — surfacing a typed error instead
- * of a silent or success-shaped fallback. Every request is issued through the request-scoped HTTP
- * client and carries an `AbortSignal` that fires on unmount, so an in-flight write never settles
- * onto a torn-down component.
+ * The optimistic create/edit mutations for the task list under `queryKey`. Each shows the change in
+ * the list at once, swaps in the persisted row when the server answers, and rolls back on failure.
+ * The list re-syncs from the server once every write settles. A failure is kept in `error` for the
+ * caller to render, never swallowed.
  */
 export function useTaskMutations(queryKey: QueryKey, params: ListQueryParams): TaskMutations {
   const httpClient = useHttpClient()
-  const queryClient = useQueryClient()
   const [error, setError] = useState<unknown>(undefined)
   const provisionalCount = useRef(0)
-  const lifecycle = useRef<AbortController>(new AbortController())
 
-  useEffect(() => {
-    const controller = lifecycle.current
-    return () => controller.abort()
-  }, [])
+  const createMutation = useMutation(
+    optimisticMutationOptions<Task, CreateVariables, TaskPage>({
+      queryKey,
+      mutationFn: ({ values }) => createTaskRequest(httpClient, toCreateInput(values)),
+      apply: (page, { provisional }) =>
+        reconcileTaskInPage(page, provisional, params, "create").page,
+      reconcile: (page, created, { provisional }) =>
+        reconcileTaskInPage(dropTaskFromPage(page, provisional.id), created, params, "create").page,
+    }),
+  )
 
-  const clearError = useCallback(() => setError(undefined), [])
+  const editMutation = useMutation(
+    optimisticMutationOptions<Task, EditVariables, TaskPage>({
+      queryKey,
+      mutationFn: ({ task, values }) =>
+        updateTaskRequest(httpClient, task.id, toUpdateInput(values)),
+      apply: (page, { task, values }) =>
+        reconcileTaskInPage(page, editedTask(task, values), params, "update").page,
+      reconcile: (page, updated) => reconcileTaskInPage(page, updated, params, "update").page,
+    }),
+  )
+
+  const settle = useCallback(
+    (write: Promise<unknown>): Promise<boolean> =>
+      write.then(
+        () => {
+          setError(undefined)
+          return true
+        },
+        (cause: unknown) => {
+          setError(cause)
+          return false
+        },
+      ),
+    [],
+  )
+
+  const { mutateAsync: createAsync } = createMutation
+  const { mutateAsync: editAsync } = editMutation
 
   const create = useCallback(
-    async (values: TaskFormValues): Promise<boolean> => {
-      const now = new Date().toISOString()
+    (values: TaskFormValues): Promise<boolean> => {
       provisionalCount.current += 1
-      const provisional: Task = {
-        id: `optimistic-${provisionalCount.current}`,
-        title: values.title,
-        status: values.status,
-        priority: values.priority,
-        ...(values.description ? { description: values.description } : {}),
-        ...(values.dueDate ? { dueDate: values.dueDate } : {}),
-        createdAt: now,
-        updatedAt: now,
-      }
-      let optimisticRequiresRefetch = false
-      const update =
-        queryClient.getQueryData<TaskPage>(queryKey) === undefined
-          ? undefined
-          : optimisticUpdate<TaskPage>({
-              client: queryClient,
-              queryKey,
-              apply: (page) => {
-                const result = reconcileTaskInPage(page, provisional, params, "create")
-                optimisticRequiresRefetch = result.requiresRefetch
-                return result.page
-              },
-            })
-      try {
-        const created = await createTaskRequest(
-          httpClient,
-          toCreateInput(values),
-          lifecycle.current.signal,
-        )
-        // Swap the provisional row for the persisted one in a single cache write: dropping
-        // `optimistic-N` and folding in the real row together stays correct even when the live
-        // stream writes the same key between the optimistic apply and this reconcile.
-        let requiresRefetch = optimisticRequiresRefetch
-        if (queryClient.getQueryData<TaskPage>(queryKey) === undefined) {
-          requiresRefetch = true
-        } else {
-          writeQueryData<TaskPage>(queryClient, queryKey, (page) => {
-            const result = reconcileTaskInPage(
-              dropTaskFromPage(page, provisional.id),
-              created,
-              params,
-              "create",
-            )
-            requiresRefetch ||= result.requiresRefetch
-            return result.page
-          })
-        }
-        if (requiresRefetch) {
-          void queryClient.invalidateQueries({ queryKey })
-        }
-        setError(undefined)
-        return true
-      } catch (cause) {
-        if (update !== undefined && !update.rollback()) {
-          // A newer cache write landed while this request was pending. Drop the provisional row
-          // so it does not linger as a ghost in the cache.
-          writeQueryData<TaskPage>(queryClient, queryKey, (page) =>
-            dropTaskFromPage(page, provisional.id),
-          )
-          void queryClient.invalidateQueries({ queryKey })
-        }
-        setError(cause)
-        return false
-      }
+      const provisional = provisionalTask(`optimistic-${provisionalCount.current}`, values)
+      return settle(createAsync({ values, provisional }))
     },
-    [httpClient, params, queryClient, queryKey],
+    [createAsync, settle],
   )
 
   const edit = useCallback(
-    async (task: Task, values: TaskFormValues): Promise<boolean> => {
-      const optimistic: Task = {
-        ...task,
-        title: values.title,
-        status: values.status,
-        priority: values.priority,
-        updatedAt: new Date().toISOString(),
-      }
-      if (values.description) {
-        optimistic.description = values.description
-      } else {
-        delete optimistic.description
-      }
-      if (values.dueDate) {
-        optimistic.dueDate = values.dueDate
-      } else {
-        delete optimistic.dueDate
-      }
-      let optimisticRequiresRefetch = false
-      const update =
-        queryClient.getQueryData<TaskPage>(queryKey) === undefined
-          ? undefined
-          : optimisticUpdate<TaskPage>({
-              client: queryClient,
-              queryKey,
-              apply: (page) => {
-                const result = reconcileTaskInPage(page, optimistic, params, "update")
-                optimisticRequiresRefetch = result.requiresRefetch
-                return result.page
-              },
-            })
-      try {
-        const updated = await updateTaskRequest(
-          httpClient,
-          task.id,
-          toUpdateInput(values),
-          lifecycle.current.signal,
-        )
-        let requiresRefetch = optimisticRequiresRefetch
-        if (queryClient.getQueryData<TaskPage>(queryKey) === undefined) {
-          requiresRefetch = true
-        } else {
-          writeQueryData<TaskPage>(queryClient, queryKey, (page) => {
-            const result = reconcileTaskInPage(page, updated, params, "update")
-            requiresRefetch ||= result.requiresRefetch
-            return result.page
-          })
-        }
-        if (requiresRefetch) {
-          void queryClient.invalidateQueries({ queryKey })
-        }
-        setError(undefined)
-        return true
-      } catch (cause) {
-        if (update !== undefined && !update.rollback()) {
-          // A newer cache write landed while this request was pending. Reconcile by restoring
-          // the task's pre-mutation state and invalidating so server state re-syncs.
-          writeQueryData<TaskPage>(
-            queryClient,
-            queryKey,
-            (page) => reconcileTaskInPage(page, task, params, "update").page,
-          )
-          void queryClient.invalidateQueries({ queryKey })
-        }
-        setError(cause)
-        return false
-      }
-    },
-    [httpClient, params, queryClient, queryKey],
+    (task: Task, values: TaskFormValues): Promise<boolean> => settle(editAsync({ task, values })),
+    [editAsync, settle],
   )
+
+  const clearError = useCallback(() => setError(undefined), [])
 
   return { create, edit, error, clearError }
 }

@@ -8,6 +8,7 @@
 // mutated.
 
 import { execFileSync, spawn } from "node:child_process"
+import { randomBytes } from "node:crypto"
 import {
   existsSync,
   mkdirSync,
@@ -152,6 +153,8 @@ async function bootAndProbe(appDir: string): Promise<void> {
       ...process.env,
       APP_ORIGIN: origin,
       AUTH_REDIRECT_ORIGIN: origin,
+      // A production boot needs a configured signing key; the app never mints one there.
+      SESSION_SIGNING_KEY: randomBytes(32).toString("base64url"),
       NEXT_TELEMETRY_DISABLED: "1",
     },
   })

@@ -14,10 +14,9 @@
 import type { IncomingMessage, ServerResponse } from "node:http"
 import { Readable } from "node:stream"
 import { isPositiveInteger } from "@plainworks/std"
-import { PayloadTooLargeError, readBoundedText } from "@plainworks/std/web"
 import type { RequestHandler } from "msw"
 import type { Plugin, ViteDevServer } from "vite"
-import { dispatchMockRequest } from "./dispatch"
+import { DEFAULT_MOCK_BODY_BYTES, dispatchMockRequest } from "./dispatch"
 
 export interface MockServerPluginOptions {
   /**
@@ -40,8 +39,6 @@ export interface MockServerPluginOptions {
    */
   maxBodyBytes?: number
 }
-
-const DEFAULT_MAX_BODY_BYTES = 1024 * 1024
 
 /**
  * Creates a Vite plugin that serves mock API responses
@@ -71,7 +68,7 @@ export function mockServerPlugin(
     basePath = "/api",
     enabled = true,
     latency = 0,
-    maxBodyBytes = DEFAULT_MAX_BODY_BYTES,
+    maxBodyBytes = DEFAULT_MOCK_BODY_BYTES,
   } = options
 
   // Validate eagerly so a bad option fails at config time, never silently mid-request.
@@ -131,39 +128,42 @@ export function mockServerPlugin(
               }
             }
 
-            let body: string | undefined
-            if (method !== "GET" && method !== "HEAD") {
-              body = await readBoundedText(Readable.toWeb(req), { maxBytes: maxBodyBytes })
+            // The body streams through; `dispatchMockRequest` reads it with the byte cap and
+            // answers an oversized one with 413 before any handler runs.
+            // A client disconnect closes the response before it ends. It aborts the request, so the
+            // latency wait, the body read, the handler, and the response write all stop. (A
+            // request's own `close` also fires on a normal end, so it cannot signal a disconnect.)
+            const disconnect = new AbortController()
+            const onClose = (): void => {
+              if (!res.writableEnded) disconnect.abort()
             }
-
+            res.on("close", onClose)
+            const hasBody = method !== "GET" && method !== "HEAD"
             const request = new Request(fullUrl, {
               method,
               headers,
-              ...(body !== undefined ? { body } : {}),
+              signal: disconnect.signal,
+              ...(hasBody ? { body: Readable.toWeb(req), duplex: "half" } : {}),
             })
-
-            // Add latency if configured, tied to the request lifecycle: a client disconnect
-            // cancels the wait and skips the response write instead of writing to a closed socket.
-            let aborted = false
-            const onClose = (): void => {
-              aborted = true
-            }
-            req.on("close", onClose)
             try {
               if (latency > 0) {
                 await new Promise<void>((resolve) => {
-                  const timer = setTimeout(() => resolve(), latency)
-                  req.once("close", () => {
+                  const done = (): void => {
                     clearTimeout(timer)
+                    res.off("close", done)
                     resolve()
-                  })
+                  }
+                  const timer = setTimeout(done, latency)
+                  res.once("close", done)
                 })
               }
 
-              // Try to find a matching handler
-              const response = await dispatchMockRequest(request, handlers)
+              if (disconnect.signal.aborted) return
 
-              if (aborted) return
+              // Try to find a matching handler
+              const response = await dispatchMockRequest(request, handlers, { maxBodyBytes })
+
+              if (disconnect.signal.aborted) return
 
               if (response) {
                 // Set response headers
@@ -183,15 +183,9 @@ export function mockServerPlugin(
                 res.end(JSON.stringify({ error: `No mock handler for ${method} ${url}` }))
               }
             } finally {
-              req.off("close", onClose)
+              res.off("close", onClose)
             }
           } catch (error) {
-            if (error instanceof PayloadTooLargeError) {
-              res.statusCode = 413
-              res.setHeader("Content-Type", "application/json")
-              res.end(JSON.stringify({ error: "Request body too large" }))
-              return
-            }
             console.error("[mock-server] Error handling request:", error)
             res.statusCode = 500
             res.setHeader("Content-Type", "application/json")

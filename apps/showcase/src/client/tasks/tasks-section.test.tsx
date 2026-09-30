@@ -3,6 +3,7 @@
 import type { Task } from "@plainworks/demo"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { HttpClientProvider } from "@plainworks/http/client"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { prefetchQuery } from "@plainworks/query/hydration"
@@ -16,8 +17,7 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { TASK_LIST_PARAMS } from "../../app/constants"
-import { taskListPlan } from "../../app/task-read"
-import { HttpClientProvider } from "../http-client"
+import { taskList } from "../../app/lists"
 import { SessionProvider } from "../session"
 import { TasksSection } from "./tasks-section"
 
@@ -54,7 +54,7 @@ async function renderTasks(
     defaultOptions: { queries: { retry } },
   })
   if (prefetch) {
-    await prefetchQuery(queryClient, taskListPlan(httpClient, TASK_LIST_PARAMS))
+    await prefetchQuery(queryClient, taskList.options(httpClient, TASK_LIST_PARAMS))
   }
   const ui = render(
     <TestQueryClientProvider client={queryClient}>
@@ -140,7 +140,7 @@ describe("tasks section", () => {
     await screen.findByRole("table")
     await waitFor(() => expect(stream.current).toBeDefined())
     const existing = queryClient
-      .getQueryData<{ data: Task[] }>(taskListPlan(httpClient, TASK_LIST_PARAMS).queryKey)
+      .getQueryData<{ data: Task[] }>(taskList.options(httpClient, TASK_LIST_PARAMS).queryKey)
       ?.data.at(0)
     expect(existing).toBeDefined()
     if (existing === undefined) return
@@ -154,9 +154,9 @@ describe("tasks section", () => {
         await release.promise
         const body = (await request.json()) as Record<string, unknown>
         const now = "2024-01-01T00:00:00.000Z"
-        return HttpResponse.json({
-          data: { id: "task-persisted", createdAt: now, updatedAt: now, ...body },
-        })
+        const persisted = { id: "task-persisted", createdAt: now, updatedAt: now, ...body } as Task
+        handle.api.stores.tasks.prepend(persisted)
+        return HttpResponse.json({ data: persisted })
       }),
     )
 
@@ -166,14 +166,14 @@ describe("tasks section", () => {
     await user.selectOptions(within(dialog).getByRole("combobox", { name: "Priority" }), "high")
     await user.click(within(dialog).getByRole("button", { name: "Create task" }))
 
-    const upsert: StreamFrame = {
-      type: "task.upserted",
-      data: JSON.stringify({
-        ...existing,
-        title: "Meanwhile, live",
-        updatedAt: "2024-01-01T00:00:00.000Z",
-      }),
-    }
+    // The live frame reports a change the server really made, so the post-write re-sync agrees.
+    const live = { ...existing, title: "Meanwhile, live", updatedAt: "2024-01-01T00:00:00.000Z" }
+    const tasks = handle.api.stores.tasks
+    tasks.update(
+      tasks.findIndex((row) => row.id === existing.id),
+      live,
+    )
+    const upsert: StreamFrame = { type: "task.upserted", data: JSON.stringify(live) }
     act(() => {
       stream.current?.open()
       stream.current?.frame(upsert)
@@ -247,7 +247,7 @@ describe("tasks section", () => {
 
     await waitFor(() => expect(stream.current).toBeDefined())
     const existing = queryClient
-      .getQueryData<{ data: Task[] }>(taskListPlan(httpClient, TASK_LIST_PARAMS).queryKey)
+      .getQueryData<{ data: Task[] }>(taskList.options(httpClient, TASK_LIST_PARAMS).queryKey)
       ?.data.at(0)
     expect(existing).toBeDefined()
     if (existing === undefined) return

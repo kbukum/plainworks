@@ -30,16 +30,23 @@ interface Captured {
     req: IncomingMessage,
     res: {
       statusCode: number
+      writableEnded: boolean
       setHeader: (key: string, value: string) => void
       end: (body?: string) => void
+      on: (event: "close", listener: () => void) => void
+      once: (event: "close", listener: () => void) => void
+      off: (event: "close", listener: () => void) => void
     },
     next: () => void,
   ) => Promise<void>
 }
 
 /** Capture the middleware the plugin registers, without standing up a real Vite dev server. */
-function captureMiddleware(options?: Parameters<typeof mockServerPlugin>[1]): Captured {
-  const plugin = mockServerPlugin(testHandlers(), options)
+function captureMiddleware(
+  options?: Parameters<typeof mockServerPlugin>[1],
+  handlers: Parameters<typeof mockServerPlugin>[0] = testHandlers(),
+): Captured {
+  const plugin = mockServerPlugin(handlers, options)
   let captured: Captured["middleware"] | undefined
   const fakeServer = {
     middlewares: {
@@ -74,12 +81,17 @@ async function run(
   let calledNext = false
   const res = {
     statusCode: 200,
+    writableEnded: false,
+    on: () => {},
+    once: () => {},
+    off: () => {},
     setHeader: (key: string, value: string) => {
       response.headers[key] = value
     },
     end: (chunk?: string) => {
       response.body = chunk ?? ""
       response.statusCode = res.statusCode
+      res.writableEnded = true
     },
   }
   await middleware(fakeRequest(method, url, body), res, () => {
@@ -139,6 +151,53 @@ describe("mockServerPlugin middleware", () => {
     )
     expect(calledNext).toBe(false)
     expect(response.statusCode).toBe(413)
+  })
+
+  it("skips the response when the client disconnects during latency", async () => {
+    const { middleware } = captureMiddleware({ latency: 60_000 })
+    const listeners: (() => void)[] = []
+    let ended = false
+    const res = {
+      statusCode: 200,
+      writableEnded: false,
+      on: (_event: "close", listener: () => void) => listeners.push(listener),
+      once: (_event: "close", listener: () => void) => listeners.push(listener),
+      off: () => {},
+      setHeader: () => {},
+      end: () => {
+        ended = true
+      },
+    }
+    const pending = middleware(fakeRequest("GET", "/api/tasks"), res, () => {})
+    await Promise.resolve()
+    for (const listener of listeners) listener()
+    await pending
+    expect(ended).toBe(false)
+  })
+
+  it("runs no handler when the client disconnects during latency", async () => {
+    let handled = false
+    const { middleware } = captureMiddleware({ latency: 60_000 }, [
+      http.get("*/api/tasks", () => {
+        handled = true
+        return HttpResponse.json({ data: [] })
+      }),
+    ])
+    const listeners: (() => void)[] = []
+    const res = {
+      statusCode: 200,
+      writableEnded: false,
+      on: (_event: "close", listener: () => void) => listeners.push(listener),
+      once: (_event: "close", listener: () => void) => listeners.push(listener),
+      off: () => {},
+      setHeader: () => {},
+      end: () => {},
+    }
+    const pending = middleware(fakeRequest("GET", "/api/tasks"), res, () => {})
+    await Promise.resolve()
+    for (const listener of listeners) listener()
+    await pending
+    expect(handled).toBe(false)
   })
 
   it("registers no middleware when disabled", () => {

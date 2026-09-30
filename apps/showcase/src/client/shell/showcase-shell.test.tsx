@@ -17,7 +17,7 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { AUTH_CAPABILITY_ID, TASK_LIST_PARAMS } from "../../app/constants"
-import { taskListPlan } from "../../app/task-read"
+import { taskList } from "../../app/lists"
 import { buildClientCapabilities } from "../capabilities"
 import { Showcase } from "../showcase"
 import { createThemeSource } from "../sources"
@@ -68,7 +68,7 @@ async function renderShell(
   const { snapshot = AUTHED, initialPath = "/tasks", themeSource = createThemeSource() } = options
   const httpClient = createHttpClient({ baseUrl: "http://showcase.test" })
   const queryClient = createTestQueryClient(createQueryClient)
-  await prefetchQuery(queryClient, taskListPlan(httpClient, TASK_LIST_PARAMS))
+  await prefetchQuery(queryClient, taskList.options(httpClient, TASK_LIST_PARAMS))
   const capabilities = buildClientCapabilities({ queryClient, themeSource })
   return render(
     <Showcase

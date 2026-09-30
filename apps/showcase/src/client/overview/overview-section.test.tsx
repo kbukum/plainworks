@@ -2,6 +2,7 @@
 
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
+import { HttpClientProvider } from "@plainworks/http/client"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { createQueryClient } from "@plainworks/query"
 import { prefetchQuery } from "@plainworks/query/hydration"
@@ -12,9 +13,8 @@ import userEvent from "@testing-library/user-event"
 import { HttpResponse, http } from "msw"
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { OVERVIEW_STATS_KEY, RECENT_ACTIVITY_PARAMS } from "../../app/constants"
+import { taskList } from "../../app/lists"
 import { overviewStatsPlan, productSalesPlan, revenueTrendPlan } from "../../app/overview-read"
-import { taskListPlan } from "../../app/task-read"
-import { HttpClientProvider } from "../http-client"
 import { RouterProvider } from "../router"
 import { OverviewSection } from "./overview-section"
 
@@ -46,7 +46,7 @@ async function renderOverview(
       prefetchQuery(queryClient, overviewStatsPlan(httpClient)),
       prefetchQuery(queryClient, revenueTrendPlan(httpClient)),
       prefetchQuery(queryClient, productSalesPlan(httpClient)),
-      prefetchQuery(queryClient, taskListPlan(httpClient, RECENT_ACTIVITY_PARAMS)),
+      prefetchQuery(queryClient, taskList.options(httpClient, RECENT_ACTIVITY_PARAMS)),
     ])
   }
   render(

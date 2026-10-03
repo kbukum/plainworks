@@ -10,6 +10,8 @@ Dev-only and never published. It exists so the reference app (`apps/showcase`) a
 
 `@plainworks/demo/server` is the Node harness: `createMockServer(api)` and `createMockServerHandle(options)` pair the demo graph with an `msw/node` server for tests.
 
+`@plainworks/demo/events` exports the generated `TaskChangedSchema` used by the showcase. The kit decoder routes its full protobuf message name, then refreshes an authoritative snapshot rather than copying event data into the cache. Regenerate the descriptor with `bun run --filter @plainworks/demo proto:generate`. The standalone Next host owns its smaller event schema locally.
+
 ```ts
 import { createMockServerHandle } from "@plainworks/demo/server"
 

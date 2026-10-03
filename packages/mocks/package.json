@@ -99,6 +99,8 @@
   "scripts": {
     "fixtures:sync": "bun scripts/sync-failures.ts",
     "fixtures:check": "bun scripts/sync-failures.ts --check",
+    "fixtures:live:sync": "bun scripts/sync-live.ts",
+    "fixtures:live:check": "bun scripts/sync-live.ts --check",
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",

@@ -1,5 +1,5 @@
 import { isRetryable, type RetryPolicy } from "@plainworks/std/resilience"
-import { HttpError } from "../errors"
+import { HttpError } from "../errors/http-error"
 import { type HttpMethod, isIdempotentMethod } from "../method"
 
 /** Retry verdict from an error alone: an {@link HttpError} carries its own, else the shared classifier decides. */
@@ -37,29 +37,4 @@ export function resolveRetryPolicy(
     isRetryable: base.isRetryable ?? isHttpRetryable,
     retryAfter: base.retryAfter ?? retryAfterOf,
   }
-}
-
-/**
- * Parse an HTTP `Retry-After` header into milliseconds: a bare integer is seconds; an HTTP date is
- * the delay until that instant (clamped at `0`). An absent or unparseable value yields `undefined`,
- * so the retry driver falls back to its normal backoff. `nowMs` is injected for deterministic
- * tests.
- */
-export function parseRetryAfterMs(headerValue: string | null, nowMs: number): number | undefined {
-  if (headerValue === null) {
-    return undefined
-  }
-  const trimmed = headerValue.trim()
-  if (trimmed.length === 0) {
-    return undefined
-  }
-  if (/^\d+$/.test(trimmed)) {
-    return Number(trimmed) * 1000
-  }
-  const dateMs = Date.parse(trimmed)
-  if (Number.isNaN(dateMs)) {
-    return undefined
-  }
-  const deltaMs = dateMs - nowMs
-  return deltaMs > 0 ? deltaMs : 0
 }

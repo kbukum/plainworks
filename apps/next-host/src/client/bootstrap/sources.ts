@@ -1,6 +1,8 @@
 "use client"
 
-import { jsonSerializer, memoryScope } from "@plainworks/state"
+import type { QueryClient } from "@plainworks/query"
+import { createRemoteSource } from "@plainworks/query/remote"
+import { jsonSerializer } from "@plainworks/state"
 import { cookieScope } from "@plainworks/state/cookie"
 import type { StateSource } from "@plainworks/std/seam"
 import type { ThemePreference } from "@plainworks/theme/preference"
@@ -21,9 +23,6 @@ export function createThemeSource(): StateSource<ThemePreference> {
 }
 
 /** Build the transient in-memory slot the live stream folds task upserts into (server-safe scope). */
-export function createLiveTasksSource(): StateSource<LiveTasks> {
-  return memoryScope.createSource<LiveTasks>({
-    key: LIVE_TASKS_SLOT_KEY,
-    serializer: jsonSerializer<LiveTasks>(),
-  })
+export function createLiveTasksSource(client: QueryClient): StateSource<LiveTasks> {
+  return createRemoteSource<LiveTasks>(client, [LIVE_TASKS_SLOT_KEY])
 }

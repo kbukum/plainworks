@@ -1,0 +1,5 @@
+version: v2
+plugins:
+  - local: protoc-gen-es
+    out: src/events/gen
+    opt: target=ts

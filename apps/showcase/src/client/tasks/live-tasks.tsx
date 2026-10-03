@@ -1,18 +1,18 @@
 "use client"
 
 import { createChannelContext } from "@plainworks/channel/client"
+import { createEventRouter, protobufDecoder } from "@plainworks/channel/events"
 import type { Task } from "@plainworks/demo"
+import { type TaskChanged, TaskChangedSchema } from "@plainworks/demo/events"
 import { Button } from "@plainworks/elements/button"
-import { writeQueryData } from "@plainworks/query/cache"
-import type { ListQueryParams, PaginatedResult } from "@plainworks/std/list"
-import type { StreamFrame } from "@plainworks/std/seam"
-import type { QueryKey } from "@tanstack/react-query"
+import { createLiveQuery, type LiveQuery, type LiveQueryStatus } from "@plainworks/query/cache"
+import type { ListQueryPlan } from "@plainworks/query/list"
+import type { PlainEvent } from "@plainworks/std/seam"
 import { useQueryClient } from "@tanstack/react-query"
-import { type ReactElement, useState } from "react"
-import { isTask, reconcileTaskInPage } from "../../neutral/tasks"
+import { type ReactElement, useEffect, useRef, useState } from "react"
 
 /** The live task event this stream carries: a full, validated task upsert. */
-export const LIVE_EVENT = "task.upserted"
+export const LIVE_EVENT = TaskChangedSchema.typeName
 
 // One channel React binding for the Tasks section. The Provider owns a fresh per-mount channel (no
 // module-level singleton — the channel is built inside the Provider), so this shared context object
@@ -22,68 +22,59 @@ const channel = createChannelContext()
 /** The channel Provider — connects the injected transport on mount, tears it down on unmount. */
 export const LiveTaskChannelProvider = channel.ChannelProvider
 
-/** Decode an untrusted frame into a validated {@link Task}, dropping anything malformed. */
-function decodeLiveTask(frame: StreamFrame): Task | undefined {
-  if (frame.type !== LIVE_EVENT) {
-    return undefined
-  }
-  let payload: unknown
-  try {
-    payload = JSON.parse(frame.data)
-  } catch {
-    return undefined
-  }
-  return isTask(payload) ? payload : undefined
-}
-
 /** Props for {@link LiveTaskFold}. */
 export interface LiveTaskFoldProps {
-  /** The active list key a streamed upsert folds into — the exact page the table renders. */
-  readonly queryKey: QueryKey
-  /** The active list query params, ensuring only matching page 1 tasks prepend. */
-  readonly params?: ListQueryParams
+  /** The active list query, fetched only by its live snapshot owner. */
+  readonly plan: ListQueryPlan<Task>
   /** When false, live streaming updates are paused. */
   readonly enabled?: boolean
 }
 
 /**
- * Fold each streamed `task.upserted` into the active list cache. Safe page-one inserts and existing
- * rows update immediately; uncertain filter, sort, or pagination changes also invalidate the query
- * for a server-authoritative refresh. Events are ignored while paused and while the list has no
- * loaded page, so a failed list keeps its error until the user retries.
+ * Subscribe before fetching and invalidate on changes. The kit discards racing snapshots and
+ * bounds recovery; the table never overlays a delta onto an older response.
  */
-export function LiveTaskFold({
-  queryKey,
-  params,
-  enabled = true,
-}: LiveTaskFoldProps): ReactElement {
+export function LiveTaskFold({ plan, enabled = true }: LiveTaskFoldProps): ReactElement {
   const queryClient = useQueryClient()
+  const stream = channel.useChannel()
+  const owner = useRef<LiveQuery | undefined>(undefined)
   const [latest, setLatest] = useState<string>()
-
-  channel.useChannelEvent(LIVE_EVENT, (frame) => {
-    if (!enabled) {
-      return
-    }
-    const task = decodeLiveTask(frame)
-    if (task === undefined) {
-      return
-    }
-    // With no page yet, the pending fetch already brings the task, and a failed list stays failed
-    // until the user retries: refetching here would swap the error for a loading skeleton.
-    if (queryClient.getQueryData<PaginatedResult<Task>>(queryKey) === undefined) {
-      return
-    }
-    let requiresRefetch = false
-    writeQueryData<PaginatedResult<Task>>(queryClient, queryKey, (page) => {
-      const result = reconcileTaskInPage(page, task, params ?? {}, "upsert")
-      requiresRefetch = result.requiresRefetch
-      return result.page
+  const [status, setStatus] = useState<LiveQueryStatus>("waiting")
+  const [channelError, setChannelError] = useState<string>()
+  useEffect(() => {
+    if (!enabled) return
+    const live = createLiveQuery(queryClient, plan)
+    owner.current = live
+    setStatus(live.status)
+    setChannelError(undefined)
+    const subscription = live.subscribe(() => {
+      setStatus(live.status)
+      if (live.status === "fresh") setChannelError(undefined)
     })
-    if (requiresRefetch) {
-      void queryClient.invalidateQueries({ queryKey })
+    const router = createEventRouter<PlainEvent<string, TaskChanged>>({
+      channel: stream,
+      decode: protobufDecoder(TaskChangedSchema),
+      sinks: [live, { deliver: (event) => setLatest(event.data.title) }],
+      onError: (failure) => setChannelError(failure.message),
+    })
+    return () => {
+      subscription.unsubscribe()
+      router.close()
+      owner.current = undefined
     }
-    setLatest(task.title)
-  })
+  }, [enabled, plan, queryClient, stream])
+
+  if (enabled && (channelError !== undefined || status === "stale"))
+    return (
+      <div role="alert">
+        <p>{channelError ?? "Live updates are stale."}</p>
+        {status === "closed" ? null : (
+          <Button variant="outline" onClick={() => owner.current?.refresh()}>
+            Refresh live data
+          </Button>
+        )}
+      </div>
+    )
 
   return (
     <p className="sr-only" aria-live="polite">

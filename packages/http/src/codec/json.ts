@@ -7,7 +7,7 @@ import {
   type WebAbortSignal,
   type WebResponse,
 } from "@plainworks/std/web"
-import { HttpError } from "../errors"
+import { HttpError } from "../errors/http-error"
 import type { BodyCodec, EncodedBody } from "./body"
 
 /**

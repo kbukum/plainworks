@@ -1,7 +1,8 @@
 import { NetworkError, type RetryPolicy } from "@plainworks/std/resilience"
 import { expect, test } from "vitest"
 import { HttpError } from "../errors"
-import { isHttpRetryable, parseRetryAfterMs, resolveRetryPolicy, retryAfterOf } from "./retry"
+import { parseRetryAfterMs } from "../errors/retry-after"
+import { isHttpRetryable, resolveRetryPolicy, retryAfterOf } from "./retry"
 
 const backoff = { baseMs: 10, maxMs: 100, factor: 2, jitter: "none" } as const
 const base: RetryPolicy = { maxAttempts: 3, backoff, idempotent: true }

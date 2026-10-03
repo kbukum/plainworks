@@ -32,12 +32,13 @@ describe("unified event contract", () => {
   it("feeds one stream into a state slot and the query cache, converging under a replay", async () => {
     const transport = fakeStreamTransport()
     const clock = manualClock()
+    const delay = manualDelay()
     const channel = createChannel({
       transport: transport.factory,
       backoff: { baseMs: 100, maxMs: 500, factor: 2, jitter: "none" },
       minUptimeMs: 1_000,
       clock,
-      delay: manualDelay().delay,
+      delay: delay.delay,
       random: seededRandom(1),
     })
 
@@ -84,6 +85,10 @@ describe("unified event contract", () => {
     // Reconnect: the stream ends cleanly and resumes from the last cursor, which redelivers the
     // boundary event (id 2). Idempotent sinks converge — no duplicate, no corruption.
     first.endOk()
+    await flushMicrotasks()
+    expect(delay.pending.map(({ ms }) => ms)).toEqual([100])
+    clock.advance(100)
+    delay.fireWhere((ms) => ms === 100)
     await flushMicrotasks()
     const second = transport.current
     if (!second) throw new Error("expected a reconnect attempt")

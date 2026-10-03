@@ -81,12 +81,12 @@ async function drainBounded(
   }
   // An already-aborted signal never fires `abort` again, so check it before taking the reader.
   if (signal?.aborted) {
-    await cancelQuietly(body)
+    cancelReadable(body)
     throw new AbortError({ cause: signal.reason })
   }
   const reader = body.getReader()
   const onAbort = (): void => {
-    void cancelQuietly(reader)
+    cancelReadable(reader)
   }
   signal?.addEventListener("abort", onAbort, { once: true })
   let received = 0
@@ -102,7 +102,7 @@ async function drainBounded(
       }
       received += chunk.value.byteLength
       if (received > maxBytes) {
-        await cancelQuietly(reader)
+        cancelReadable(reader)
         throw new PayloadTooLargeError(maxBytes)
       }
       onChunk(chunk.value)
@@ -129,12 +129,16 @@ async function readChunk(
 }
 
 /**
- * Cancel as best-effort teardown. A stream that refuses to cancel must not hide the abort,
- * overflow, or network error being raised, so a rejected cancel is ignored.
+ * Cancel a readable immediately without waiting for its source's optional asynchronous cleanup.
+ * WHATWG cancellation closes the reader synchronously. Cleanup rejection must not replace the
+ * caller's primary abort, overflow, or network failure.
  */
-async function cancelQuietly(cancellable: { cancel(): Promise<void> }): Promise<void> {
+export function cancelReadable(
+  cancellable: { cancel(reason?: unknown): Promise<void> },
+  reason?: unknown,
+): void {
   try {
-    await cancellable.cancel()
+    void cancellable.cancel(reason).catch(() => {})
   } catch {
     // Ignored on purpose: teardown is best-effort.
   }

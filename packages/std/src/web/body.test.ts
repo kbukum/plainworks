@@ -25,6 +25,29 @@ function chunkedBody(chunks: readonly Uint8Array[]) {
 }
 
 describe("readBoundedBytes", () => {
+  test("a stalled source cleanup cannot hide the byte limit or retain the reader", async () => {
+    let finishCleanup: (() => void) | undefined
+    const { body, reader } = chunkedBody([encoder.encode("too large")])
+    reader.cancel.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finishCleanup = resolve
+        }),
+    )
+    let settled = false
+    const reading = readBoundedBytes(body, { maxBytes: 1 }).catch((error: unknown) => {
+      settled = true
+      expect(error).toBeInstanceOf(PayloadTooLargeError)
+    })
+    for (let count = 0; count < 20; count++) await Promise.resolve()
+    const releasedBeforeCleanup = reader.releaseLock.mock.calls.length === 1
+    const settledBeforeCleanup = settled
+    finishCleanup?.()
+    await reading
+    expect(settledBeforeCleanup).toBe(true)
+    expect(releasedBeforeCleanup).toBe(true)
+  })
+
   test("concatenates every chunk under the cap", async () => {
     const { body, reader } = chunkedBody([encoder.encode("ab"), encoder.encode("cd")])
     const bytes = await readBoundedBytes(body, { maxBytes: 4 })

@@ -1,7 +1,7 @@
 // Re-export-only barrel for the web concern: structural types for the universal WHATWG surface, the
 // `fetch` lookup, bounded body readers, and the cookie header codec.
 export type { BoundedReadOptions } from "./body"
-export { PayloadTooLargeError, readBoundedBytes, readBoundedText } from "./body"
+export { cancelReadable, PayloadTooLargeError, readBoundedBytes, readBoundedText } from "./body"
 export type { CookieAttributes, CookieSameSite } from "./cookie"
 export {
   isCookieNameToken,

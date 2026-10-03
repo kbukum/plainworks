@@ -13,7 +13,7 @@ export interface StreamFrame {
   readonly type: string
   /** Raw payload string (untrusted). */
   readonly data: string
-  /** Server event id (SSE `id:`); becomes the `Last-Event-ID` header on the next reconnect. */
+  /** Server event id (SSE `id:`); eligible for resume only after application acknowledgement. */
   readonly id?: string | undefined
   /** Server-requested reconnection delay in ms (SSE `retry:`), when provided. */
   readonly retry?: number | undefined
@@ -39,18 +39,19 @@ export interface StreamTransportContext {
   readonly headers: AuthHeaders
   /** Attempt cancellation — aborts on connect/idle timeout or caller close. */
   readonly signal: WebAbortSignal
-  /** Last seen event id for header-only resume, when reconnecting a known stream. */
+  /** Last acknowledged event id for header-only resume, when reconnecting a known stream. */
   readonly lastEventId?: string | undefined
   /** Called once when the connection is established, before the first frame. */
   readonly onOpen: () => void
   /** Called for each decoded frame. */
   readonly onFrame: (frame: StreamFrame) => void
   /**
-   * Called for every resume-cursor update, including cursor-only control blocks that carry no frame
-   * (an SSE `id:`-only block) — without it a reconnect would resume from a stale `Last-Event-ID`.
-   * An empty string resets the cursor (the next attempt sends no `Last-Event-ID`).
+   * Raw parser ID notifications, including id-only blocks. These describe receipt, not application
+   * acknowledgement; a channel must not use them to advance its resume cursor.
    */
   readonly onId?: ((id: string) => void) | undefined
+  /** A server retry directive, delivered immediately even if no application frame follows. */
+  readonly onRetry?: ((minimumMs: number) => void) | undefined
 }
 
 /**

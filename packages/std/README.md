@@ -31,6 +31,10 @@ Like a language's standard library, `std` has a small **prelude** and a set of *
 
 ## Runtime primitives
 
+`std/list` also exports `decodeOffsetList` and `decodeCursorList`. They accept generated list responses, require pagination at the decode boundary, and preserve extra response fields. Missing metadata throws a typed `ListDecodeError`; absent next/previous cursors are valid end-of-list markers, while null cursors are rejected.
+
+`std/resilience` exposes `retryDelay` for long-lived owners such as channels. It applies the same minimum-delay policy as unary retries without imposing a unary lifetime on a healthy stream. `std/web` exposes `cancelReadable` for teardown: cancellation closes the reader immediately without waiting on optional source cleanup, so a stalled cleanup cannot hide an abort or size-limit error.
+
 `std` is a **neutral** package — no React, no DOM, no Node builtins — so it runs on every target runtime (server, edge, workers, RSC, browser, React Native). It touches only **universal** platform primitives directly (`AbortController` / `AbortSignal`, `TextDecoder`, and the WHATWG value types it models as the self-contained `Web*` structural contract). Its host-resolved primitives are looked up lazily at call time, never on import: `crypto.randomUUID` (backing `randomId`) throws a typed `std/unsupported` error when the runtime lacks it, and `resolveFetch` falls back to the platform `fetch` only when no `fetch` is injected. `Math.random` backs the non-cryptographic `systemRandom` seam. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives) for the universal-vs-injected primitive contract.
 
 ## Usage

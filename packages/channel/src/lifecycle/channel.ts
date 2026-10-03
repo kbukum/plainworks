@@ -1,16 +1,17 @@
 import { getErrorMessage, isNonNegativeInteger } from "@plainworks/std"
 import { createEmitter, type Emitter } from "@plainworks/std/emitter"
+import { RemoteFailure } from "@plainworks/std/failure"
 import { type RandomSource, systemRandom } from "@plainworks/std/random"
 import {
   AbortError,
+  assertBackoffPolicy,
   type BackoffPolicy,
-  classifyStatus,
   combineSignals,
   type Delay,
   defaultBackoff,
   isRetryable,
   RetryError,
-  runWithRetry,
+  retryDelay,
   StatusError,
   systemDelay,
   TimeoutError,
@@ -27,6 +28,8 @@ import { type Clock, systemClock } from "@plainworks/std/time"
 import type { WebAbortController, WebAbortSignal } from "@plainworks/std/web"
 import { assertDurationMs } from "../duration"
 import { ChannelError } from "../errors"
+import { validateControl } from "../events/control"
+import { parseEventCursor } from "../events/cursor"
 import type { ChannelStatus } from "./status"
 
 const DEFAULT_CONNECT_TIMEOUT_MS = 30_000
@@ -53,6 +56,8 @@ export interface ChannelOptions {
    * the channel's lifetime. `0` disables retries (a single attempt per session). Default `10`.
    */
   readonly maxRetries?: number
+  /** Total failed-attempt and backoff budget in one failure burst. Healthy uptime is excluded. */
+  readonly retryBudgetMs?: number
   /** Time budget (ms) to establish each connection before aborting the attempt. Default 30s. */
   readonly connectTimeoutMs?: number
   /**
@@ -96,14 +101,32 @@ export interface Channel {
   connect(): void
   /** Abort the active session and stop reconnecting (idempotent; a later `connect()` reconnects). */
   close(): void
+  /** Acknowledge a successfully applied frame. Old generations and controls cannot move resume. */
+  acknowledge(frame: StreamFrame): void
+  /** Forget resume after a gap and invalidate outstanding acknowledgements. */
+  resetCursor(): void
   /** Subscribe to frames of one `type`. */
   on(type: string, listener: Listener<StreamFrame>): Subscription
   /** Subscribe to every frame regardless of type. */
   onAny(listener: Listener<StreamFrame>): Subscription
+  /**
+   * Subscribe to lifecycle errors. The channel can die without a wire `failure` frame — a
+   * pre-stream HTTP failure or reconnect exhaustion ends the session with `status === "closed"` and
+   * the terminal error (its `cause` is the last failure). A non-terminal listener throw is reported
+   * here too; check `status` to tell them apart. An owner such as the event router uses this to
+   * tear down a dead stream instead of waiting for an in-stream frame that never arrives.
+   */
+  onError(listener: Listener<ChannelError>): Subscription
   /** Current lifecycle status. */
   readonly status: ChannelStatus
-  /** Most recent event id seen — sent as `Last-Event-ID` on reconnect. */
+  /** Terminal session failure, retained until an explicit `connect()` starts a new session. */
+  readonly error: ChannelError | undefined
+  /** Last successfully applied event id — sent as `Last-Event-ID` on reconnect. */
   readonly lastEventId: string | undefined
+  /** Attached frame listeners, for lifecycle diagnostics. */
+  readonly listenerCount: number
+  /** A validated subscription boundary has arrived on the current open connection. */
+  readonly ready: boolean
 }
 
 /**
@@ -122,6 +145,7 @@ export function createChannel(options: ChannelOptions): Channel {
     reconnect = true,
     backoff = defaultBackoff,
     maxRetries = DEFAULT_MAX_RETRIES,
+    retryBudgetMs = 30_000,
     connectTimeoutMs = DEFAULT_CONNECT_TIMEOUT_MS,
     idleTimeoutMs,
     minUptimeMs = DEFAULT_MIN_UPTIME_MS,
@@ -135,7 +159,9 @@ export function createChannel(options: ChannelOptions): Channel {
   if (!isNonNegativeInteger(maxRetries)) {
     throw ChannelError.config("maxRetries must be an integer >= 0")
   }
+  assertBackoffPolicy(backoff)
   assertDurationMs("connectTimeoutMs", connectTimeoutMs)
+  assertDurationMs("retryBudgetMs", retryBudgetMs)
   assertDurationMs("minUptimeMs", minUptimeMs)
   if (idleTimeoutMs !== undefined) {
     assertDurationMs("idleTimeoutMs", idleTimeoutMs)
@@ -148,13 +174,37 @@ export function createChannel(options: ChannelOptions): Channel {
   interface Session {
     readonly controller: WebAbortController
     closed: boolean
+    openedAt?: number | undefined
   }
 
   let status: ChannelStatus = "idle"
+  let terminalFailure: ChannelError | undefined
   let attemptsStarted = 0
   let lastEventId = options.lastEventId
   let serverRetryMs: number | undefined
   let activeSession: Session | undefined
+  let generation = 0
+  let order = 0
+  let acknowledgedOrder = 0
+  let hasBoundary = false
+  const deliveries = new WeakMap<StreamFrame, { generation: number; order: number }>()
+  const resetCursor = (): void => {
+    generation++
+    lastEventId = undefined
+  }
+
+  // Lifecycle error subscribers (an owner such as the event router) hear the same errors as the
+  // `onError` option: a terminal close (check `status === "closed"`) or a listener throw. A throw
+  // here is reported to the option only, never re-emitted, so an error listener cannot loop.
+  const errorListeners = createEmitter<ChannelError>({
+    onListenerError: (cause) => {
+      try {
+        onError?.(ChannelError.protocol("a channel error listener threw", { cause }))
+      } catch {
+        // No one left to report an observer's own failure to — the lifecycle must continue.
+      }
+    },
+  })
 
   /** Observers are untrusted callbacks: a throw must never interrupt lifecycle teardown. */
   const notifyError = (error: ChannelError): void => {
@@ -163,6 +213,7 @@ export function createChannel(options: ChannelOptions): Channel {
     } catch {
       // No one left to report an observer's own failure to — the lifecycle must continue.
     }
+    errorListeners.emit(error)
   }
 
   // Frame listeners are untrusted too: a throwing one is reported and the others still hear it.
@@ -186,20 +237,35 @@ export function createChannel(options: ChannelOptions): Channel {
     }
   }
 
-  /** Track the resume cursor; an empty id resets it (SSE `id:` with no value). */
-  const trackEventId = (id: string): void => {
-    lastEventId = id === "" ? undefined : id
+  const setServerRetry = (minimumMs: number): void => {
+    if (!isNonNegativeInteger(minimumMs)) throw ChannelError.protocol("Invalid retry directive.")
+    serverRetryMs = minimumMs
   }
-
-  const dispatch = (frame: StreamFrame): void => {
-    if (frame.id !== undefined) {
-      trackEventId(frame.id)
-    }
-    if (frame.retry !== undefined) {
-      serverRetryMs = frame.retry
-    }
+  const emitFrame = (frame: StreamFrame): void => {
     anyFrames.emit(frame)
     framesByType.get(frame.type)?.emit(frame)
+  }
+  const dispatch = (frame: StreamFrame): void => {
+    const control = frame.type === "connected" || frame.type === "reset" || frame.type === "failure"
+    if (control) {
+      validateControl(frame)
+      hasBoundary = true
+      if (frame.type === "reset") resetCursor()
+    } else {
+      if (frame.id !== undefined && lastEventId !== undefined) {
+        if (frame.id === lastEventId) return
+        if (/^[0-9a-f]{32}:/.test(frame.id) && /^[0-9a-f]{32}:/.test(lastEventId)) {
+          const incoming = parseEventCursor(frame.id)
+          const applied = parseEventCursor(lastEventId)
+          if (incoming.epoch === applied.epoch && incoming.sequence <= applied.sequence) return
+        }
+      }
+      deliveries.set(frame, { generation, order: ++order })
+    }
+    if (frame.retry !== undefined) {
+      setServerRetry(frame.retry)
+    }
+    emitFrame(frame)
   }
 
   const buildHeaders = async (signal: WebAbortSignal): Promise<AuthHeaders> => {
@@ -239,7 +305,13 @@ export function createChannel(options: ChannelOptions): Channel {
    * retryable {@link TimeoutError} on a connect/idle timeout, the transport's typed failure, or a
    * fatal {@link AbortError} when the caller closes.
    */
-  const runOneConnection = (session: Session, attemptSignal: WebAbortSignal): Promise<void> => {
+  const runOneConnection = (
+    session: Session,
+    attemptSignal: WebAbortSignal,
+    admissionBudgetMs: number,
+  ): Promise<void> => {
+    hasBoundary = false
+    session.openedAt = undefined
     setStatus(attemptsStarted === 0 ? "connecting" : "reconnecting")
     attemptsStarted++
     // A fresh transport per attempt: no attempt-local state leaks across a reconnect.
@@ -279,7 +351,7 @@ export function createChannel(options: ChannelOptions): Channel {
       // A fatal failure always propagates to stop the loop.
       const endWithFailure = (error: unknown): void => {
         if (isRetryableFailure(error)) {
-          if (isStable()) {
+          if (isStable() && !(error instanceof RemoteFailure)) {
             // A stable connection dropped: end the session so a fresh one resets backoff (S3).
             finish(resolve)
             return
@@ -312,8 +384,8 @@ export function createChannel(options: ChannelOptions): Channel {
       }
 
       cancelConnect = armTimeout(
-        connectTimeoutMs,
-        () => endWithFailure(new TimeoutError(connectTimeoutMs)),
+        admissionBudgetMs,
+        () => endWithFailure(new TimeoutError(admissionBudgetMs)),
         onTimerFailure,
       )
 
@@ -328,6 +400,7 @@ export function createChannel(options: ChannelOptions): Channel {
           cancelConnect()
           opened = true
           openedAt = clock.now()
+          session.openedAt = openedAt
           setStatus("open")
           // An observer may close() during the `open` notification, settling the attempt; arming
           // the idle timer after cleanup would leak a pending timer, so bail if we were settled.
@@ -340,7 +413,13 @@ export function createChannel(options: ChannelOptions): Channel {
           if (settled) {
             return
           }
-          dispatch(frame)
+          try {
+            dispatch(frame)
+          } catch (error) {
+            if (frame.type === "failure") emitFrame(frame)
+            endWithFailure(error)
+            return
+          }
           // A frame listener may close() during dispatch, settling the attempt; skip the idle
           // rearm in that case so cleanup's cancellation is not undone by a leaked timer.
           if (settled) {
@@ -348,9 +427,16 @@ export function createChannel(options: ChannelOptions): Channel {
           }
           armIdle()
         },
-        // Cursor-only control blocks (e.g. an SSE `id:` line with no data) still move the resume
-        // cursor, or the next reconnect would send a stale Last-Event-ID.
-        onId: trackEventId,
+        // Parser receipt IDs never acknowledge application delivery.
+        onId: (): void => {},
+        onRetry: (minimumMs: number): void => {
+          if (settled) return
+          try {
+            setServerRetry(minimumMs)
+          } catch (error) {
+            endWithFailure(error)
+          }
+        },
       }
 
       if (attemptSignal.aborted) {
@@ -385,48 +471,67 @@ export function createChannel(options: ChannelOptions): Channel {
   const runReconnectLoop = async (session: Session): Promise<void> => {
     const channelSignal = session.controller.signal
     let terminalError: ChannelError | undefined
+    let failures = 0
+    let failureStartedAt: number | undefined
+    let previousMs = backoff.baseMs
     while (!session.closed) {
+      failureStartedAt ??= clock.now()
+      const burstStartedAt = failureStartedAt
+      const admissionBudgetMs = Math.min(
+        connectTimeoutMs,
+        retryBudgetMs - (clock.now() - failureStartedAt),
+      )
+      if (admissionBudgetMs <= 0) {
+        terminalError = toTerminalError(new RetryError(Math.max(1, failures)))
+        break
+      }
+      let failure: unknown
       try {
-        await runWithRetry(
-          (_attempt, attemptSignal) => runOneConnection(session, attemptSignal),
-          {
-            maxAttempts: reconnect ? maxRetries + 1 : 1,
-            backoff,
-            idempotent: true,
-            isRetryable: isRetryableFailure,
-            retryAfter: () => serverRetryMs,
-          },
-          { random, delay, signal: channelSignal },
-        )
+        await runOneConnection(session, channelSignal, admissionBudgetMs)
+        failures = 0
+        failureStartedAt = undefined
+        previousMs = backoff.baseMs
       } catch (error) {
-        // A caller close aborts `channelSignal`; that surfaces as an AbortError we swallow
-        // silently.
-        if (session.closed) {
+        if (session.closed) break
+        failure = error
+        if (!reconnect || !isRetryableFailure(error)) {
+          terminalError = toTerminalError(error)
           break
         }
-        terminalError = toTerminalError(error)
-        break
+        if (session.openedAt !== undefined && clock.now() - session.openedAt >= minUptimeMs) {
+          failureStartedAt = burstStartedAt + clock.now() - session.openedAt
+        }
+        failures++
+        if (failures > maxRetries) {
+          terminalError = toTerminalError(new RetryError(failures, { cause: error }))
+          break
+        }
       }
       // A session resolved: a stable connection ended cleanly. Reconnect with a fresh session
       // (backoff reset) unless reconnection is disabled or the caller has closed.
       if (!reconnect || session.closed) {
         break
       }
-      // Honor a server-sent `retry:` hint before the next session — consumed once and capped at the
-      // backoff ceiling, exactly as `std` caps `retryAfter`.
-      if (serverRetryMs !== undefined) {
-        const hintMs = Math.min(serverRetryMs, backoff.maxMs)
-        serverRetryMs = undefined
-        try {
-          await delay(hintMs, channelSignal)
-        } catch (error) {
-          // A caller close aborts the wait and exits via `session.closed` below; any other delay
-          // failure is terminal rather than a silently unbounded reconnect.
-          if (!session.closed) {
-            terminalError = ChannelError.config("channel timer failed", { cause: error })
-          }
-          break
-        }
+      const minimum = Math.max(
+        serverRetryMs ?? 0,
+        failure instanceof RemoteFailure ? (failure.retryAfterMs ?? 0) : 0,
+      )
+      const waitMs = retryDelay(backoff, Math.max(0, failures - 1), random, previousMs, minimum)
+      const remaining =
+        retryBudgetMs - (failureStartedAt === undefined ? 0 : clock.now() - failureStartedAt)
+      if (waitMs >= remaining) {
+        terminalError = toTerminalError(new RetryError(Math.max(1, failures), { cause: failure }))
+        break
+      }
+      previousMs = waitMs
+      serverRetryMs = undefined
+      setStatus("reconnecting")
+      try {
+        await delay(waitMs, channelSignal)
+      } catch (error) {
+        if (!session.closed)
+          terminalError = ChannelError.config("channel timer failed", { cause: error })
+        break
       }
     }
     // Only the still-active session settles the observable state. A caller close() already emitted
@@ -439,6 +544,8 @@ export function createChannel(options: ChannelOptions): Channel {
     // callback can never cross into a fresh session (e.g. an onError that closes on a fatal error
     // must not abort a connection the same callback just opened).
     session.closed = true
+    generation++
+    terminalFailure = terminalError
     setStatus("closed")
     if (terminalError !== undefined) {
       notifyError(terminalError)
@@ -451,6 +558,7 @@ export function createChannel(options: ChannelOptions): Channel {
       if (activeSession !== undefined) {
         return
       }
+      terminalFailure = undefined
       attemptsStarted = 0
       serverRetryMs = undefined
       const session: Session = { controller: new AbortController(), closed: false }
@@ -467,6 +575,7 @@ export function createChannel(options: ChannelOptions): Channel {
       // connect() from the `closing` callback then finds an active session and is a no-op, so a
       // caller callback can never resurrect a live session that this close() would report `closed`.
       setStatus("closing")
+      generation++
       session.controller.abort(
         new AbortError({ cause: ChannelError.closed("channel closed by caller") }),
       )
@@ -494,11 +603,38 @@ export function createChannel(options: ChannelOptions): Channel {
     onAny(listener: Listener<StreamFrame>): Subscription {
       return anyFrames.subscribe(listener)
     },
+    onError(listener: Listener<ChannelError>): Subscription {
+      return errorListeners.subscribe(listener)
+    },
+    resetCursor,
+    acknowledge(frame: StreamFrame): void {
+      const delivery = deliveries.get(frame)
+      if (
+        delivery === undefined ||
+        delivery.generation !== generation ||
+        delivery.order <= acknowledgedOrder
+      )
+        return
+      deliveries.delete(frame)
+      acknowledgedOrder = delivery.order
+      if (frame.id !== undefined) lastEventId = frame.id === "" ? undefined : frame.id
+    },
     get status(): ChannelStatus {
       return status
     },
+    get error(): ChannelError | undefined {
+      return terminalFailure
+    },
     get lastEventId(): string | undefined {
       return lastEventId
+    },
+    get listenerCount(): number {
+      let count = anyFrames.listenerCount
+      for (const emitter of framesByType.values()) count += emitter.listenerCount
+      return count
+    },
+    get ready(): boolean {
+      return status === "open" && hasBoundary
     },
   }
 }
@@ -510,12 +646,6 @@ export function createChannel(options: ChannelOptions): Channel {
  * identically on retry and is fatal.
  */
 function isRetryableFailure(error: unknown): boolean {
-  if (error instanceof ChannelError) {
-    if (error.status !== undefined) {
-      return classifyStatus(error.status).disposition === "retryable"
-    }
-    return error.kind === "channel/connect"
-  }
   return isRetryable(error)
 }
 
@@ -541,5 +671,6 @@ function toLastFailure(cause: unknown): ChannelError {
       status: cause.status,
     })
   }
+  if (cause instanceof RemoteFailure) return ChannelError.failure(cause, { cause })
   return ChannelError.connect(getErrorMessage(cause), { cause })
 }

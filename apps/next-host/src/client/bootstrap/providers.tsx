@@ -9,7 +9,7 @@ import { createQueryClient } from "@plainworks/query"
 import dynamic from "next/dynamic"
 import { type ComponentType, type ReactElement, type ReactNode, useState } from "react"
 import type { DevtoolsMountProps } from "../dev-tools/devtools-mount"
-import { createDemoTransport, LiveChannelProvider, LiveTaskSink } from "../live"
+import { createDemoTasks, LiveChannelProvider, LiveTaskSink } from "../live"
 import { HostShell } from "../shell"
 import { buildClientCapabilities } from "./capabilities"
 import { createLiveTasksSource, createThemeSource } from "./sources"
@@ -73,20 +73,20 @@ export function Providers({ snapshot, origin, children }: ProvidersProps): React
   })
   const [queryClient] = useState(() => createQueryClient())
   const [themeSource] = useState(() => createThemeSource())
-  const [liveSource] = useState(() => createLiveTasksSource())
-  const [transport] = useState(() => createDemoTransport())
+  const [liveSource] = useState(() => createLiveTasksSource(queryClient))
+  const [backend] = useState(() => createDemoTasks())
   const [capabilities] = useState(() =>
     buildClientCapabilities({ queryClient, httpClient, themeSource }),
   )
   const [channelOptions] = useState<ChannelOptions>(() => {
-    const base: ChannelOptions = { transport }
+    const base: ChannelOptions = { transport: backend.transport }
     return devtools?.channel ? devtools.channel.instrument(base) : base
   })
 
   return (
     <AppProvider capabilities={capabilities} snapshot={snapshot}>
       <LiveChannelProvider options={channelOptions}>
-        <LiveTaskSink source={liveSource}>
+        <LiveTaskSink snapshot={backend.snapshot}>
           <HostShell liveSource={liveSource}>{children}</HostShell>
           {DevtoolsMount !== null && devtools !== undefined ? (
             <DevtoolsMount launcher={devtools} />

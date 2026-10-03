@@ -2,6 +2,8 @@
 // `EventSource` (which cannot attach an `Authorization` header — the reason this kit streams over
 // `fetch`). It implements one attempt of the transport seam; reconnect/backoff/timeouts live in the
 // channel core. Runs anywhere `fetch` and `TextDecoder` exist (Node, edge, workers, browser).
+
+import { decodeResponseFailure } from "@plainworks/http"
 import { isPositiveInteger } from "@plainworks/std"
 import { AbortError } from "@plainworks/std/resilience"
 import type {
@@ -9,11 +11,12 @@ import type {
   StreamTransportContext,
   StreamTransportFactory,
 } from "@plainworks/std/seam"
+import { type Clock, systemClock } from "@plainworks/std/time"
 import {
+  cancelReadable,
   resolveFetch,
   type WebFetch,
   type WebReadableStream,
-  type WebReadableStreamDefaultReader,
   type WebResponse,
 } from "@plainworks/std/web"
 import { createParser } from "eventsource-parser"
@@ -28,6 +31,7 @@ export interface SseTransportOptions {
   readonly url: UrlSource
   /** Injected `fetch`; defaults to the global `fetch`. Streaming requires a real streamed `Response`. */
   readonly fetch?: WebFetch
+  readonly clock?: Clock
   /**
    * Bound (in characters) on the parser's retained partial line and accumulated multi-line event,
    * guarding against a server streaming an unbounded frame with no delimiter (a memory-exhaustion
@@ -81,10 +85,12 @@ export function createSseTransport(options: SseTransportOptions): StreamTranspor
       }
 
       if (!response.ok) {
-        // `status` lets the shared classifier stop reconnection on a `401`/`403` and retry a `5xx`.
-        throw ChannelError.protocol(`channel endpoint returned HTTP ${response.status}`, {
-          status: response.status,
-        })
+        const failure = await decodeResponseFailure(
+          response,
+          context.signal,
+          (options.clock ?? systemClock).now(),
+        )
+        throw ChannelError.failure(failure, { status: response.status, cause: failure })
       }
       // Compare the normalized media-type essence (parameters ignored) — a substring match would
       // accept lookalikes like `application/text/event-stream+json` and miss case variants.
@@ -121,8 +127,7 @@ async function readEventStream(
   let pendingRetry: number | undefined
   let overflow: ChannelError | undefined
   const parser = createParser({
-    // Fires for every block carrying an `id` field — including id-only blocks that emit no event —
-    // so the resume cursor never goes stale. An empty id resets the cursor.
+    // Parser receipt metadata is separate from acknowledged application delivery.
     onId: (id) => {
       context.onId?.(id)
     },
@@ -138,6 +143,7 @@ async function readEventStream(
     },
     onRetry: (retry) => {
       pendingRetry = retry
+      context.onRetry?.(retry)
     },
     onError: (error) => {
       if (error.type === "max-buffer-size-exceeded") {
@@ -148,7 +154,7 @@ async function readEventStream(
   })
   // Cancelling settles a pending `read()` as done, so the loop below sees the abort and exits.
   const onAbort = (): void => {
-    void cancelQuietly(reader, signal.reason)
+    cancelReadable(reader, signal.reason)
   }
   signal.addEventListener("abort", onAbort, { once: true })
 
@@ -156,7 +162,7 @@ async function readEventStream(
     while (true) {
       // An already-aborted signal never fires `abort` again, so check before every read.
       if (signal.aborted) {
-        await cancelQuietly(reader, signal.reason)
+        cancelReadable(reader, signal.reason)
         throw new AbortError({ cause: signal.reason })
       }
       const result = await reader.read()
@@ -172,26 +178,10 @@ async function readEventStream(
       }
     }
   } catch (error) {
-    await cancelQuietly(reader, error)
+    cancelReadable(reader, error)
     throw error
   } finally {
     signal.removeEventListener("abort", onAbort)
     reader.releaseLock()
-  }
-}
-
-/**
- * Cancel as best-effort teardown. A stream that refuses to cancel must not hide the abort,
- * overflow, or consumer error being raised, so a rejected cancel is ignored. Cancelling a stream
- * that is already closed or cancelled is a no-op.
- */
-async function cancelQuietly(
-  reader: WebReadableStreamDefaultReader<Uint8Array>,
-  reason: unknown,
-): Promise<void> {
-  try {
-    await reader.cancel(reason)
-  } catch {
-    // Ignored on purpose: teardown is best-effort.
   }
 }

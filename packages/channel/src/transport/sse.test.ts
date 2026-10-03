@@ -9,9 +9,45 @@ import type {
   WebRequestInit,
   WebResponse,
 } from "@plainworks/std/web"
+import { deferred, flushMicrotasks } from "@plainworks/testkit"
 import { describe, expect, test } from "vitest"
 import { ChannelError } from "../errors"
 import { createSseTransport } from "./sse"
+
+test.each(["abort", "overflow"])(
+  "%s releases an SSE reader despite stalled cleanup",
+  async (kind) => {
+    const cleanup = deferred<void>()
+    const body = controlledBody(cleanup.promise)
+    if (kind === "overflow") body.push("data: too large")
+    const controller = new AbortController()
+    let settled = false
+    const running = createSseTransport({
+      url: "https://events.test",
+      maxBufferChars: 8,
+      fetch: async () => body.response(),
+    })()
+      .open({
+        signal: controller.signal,
+        headers: {},
+        onOpen() {},
+        onFrame() {},
+      })
+      .catch((error: unknown) => {
+        settled = true
+        expect(error).toBeInstanceOf(kind === "abort" ? AbortError : ChannelError)
+      })
+    await flushMicrotasks()
+    controller.abort()
+    await flushMicrotasks()
+    const settledBeforeCleanup = settled
+    const releasedBeforeCleanup = !body.locked
+    cleanup.resolve()
+    await running
+    expect(settledBeforeCleanup).toBe(true)
+    expect(releasedBeforeCleanup).toBe(true)
+  },
+)
 
 /** A `WebResponse`-shaped SSE response whose body is the concatenated chunks. */
 function sseResponse(chunks: readonly string[], init?: { status?: number; contentType?: string }) {
@@ -29,7 +65,7 @@ type ReadResult = Awaited<ReturnType<WebReadableStreamDefaultReader<Uint8Array>[
  * read as done and only the first cancel reaches the source, so `cancelReasons` shows what the
  * transport cancelled with and `locked` whether it released the reader.
  */
-function controlledBody() {
+function controlledBody(cleanup?: Promise<void>) {
   const encoder = new TextEncoder()
   const chunks: ReadResult[] = []
   const pending: Array<(result: ReadResult) => void> = []
@@ -66,6 +102,7 @@ function controlledBody() {
         cancelReasons.push(reason)
         chunks.length = 0
         finish()
+        await cleanup
       }
     },
     releaseLock: () => {

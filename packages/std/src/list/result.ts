@@ -36,10 +36,10 @@ export interface PaginatedResult<T> {
 export interface CursorInfo {
   /** Rows requested per page. */
   readonly pageSize: number
-  /** Cursor to fetch the following page, or `null` at the end of the list. */
-  readonly nextCursor: string | null
-  /** Cursor to fetch the preceding page, or `null` at the start. */
-  readonly prevCursor: string | null
+  /** Cursor to fetch the following page; absent at the end of the list. */
+  readonly nextCursor?: string | undefined
+  /** Cursor to fetch the preceding page; absent at the start. */
+  readonly prevCursor?: string | undefined
 }
 
 /**

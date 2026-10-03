@@ -176,15 +176,15 @@ describe("GET list (cursor mode)", () => {
   it("walks forward and backward with id-anchored tokens", async () => {
     const first = (await (await get("/api/widgets?cursor=&pageSize=2")).json()) as {
       data: Widget[]
-      pagination: { nextCursor: string | null; prevCursor: string | null }
+      pagination: { nextCursor?: string; prevCursor?: string }
     }
     expect(first.data.map((w) => w.id)).toEqual(["w_0", "w_1"])
-    expect(first.pagination.prevCursor).toBeNull()
+    expect(first.pagination.prevCursor).toBeUndefined()
     expect(first.pagination.nextCursor).toBe("n_w_1")
 
     const next = (await (
       await get(`/api/widgets?cursor=${first.pagination.nextCursor}&pageSize=2`)
-    ).json()) as { data: Widget[]; pagination: { prevCursor: string | null } }
+    ).json()) as { data: Widget[]; pagination: { prevCursor?: string } }
     expect(next.data.map((w) => w.id)).toEqual(["w_2", "w_3"])
     expect(next.pagination.prevCursor).toBe("p_w_2")
 

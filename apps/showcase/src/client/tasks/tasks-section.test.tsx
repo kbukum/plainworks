@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 
+import { ChannelError } from "@plainworks/channel"
 import type { Task } from "@plainworks/demo"
+import { TaskChangedSchema } from "@plainworks/demo/events"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import { HttpClientProvider } from "@plainworks/http/client"
@@ -65,10 +67,49 @@ async function renderTasks(
       </SessionProvider>
     </TestQueryClientProvider>,
   )
+  await waitFor(() => expect(stream.current).toBeDefined())
+  act(() => {
+    stream.current?.open()
+    stream.current?.frame({
+      type: "connected",
+      data: '{"epoch":"00000000000000000000000000000001","cursor":"00000000000000000000000000000001:0"}',
+    })
+  })
   return { httpClient, queryClient, ...ui }
 }
 
 describe("tasks section", () => {
+  it.each(["transport", "frame"] as const)(
+    "keeps a terminal %s failure visible without a snapshot refresh action",
+    async (kind) => {
+      const stream = fakeStreamTransport()
+      const { container, unmount } = await renderTasks({ stream })
+      await screen.findByRole("table")
+      act(() => {
+        if (kind === "transport")
+          stream.current?.endError(ChannelError.protocol("Sign in.", { status: 401 }))
+        else
+          stream.current?.frame({
+            type: "failure",
+            data: JSON.stringify({ code: "TOKEN_EXPIRED", message: "Sign in.", retryable: false }),
+          })
+      })
+      expect((await screen.findByRole("alert")).textContent).toContain("Sign in.")
+      expect(screen.queryByRole("button", { name: "Refresh live data" })).toBeNull()
+      const user = userEvent.setup()
+      await user.click(screen.getByRole("button", { name: "Go to next page" }))
+      expect(screen.getByRole("alert").textContent).toContain("Sign in.")
+      expect(screen.queryByRole("button", { name: "Refresh live data" })).toBeNull()
+      await user.click(screen.getByRole("button", { name: "Pause live task updates" }))
+      await user.click(screen.getByRole("button", { name: "Resume live task updates" }))
+      expect(screen.getByRole("alert").textContent).toContain("Sign in.")
+      expect(screen.queryByRole("button", { name: "Refresh live data" })).toBeNull()
+      await expectNoAxeViolations(container)
+      unmount()
+      stream.assertClosed()
+    },
+  )
+
   it("renders the server-prefetched task list", async () => {
     await renderTasks()
     const table = await screen.findByRole("table")
@@ -173,7 +214,11 @@ describe("tasks section", () => {
       tasks.findIndex((row) => row.id === existing.id),
       live,
     )
-    const upsert: StreamFrame = { type: "task.upserted", data: JSON.stringify(live) }
+    const upsert: StreamFrame = {
+      type: TaskChangedSchema.typeName,
+      data: JSON.stringify(live),
+      id: "00000000000000000000000000000001:1",
+    }
     act(() => {
       stream.current?.open()
       stream.current?.frame(upsert)
@@ -181,10 +226,10 @@ describe("tasks section", () => {
 
     release.resolve()
 
-    await waitFor(() =>
-      expect(screen.getAllByRole("cell", { name: "Concurrent create" })).toHaveLength(1),
-    )
-    expect(screen.getByRole("cell", { name: "Meanwhile, live" })).toBeDefined()
+    await waitFor(() => {
+      expect(screen.getAllByRole("cell", { name: "Concurrent create" })).toHaveLength(1)
+      expect(screen.getByRole("cell", { name: "Meanwhile, live" })).toBeDefined()
+    })
   })
 
   it("reconciles the provisional row when create fails even if a live upsert lands mid-flight", async () => {
@@ -208,7 +253,8 @@ describe("tasks section", () => {
     await user.click(within(dialog).getByRole("button", { name: "Create task" }))
 
     const upsert: StreamFrame = {
-      type: "task.upserted",
+      type: TaskChangedSchema.typeName,
+      id: "00000000000000000000000000000001:1",
       data: JSON.stringify({
         id: "live-8",
         title: "Meanwhile, live during fail",
@@ -252,13 +298,15 @@ describe("tasks section", () => {
     expect(existing).toBeDefined()
     if (existing === undefined) return
     const frame: StreamFrame = {
-      type: "task.upserted",
+      type: TaskChangedSchema.typeName,
+      id: "00000000000000000000000000000001:1",
       data: JSON.stringify({
         ...existing,
         title: "Streamed upsert",
         updatedAt: "2024-01-01T00:00:00.000Z",
       }),
     }
+    await httpClient.patch(`/api/tasks/${existing.id}`, { body: { title: "Streamed upsert" } })
     act(() => {
       stream.current?.open()
       stream.current?.frame(frame)
@@ -290,7 +338,8 @@ describe("tasks section", () => {
 
     // While paused, streamed frames do not update the table
     const frame: StreamFrame = {
-      type: "task.upserted",
+      type: TaskChangedSchema.typeName,
+      id: "00000000000000000000000000000001:1",
       data: JSON.stringify({
         id: "live-paused",
         title: "Paused task update",
@@ -310,10 +359,11 @@ describe("tasks section", () => {
     expect(toggle.getAttribute("aria-pressed")).toBe("true")
   })
 
-  it("filters tasks through the FilterBar", async () => {
+  it.each([false, true])("filters tasks through the FilterBar when paused=%s", async (paused) => {
     const user = userEvent.setup()
     await renderTasks()
     await screen.findByRole("table")
+    if (paused) await user.click(screen.getByRole("button", { name: "Pause live task updates" }))
 
     await user.click(screen.getByRole("button", { name: "Add filter" }))
     const input = await screen.findByRole("textbox", { name: "Value" })
@@ -354,7 +404,8 @@ describe("tasks section", () => {
     act(() => {
       stream.current?.open()
       stream.current?.frame({
-        type: "task.upserted",
+        type: TaskChangedSchema.typeName,
+        id: "00000000000000000000000000000001:1",
         data: JSON.stringify({
           id: "live-after-failure",
           title: "Streamed after failure",

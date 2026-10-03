@@ -6,6 +6,7 @@ export const build: PackageBuild = {
   entry: {
     index: "src/index.ts",
     server: "src/server.ts",
+    events: "src/events/index.ts",
   },
 }
 

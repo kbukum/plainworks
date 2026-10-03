@@ -26,11 +26,10 @@ import {
   type WebFetch,
   type WebHeaders,
   type WebHeadersInit,
-  type WebResponse,
 } from "@plainworks/std/web"
 import { type BodyCodec, jsonCodec } from "../codec"
 import { HttpError } from "../errors"
-import { decodeProblem } from "../errors/problem"
+import { decodeResponseFailure } from "../errors/response"
 import { authHeaderInterceptor, type HttpHandler, type HttpInterceptor } from "../interceptor"
 import { telemetryInterceptor } from "../interceptor/telemetry"
 import { assertSafeRequestUrl, buildUrl, type QueryParams } from "../url"
@@ -38,7 +37,7 @@ import { type HttpRequest, toRequestInit } from "./request"
 import type { RequestInput } from "./request-input"
 import { createResourceMethods, type ResourceMethods } from "./resource"
 import type { HttpResponse } from "./response"
-import { parseRetryAfterMs, resolveRetryPolicy } from "./retry"
+import { resolveRetryPolicy } from "./retry"
 
 const DEFAULT_TIMEOUT_MS = 30_000
 
@@ -192,25 +191,7 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
           // typed failure whether the transport produced it or an interceptor short-circuited with
           // one — a status error can never slip past by bypassing the terminal handler.
           if (!response.ok) {
-            const retryAfterMs = parseRetryAfterMs(response.headers.get("retry-after"), clock.now())
-            if (
-              response.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() ===
-              "application/problem+json"
-            ) {
-              throw decodeProblem(
-                await jsonCodec.decode(response, timeoutSignal),
-                response.status,
-                retryAfterMs,
-              )
-            }
-            const statusOptions: { retryAfterMs?: number; cause?: unknown } = { cause: response }
-            if (retryAfterMs !== undefined) {
-              statusOptions.retryAfterMs = retryAfterMs
-            }
-            // Release the failed response's body/connection before raising, so a retry loop can't
-            // pin an unread stream per attempt and exhaust the transport pool.
-            await cancelBody(response)
-            throw HttpError.status(response.status, statusOptions)
+            throw await decodeResponseFailure(response, timeoutSignal, clock.now())
           }
           // Decode under the attempt's timeout/abort signal so a response that sends headers and
           // then stalls its body cannot hang forever and post-headers cancellation is still
@@ -273,18 +254,6 @@ async function validateBody(schema: StandardSchemaV1, decoded: unknown): Promise
     throw HttpError.validate(result.error)
   }
   return result.value
-}
-
-/**
- * Best-effort teardown of a response body. Cancellation frees the underlying connection/stream; a
- * body that refuses to cancel must never mask the error being raised, so failures are swallowed.
- */
-async function cancelBody(response: WebResponse): Promise<void> {
-  try {
-    await response.body?.cancel()
-  } catch {
-    // Intentionally ignored — teardown is best-effort.
-  }
 }
 
 /**

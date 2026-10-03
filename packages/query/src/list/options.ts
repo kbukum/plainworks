@@ -1,4 +1,13 @@
-import type { CursorResult, ListQueryParams, PaginatedResult } from "@plainworks/std/list"
+import {
+  type CursorInfo,
+  type CursorResult,
+  decodeCursorList,
+  decodeOffsetList,
+  type ListQueryParams,
+  type ListResponse,
+  type PageInfo,
+  type PaginatedResult,
+} from "@plainworks/std/list"
 import type { WebAbortSignal } from "@plainworks/std/web"
 import type { QueryFunctionContext, QueryKey } from "@tanstack/query-core"
 import {
@@ -15,7 +24,10 @@ export interface ListQueryOptionsInput<T> extends ListKeyOptions {
   /** The typed list request; a `cursor` (offset mode has none) is stripped before keying and fetching. */
   readonly params: ListQueryParams
   /** Fetch one offset page for `params` — typically an `http` list call returning the decoded envelope. Receives TanStack's abort signal so the fetch cancels when the query is abandoned. */
-  readonly fetch: (params: ListQueryParams, signal: WebAbortSignal) => Promise<PaginatedResult<T>>
+  readonly fetch: (
+    params: ListQueryParams,
+    signal: WebAbortSignal,
+  ) => Promise<ListResponse<T, PageInfo>>
 }
 
 /** A ready-to-spread option object for `useQuery`/`prefetchQuery` — a deterministic key plus its fetch. */
@@ -41,7 +53,7 @@ export function listQueryOptions<T>(input: ListQueryOptionsInput<T>): ListQueryP
   const { cursor: _cursor, ...params } = input.params
   return {
     queryKey: listQueryKey(input.resource, params, input),
-    queryFn: ({ signal }) => input.fetch(params, signal),
+    queryFn: async ({ signal }) => decodeOffsetList(await input.fetch(params, signal)),
   }
 }
 
@@ -52,7 +64,10 @@ export interface InfiniteListQueryOptionsInput<T> extends ListKeyOptions {
   /** The typed list request; its `cursor` is supplied per page by the infinite query (any caller-supplied `cursor` or `page` is stripped — the cursor is the page param and offset has no meaning here). */
   readonly params: ListQueryParams
   /** Fetch one cursor page — the `cursor` field is set to the current page param before this runs (an empty string on the first page, so the backend can select cursor mode from the first request). Receives TanStack's abort signal so the fetch cancels when the query is abandoned. */
-  readonly fetch: (params: ListQueryParams, signal: WebAbortSignal) => Promise<CursorResult<T>>
+  readonly fetch: (
+    params: ListQueryParams,
+    signal: WebAbortSignal,
+  ) => Promise<ListResponse<T, CursorInfo>>
   /** Cursor to start from; omit to start at the first page (fetched with an empty cursor). */
   readonly initialCursor?: string
 }
@@ -102,10 +117,10 @@ export function infiniteListQueryOptions<T>(
   }
   return {
     queryKey: infiniteListQueryKey(input.resource, baseParams, keyOptions),
-    queryFn: ({ pageParam, signal }) =>
-      input.fetch({ ...baseParams, cursor: pageParam ?? "" }, signal),
+    queryFn: async ({ pageParam, signal }) =>
+      decodeCursorList(await input.fetch({ ...baseParams, cursor: pageParam ?? "" }, signal)),
     initialPageParam: input.initialCursor,
-    getNextPageParam: (lastPage) => lastPage.pagination.nextCursor ?? undefined,
-    getPreviousPageParam: (firstPage) => firstPage.pagination.prevCursor ?? undefined,
+    getNextPageParam: (lastPage) => decodeCursorList(lastPage).pagination.nextCursor,
+    getPreviousPageParam: (firstPage) => decodeCursorList(firstPage).pagination.prevCursor,
   }
 }

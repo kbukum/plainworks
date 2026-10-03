@@ -6,14 +6,14 @@ export type { ConnectQueryKey } from "@connectrpc/connect-query-core"
 export {
   callUnaryMethod,
   createConnectQueryKey,
-  createInfiniteQueryOptions,
   createProtobufSafeUpdater,
-  createQueryOptions,
   skipToken,
 } from "@connectrpc/connect-query-core"
+export { createInfiniteQueryOptions } from "./infinite-options"
 export {
   createMethodInvalidator,
   type MethodInvalidateOptions,
   type MethodInvalidator,
 } from "./invalidate"
 export { createQueryKey, type QueryKeyParams } from "./query-key"
+export { createQueryOptions } from "./rpc-options"

@@ -1,0 +1,7 @@
+syntax = "proto2";
+package plainworks.testkit.v1;
+
+message Proto2PresenceInput {
+  optional int32 count = 1;
+  required int32 required_count = 2;
+}

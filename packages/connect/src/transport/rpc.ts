@@ -5,6 +5,7 @@ import type { Delay } from "@plainworks/std/resilience"
 import type { AuthHeaderProvider } from "@plainworks/std/seam"
 import type { WebFetch } from "@plainworks/std/web"
 import type { ConnectRetryPolicy } from "../interceptor/resilience"
+import { failureTransport } from "./failure-transport"
 import { buildInterceptorChain } from "./interceptor-chain"
 
 /** Default per-attempt timeout, matching `@plainworks/http`. */
@@ -114,7 +115,9 @@ export function createConnectRpcTransport(options: CreateConnectTransportOptions
     ...(fetch !== undefined ? { fetch } : {}),
   }
 
-  return protocol === "grpc-web"
-    ? createGrpcWebTransport(transportOptions)
-    : createConnectTransport(transportOptions)
+  return failureTransport(
+    protocol === "grpc-web"
+      ? createGrpcWebTransport(transportOptions)
+      : createConnectTransport(transportOptions),
+  )
 }

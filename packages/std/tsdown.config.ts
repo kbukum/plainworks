@@ -7,6 +7,7 @@ export const build: PackageBuild = {
     index: "src/index.ts",
     emitter: "src/emitter/index.ts",
     encoding: "src/encoding/index.ts",
+    failure: "src/failure/index.ts",
     list: "src/list/index.ts",
     pipeline: "src/pipeline/index.ts",
     privacy: "src/privacy/index.ts",

@@ -90,6 +90,24 @@ The shared ES2023 compile configuration includes no DOM or Node libraries. `type
 
 The neutral entry already gives React Server Components a server-safe build, so packages do not need a duplicate `react-server` export condition.
 
+## Remote failures and forms
+
+`std/failure` owns application codes, semantic violations, and terminal authentication. HTTP and Connect decode their wire formats at the transport boundary and preserve transport status separately. Apps handle the resulting `RemoteFailure` through `createFailureHandler`; they never decode details themselves.
+
+```mermaid
+flowchart LR
+  Wire[Problem JSON / RPC details] --> Transport[HTTP / Connect]
+  Transport --> Failure[std RemoteFailure]
+  Failure --> App[app failure handler]
+  Failure --> Form[ui Form]
+  Descriptor[Request descriptor + Protovalidate] --> Seam[std FormSchema]
+  Seam --> Form
+```
+
+The descriptor adapter lives in `connect/forms`; `ui` consumes only the lower-layer schema seam. Local and server violations use the same field/summary regions. Malformed upstream data stays operational, not a prompt to edit input.
+
+Connect transport owns retry attempts and the total budget; its Query options and hooks disable Query retries. Stream start, idle consumption, and cleanup are bounded independently. Tests consume a pinned backend corpus and serializer-backed adversarial cases.
+
 ## Distribution
 
 Published packages use standard npm exports. `elements` and `ui` also derive shadcn `registry.json` manifests from their source files, so an app can copy a component's source and own its copy.

@@ -1,6 +1,6 @@
 # @plainworks/connect
 
-> Host-independent Connect-RPC (Connect-ES v2) integration — a transport factory with `std`-powered timeout/retry and header-only auth, a typed `RpcError` boundary mapper, and neutral connect-query key/invalidation conventions, plus a thin `./client` entry for the React hooks.
+> Host-independent Connect-RPC with typed remote failures, bounded retries, descriptor-driven forms, and Query bindings.
 
 Part of the [plainworks](../../README.md) kit.
 
@@ -22,6 +22,8 @@ bun add @plainworks/connect
 | `./interceptor` | The resilience and auth interceptors. |
 | `./query` | Query keys, query options, and method-scoped invalidation. |
 | `./client` | The connect-query React hooks and `TransportProvider` (`"use client"`). |
+| `./forms` | `createProtobufForm`: generated request descriptors and real Protovalidate rules. |
+| `./testing` | Serialized adversarial failures and their expected classifications. |
 
 The non-client entries name no DOM or Node global. They build on `@connectrpc/connect-web` (plain `fetch`) and `@connectrpc/connect-query-core` (React-free), so they run on server, edge, workers, RSC, and React Native.
 
@@ -60,7 +62,9 @@ The wire format defaults to JSON (`useBinaryFormat: false`) for debuggability; s
 
 ## Resilience & interceptor order
 
-Every **unary** call is bounded by a per-attempt `std` timeout, and — when a `retry` policy is set — driven through bounded, jittered, **idempotent-only** backoff. All of it comes from `@plainworks/std`; connect forks no resilience logic. Idempotency is **derived from the method's proto declaration** (`idempotency_level = NO_SIDE_EFFECTS`/`IDEMPOTENT`), never a caller flag — so a write is never auto-retried, even after a partial success. A **streaming** call is not retried (a stream is neither safely re-consumable nor bounded by a single deadline), but its output is bounded by an **idle timeout**: if the server sends no message for `timeoutMs`, the underlying stream is aborted and the call fails `deadline_exceeded`, so a stalled stream never stays open indefinitely.
+Every **unary** call has a per-attempt timeout. Opt-in retries use bounded, jittered backoff and derive idempotency from the method's proto declaration (`NO_SIDE_EFFECTS`/`IDEMPOTENT`). The total `retry.budgetMs` includes admission, attempts, and waits; it defaults to 30 seconds. A server delay is a minimum, never shortened to `backoff.maxMs`. If it cannot fit the remaining budget, the call stops.
+
+Streams never retry. `timeoutMs` bounds header arrival, then the gap between consumed messages, including time before the first pull. An idle stream aborts; iterator cleanup has a separate wait bounded by `timeoutMs`. Pull promptly or cancel explicitly.
 
 The chain runs **outermost → innermost**: `resilience → your interceptors → auth → origin guard`. The innermost guard is bound to `baseUrl` and refuses to send a credential to a different origin than the transport targeted, so an interceptor that rewrote the URL across origins can never exfiltrate the injected credential.
 
@@ -73,28 +77,26 @@ Resilience is outermost so the retry loop **re-runs the whole chain** — auth i
 
 The per-attempt timeout uses `std` `withTimeout`, **not** Connect's `defaultTimeoutMs` (which is created once and shared across a retry loop, so a retry would inherit an already-elapsed budget).
 
-## Error mapping — at the boundary only
+## Handle typed failures
 
-Interceptors surface `ConnectError` (Connect's contract). Map it to the kit's typed `RpcError` with `mapConnectError` **where the consumer reads the failure** — a query error boundary or a `catch` site — never inside an interceptor, because Connect re-normalizes any interceptor-thrown value back into a `ConnectError` and would discard a custom type.
+The transport surfaces `RpcError` automatically, outside Connect's interceptor normalization. Its shared application `code` is separate from the string `rpcCode` and numeric `rawCode`. Standard binary `ErrorInfo`, `RetryInfo`, and `BadRequest` details supply the application identity, retry verdict, and violations. Unknown identities preserve protocol classification; malformed known details are operational failures, never field prompts.
 
 ```ts
-import { mapConnectError, isRpcError } from "@plainworks/connect"
+import { isRpcError } from "@plainworks/connect"
 
 try {
   await client.echo({ message: "ping" })
-} catch (reason) {
-  const error = mapConnectError(reason)
-  if (error.code === "unavailable") retryLater()
+} catch (error) {
+  if (!isRpcError(error)) throw error
+  handleFailure(error) // createFailureHandler from @plainworks/app
 }
 ```
 
-`RpcError` extends `PlainError`, so its `kind` is `connect/${code}` (e.g. `connect/not_found`) — the same shape every plainworks package uses — while `code` exposes the bare Connect code for switch-on-code handling, and the originating `ConnectError` is preserved as `cause`.
-
-> **connect-n2** — `RpcError.details` are **raw and undecoded**. Connect ships server error details as opaque `Any` payloads; the kit does not eagerly decode them (that needs the caller's message registry). Decode them yourself where you know the expected type.
+`RpcError` and `HttpError` both extend `RemoteFailure` from `@plainworks/std/failure`. Handle them by `code` in one app boundary. `authentication === "unauthenticated"` is terminal: it does not authorize a refresh protocol or another generic retry. Original details, metadata, and cause remain available for diagnostics; do not log whole payloads.
 
 ## Query conventions
 
-`@plainworks/connect/query` re-exports connect-query-core's keys and options, plus two kit conveniences:
+**Transport owns retries; Query owns caching and refetch.** The kit's `createQueryOptions`, `createInfiniteQueryOptions`, and all React hooks disable Query retries, even when the QueryClient defaults enable them. Use these options for imperative queries too; do not enable a second retry loop. Keys and protobuf structural sharing use connect-query-core.
 
 - **`createQueryKey({ schema, input, transport? })`** builds a finite, deterministic key for a unary method. Equal `schema` and `input` give deeply equal keys.
 - **`createMethodInvalidator(cache)`** invalidates a method's cached queries after a mutation, both finite and infinite. Pass `input` to narrow it and `signal` to cancel the refetches. It takes the `std` `CacheInvalidator` seam, so wire it to TanStack Query with `@plainworks/query/cache`:
@@ -140,3 +142,21 @@ const client = createClient(EchoService, fake.transport)
 ```
 
 The fixture's proto is the source of truth (`packages/testkit/proto/…/echo.proto`); regenerate the checked-in `*_pb.ts` with `bun run gen:proto` (dev-only buf + `protoc-gen-es` — build, typecheck, and test never need buf).
+
+## Protobuf forms
+
+Create one `createProtobufForm(RequestSchema)` per form instance and pass it to `Form` from `@plainworks/ui/forms/form`. Use descriptor JSON names for controls: `label` for a custom JSON name, `primaryAddress.zip` for a nested field, and `addresses[0].zip` for a repeated message. The adapter translates server protobuf paths using that same descriptor, not string casing.
+
+```tsx
+const [schema] = useState(() => createProtobufForm(ProfileInputSchema))
+
+<Form schema={schema} onSubmit={saveProfile} onFailure={handleFailure}>
+  <TextField name="label" label="Name" />
+  <TextField name="addresses[0].zip" label="Postal code" />
+  <FormSubmit>Save</FormSubmit>
+</Form>
+```
+
+Numbers, enums, timestamps, nested messages, and repeated controls decode before real Protovalidate runs. Blank optional numeric values stay absent; empty strings stay present. Cross-field rules use the summary. Invalid input is a field issue; validator compilation/evaluation failures remain operational. Controls and repeated items are each capped at 1,000, nesting at 32. Map controls are rejected explicitly.
+
+The [showcase fixture](../../apps/showcase/e2e/fixtures/failures.tsx) is a complete composition. [Mocks](../mocks/README.md#wire-failure-fixtures) provides the pinned backend corpus; `createRpcFailureCases` and `connectFailureJson` from `./testing` add serialized malformed, reordered, foreign, and descriptor-path cases.

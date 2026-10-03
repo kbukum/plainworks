@@ -90,7 +90,9 @@
       },
       "devDependencies": {
         "@axe-core/playwright": "catalog:",
+        "@connectrpc/connect": "catalog:",
         "@plainworks/bundle-exclusion": "workspace:*",
+        "@plainworks/connect": "workspace:*",
         "@plainworks/testkit": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",
         "@playwright/test": "catalog:",
@@ -431,13 +433,17 @@
       "version": "0.1.0-alpha.1",
       "dependencies": {
         "@bufbuild/protobuf": "catalog:",
+        "@bufbuild/protovalidate": "catalog:",
         "@connectrpc/connect": "catalog:",
         "@connectrpc/connect-query-core": "catalog:",
         "@connectrpc/connect-web": "catalog:",
         "@plainworks/std": "workspace:*",
       },
       "devDependencies": {
+        "@bufbuild/buf": "catalog:",
+        "@bufbuild/protoc-gen-es": "catalog:",
         "@connectrpc/connect-query": "catalog:",
+        "@plainworks/mocks": "workspace:*",
         "@plainworks/testkit": "workspace:*",
         "@plainworks/tsdown-config": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",
@@ -749,6 +755,7 @@
       "name": "@plainworks/testkit",
       "version": "0.1.0-alpha.1",
       "dependencies": {
+        "@bufbuild/protovalidate": "catalog:",
         "@plainworks/std": "workspace:*",
         "@testing-library/react": "catalog:",
         "pixelmatch": "catalog:",
@@ -871,6 +878,7 @@
     "@bufbuild/buf": "^1.72.0",
     "@bufbuild/protobuf": "^2.14.1",
     "@bufbuild/protoc-gen-es": "^2.14.1",
+    "@bufbuild/protovalidate": "^1.3.0",
     "@changesets/cli": "^3.0.2",
     "@connectrpc/connect": "^2.2.0",
     "@connectrpc/connect-query": "^2.3.1",
@@ -1046,11 +1054,19 @@
 
     "@bufbuild/buf-win32-x64": ["@bufbuild/buf-win32-x64@1.72.0", "", { "os": "win32", "cpu": "x64" }, "sha512-X3eWqFzhDmu8CYQZz+Fu7i+PgH+yUl8UwJ5+x+bhZRYAIdcijikthodk60c5u/qq42m1Z2XAnAGyp/mTf7IffA=="],
 
+    "@bufbuild/cel": ["@bufbuild/cel@0.6.1", "", { "dependencies": { "@bufbuild/cel-spec": "0.6.1", "@bufbuild/re2": "0.6.1" }, "peerDependencies": { "@bufbuild/protobuf": "^2.6.2" } }, "sha512-tW7cvf5byb4zrVKsdkVk/UhD3dH6Q0hnfmeRyKaAGXx0pwebk7NjUgdR2GSwf74GXxkC7StMfgRLA2Ea/+zPKw=="],
+
+    "@bufbuild/cel-spec": ["@bufbuild/cel-spec@0.6.1", "", { "peerDependencies": { "@bufbuild/protobuf": "^2.6.2" } }, "sha512-m0Ac9qA669yxxC0Hy45qGsUZemjImVfxPl6r9jLbkJviEvv3R9hSYyH2ItGRbDguekX6eId0cb62ulNBK97ezg=="],
+
     "@bufbuild/protobuf": ["@bufbuild/protobuf@2.14.1", "", {}, "sha512-agRJn3+EJDUe8AvxTx/LnHA/GErvLE62pSaSk7+MwFOtOv8eWBu/qCq2qoZjBjVZ3C2aiFJCveuSs17KMkYGOw=="],
 
     "@bufbuild/protoc-gen-es": ["@bufbuild/protoc-gen-es@2.14.1", "", { "dependencies": { "@bufbuild/protobuf": "2.14.1", "@bufbuild/protoplugin": "2.14.1" }, "bin": { "protoc-gen-es": "bin/protoc-gen-es" } }, "sha512-agiGxvA1VAzWPdtOiktK39BNvGgHc1jHBCI1XYQtCQDSpt/5pZ7jTRGKv0fYzExbovDVu+yxJq4Srpv8zCIvUQ=="],
 
     "@bufbuild/protoplugin": ["@bufbuild/protoplugin@2.14.1", "", { "dependencies": { "@bufbuild/protobuf": "2.14.1", "@typescript/vfs": "^1.6.2", "typescript": "5.4.5" } }, "sha512-oddqHkmUlBSo1TgswPW6hzrP/3nxMIdKUMcB6/NSY/oUkepDV7SealCZlE0ZxhLRIgmvDSuNWOb0HEKfsWPJww=="],
+
+    "@bufbuild/protovalidate": ["@bufbuild/protovalidate@1.3.0", "", { "dependencies": { "@bufbuild/cel": "0.6.1", "@bufbuild/re2": "0.6.1" }, "peerDependencies": { "@bufbuild/protobuf": "^2.8.0" } }, "sha512-3GU0+0J/+vCk9/7Zply9XWjGLk08DcJsVNI9/e2FiPl+dIv6shBaRimkXouMs1GnPt7PueNW1vPJFGfh7O6VCA=="],
+
+    "@bufbuild/re2": ["@bufbuild/re2@0.6.1", "", {}, "sha512-VY7zV7bWKdAsf46epowVKidolEfMKw/FoHo2xYVDVzLj/hiP5qDL3nXqJt6seZClRYfG+uzAPFQBZBlj07wO5A=="],
 
     "@changesets/apply-release-plan": ["@changesets/apply-release-plan@8.1.0", "", { "dependencies": { "@changesets/config": "^4.0.0", "@changesets/format": "^0.1.2", "@changesets/git": "^4.0.1", "@changesets/should-skip-package": "^1.0.0", "@changesets/types": "^7.0.0", "import-meta-resolve": "^4.2.0", "jsonc-parser": "^3.3.1", "semver": "^7.8.1" } }, "sha512-M93HOGyX3ssg6He3b5NotaHtQVu6uajHS6UIQ28xKt2RzskCy73ayX4I914qBKjTJmrE4YFlELQjfcqxbmGLJw=="],
 

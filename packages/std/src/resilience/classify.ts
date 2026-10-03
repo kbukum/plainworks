@@ -1,4 +1,5 @@
 import { PlainError } from "../errors"
+import { RemoteFailure } from "../failure"
 
 /**
  * Shared failure taxonomy: map any failure (an HTTP status or a thrown value) to a category and a
@@ -80,6 +81,12 @@ function errorName(error: unknown): string | undefined {
  * default (never retry the unknown).
  */
 export function classifyError(error: unknown): Classification {
+  if (error instanceof RemoteFailure) {
+    return {
+      category: error.authentication === "unauthenticated" ? "auth" : "transport",
+      disposition: error.retryable && error.authentication === undefined ? "retryable" : "fatal",
+    }
+  }
   const name = errorName(error)
   if (name === "TimeoutError") {
     return { category: "timeout", disposition: "retryable" }

@@ -46,6 +46,8 @@ export interface StandardSchemaFailure {
 
 /** A single validation problem: a human-readable message plus an optional path to the offending value. */
 export interface StandardSchemaIssue {
+  /** Optional semantic violation reason, independent of validator rule identifiers. */
+  readonly reason?: string
   readonly message: string
   readonly path?: ReadonlyArray<PropertyKey | StandardSchemaPathSegment> | undefined
 }

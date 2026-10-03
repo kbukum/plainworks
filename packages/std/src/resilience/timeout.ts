@@ -190,6 +190,11 @@ export function withTimeout<T>(
   ms: number,
   options?: { signal?: WebAbortSignal; delay?: Delay },
 ): Promise<T> {
+  try {
+    assertTimerMs(ms)
+  } catch (error) {
+    return Promise.reject(error)
+  }
   const delay = options?.delay ?? systemDelay
   const callerSignal = options?.signal
   const timeoutController = new AbortController()
@@ -199,15 +204,6 @@ export function withTimeout<T>(
   let settled = false
 
   return new Promise<T>((resolve, reject) => {
-    // Enforce the same duration invariant `systemDelay`/`createDeadline` do, even under a custom
-    // `delay` that would otherwise accept a NaN/negative/overflowing budget and run the operation
-    // unbounded.
-    try {
-      assertTimerMs(ms)
-    } catch (error) {
-      reject(error)
-      return
-    }
     function settle(finalize: () => void, abortReason?: unknown): void {
       if (settled) {
         return

@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
+  "include": ["src/testing", "../../types/universal-web.d.ts"]
+}

@@ -145,6 +145,8 @@ The catalog pins `typescript` at `^6.0.3` because TypeScript 7 does not ship a J
 
 ## Architecture invariants
 
+For remote failures, use `std/failure` as the application vocabulary. HTTP/Connect decode at their boundaries; apps use `createFailureHandler`, not local detail decoders. Connect transport owns retries and total budgets; its Query options/hooks disable a second retry loop. Forms consume the lower `FormSchema` seam; protobuf requests use `connect/forms` with real Protovalidate and descriptor JSON names. Malformed responses and validator failures stay operational, never field prompts.
+
 Checked in review and by the gates, for every package:
 
 - **No import-time side effects; no module-level singletons** (per-request factories for stores/clients/sessions).

@@ -7,3 +7,4 @@ plugins:
     opt:
       - target=ts
       - import_extension=js
+      - rewrite_imports=./buf/validate/validate_pb.js:@bufbuild/protovalidate/gen

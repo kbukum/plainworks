@@ -1,0 +1,12 @@
+version: v2
+inputs:
+  - module: buf.build/googleapis/googleapis:c17df5b2beca46928cc87d5656bd5343
+    paths:
+      - google/rpc/error_details.proto
+      - google/rpc/status.proto
+plugins:
+  - local: protoc-gen-es
+    out: src/errors/gen
+    opt:
+      - target=ts
+      - import_extension=js

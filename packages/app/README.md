@@ -125,6 +125,23 @@ export const localeProvider = defineProvider({
 
 Read the whole snapshot with `useAppSnapshot`, and catch render failures with `AppErrorBoundary` (injected fallback and report function).
 
+### Handle remote failures once
+
+`createFailureHandler` accepts the same `RemoteFailure` from HTTP, RPC, or a form. Localize by semantic reason or application code, then fall back to the server message. Supply a dedicated unauthenticated handler rather than retrying credentials.
+
+```ts
+import { createFailureHandler } from "@plainworks/app"
+
+const handleFailure = createFailureHandler({
+  messages: { SERVICE_UNAVAILABLE: "Try again later." },
+  reasons: { QUOTA_EXCEEDED: "Your quota is used up." },
+  onFailure: ({ message }) => showNotice(message),
+  onUnauthenticated: () => showSignIn(),
+})
+```
+
+Pass this handler to `Form.onFailure` and your typed query/action boundary. It never retries or invents a session-refresh protocol.
+
 ### Recipes are ejectable
 
 Each recipe is thin glue over the owning package's public binding. `createQueryCapability` wraps `QueryProvider`, `createHttpCapability` wraps `HttpClientProvider`, `createAuthCapability` wraps your `createSessionContext` provider, and `createThemeCapability` wraps `ThemeProvider`. Delete `app`, mount those bindings yourself, and you lose only convenience. Each recipe is its own subpath and its owner is an optional peer, so an auth-only app never loads query or theme.

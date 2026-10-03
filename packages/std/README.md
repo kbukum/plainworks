@@ -18,6 +18,7 @@ Like a language's standard library, `std` has a small **prelude** and a set of *
 |---|---|
 | `std` (prelude) | `PlainError` (a typed base that keeps `cause` and a `kind`), `ensureError`, `getErrorMessage`, `createErrorSnapshot` (safe to log), `Result` with `ok` / `err` / `isOk` / `isErr` / `unwrap` / `unwrapOr`, the guards `isDefined` / `isRecord` / `isNonEmptyString` / `hasProperty` / `isOneOf` / `isPositiveInteger` / `isNonNegativeInteger`, and `assert` / `assertNever`. |
 | `std/resilience` | One failure taxonomy (`classifyError`, `classifyStatus`, `NetworkError`, `StatusError`), bounded jittered backoff, `withTimeout` and deadlines, `runWithRetry` for idempotent calls, and `createBoundedQueue` (with an `onDrop` hook so loss is observable). |
+| `std/failure` | `RemoteFailure`, application `FailureCode`, semantic `Violation`, and operational `FailureDecodeError`. Transport status stays separate; delays use milliseconds. |
 | `std/pipeline` | `composeInterceptors` and `pipeValues`. |
 | `std/privacy` | `redact` and `isSensitiveKey`, for stripping secrets before logging. |
 | `std/random` | `systemRandom`, seedable `createSeededRandom` for tests, `randomId` and `idempotencyKey`. |
@@ -47,6 +48,8 @@ function parsePort(raw: string): Result<number> {
 ```
 
 Compose the resilience primitives to protect a call path — a per-attempt timeout inside a bounded, jittered retry, with failures expressed as the typed shapes the shared classifier understands:
+
+`runWithRetry` has a total `budgetMs` (30 seconds by default), including admission and waits. A server minimum is never capped downward: if it cannot fit, retries stop. Explicit false and terminal authentication cannot be overridden by a custom predicate.
 
 ```ts
 import {

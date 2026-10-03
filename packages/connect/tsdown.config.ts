@@ -7,6 +7,8 @@ export const build: PackageBuild = {
     index: "src/index.ts",
     interceptor: "src/interceptor/index.ts",
     query: "src/query/index.ts",
+    forms: "src/forms/index.ts",
+    testing: "src/testing/index.ts",
     client: "src/client.ts",
   },
 }

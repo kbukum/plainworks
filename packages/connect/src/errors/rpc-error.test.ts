@@ -12,7 +12,8 @@ describe("mapConnectError", () => {
     const error = mapConnectError(source)
 
     expect(error).toBeInstanceOf(RpcError)
-    expect(error.code).toBe("not_found")
+    expect(error.code).toBe("NOT_FOUND")
+    expect(error.rpcCode).toBe("not_found")
     expect(error.kind).toBe("connect/not_found")
     expect(error.rawCode).toBe(Code.NotFound)
     expect(error.cause).toBe(source)
@@ -24,7 +25,8 @@ describe("mapConnectError", () => {
     const error = mapConnectError(new TypeError("boom"))
 
     expect(error).toBeInstanceOf(RpcError)
-    expect(error.code).toBe("unknown")
+    expect(error.code).toBe("INTERNAL_ERROR")
+    expect(error.rpcCode).toBe("unknown")
     expect(error.rawCode).toBe(Code.Unknown)
     expect(error.details).toEqual([])
   })
@@ -42,7 +44,7 @@ describe("RpcError", () => {
   test("derives the string code from the raw code so contradictory pairings are unrepresentable", () => {
     const error = new RpcError("bare", { rawCode: Code.Internal })
 
-    expect(error.code).toBe("internal")
+    expect(error.code).toBe("INTERNAL_ERROR")
     expect(error.kind).toBe("connect/internal")
     expect(error.details).toEqual([])
     expect([...error.metadata]).toEqual([])

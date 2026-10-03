@@ -30,6 +30,7 @@ import {
 } from "@plainworks/std/web"
 import { type BodyCodec, jsonCodec } from "../codec"
 import { HttpError } from "../errors"
+import { decodeProblem } from "../errors/problem"
 import { authHeaderInterceptor, type HttpHandler, type HttpInterceptor } from "../interceptor"
 import { telemetryInterceptor } from "../interceptor/telemetry"
 import { assertSafeRequestUrl, buildUrl, type QueryParams } from "../url"
@@ -192,6 +193,16 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
           // one — a status error can never slip past by bypassing the terminal handler.
           if (!response.ok) {
             const retryAfterMs = parseRetryAfterMs(response.headers.get("retry-after"), clock.now())
+            if (
+              response.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() ===
+              "application/problem+json"
+            ) {
+              throw decodeProblem(
+                await jsonCodec.decode(response, timeoutSignal),
+                response.status,
+                retryAfterMs,
+              )
+            }
             const statusOptions: { retryAfterMs?: number; cause?: unknown } = { cause: response }
             if (retryAfterMs !== undefined) {
               statusOptions.retryAfterMs = retryAfterMs

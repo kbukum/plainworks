@@ -36,13 +36,15 @@ export function formDataToObject(formData: FormData): FormValues {
   )
 }
 
-// The field `name` a schema issue targets: the first path segment (a plain key or a `{ key }`
-// segment), stringified. An issue with no path is a form-level message under the reserved key.
+// Keep nested and repeated paths intact; a path-less issue belongs to the form summary.
 function issueFieldName(issue: StandardSchemaIssue): string {
-  const first = issue.path?.[0]
-  if (first === undefined) return FORM_ERROR_KEY
-  const key = typeof first === "object" ? first.key : first
-  return String(key)
+  if (issue.path === undefined || issue.path.length === 0) return FORM_ERROR_KEY
+  return issue.path.reduce<string>((name, part) => {
+    const key = typeof part === "object" ? part.key : part
+    return typeof key === "number"
+      ? `${name}[${key}]`
+      : `${name}${name === "" ? "" : "."}${String(key)}`
+  }, "")
 }
 
 /**

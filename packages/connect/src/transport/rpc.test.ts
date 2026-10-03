@@ -1,9 +1,10 @@
-import { Code, ConnectError, createClient } from "@connectrpc/connect"
+import { Code, createClient } from "@connectrpc/connect"
 import type { WebResponse } from "@plainworks/std/web"
 import { manualDelay } from "@plainworks/testkit"
 import { EchoService } from "@plainworks/testkit/connect"
 import { fakeAuthHeaderProvider, fakeFetch } from "@plainworks/testkit/fakes"
 import { describe, expect, test } from "vitest"
+import { RpcError } from "../errors"
 import { createConnectRpcTransport } from "./rpc"
 
 const BASE_URL = "https://api.test"
@@ -49,8 +50,8 @@ describe("createConnectRpcTransport", () => {
     manual.fireNext()
 
     const error = await promise
-    expect(error).toBeInstanceOf(ConnectError)
-    expect((error as ConnectError).code).toBe(Code.DeadlineExceeded)
+    expect(error).toBeInstanceOf(RpcError)
+    expect(error).toMatchObject({ code: "TIMEOUT", rawCode: Code.DeadlineExceeded })
   })
 
   test("never retries a non-idempotent write", async () => {
@@ -65,7 +66,7 @@ describe("createConnectRpcTransport", () => {
       .mutate({ message: "write" })
       .catch((reason: unknown) => reason)
 
-    expect((error as ConnectError).code).toBe(Code.Unavailable)
+    expect(error).toMatchObject({ code: "SERVICE_UNAVAILABLE", rawCode: Code.Unavailable })
     expect(network.calls).toHaveLength(1)
   })
 
@@ -90,6 +91,6 @@ describe("createConnectRpcTransport", () => {
 
     abort.abort()
     const error = await promise
-    expect(error).toBeInstanceOf(ConnectError)
+    expect(error).toBeInstanceOf(RpcError)
   })
 })

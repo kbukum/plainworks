@@ -1,0 +1,8 @@
+edition = "2023";
+package plainworks.testkit.v1;
+
+message EditionsPresenceInput {
+  int32 count = 1;
+  int32 required_count = 2 [features.field_presence = LEGACY_REQUIRED];
+  int32 implicit_count = 3 [features.field_presence = IMPLICIT];
+}

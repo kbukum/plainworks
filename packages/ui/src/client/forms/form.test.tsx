@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { FailureDecodeError, RemoteFailure } from "@plainworks/std/failure"
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { fakeSchema } from "@plainworks/testkit/fakes"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
@@ -29,6 +30,99 @@ function emailSchema(options: { readonly formIssue?: boolean } = {}) {
 }
 
 describe("Form", () => {
+  it("reports a broken server field path as an operational summary", async () => {
+    const user = userEvent.setup()
+    const onFailure = vi.fn()
+    render(
+      <Form
+        schema={{
+          ...emailSchema(),
+          fieldName: () => {
+            throw new FailureDecodeError()
+          },
+        }}
+        onFailure={onFailure}
+        onSubmit={() =>
+          new RemoteFailure("test", {
+            code: "INVALID_INPUT",
+            message: "Invalid",
+            retryable: false,
+            violations: [{ field: "unknown_field", reason: "INVALID_VALUE", message: "Invalid" }],
+          })
+        }
+      >
+        <TextField name="email" label="Email" defaultValue="ada@example.test" />
+        <FormSubmit>Save</FormSubmit>
+      </Form>,
+    )
+    await user.click(screen.getByRole("button", { name: "Save" }))
+    await waitFor(() =>
+      expect(screen.getByRole("region", { name: "Form error" }).textContent).toContain(
+        "invalid failure response",
+      ),
+    )
+    expect(screen.getByLabelText("Email").getAttribute("aria-invalid")).not.toBe("true")
+    expect(onFailure).toHaveBeenCalledWith(expect.any(FailureDecodeError))
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole("region", { name: "Form error" })),
+    )
+  })
+
+  it("binds returned server violations, preserves request errors, and keeps input", async () => {
+    const user = userEvent.setup()
+    const schema = {
+      ...emailSchema(),
+      fieldName: (field: string) => (field === "mail_address" ? "email" : field),
+    }
+    const failure = new RemoteFailure("test", {
+      code: "INVALID_INPUT",
+      message: "Invalid",
+      retryable: false,
+      violations: [
+        { field: "mail_address", reason: "INVALID_VALUE", message: "Already registered" },
+        { field: "", reason: "INVALID_VALUE", message: "Check this request" },
+      ],
+    })
+    const { container } = render(
+      <Form schema={schema} onSubmit={() => failure}>
+        <TextField name="email" label="Email" />
+        <FormSubmit>Save</FormSubmit>
+      </Form>,
+    )
+    await user.type(screen.getByLabelText("Email"), "ada@example.test")
+    await user.click(screen.getByRole("button", { name: "Save" }))
+    await waitFor(() => expect(screen.getByText("Already registered")).toBeDefined())
+    expect(screen.getByRole("region", { name: "Form error" }).textContent).toContain(
+      "Check this request",
+    )
+    expect(screen.getByLabelText("Email")).toHaveProperty("value", "ada@example.test")
+    await expectNoAxeViolations(container)
+  })
+
+  it("shows operational failures in the summary, never as field validation", async () => {
+    const user = userEvent.setup()
+    const onFailure = vi.fn()
+    render(
+      <Form
+        onFailure={onFailure}
+        onSubmit={() => {
+          throw new RemoteFailure("test", {
+            code: "EXTERNAL_SERVICE_ERROR",
+            message: "Service unavailable",
+            retryable: false,
+            violations: [],
+          })
+        }}
+      >
+        <TextField name="email" label="Email" />
+        <FormSubmit>Save</FormSubmit>
+      </Form>,
+    )
+    await user.click(screen.getByRole("button", { name: "Save" }))
+    await waitFor(() => expect(screen.getByText("Service unavailable")).toBeDefined())
+    expect(screen.getByLabelText("Email").getAttribute("aria-invalid")).not.toBe("true")
+    expect(onFailure).toHaveBeenCalledOnce()
+  })
   it("blocks submission and shows a field-scoped error when validation fails", async () => {
     const user = userEvent.setup()
     const onSubmit = vi.fn()

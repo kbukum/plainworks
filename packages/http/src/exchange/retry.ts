@@ -21,9 +21,7 @@ export function retryAfterOf(error: unknown): number | undefined {
  * unless the caller supplied their own. Returns `undefined` when no retry policy is configured, so
  * the client makes a single attempt.
  *
- * A `Retry-After` hint is clamped to `backoff.maxMs` by the shared retry driver, so size `maxMs` at
- * or above the largest server delay you want to honor — otherwise a long `Retry-After` is shortened
- * to `maxMs` and the client may retry before the server's window elapses.
+ * A server minimum is never shortened; a delay exceeding the total budget stops retries.
  */
 export function resolveRetryPolicy(
   base: RetryPolicy | undefined,

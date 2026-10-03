@@ -1,13 +1,15 @@
 import { PlainError } from "../errors"
+import { RemoteFailure } from "../failure"
 import { isPositiveInteger } from "../guard"
 import type { RandomSource } from "../random"
 import { systemRandom } from "../random"
+import { type Clock, systemClock } from "../time"
 import type { WebAbortSignal } from "../web/types"
 import type { BackoffPolicy } from "./backoff"
 import { assertBackoffPolicy, nextBackoff } from "./backoff"
 import { isRetryable as defaultIsRetryable } from "./classify"
 import type { Delay } from "./timeout"
-import { AbortError, combineSignals, systemDelay } from "./timeout"
+import { AbortError, combineSignals, createDeadline, MAX_TIMER_MS, systemDelay } from "./timeout"
 
 /**
  * Retry contract for a single operation. Retries fire **only** when `idempotent` is `true` — a
@@ -16,6 +18,8 @@ import { AbortError, combineSignals, systemDelay } from "./timeout"
  * respectively.
  */
 export interface RetryPolicy {
+  /** Total time including admission, attempts and waits. Defaults to 30 seconds. */
+  readonly budgetMs?: number
   /** Total attempts including the first; must be `>= 1`. */
   readonly maxAttempts: number
   /** Backoff schedule between attempts. */
@@ -24,12 +28,13 @@ export interface RetryPolicy {
   readonly idempotent: boolean
   /** Decide whether a failure is retryable. Defaults to the shared `isRetryable` classifier. Evaluated once per failure. */
   readonly isRetryable?: (error: unknown) => boolean
-  /** Extract a server-supplied delay hint (ms) from a failure, e.g. `Retry-After`. An invalid (non-finite or negative) hint is ignored; a valid hint is clamped to `backoff.maxMs`. */
+  /** Minimum server delay in ms. Never shortened to the local backoff cap. */
   readonly retryAfter?: (error: unknown) => number | undefined
 }
 
 /** Injected, deterministic-under-test dependencies for {@link runWithRetry}. */
 export interface RetryDeps {
+  readonly clock?: Clock
   /** Seedable jitter source; defaults to the system RNG. */
   readonly random?: RandomSource
   /** Injectable delay; defaults to the host timer. */
@@ -67,6 +72,26 @@ export async function runWithRetry<T>(
   policy: RetryPolicy,
   deps: RetryDeps = {},
 ): Promise<T> {
+  const budgetMs = policy.budgetMs ?? 30_000
+  const deadline = createDeadline(budgetMs)
+  const owner = new AbortController()
+  const signal = combineSignals(deps.signal, deadline.signal, owner.signal)
+  const clock = deps.clock ?? systemClock
+  const expiresAt = clock.now() + budgetMs
+  try {
+    return await runAttempts(operation, policy, { ...deps, signal }, () => expiresAt - clock.now())
+  } finally {
+    deadline.dispose()
+    owner.abort()
+  }
+}
+
+async function runAttempts<T>(
+  operation: (attempt: number, signal: WebAbortSignal) => Promise<T>,
+  policy: RetryPolicy,
+  deps: RetryDeps,
+  remainingMs: () => number,
+): Promise<T> {
   if (!isPositiveInteger(policy.maxAttempts)) {
     throw new RangeError("RetryPolicy.maxAttempts must be an integer >= 1")
   }
@@ -87,18 +112,32 @@ export async function runWithRetry<T>(
     } catch (error) {
       // Classify once: a custom predicate may be stateful or costly, and the same verdict drives
       // both the give-up decision and the RetryError wrap on the final attempt.
-      const retryable = policy.idempotent && isRetryable(error)
+      const retryable =
+        policy.idempotent &&
+        (!(error instanceof RemoteFailure) || defaultIsRetryable(error)) &&
+        isRetryable(error)
       if (!retryable) {
         throw error
       }
       if (attempt === policy.maxAttempts - 1) {
         throw new RetryError(policy.maxAttempts, { cause: error })
       }
-      const hint = policy.retryAfter?.(error)
+      const supplied = policy.retryAfter?.(error)
+      const minimum = error instanceof RemoteFailure ? error.retryAfterMs : undefined
+      const hint =
+        minimum === undefined
+          ? supplied
+          : Math.max(
+              minimum,
+              supplied !== undefined && Number.isFinite(supplied) && supplied >= 0 ? supplied : 0,
+            )
       const waitMs =
         hint !== undefined && Number.isFinite(hint) && hint >= 0
-          ? Math.min(hint, policy.backoff.maxMs)
+          ? Math.max(hint, nextBackoff(policy.backoff, attempt, random, previousMs))
           : nextBackoff(policy.backoff, attempt, random, previousMs)
+      if (waitMs >= remainingMs() || waitMs > MAX_TIMER_MS) {
+        throw new RetryError(attempt + 1, { cause: error })
+      }
       previousMs = waitMs
       await delay(waitMs, deps.signal)
     }

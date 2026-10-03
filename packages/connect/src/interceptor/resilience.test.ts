@@ -9,7 +9,7 @@ import {
   fakeUnaryRequest,
   fakeUnaryResponse,
 } from "@plainworks/testkit/connect"
-import { describe, expect, test } from "vitest"
+import { describe, expect, test, vi } from "vitest"
 import { type ConnectRetryPolicy, resilienceInterceptor } from "./resilience"
 
 type NextFn = Parameters<Interceptor>[0]
@@ -24,7 +24,72 @@ const retry: ConnectRetryPolicy = {
   backoff: { baseMs: 10, maxMs: 100, factor: 2, jitter: "none" },
 }
 
+test("an unconsumed stream expires and releases caller listeners", async () => {
+  const caller = new AbortController()
+  const add = vi.spyOn(caller.signal, "addEventListener")
+  const remove = vi.spyOn(caller.signal, "removeEventListener")
+  const manual = manualDelay()
+  let observed: WebAbortSignal | undefined
+  const returned = vi.fn(async () => ({ done: true as const, value: undefined }))
+  const intercepted = resilienceInterceptor({ timeoutMs: 50, delay: manual.delay })((request) => {
+    observed = request.signal
+    return streamResponse({
+      [Symbol.asyncIterator]: () => ({
+        next: () => new Promise(() => {}),
+        return: returned,
+      }),
+    })
+  })
+  await intercepted(fakeStreamRequest(count, { signal: caller.signal }))
+  await flushMicrotasks()
+  expect(manual.fireWhere((ms) => ms === 50)).toBe(1)
+  await flushMicrotasks()
+  expect(observed?.aborted).toBe(true)
+  expect(returned).toHaveBeenCalledOnce()
+  expect(remove.mock.calls.length).toBe(add.mock.calls.length)
+})
+
+test("idle failure surfaces even when iterator cleanup ignores cancellation", async () => {
+  const manual = manualDelay()
+  const intercepted = resilienceInterceptor({ timeoutMs: 50, delay: manual.delay })(() =>
+    streamResponse({
+      [Symbol.asyncIterator]: () => ({
+        next: () => new Promise(() => {}),
+        return: () => new Promise(() => {}),
+      }),
+    }),
+  )
+  const response = await intercepted(fakeStreamRequest(count))
+  const pending = streamMessages(response)
+    [Symbol.asyncIterator]()
+    .next()
+    .catch((error: unknown) => error)
+  await flushMicrotasks()
+  manual.fireWhere((ms) => ms === 50)
+  await flushMicrotasks()
+  manual.fireWhere((ms) => ms === 50)
+  expect(await pending).toMatchObject({ code: Code.DeadlineExceeded })
+})
+
 describe("resilienceInterceptor", () => {
+  test("bounds headers and cleans up every failed stream start", async () => {
+    const caller = new AbortController()
+    const add = vi.spyOn(caller.signal, "addEventListener")
+    const remove = vi.spyOn(caller.signal, "removeEventListener")
+    for (let i = 0; i < 100; i++) {
+      const manual = manualDelay()
+      const intercepted = resilienceInterceptor({ timeoutMs: 50, delay: manual.delay })(
+        () => new Promise(() => {}),
+      )
+      const pending = intercepted(fakeStreamRequest(count, { signal: caller.signal })).catch(
+        (error: unknown) => error,
+      )
+      await flushMicrotasks()
+      expect(manual.fireWhere((ms) => ms === 50)).toBe(1)
+      expect(await pending).toMatchObject({ code: Code.DeadlineExceeded })
+    }
+    expect(remove.mock.calls.length).toBe(add.mock.calls.length)
+  })
   test("times a hung attempt out as deadline_exceeded", async () => {
     const manual = manualDelay()
     const next: NextFn = () => new Promise(() => {})
@@ -205,13 +270,7 @@ describe("resilienceInterceptor", () => {
     const next: NextFn = () => streamResponse(source)
     const intercepted = resilienceInterceptor({ timeoutMs: 1000, delay: broken })(next)
 
-    const response = await intercepted(fakeStreamRequest(count))
-    const error = await streamMessages(response)
-      [Symbol.asyncIterator]()
-      .next()
-      .catch((reason: unknown) => reason)
-
-    expect(error).toBeInstanceOf(RangeError)
+    await expect(intercepted(fakeStreamRequest(count))).rejects.toBeInstanceOf(RangeError)
   })
 })
 

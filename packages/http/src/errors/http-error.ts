@@ -1,4 +1,4 @@
-import { PlainError } from "@plainworks/std"
+import { type Failure, failureCodeFor, RemoteFailure } from "@plainworks/std/failure"
 import { classifyStatus, type FailureCategory } from "@plainworks/std/resilience"
 import type { StandardSchemaIssue } from "@plainworks/std/seam"
 
@@ -27,27 +27,54 @@ interface HttpErrorFields {
  * retry driver honors. `retryable` lets the retry policy decide from the error alone without
  * re-instanceof-ing every transport error type.
  */
-export class HttpError extends PlainError<HttpErrorKind> {
+export class HttpError extends RemoteFailure<HttpErrorKind> {
   /** HTTP status of a response failure; `undefined` for a network, URL, or decode failure. */
   readonly status: number | undefined
   /** Coarse failure family shared with the `std` classifier (network / timeout / auth / …). */
   readonly category: FailureCategory
-  /** Whether the shared classifier considers this failure worth retrying (idempotent calls only). */
-  readonly retryable: boolean
-  /** A parsed `Retry-After` delay hint in milliseconds, or `undefined` when the server gave none. */
-  readonly retryAfterMs: number | undefined
 
   private constructor(
     kind: HttpErrorKind,
     message: string,
     fields: HttpErrorFields,
     options?: { cause?: unknown },
+    failure?: Failure,
   ) {
-    super(kind, message, options)
+    super(
+      kind,
+      failure ?? {
+        code:
+          fields.status !== undefined
+            ? failureCodeFor(fields.status, "http")
+            : kind === "http/timeout"
+              ? "TIMEOUT"
+              : kind === "http/network"
+                ? "CONNECTION_FAILED"
+                : "EXTERNAL_SERVICE_ERROR",
+        message,
+        violations: [],
+        retryable: fields.retryable,
+        retryAfterMs: fields.retryAfterMs,
+      },
+      options,
+    )
     this.status = fields.status
     this.category = fields.category
-    this.retryable = fields.retryable
-    this.retryAfterMs = fields.retryAfterMs
+  }
+
+  static problem(status: number, failure: Failure, options?: { cause?: unknown }): HttpError {
+    return new HttpError(
+      "http/status",
+      failure.message,
+      {
+        status,
+        category: classifyStatus(status).category,
+        retryable: failure.retryable,
+        retryAfterMs: failure.retryAfterMs,
+      },
+      options,
+      failure,
+    )
   }
 
   /** A non-2xx response. Category and retryability come from {@link classifyStatus}. */

@@ -27,6 +27,15 @@ export {
   echoResponse,
 } from "./fixtures"
 export {
+  BrokenRuleInputSchema,
+  type ProfileInput,
+  ProfileInputSchema,
+  ProfileMode,
+  ProfileService,
+} from "./gen/plainworks/testkit/v1/form_pb"
+export { EditionsPresenceInputSchema } from "./gen/plainworks/testkit/v1/presence_editions_pb"
+export { Proto2PresenceInputSchema } from "./gen/plainworks/testkit/v1/presence_pb"
+export {
   type FakeRequestOptions,
   fakeStreamRequest,
   fakeUnaryRequest,

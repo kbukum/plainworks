@@ -4,6 +4,11 @@
 // RSC, React Native). The SSR data writer and reader live on `./hydration`, the capability recipes
 // on `./capabilities/*`, the React binding on `./client`, and the test harness on `./testing`.
 export { AppConfigError, AppContextError } from "./errors"
+export {
+  createFailureHandler,
+  type FailureHandlerOptions,
+  type FailureOutcome,
+} from "./errors/failure-handler"
 export type {
   AnyCapability,
   App,

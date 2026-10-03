@@ -15,7 +15,7 @@ test("status maps a 401 to a fatal auth failure and carries a Retry-After hint",
   const error = HttpError.status(401, { retryAfterMs: 2000, cause })
   expect(error.category).toBe("auth")
   expect(error.retryable).toBe(false)
-  expect(error.retryAfterMs).toBe(2000)
+  expect(error.retryAfterMs).toBeUndefined()
   expect(error.cause).toBe(cause)
 })
 

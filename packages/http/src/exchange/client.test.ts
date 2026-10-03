@@ -35,6 +35,44 @@ const retry: RetryPolicy = {
   idempotent: true,
 }
 
+test("a problem without type retains terminal authentication and never retries", async () => {
+  const { fetch, calls } = fakeFetch([
+    new Response(JSON.stringify({ title: "Sign in", status: 401 }), {
+      status: 401,
+      headers: { "content-type": "application/problem+json" },
+    }),
+  ])
+  const client = createHttpClient({
+    baseUrl: "https://api.test",
+    fetch,
+    retry,
+    delay: autoBackoffDelay().delay,
+  })
+  await expect(client.get("/")).rejects.toMatchObject({
+    status: 401,
+    authentication: "unauthenticated",
+    retryable: false,
+  })
+  expect(calls).toHaveLength(1)
+})
+
+test("a transient problem without type retries an idempotent request", async () => {
+  const { fetch, calls } = fakeFetch([
+    new Response(JSON.stringify({ title: "Unavailable", status: 503 }), {
+      status: 503,
+      headers: { "content-type": "application/problem+json" },
+    }),
+    jsonResponse({ ok: true }),
+  ])
+  const client = createHttpClient({
+    baseUrl: "https://api.test",
+    fetch,
+    retry,
+    delay: autoBackoffDelay().delay,
+  })
+  await expect(client.get("/")).resolves.toEqual({ ok: true })
+  expect(calls).toHaveLength(2)
+})
 test("resolves the decoded body and defaults to GET against the base URL", async () => {
   const { fetch, calls } = fakeFetch([jsonResponse({ id: 1 })])
   const client = createHttpClient({

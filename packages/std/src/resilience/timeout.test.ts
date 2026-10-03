@@ -11,6 +11,16 @@ import {
   withTimeout,
 } from "./timeout"
 
+test("invalid timeout budgets attach no caller listeners", async () => {
+  const caller = new AbortController()
+  const add = vi.spyOn(caller.signal, "addEventListener")
+  const remove = vi.spyOn(caller.signal, "removeEventListener")
+  await expect(withTimeout(async () => 1, -1, { signal: caller.signal })).rejects.toThrow(
+    RangeError,
+  )
+  expect(add.mock.calls.length).toBe(remove.mock.calls.length)
+})
+
 /** A delay whose pending timers the test settles by hand — no real time passes. */
 function controllableDelay() {
   const calls: Array<{ ms: number; signal: WebAbortSignal | undefined; fire: () => void }> = []

@@ -372,14 +372,14 @@ interface ConnectClassification {
  * remaps it to `DeadlineExceeded`. A bare `AbortError` is a per-attempt timeout when its signal
  * timed out, otherwise a caller cancellation; anything else is an error. The code is read via the
  * canonical {@link @plainworks/connect!mapConnectError} (never thrown, only projected) so the
- * timeline matches the kit's `RpcError.code` vocabulary.
+ * timeline matches the kit's `RpcError.rpcCode` protocol vocabulary.
  */
 function classifyConnectError(
   error: unknown,
   signal: WebAbortSignal | undefined,
 ): ConnectClassification {
   if (error instanceof ConnectError) {
-    const code = mapConnectError(error).code
+    const code = mapConnectError(error).rpcCode
     if (error.code === Code.Canceled) {
       return isDeadlineAbort(signal)
         ? { outcome: "timeout", code: "deadline_exceeded" }

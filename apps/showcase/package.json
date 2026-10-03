@@ -35,7 +35,9 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "catalog:",
+    "@connectrpc/connect": "catalog:",
     "@plainworks/bundle-exclusion": "workspace:*",
+    "@plainworks/connect": "workspace:*",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",
     "@playwright/test": "catalog:",

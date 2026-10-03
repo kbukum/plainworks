@@ -11,6 +11,7 @@ export const build: PackageBuild = {
     dispatch: "src/dispatch/index.ts",
     filter: "src/filter/index.ts",
     fixture: "src/fixture/index.ts",
+    failure: "src/failure/index.ts",
     handlers: "src/handlers/common/index.ts",
     idp: "src/idp/index.ts",
     lifecycle: "src/lifecycle/index.ts",

@@ -14,13 +14,14 @@ import {
   type RetryDeps,
   RetryError,
   type RetryPolicy,
+  raceAbort,
   runWithRetry,
   systemDelay,
   TimeoutError,
   withTimeout,
 } from "@plainworks/std/resilience"
 import type { WebAbortController, WebAbortSignal } from "@plainworks/std/web"
-import { isConnectRetryable } from "./retry-classification"
+import { connectRetryAfter, isConnectRetryable } from "./retry-classification"
 
 /**
  * Retry configuration for the resilience interceptor — a `std` {@link RetryPolicy} **minus**
@@ -33,9 +34,8 @@ export type ConnectRetryPolicy = Omit<RetryPolicy, "idempotent">
 /** Options for {@link resilienceInterceptor}. */
 export interface ConnectResilienceOptions {
   /**
-   * Time budget in ms. For a unary call it is the per-attempt deadline; for a streaming call it is
-   * the **idle timeout** between messages — a gap longer than this fails the stream
-   * `deadline_exceeded`.
+   * Unary per-attempt deadline in ms. For streams, bounds header arrival, gaps between consumed
+   * messages (including the first pull), and the separate cleanup wait.
    */
   readonly timeoutMs: number
   /** Retry policy; when omitted, each call makes a single (still timeout-bounded) attempt. */
@@ -51,16 +51,14 @@ export interface ConnectResilienceOptions {
  * retry/timeout logic of its own. It wraps each **unary** call in a per-attempt {@link withTimeout}
  * budget and, when a {@link ConnectResilienceOptions.retry} policy is set, drives idempotent-only
  * retries with bounded jittered backoff via {@link runWithRetry}. A **streaming** call cannot be
- * re-consumed or bounded by a single request deadline, so it is not retried; instead its output is
- * bounded by an **idle timeout** — if the server sends no message for `timeoutMs`, the underlying
- * stream is aborted and the call fails `deadline_exceeded`, so a stalled stream never stays open
- * indefinitely. Teardown (the source iterator's `return`) always runs on completion, error, or an
- * early consumer `break`.
+ * re-consumed or bounded by a single request deadline, so it is not retried. Header arrival and
+ * consumption gaps have independent timeout guards. Teardown starts on completion, error, caller
+ * cancellation, or an early consumer break, with its own bounded wait.
  *
  * Place it **outermost** in the interceptor chain so the retry loop re-runs the whole chain — auth
  * injection included — on every attempt. On exhaustion or timeout the underlying `std`
  * `TimeoutError`/`AbortError` is remapped to a `ConnectError` (`deadline_exceeded`/`canceled`) so
- * the consumer keeps a single Connect error contract to map with `mapConnectError`.
+ * the outer transport boundary can expose the shared RpcError contract.
  */
 export function resilienceInterceptor(options: ConnectResilienceOptions): Interceptor {
   const { timeoutMs, retry, delay, random } = options
@@ -90,7 +88,17 @@ export function resilienceInterceptor(options: ConnectResilienceOptions): Interc
       const policy: RetryPolicy = {
         ...retry,
         idempotent: isMethodIdempotent(request),
-        isRetryable: retry.isRetryable ?? isConnectRetryable,
+        isRetryable: (error) => isConnectRetryable(error) && (retry.isRetryable?.(error) ?? true),
+        retryAfter: (error) => {
+          const minimum = connectRetryAfter(error)
+          const custom = retry.retryAfter?.(error)
+          return minimum === undefined
+            ? custom
+            : Math.max(
+                minimum,
+                custom !== undefined && Number.isFinite(custom) && custom >= 0 ? custom : 0,
+              )
+        },
       }
       const deps: RetryDeps = {
         ...(delay !== undefined ? { delay } : {}),
@@ -123,79 +131,107 @@ async function streamWithIdleTimeout(
 ): Promise<Awaited<ReturnType<NextFn>>> {
   const idleController = new AbortController()
   const signal = combineSignals(callerSignal, idleController.signal)
-  const response = await next({ ...request, signal })
-  if (!response.stream) {
-    return response
+  try {
+    const response = await withTimeout(() => next({ ...request, signal }), timeoutMs, {
+      ...(callerSignal === undefined ? {} : { signal: callerSignal }),
+      ...(delay === undefined ? {} : { delay }),
+    })
+    if (!response.stream) {
+      idleController.abort()
+      return response
+    }
+    return {
+      ...response,
+      message: idleGuarded(response.message, timeoutMs, idleController, signal, delay),
+    }
+  } catch (error) {
+    idleController.abort(error)
+    throw toConnectError(error)
   }
-  return { ...response, message: idleGuarded(response.message, timeoutMs, idleController, delay) }
 }
 
 /**
- * Wrap a stream so a gap longer than `idleMs` between messages fails the call. The idle timer is
- * torn down the moment a message arrives (or the call ends); on a stall it aborts `idleController`
- * to cancel the underlying transport, then throws `deadline_exceeded`. On exit the source
- * iterator's `return` runs and `idleController` is disposed even when `return` throws —
- * `combineSignals` only unlinks its listeners once the combined signal aborts, so a completed
- * stream must never retain listeners on a long-lived caller signal.
+ * Start the idle clock at headers, not at the first pull. No messages are buffered; consumers
+ * must pull within the idle budget. Cancellation releases listeners immediately, and teardown
+ * gets its own bounded wait so an uncooperative iterator cannot hide the primary failure.
  */
-async function* idleGuarded<T>(
+function idleGuarded<T>(
   source: AsyncIterable<T>,
   idleMs: number,
   idleController: WebAbortController,
+  signal: WebAbortSignal,
   delay: Delay | undefined,
-): AsyncIterable<T> {
+): AsyncIterableIterator<T> {
   const wait = delay ?? systemDelay
   const iterator = source[Symbol.asyncIterator]()
-  try {
-    for (;;) {
-      const timer = new AbortController()
-      let idled = false
-      const idle = wait(idleMs, timer.signal).then(
+  let timer = new AbortController()
+  let closed = false
+  let failure: unknown
+  let cleanup: Promise<void> | undefined
+  const close = (reason?: unknown): Promise<void> => {
+    if (closed) return cleanup ?? Promise.resolve()
+    closed = true
+    failure = reason
+    timer.abort()
+    signal.removeEventListener("abort", onAbort)
+    idleController.abort(reason)
+    cleanup = withTimeout(
+      async () => {
+        await iterator.return?.()
+      },
+      idleMs,
+      delay === undefined ? {} : { delay },
+    ).catch((error: unknown) => {
+      // Retain cleanup faults for the next observation, without replacing a primary read failure.
+      failure ??= error
+    })
+    return cleanup
+  }
+  const onAbort = (): void => {
+    void close(new AbortError({ cause: signal.reason }))
+  }
+  const arm = (): void => {
+    timer.abort()
+    timer = new AbortController()
+    const current = timer
+    void Promise.resolve()
+      .then(() => wait(idleMs, current.signal))
+      .then(
         () => {
-          idled = true
+          if (!current.signal.aborted) void close(new TimeoutError(idleMs))
         },
-        (reason: unknown) => {
-          // Swallow only our own post-message cancellation; a real delay failure (e.g. a
-          // RangeError for an invalid timeoutMs) must win the race instead of leaving the
-          // stream waiting on `nextResult` forever.
-          if (timer.signal.aborted) {
-            return
-          }
-          throw reason
+        (error: unknown) => {
+          if (!current.signal.aborted) void close(error)
         },
       )
-      const nextResult = iterator.next()
-      // The timer must die on every outcome of the race — a message, a stall, or a rejected read
-      // (e.g. caller cancellation) — so no iteration leaves an idle delay running past stream end.
+  }
+  signal.addEventListener("abort", onAbort, { once: true })
+  if (signal.aborted) onAbort()
+  else arm()
+  return {
+    [Symbol.asyncIterator]() {
+      return this
+    },
+    async next() {
+      if (failure !== undefined) throw toConnectError(failure)
+      if (closed) return { done: true, value: undefined }
       try {
-        await Promise.race([nextResult, idle])
-      } finally {
-        timer.abort()
+        const result = await raceAbort(iterator.next(), signal)
+        if (result.done) {
+          await close()
+          if (failure !== undefined) throw failure
+        } else arm()
+        return result
+      } catch (error) {
+        void close(error)
+        throw toConnectError(failure ?? error)
       }
-      if (idled) {
-        idleController.abort(new TimeoutError(idleMs))
-        // The in-flight read will reject once the stream is cancelled; drain it so that rejection
-        // is never unhandled.
-        void nextResult.catch(() => {})
-        throw new ConnectError(
-          `stream stalled: no message within ${idleMs}ms`,
-          Code.DeadlineExceeded,
-        )
-      }
-      const result = await nextResult
-      if (result.done === true) {
-        return
-      }
-      yield result.value
-    }
-  } finally {
-    try {
-      await iterator.return?.()
-    } finally {
-      // Release the combined signal's listeners on the (possibly long-lived) caller signal:
-      // `combineSignals` unlinks them only when the combined signal aborts.
-      idleController.abort()
-    }
+    },
+    async return() {
+      await close()
+      if (failure !== undefined) throw toConnectError(failure)
+      return { done: true, value: undefined }
+    },
   }
 }
 

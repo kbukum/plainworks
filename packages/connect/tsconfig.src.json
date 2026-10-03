@@ -4,6 +4,12 @@
   // `src/client/`) is DOM and lives in `tsconfig.client.json`; every `*.test.*` file is DOM-free and
   // lives in `tsconfig.test.json`. Excluding tests here keeps the shipped-surface programs from
   // dragging in neutral, shim-typed test helpers (e.g. `@plainworks/testkit/connect`).
-  "exclude": ["src/client.ts", "src/client", "src/**/*.test.ts", "src/**/*.test.tsx"],
+  "exclude": [
+    "src/client.ts",
+    "src/client",
+    "src/testing",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx"
+  ],
   "include": ["src", "../../types/universal-web.d.ts"]
 }

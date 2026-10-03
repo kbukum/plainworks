@@ -132,6 +132,8 @@ import { DataTable } from "@plainworks/ui/data/data-table"
 
 `Form` validates on submit with any Standard Schema validator and passes the validated value to `onSubmit`; each field wires its own label, description, and error state.
 
+Actions may return or throw `RemoteFailure`. Field violations and request-level errors render without clearing entered values; operational failures use the summary. `onFailure` connects to the app's shared handler. For generated protobuf requests, pass [`createProtobufForm`](../connect/README.md#protobuf-forms) as the schema: it runs real Protovalidate and translates server paths through the descriptor. `ui` depends only on the lower `FormSchema` seam, not the validator library.
+
 ```tsx
 import { Form } from "@plainworks/ui/forms/form"
 import { FormSubmit } from "@plainworks/ui/forms/form-submit"

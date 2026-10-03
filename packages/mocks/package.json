@@ -60,6 +60,11 @@
       "types": "./dist/fixture.d.ts",
       "default": "./dist/fixture.js"
     },
+    "./failure": {
+      "@plainworks/source": "./src/failure/index.ts",
+      "types": "./dist/failure.d.ts",
+      "default": "./dist/failure.js"
+    },
     "./handlers": {
       "@plainworks/source": "./src/handlers/common/index.ts",
       "types": "./dist/handlers.d.ts",
@@ -92,6 +97,8 @@
     }
   },
   "scripts": {
+    "fixtures:sync": "bun scripts/sync-failures.ts",
+    "fixtures:check": "bun scripts/sync-failures.ts --check",
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",

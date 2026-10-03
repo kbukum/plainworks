@@ -106,7 +106,7 @@ test("honors a retryAfter hint over the backoff schedule", async () => {
   expect(waits).toEqual([50])
 })
 
-test("clamps a retryAfter hint to the backoff maxMs", async () => {
+test("never shortens a server minimum to the local backoff cap", async () => {
   const { delay, waits } = recordingDelay()
   let attempts = 0
   await runWithRetry(
@@ -117,10 +117,28 @@ test("clamps a retryAfter hint to the backoff maxMs", async () => {
       }
       return "ok"
     },
-    { ...idempotent, retryAfter: () => 60_000 },
+    { ...idempotent, budgetMs: 120_000, retryAfter: () => 60_000 },
     { delay },
   )
-  expect(waits).toEqual([100])
+  expect(waits).toEqual([60_000])
+})
+
+test("stops without waiting or retrying when the minimum exceeds the total budget", async () => {
+  const { delay, waits } = recordingDelay()
+  let attempts = 0
+  const failure = retryable()
+  await expect(
+    runWithRetry(
+      async () => {
+        attempts++
+        throw failure
+      },
+      { ...idempotent, budgetMs: 100, retryAfter: () => 60_000 },
+      { delay },
+    ),
+  ).rejects.toMatchObject({ attempts: 1, cause: failure })
+  expect(attempts).toBe(1)
+  expect(waits).toEqual([])
 })
 
 test("ignores an invalid retryAfter hint and falls back to the backoff schedule", async () => {

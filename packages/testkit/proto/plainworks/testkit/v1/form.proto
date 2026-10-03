@@ -1,0 +1,54 @@
+syntax = "proto3";
+package plainworks.testkit.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+
+message ProfileInput {
+  option (buf.validate.message).cel = {
+    id: "profile.order"
+    message: "Minimum must not exceed maximum"
+    expression: "this.minimum <= this.maximum"
+  };
+  string display_name = 1 [json_name = "label", (buf.validate.field).string.min_len = 1];
+  int32 minimum = 2 [(buf.validate.field).int32.gte = 0];
+  int32 maximum = 3;
+  optional int32 age = 4;
+  ProfileMode mode = 5;
+  google.protobuf.Timestamp scheduled_at = 6;
+  repeated string tags = 7;
+  repeated ProfileAddress addresses = 8;
+  ProfileAddress primary_address = 9;
+  optional string nickname = 10;
+  repeated int32 scores = 11;
+  repeated ProfileMode modes = 12;
+  oneof contact {
+    string email = 13;
+    string phone = 14;
+  }
+}
+
+message ProfileAddress {
+  string postal_code = 1 [json_name = "zip", (buf.validate.field).string.min_len = 1];
+  bool preferred = 2;
+}
+
+enum ProfileMode {
+  PROFILE_MODE_UNSPECIFIED = 0;
+  PROFILE_MODE_ACTIVE = 1;
+}
+
+message BrokenRuleInput {
+  option (buf.validate.message).cel = {
+    id: "broken"
+    message: "Invalid rule"
+    expression: "this.missing > 0"
+  };
+}
+
+service ProfileService {
+  rpc GetProfile(ProfileInput) returns (ProfileInput) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+  }
+  rpc SaveProfile(ProfileInput) returns (ProfileInput);
+}

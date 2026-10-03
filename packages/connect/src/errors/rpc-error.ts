@@ -1,12 +1,10 @@
 import { Code, ConnectError } from "@connectrpc/connect"
-import { PlainError } from "@plainworks/std"
+import { type Failure, FailureDecodeError, RemoteFailure } from "@plainworks/std/failure"
 import type { WebHeaders } from "@plainworks/std/web"
+import { decodeRpcFailure } from "./rpc-details"
 
 /**
- * Stable, transport-agnostic RPC error code — the gRPC/Connect code set as snake_case string
- * literals. It is the kit's typed error surface: consumers switch on {@link RpcError.code} instead
- * of the numeric Connect {@link Code} enum, and it doubles as the {@link RpcError} `kind`
- * discriminant (`connect/${code}`), matching the `PlainError` model used across plainworks.
+ * Protocol status, separate from the shared application failure code.
  */
 export type RpcErrorCode =
   | "canceled"
@@ -49,12 +47,8 @@ const CODE_TO_RPC_CODE: Record<Code, RpcErrorCode> = {
 export interface RpcErrorInit {
   /** Original numeric Connect code, preserved for interop with Connect tooling. */
   readonly rawCode: Code
-  /**
-   * Structured error details attached by the server, if any. Kept **raw/undecoded** on purpose: a
-   * registry-less kit cannot type-decode arbitrary `google.protobuf.Any` details, so consumers that
-   * need them decode against their own message registry.
-   */
-  readonly details?: readonly unknown[]
+  /** Original details, including unknown extensions, preserved for diagnostics. */
+  readonly details?: Readonly<ConnectError["details"]>
   /** Trailing/response metadata (headers) attached to the error. */
   readonly metadata?: WebHeaders
   /** Underlying cause — typically the originating `ConnectError` — preserved so nothing is swallowed. */
@@ -62,27 +56,32 @@ export interface RpcErrorInit {
 }
 
 /**
- * Typed error raised at the Connect boundary. Extends `PlainError`, so its `kind` is
- * `connect/${code}` (e.g. `connect/not_found`) — the same shape every plainworks package uses —
- * while {@link RpcError.code} exposes the bare {@link RpcErrorCode} for switch-on-code handling.
- * The originating `ConnectError` is preserved as `cause`. The string `code` is **derived from
- * `rawCode`**, so `kind`, `code`, and `rawCode` always describe one failure — a contradictory
- * pairing is unrepresentable.
+ * Shared remote failure with independently preserved Connect protocol identity.
+ * Malformed known details become operational failures, never form violations.
  */
-export class RpcError extends PlainError<`connect/${RpcErrorCode}`> {
-  /** Stable string code, derived from {@link RpcError.rawCode} and mirrored in the `kind` discriminant. */
-  readonly code: RpcErrorCode
+export class RpcError extends RemoteFailure<`connect/${RpcErrorCode}`> {
+  override readonly fieldPathFormat = "protobuf"
+  readonly rpcCode: RpcErrorCode
   /** Original numeric Connect code, preserved for interop. */
   readonly rawCode: Code
-  /** Raw, undecoded server error details (empty when none). */
-  readonly details: readonly unknown[]
+  /** Original server details, retained alongside the decoded shared fields. */
+  readonly details: Readonly<ConnectError["details"]>
   /** Trailing/response metadata attached to the error. */
   readonly metadata: WebHeaders
 
   constructor(message: string, init: RpcErrorInit) {
     const code = CODE_TO_RPC_CODE[init.rawCode] ?? "unknown"
-    super(`connect/${code}`, message, init.cause !== undefined ? { cause: init.cause } : undefined)
-    this.code = code
+    let failure: Failure
+    let cause = init.cause
+    try {
+      failure = decodeRpcFailure(init.rawCode, message, init.details ?? [])
+    } catch (error) {
+      if (!(error instanceof FailureDecodeError)) throw error
+      failure = error
+      cause = new FailureDecodeError({ cause: init.cause ?? error })
+    }
+    super(`connect/${code}`, failure, { cause })
+    this.rpcCode = code
     this.rawCode = init.rawCode
     this.details = init.details ?? []
     this.metadata = init.metadata ?? new Headers()
@@ -94,11 +93,11 @@ export class RpcError extends PlainError<`connect/${RpcErrorCode}`> {
  * plain network failure, an abort, and a `ConnectError` all map to one stable shape without losing
  * the original cause.
  *
- * This is a **boundary** mapper, called where the consumer reads the failure (a query error
- * boundary or a `catch` site) — never inside a transport interceptor, because Connect re-normalizes
- * any interceptor-thrown value back into a `ConnectError`, discarding a custom type.
+ * The transport and Query adapters call it outside interceptor normalization. Consumers already
+ * receive RpcError; custom transport integrations may use this boundary explicitly.
  */
 export function mapConnectError(reason: unknown): RpcError {
+  if (reason instanceof RpcError) return reason
   const connectError = ConnectError.from(reason)
   return new RpcError(connectError.rawMessage, {
     rawCode: connectError.code,

@@ -7,6 +7,7 @@ import { overlaysFlow } from "./overlays"
 import { pagesFlow } from "./pages"
 import { signInFlow } from "./sign-in"
 import { contentFlow, emptyFlow, failureFlow, loadingFlow, serverPaintFlow } from "./states"
+import { typedFailuresFlow } from "./typed-failures"
 
 /** Every showcase flow, in suite order. `flows.spec.ts` and `ui:capture` both run this list. */
 export const SHOWCASE_FLOWS: readonly Flow[] = [
@@ -24,4 +25,5 @@ export const SHOWCASE_FLOWS: readonly Flow[] = [
   galleryFlow,
   galleryPopupsFlow,
   galleryModalsFlow,
+  typedFailuresFlow,
 ]

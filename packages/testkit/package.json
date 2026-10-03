@@ -70,6 +70,7 @@
     "check-packaging": "plainworks-release check-packaging"
   },
   "dependencies": {
+    "@bufbuild/protovalidate": "catalog:",
     "@plainworks/std": "workspace:*",
     "@testing-library/react": "catalog:",
     "pixelmatch": "catalog:",

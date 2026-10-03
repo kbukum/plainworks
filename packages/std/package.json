@@ -47,6 +47,11 @@
       "types": "./dist/encoding.d.ts",
       "default": "./dist/encoding.js"
     },
+    "./failure": {
+      "@plainworks/source": "./src/failure/index.ts",
+      "types": "./dist/failure.d.ts",
+      "default": "./dist/failure.js"
+    },
     "./list": {
       "@plainworks/source": "./src/list/index.ts",
       "types": "./dist/list.d.ts",

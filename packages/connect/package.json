@@ -47,6 +47,16 @@
       "types": "./dist/query.d.ts",
       "default": "./dist/query.js"
     },
+    "./forms": {
+      "@plainworks/source": "./src/forms/index.ts",
+      "types": "./dist/forms.d.ts",
+      "default": "./dist/forms.js"
+    },
+    "./testing": {
+      "@plainworks/source": "./src/testing/index.ts",
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
+    },
     "./client": {
       "@plainworks/source": "./src/client.ts",
       "types": "./dist/client.d.ts",
@@ -54,20 +64,25 @@
     }
   },
   "scripts": {
+    "gen:proto": "buf generate",
     "build": "tsdown",
-    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.test.json",
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.test.json && tsc --noEmit -p tsconfig.testing.json",
     "test": "vitest run --coverage",
     "check-packaging": "plainworks-release check-packaging"
   },
   "dependencies": {
     "@bufbuild/protobuf": "catalog:",
+    "@bufbuild/protovalidate": "catalog:",
     "@connectrpc/connect": "catalog:",
     "@connectrpc/connect-query-core": "catalog:",
     "@connectrpc/connect-web": "catalog:",
     "@plainworks/std": "workspace:*"
   },
   "devDependencies": {
+    "@bufbuild/buf": "catalog:",
+    "@bufbuild/protoc-gen-es": "catalog:",
     "@connectrpc/connect-query": "catalog:",
+    "@plainworks/mocks": "workspace:*",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",

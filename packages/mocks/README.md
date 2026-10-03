@@ -18,6 +18,17 @@ Want a worked example rather than building from scratch? The kit's dev-only `@pl
 
 ## Usage
 
+### Wire failure fixtures
+
+`@plainworks/mocks/failure` exports `wireFailures` and `failureSource`. The corpus pins an immutable `kbukum/gokit` revision and a SHA-256 digest per source file. It includes problem JSON, serialized protobuf status, and Connect JSON; optional debug JSON is not a decoder input.
+
+```sh
+bun run --filter @plainworks/mocks fixtures:check --source=/path/to/gokit
+bun run --filter @plainworks/mocks fixtures:sync --source=/path/to/gokit
+```
+
+To update the corpus, change the pinned revision in `scripts/sync-failures.ts`, sync, and run the HTTP/RPC contract tests. The importer reads committed Git objects, never dirty working files. Client-only adversarial cases live in `@plainworks/connect/testing`.
+
 Compose the primitives to mock an entity end to end — a seeded factory feeds an in-memory store, CRUD handlers expose it over REST with filtering/sorting/pagination, and (optionally) the Vite plugin serves the handler set over real HTTP in dev:
 
 ```ts

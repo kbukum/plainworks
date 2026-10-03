@@ -15,19 +15,28 @@
       "@plainworks/source": "./src/server.ts",
       "types": "./dist/server.d.ts",
       "default": "./dist/server.js"
+    },
+    "./events": {
+      "@plainworks/source": "./src/events/index.ts",
+      "types": "./dist/events.d.ts",
+      "default": "./dist/events.js"
     }
   },
   "scripts": {
+    "proto:generate": "buf generate proto",
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage"
   },
   "dependencies": {
+    "@bufbuild/protobuf": "catalog:",
     "@plainworks/mocks": "workspace:*",
     "@plainworks/std": "workspace:*",
     "msw": "catalog:"
   },
   "devDependencies": {
+    "@bufbuild/buf": "catalog:",
+    "@bufbuild/protoc-gen-es": "catalog:",
     "@plainworks/tsdown-config": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",
     "@types/node": "catalog:",

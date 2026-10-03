@@ -50,13 +50,21 @@ channel.close()
 
 A channel moves through `idle → connecting → open → reconnecting → closing → closed`. The reconnect loop is bounded and self-healing:
 
-- **Header-only auth.** The `authProvider` credential is attached as a header on **every** attempt, re-resolved on reconnect for token refresh. A token never lands in a URL.
+- **Header-only auth.** The `authProvider` credential is attached as a header on every attempt. A token never lands in a URL. Expired or revoked sessions stop the stream and require login; the channel never runs a token-refresh loop.
 - **Fatal vs retryable.** Classification comes from `std`: a `401`/`403` is fatal and stops the loop (**S1**) rather than reconnecting forever; a transient failure retries with jittered backoff.
-- **Stable-open gating.** Backoff resets only after a connection stays open for `minUptimeMs` (**S3**), so a flapping stream escalates backoff instead of hammering the server.
+- **Stable-open gating.** A clean end after `minUptimeMs` resets the failure burst. Explicit retryable failures keep their retry hints and attempt count, even after a stable open.
 - **Timeouts.** `connectTimeoutMs` bounds each connection attempt; the optional `idleTimeoutMs` aborts and reconnects a half-dead stream that stops delivering frames without erroring (**S4**).
-- **Ceiling.** `maxRetries` bounds a run of **consecutive** retries — a stable open resets the count, so it caps a failure burst, not the channel's lifetime.
+- **Ceiling.** `maxRetries` and `retryBudgetMs` bound each failure burst, including connection admission and backoff. Healthy uptime is excluded. Waits use `max(server minimum, jittered backoff)`; a hint that cannot fit ends retries instead of being shortened.
 
-`connect()` and `close()` are idempotent. `status` and `lastEventId` are readable at any time; `lastEventId` is sent as `Last-Event-ID` on reconnect for header-only resume.
+`connect()` and `close()` are idempotent. `lastEventId` is the last **acknowledged delivery**, not the last received frame. The router acknowledges only after every sink succeeds; direct consumers must call `acknowledge(frame)` after applying it. Reconnect sends that cursor only in `Last-Event-ID`. Reset, queue overflow, and explicit close invalidate outstanding delivery leases.
+
+**Terminal failures stay visible.** `channel.error` retains the session's terminal failure until an explicit `connect()` starts a new session. A router attached after failure immediately reports that outcome and closes its sinks. Rebuilding a query or view cannot silently forget a dead stream.
+
+### Published event protocol
+
+Application event names are full protobuf message names. `protobufDecoder(schema)` uses the generated descriptor, validates proto JSON, and requires `<32 lowercase hex epoch>:<uint64 decimal sequence>`. Sequence comparisons use bigint; gaps from authorization filtering are valid.
+
+`connected` carries `{epoch,cursor}`. `reset` carries `{reason,cursor}`, where reason is `epochChanged`, `replayExpired`, or `overflow`. Neither control acknowledges an application event, including when the SSE parser inherits an earlier ID. Reset forgets the old resume cursor. A `failure` control uses the shared failure vocabulary and settles the connection before EOF; pre-stream problem responses use the same typed decoder. `ChannelError` exposes `code`, `retryable`, `retryAfterMs`, and `authentication` alongside its transport kind and cause.
 
 ## Transports
 
@@ -64,7 +72,7 @@ A transport is a `StreamTransportFactory` injected into `createChannel`. The cor
 
 ### SSE — `createSseTransport`
 
-Built on the platform `fetch` + `Response.body` + [`eventsource-parser`](https://github.com/rexxars/eventsource-parser) (not `@microsoft/fetch-event-source`). Honors `Last-Event-ID` for resume and the server's `retry:` hint. The whole decode buffer is bounded by `maxBufferChars` (**S2**) — an overflow raises a typed `channel/protocol` error rather than growing unbounded. `fetch` is an injectable seam (`options.fetch`) that defaults to the host.
+Built on the platform `fetch` + `Response.body` + [`eventsource-parser`](https://github.com/rexxars/eventsource-parser) (not `@microsoft/fetch-event-source`). Honors `Last-Event-ID` for resume and the server's `retry:` hint, including standalone directives followed by EOF. The whole decode buffer is bounded by `maxBufferChars` (**S2**) — an overflow raises a typed `channel/protocol` error rather than growing unbounded. `fetch` is an injectable seam (`options.fetch`) that defaults to the host.
 
 The transport **owns the response body**. An abort, an overflow, or a listener that throws cancels the body stream, and every exit releases the reader, so a stream never outlives its attempt.
 
@@ -85,20 +93,24 @@ createWsTransport({
 
 ## Event router
 
-The channel delivers raw `StreamFrame`s. The **event router** adds a typed layer: decode a frame to `{ type, payload, id }`, then fan it out to sinks. Delivery is drained through `std`'s bounded queue, so a slow sink applies backpressure instead of buffering without limit.
+The channel delivers raw `StreamFrame`s. The event router decodes each into `{type,data}`, then delivers it to every sink in order. One bounded queue owns delivery and acknowledgement. Build one router per channel.
 
 ```ts
-import { createEventRouter, createStateSink, jsonDecoder } from "@plainworks/channel/events"
+import { createEventRouter, protobufDecoder } from "@plainworks/channel/events"
+import { createLiveQuery } from "@plainworks/query/cache"
+import { TaskChangedSchema } from "./gen/events_pb"
 
-const router = createEventRouter<{ n: number }>({
+const live = createLiveQuery(client, { queryKey: ["tasks"], queryFn: readSnapshot })
+const router = createEventRouter({
   channel,
-  decode: jsonDecoder((v) => userSchema.parse(v)),
-  sinks: [createStateSink(stateSource, (event, current) => [...(current ?? []), event.payload])],
+  decode: protobufDecoder(TaskChangedSchema),
+  sinks: [live],
   onError: (err) => log(err),
-  onDrop: (event) => log("dropped", event.type),
 })
+channel.connect() // the connected boundary starts the first snapshot
 // … later
-router.close()
+router.close() // also closes the live snapshot owner
+channel.close()
 ```
 
 **Overflow never goes unseen.** The buffer holds `capacity` events (default 1024). When it is full, `overflow` picks what to lose:
@@ -109,9 +121,11 @@ router.close()
 | `drop-new` | The new event. |
 | `reject` | The new event, like `drop-new`. The stream keeps running. |
 
-Every dropped event reaches `onDrop`. Pass a `telemetry` seam too, and each drop is also a `channel.event.dropped` event with the `channel.overflow.policy` and `channel.event.type` attributes.
+The overflow-triggering drop reaches `onDrop` and optional `telemetry` as `channel.event.dropped`. Any overflow also cancels the old delivery generation, forgets resume, and calls sink `reset` hooks. Old queued frames cannot be applied or acknowledged after that gap. Decode and sink failures report through `onError` and enter the same recovery path.
 
-`jsonDecoder` parses the frame body and hands the untrusted value to your validator. A malformed-JSON or validation failure is reported to `onError` and the frame is dropped — one bad frame never tears down the stream. `createStateSink` folds events into a `std` `StateSource` (the `state` store as the `memory` scope), so the sink writes through one state contract rather than reaching into a store directly. `EventSink` is the seam for any custom sink.
+Use `createLiveQuery` for snapshot-backed state, including disabled remote-cache subscribers. Without an atomic snapshot watermark, events invalidate rather than overlay deltas. Recovery coalesces, rejects raced snapshots, and stops visibly stale after its budget; [Query's live owner](../query/README.md#live-snapshots) documents this contract. Custom history-dependent sinks must implement `reset`; notification-only sinks need not.
+
+`jsonDecoder` and `createStateSink` remain available for other validated event contracts. They do not provide snapshot convergence on their own.
 
 ## Client bindings (`./client`)
 

@@ -1,4 +1,5 @@
-import { PlainError } from "@plainworks/std"
+import { type Failure, failureCodeFor, RemoteFailure } from "@plainworks/std/failure"
+import { classifyStatus } from "@plainworks/std/resilience"
 
 /**
  * Why a channel operation failed, as a stable discriminant for typed handling instead of matching
@@ -20,17 +21,39 @@ export type ChannelErrorKind = "config" | "connect" | "protocol" | "closed"
  * HTTP-style status the shared classifier can read (so a `401`/`403` stops reconnection instead of
  * looping — see the fatal-vs-retryable classification in `std`).
  */
-export class ChannelError extends PlainError<`channel/${ChannelErrorKind}`> {
+export class ChannelError extends RemoteFailure<`channel/${ChannelErrorKind}`> {
   /** HTTP-style status when the failure came from a status response; otherwise `undefined`. */
   readonly status: number | undefined
 
   constructor(
     kind: ChannelErrorKind,
     message: string,
-    options?: { cause?: unknown; status?: number },
+    options?: { cause?: unknown; status?: number; failure?: Failure },
   ) {
-    super(`channel/${kind}`, message, options)
+    super(
+      `channel/${kind}`,
+      options?.failure ?? {
+        code:
+          options?.status !== undefined
+            ? failureCodeFor(options.status, "http")
+            : kind === "connect"
+              ? "CONNECTION_FAILED"
+              : "EXTERNAL_SERVICE_ERROR",
+        message,
+        violations: [],
+        retryable:
+          options?.status !== undefined
+            ? classifyStatus(options.status).disposition === "retryable"
+            : kind === "connect",
+      },
+      options,
+    )
     this.status = options?.status
+  }
+
+  /** A decoded remote outcome, preserving the common failure vocabulary. */
+  static failure(failure: Failure, options?: { cause?: unknown; status?: number }): ChannelError {
+    return new ChannelError("protocol", failure.message, { ...options, failure })
   }
 
   /** A configuration/usage fault detected at construction. */

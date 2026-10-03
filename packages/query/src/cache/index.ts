@@ -4,5 +4,7 @@
 export type { QueryCacheAction, QueryEventRouter } from "./event-sink"
 export { createQueryEventSink } from "./event-sink"
 export { createCacheInvalidator } from "./invalidator"
+export type { LiveQuery, LiveQueryOptions, LiveQueryStatus } from "./live-query"
+export { createLiveQuery, SnapshotStaleError } from "./live-query"
 export type { OptimisticUpdate } from "./routing"
 export { optimisticUpdate, writeQueryData } from "./routing"

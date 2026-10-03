@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package plainworks.demo.v1;
+
+message TaskChanged {
+  string id = 1;
+  string title = 2;
+  string status = 3;
+  string priority = 4;
+  string assignee_name = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}

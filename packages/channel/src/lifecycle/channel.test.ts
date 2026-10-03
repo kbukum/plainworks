@@ -71,7 +71,10 @@ describe("createChannel lifecycle", () => {
     const any: string[] = []
     const typed: string[] = []
     h.channel.onAny((frame) => any.push(frame.data))
-    h.channel.on("tick", (frame) => typed.push(frame.data))
+    h.channel.on("tick", (frame) => {
+      typed.push(frame.data)
+      h.channel.acknowledge(frame)
+    })
 
     h.channel.connect()
     expect(h.channel.status).toBe("connecting")
@@ -111,6 +114,7 @@ describe("createChannel lifecycle", () => {
 
   test("reconnects after a close and resumes from the last event id", async () => {
     const h = setup()
+    h.channel.onAny((frame) => h.channel.acknowledge(frame))
     h.channel.connect()
     await nextAttempt(h)
     h.transport.current?.open()
@@ -344,7 +348,7 @@ describe("backoff comes from std, not a local copy", () => {
 })
 
 describe("stable-open resets backoff (S3)", () => {
-  test("a stable connection that ends reconnects with no backoff wait", async () => {
+  test("a stable connection resets backoff but still waits before reconnecting", async () => {
     const h = setup()
     h.channel.connect()
     await nextAttempt(h)
@@ -353,8 +357,9 @@ describe("stable-open resets backoff (S3)", () => {
     h.transport.current?.endOk()
     await flushMicrotasks()
 
-    // Session resolved (stable) → the loop immediately starts a fresh attempt, no backoff pending.
-    expect(h.delay.waits.filter((ms) => ms < 1_000)).toEqual([])
+    expect(h.delay.waits.filter((ms) => ms < 1_000)).toEqual([100])
+    h.fireBackoff()
+    await flushMicrotasks()
     expect(h.transport.attempts.length).toBe(2)
   })
 
@@ -402,6 +407,8 @@ describe("idle-read timeout (S4)", () => {
     await flushMicrotasks()
 
     expect(h.transport.attempts[0]?.aborted).toBe(true)
+    h.fireBackoff()
+    await flushMicrotasks()
     expect(h.transport.attempts.length).toBe(2)
   })
 
@@ -518,6 +525,7 @@ describe("auth + resume are header-only", () => {
 
   test("a new event id updates the resume header on the next reconnect", async () => {
     const h = setup()
+    h.channel.onAny((frame) => h.channel.acknowledge(frame))
     h.channel.connect()
     await nextAttempt(h)
     h.transport.current?.open()
@@ -530,23 +538,26 @@ describe("auth + resume are header-only", () => {
     expect(h.transport.attempts[1]?.context.lastEventId).toBe("e9")
   })
 
-  test("a cursor-only id update moves the resume cursor; an empty id resets it", async () => {
+  test("parser receipt IDs never acknowledge delivery; explicit reset clears resume", async () => {
     const h = setup()
+    h.channel.onAny((frame) => h.channel.acknowledge(frame))
     h.channel.connect()
     await nextAttempt(h)
     h.transport.current?.open()
     h.transport.current?.frame({ type: "message", data: "x", id: "e1" })
-    // A control block carrying only `id:` (no frame) still moves the resume cursor.
+    // Receipt is not application acknowledgement.
     h.transport.current?.context.onId?.("e2")
     h.transport.current?.endError(ChannelError.connect("drop"))
     await flushMicrotasks()
     h.fireBackoff()
     await flushMicrotasks()
 
-    expect(h.transport.attempts[1]?.context.lastEventId).toBe("e2")
+    expect(h.transport.attempts[1]?.context.lastEventId).toBe("e1")
 
     // An empty id resets the cursor — the next attempt sends no Last-Event-ID.
     h.transport.current?.context.onId?.("")
+    expect(h.channel.lastEventId).toBe("e1")
+    h.channel.resetCursor()
     h.transport.current?.endError(ChannelError.connect("drop"))
     await flushMicrotasks()
     h.fireBackoff()

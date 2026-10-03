@@ -1,9 +1,11 @@
 import { TASK_PRIORITIES, type Task } from "@plainworks/demo"
+import { TaskChangedSchema } from "@plainworks/demo/events"
+import type { HttpClient } from "@plainworks/http"
 import { createScheduledStream } from "@plainworks/mocks/stream"
 import type { StreamFrame, StreamTransportFactory } from "@plainworks/std/seam"
 import { type Clock, systemClock } from "@plainworks/std/time"
+import { taskList } from "../../neutral/lists"
 import { TASK_STATUSES } from "../../neutral/tasks"
-import { LIVE_EVENT } from "./live-tasks"
 
 const LIVE_TITLES = [
   "Draft the release notes",
@@ -13,7 +15,7 @@ const LIVE_TITLES = [
   "Update the changelog",
 ] as const
 
-/** The full `task.upserted` frame the demo stream sends on tick `seq`. */
+/** A complete generated-message payload for the demo task event. */
 export function demoTaskFrame(seq: number, clock: Clock = systemClock): StreamFrame {
   const slot = seq % LIVE_TITLES.length
   const now = new Date(clock.now()).toISOString()
@@ -26,13 +28,27 @@ export function demoTaskFrame(seq: number, clock: Clock = systemClock): StreamFr
     createdAt: now,
     updatedAt: now,
   }
-  return { type: LIVE_EVENT, data: JSON.stringify(task) }
+  return { type: TaskChangedSchema.typeName, data: JSON.stringify(task) }
 }
 
 /**
- * The demo live-task stream, standing in for a real SSE/WS backend: one {@link demoTaskFrame}
- * every `intervalMs`, built on the `@plainworks/mocks` scheduled stream.
+ * Change a real demo task before announcing it, so subsequent list snapshots see the same state.
+ * An empty backend produces no event until tasks exist again.
  */
-export function createDemoTaskStream(intervalMs = 4000): StreamTransportFactory {
-  return createScheduledStream({ intervalMs, frame: (seq) => demoTaskFrame(seq) })
+export function createDemoTaskStream(
+  client: HttpClient,
+  intervalMs = 4000,
+): StreamTransportFactory {
+  return createScheduledStream({
+    intervalMs,
+    epoch: "00000000000000000000000000000001",
+    frame: async (seq, signal) => {
+      const page = await taskList.read(client, { page: 1, pageSize: 5 }, signal)
+      const task = page.data[(seq - 1) % page.data.length]
+      if (task === undefined) return undefined
+      const title = `${LIVE_TITLES[seq % LIVE_TITLES.length]} #${seq}`
+      await client.patch(`/api/tasks/${task.id}`, { body: { title }, signal })
+      return { type: TaskChangedSchema.typeName, data: JSON.stringify({ ...task, title }) }
+    },
+  })
 }

@@ -6,7 +6,7 @@
  */
 
 export type { BackoffPolicy, JitterStrategy } from "./backoff"
-export { defaultBackoff, nextBackoff } from "./backoff"
+export { assertBackoffPolicy, defaultBackoff, nextBackoff } from "./backoff"
 export type { BoundedQueue, BoundedQueueOptions, OverflowPolicy } from "./bounded-queue"
 export {
   createBoundedQueue,
@@ -18,6 +18,7 @@ export type { Classification, FailureCategory, FailureDisposition } from "./clas
 export { classifyError, classifyStatus, isRetryable, NetworkError, StatusError } from "./classify"
 export type { RetryDeps, RetryPolicy } from "./retry"
 export { RetryError, runWithRetry } from "./retry"
+export { retryDelay } from "./retry-delay"
 export type { Deadline, Delay } from "./timeout"
 export {
   AbortError,

@@ -5,7 +5,7 @@ const isRow = (value: unknown): value is { readonly id: string } =>
   typeof value === "object" && value !== null && typeof (value as { id?: unknown }).id === "string"
 
 const pagination = { page: 1, pageSize: 10, total: 1, totalPages: 1 }
-const cursorPagination = { pageSize: 10, nextCursor: "c2", prevCursor: null }
+const cursorPagination = { pageSize: 10, nextCursor: "c2" }
 
 describe("isPageInfo", () => {
   test("accepts a complete offset block", () => {
@@ -20,14 +20,15 @@ describe("isPageInfo", () => {
 })
 
 describe("isCursorInfo", () => {
-  test("accepts string or null cursors", () => {
+  test("accepts optional proto cursors", () => {
     expect(isCursorInfo(cursorPagination)).toBe(true)
-    expect(isCursorInfo({ pageSize: 5, nextCursor: null, prevCursor: null })).toBe(true)
+    expect(isCursorInfo({ pageSize: 5 })).toBe(true)
+    expect(isCursorInfo({ pageSize: 5, nextCursor: undefined })).toBe(true)
   })
 
-  test("rejects an absent or mistyped cursor", () => {
+  test("rejects null and mistyped cursors", () => {
     expect(isCursorInfo({ pageSize: 5, nextCursor: null })).toBe(false)
-    expect(isCursorInfo({ pageSize: 5, nextCursor: 1, prevCursor: null })).toBe(false)
+    expect(isCursorInfo({ pageSize: 5, nextCursor: 1 })).toBe(false)
   })
 })
 
@@ -64,7 +65,7 @@ describe("isCursorResult", () => {
   })
 
   test("rejects a malformed cursor block or facets block", () => {
-    expect(isCursorResult({ data: [], pagination }, isRow)).toBe(false)
+    expect(isCursorResult({ data: [] }, isRow)).toBe(false)
     expect(
       isCursorResult({ data: [], pagination: cursorPagination, facets: { a: 1 } }, isRow),
     ).toBe(false)

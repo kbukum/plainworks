@@ -21,7 +21,7 @@ interface ItemResponse {
 }
 interface CursorListResponse {
   data: Array<Record<string, unknown>>
-  pagination: { pageSize: number; nextCursor: string | null; prevCursor: string | null }
+  pagination: { pageSize: number; nextCursor?: string; prevCursor?: string }
   facets?: Record<string, Record<string, number>>
 }
 
@@ -55,28 +55,28 @@ describe("crud list handler", () => {
     )
     expect(first.data.length).toBe(5)
     expect(first.pagination.pageSize).toBe(5)
-    expect(first.pagination.prevCursor).toBeNull()
-    expect(first.pagination.nextCursor).not.toBeNull()
+    expect(first.pagination.prevCursor).toBeUndefined()
+    expect(first.pagination.nextCursor).not.toBeUndefined()
 
     const second = await json<CursorListResponse>(
       await fetch(`${base}/api/users?cursor=${first.pagination.nextCursor}&pageSize=5`),
     )
     expect(second.data[0]?.id).not.toBe(first.data[0]?.id)
-    expect(second.pagination.prevCursor).not.toBeNull()
+    expect(second.pagination.prevCursor).not.toBeUndefined()
   })
 
-  it("terminates cursor mode with a null nextCursor at the end of the list", async () => {
+  it("terminates cursor mode with an absent nextCursor at the end of the list", async () => {
     let cursor = ""
     let last: CursorListResponse | undefined
-    // Walk every page; the walk must terminate with nextCursor null, never loop.
+    // Walk every page; the walk must terminate with nextCursor absent, never loop.
     for (let pages = 0; pages < 50; pages += 1) {
       last = await json<CursorListResponse>(
         await fetch(`${base}/api/users?cursor=${cursor}&pageSize=7`),
       )
-      if (last.pagination.nextCursor === null) break
+      if (last.pagination.nextCursor === undefined) break
       cursor = last.pagination.nextCursor
     }
-    expect(last?.pagination.nextCursor).toBeNull()
+    expect(last?.pagination.nextCursor).toBeUndefined()
   })
 
   it("rejects a foreign cursor and a page+cursor mix with 400", async () => {
@@ -119,7 +119,7 @@ describe("crud list handler", () => {
       await fetch(`${base}/api/users?cursor=${second.pagination.prevCursor}&pageSize=5`),
     )
     expect(back.data.map((u) => u.id)).toEqual(first.data.map((u) => u.id))
-    expect(back.pagination.prevCursor).toBeNull()
+    expect(back.pagination.prevCursor).toBeUndefined()
   })
 
   it("honors the canonical pageSize, preferring it over the legacy limit alias", async () => {

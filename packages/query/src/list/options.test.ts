@@ -8,6 +8,23 @@ interface Item {
 }
 
 describe("listQueryOptions", () => {
+  it("rejects a generated response with missing pagination", async () => {
+    const plan = listQueryOptions({
+      resource: "items",
+      params: {},
+      fetch: async () => ({ data: [] }),
+    })
+    const client = createQueryClient()
+    await expect(
+      plan.queryFn({
+        client,
+        queryKey: plan.queryKey,
+        meta: undefined,
+        signal: new AbortController().signal,
+      }),
+    ).rejects.toThrow("pagination")
+    client.clear()
+  })
   it("pairs a deterministic key with a fetch of exactly those params", async () => {
     const client = createQueryClient()
     const params: ListQueryParams = { page: 1, pageSize: 2 }
@@ -72,13 +89,39 @@ describe("listQueryOptions", () => {
 })
 
 describe("infiniteListQueryOptions", () => {
+  it("stops at an absent proto cursor even when more pages were requested", async () => {
+    let calls = 0
+    const client = createQueryClient()
+    const plan = infiniteListQueryOptions({
+      resource: "items",
+      params: {},
+      fetch: async () => {
+        calls++
+        return { data: [{ id: 1 }], pagination: { pageSize: 1 } }
+      },
+    })
+    await client.infiniteQuery({ ...plan, pages: 5 })
+    expect(calls).toBe(1)
+    client.clear()
+  })
+
+  it("rejects missing cursor pagination instead of reporting an empty list", async () => {
+    const plan = infiniteListQueryOptions({
+      resource: "items",
+      params: {},
+      fetch: async () => ({ data: [] }),
+    })
+    await expect(
+      plan.queryFn({ pageParam: undefined, signal: new AbortController().signal }),
+    ).rejects.toThrow("pagination")
+  })
   it("round-trips cursor pages against the canonical cursor envelope", async () => {
-    // Three pages linked by cursor, terminating on `nextCursor: null`. The first page carries an
+    // Three pages linked by cursor, terminating on `nextCursor absent`. The first page carries an
     // empty cursor — the explicit wire signal that selects cursor mode from the first request.
     const pages: Record<string, CursorResult<Item>> = {
-      "": { data: [{ id: 1 }], pagination: { pageSize: 1, nextCursor: "c2", prevCursor: null } },
+      "": { data: [{ id: 1 }], pagination: { pageSize: 1, nextCursor: "c2" } },
       c2: { data: [{ id: 2 }], pagination: { pageSize: 1, nextCursor: "c3", prevCursor: "c1" } },
-      c3: { data: [{ id: 3 }], pagination: { pageSize: 1, nextCursor: null, prevCursor: "c2" } },
+      c3: { data: [{ id: 3 }], pagination: { pageSize: 1, prevCursor: "c2" } },
     }
     const client = createQueryClient()
     const requested: Array<string | undefined> = []
@@ -107,7 +150,7 @@ describe("infiniteListQueryOptions", () => {
   it("reports no next page at the end and threads the previous cursor", async () => {
     const last: CursorResult<Item> = {
       data: [{ id: 9 }],
-      pagination: { pageSize: 1, nextCursor: null, prevCursor: "c8" },
+      pagination: { pageSize: 1, prevCursor: "c8" },
     }
     const plan = infiniteListQueryOptions<Item>({
       resource: "items",
@@ -122,7 +165,7 @@ describe("infiniteListQueryOptions", () => {
   it("seeds an explicit initial cursor and reports no previous page at the start", () => {
     const start: CursorResult<Item> = {
       data: [{ id: 1 }],
-      pagination: { pageSize: 1, nextCursor: "c2", prevCursor: null },
+      pagination: { pageSize: 1, nextCursor: "c2" },
     }
     const plan = infiniteListQueryOptions<Item>({
       resource: "items",
@@ -144,7 +187,7 @@ describe("infiniteListQueryOptions", () => {
         firstFetchParams ??= p
         return {
           data: [{ id: 1 }],
-          pagination: { pageSize: 1, nextCursor: null, prevCursor: null },
+          pagination: { pageSize: 1 },
         }
       },
     })
@@ -164,7 +207,7 @@ describe("infiniteListQueryOptions", () => {
         firstFetchParams ??= p
         return {
           data: [{ id: 1 }],
-          pagination: { pageSize: 1, nextCursor: null, prevCursor: null },
+          pagination: { pageSize: 1 },
         }
       },
     })
@@ -180,7 +223,7 @@ describe("infiniteListQueryOptions", () => {
       initialCursor: "c0",
       fetch: async () => ({
         data: [{ id: 1 }],
-        pagination: { pageSize: 1, nextCursor: null, prevCursor: null },
+        pagination: { pageSize: 1 },
       }),
     })
     const b = infiniteListQueryOptions<Item>({
@@ -189,7 +232,7 @@ describe("infiniteListQueryOptions", () => {
       initialCursor: "c9",
       fetch: async () => ({
         data: [{ id: 9 }],
-        pagination: { pageSize: 1, nextCursor: null, prevCursor: null },
+        pagination: { pageSize: 1 },
       }),
     })
     expect(a.queryKey).not.toEqual(b.queryKey)
@@ -201,7 +244,7 @@ describe("infiniteListQueryOptions", () => {
   it("keys an omitted and an empty initial cursor identically — both fetch the same first page", () => {
     const fetch = async (): Promise<CursorResult<Item>> => ({
       data: [],
-      pagination: { pageSize: 1, nextCursor: null, prevCursor: null },
+      pagination: { pageSize: 1 },
     })
     const omitted = infiniteListQueryOptions<Item>({ resource: "items", params: {}, fetch })
     const empty = infiniteListQueryOptions<Item>({
@@ -223,7 +266,7 @@ describe("infiniteListQueryOptions", () => {
         seenSignal = signal
         return {
           data: [],
-          pagination: { pageSize: 1, nextCursor: null, prevCursor: null },
+          pagination: { pageSize: 1 },
         }
       },
     })

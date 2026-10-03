@@ -41,6 +41,12 @@ export interface Subscription {
  *   identity, not by blind accumulation).
  */
 export interface EventSink<TEvent extends PlainEvent = PlainEvent> {
+  /** Release owned recovery work when the router is disposed. Must be idempotent. */
+  close?(): void
+  /** Invalidate snapshots after a delivery gap. Must mark stale before returning a promise. */
+  reset?(signal: WebAbortSignal): void | Promise<void>
+  /** Subscription is established; snapshot owners may begin their initial fetch. */
+  connected?(signal: WebAbortSignal): void | Promise<void>
   /**
    * Handle one event; may be async, in which case the driver awaits it before the next. Cancel any
    * in-flight work when `signal` aborts rather than run past shutdown.

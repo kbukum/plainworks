@@ -4,6 +4,7 @@ import type { WebAbortSignal } from "@plainworks/std/web"
 import { deferred, flushMicrotasks } from "@plainworks/testkit"
 import { fakeStateSource, fakeStreamTransport, recordTelemetry } from "@plainworks/testkit/fakes"
 import { describe, expect, test, vi } from "vitest"
+import { ChannelError } from "../errors"
 import { createChannel } from "../lifecycle"
 import { jsonDecoder } from "./event"
 import { createEventRouter } from "./router"
@@ -96,7 +97,7 @@ describe("createEventRouter", () => {
     router.close()
   })
 
-  test("a sink rejection is reported and does not stall the stream", async () => {
+  test("a sink rejection invalidates queued delivery and permits a fresh generation", async () => {
     const { channel, transport } = channelOn()
     const onError = vi.fn()
     const good: number[] = []
@@ -123,8 +124,95 @@ describe("createEventRouter", () => {
     await flushMicrotasks()
 
     expect(onError).toHaveBeenCalledOnce()
-    expect(good).toEqual([1, 2])
+    expect(good).toEqual([])
+    attempt.frame({ type: "t", data: JSON.stringify({ n: 3 }) })
+    await flushMicrotasks()
+    expect(good).toEqual([3])
     router.close()
+  })
+
+  test("tears sinks down when the channel dies without an in-stream failure frame", async () => {
+    const { channel, transport } = channelOn()
+    const onError = vi.fn()
+    const closed = vi.fn()
+    const delivered: unknown[] = []
+    createEventRouter<NEvent>({
+      channel,
+      decode: jsonDecoder((v) => v as { n: number }),
+      sinks: [{ deliver: (e) => void delivered.push(e), close: closed }],
+      onError,
+    })
+
+    await flushMicrotasks()
+    // A fatal pre-stream failure (401) ends the channel terminally, emitting no `failure` wire
+    // frame. The router must still surface it and close the sink, so the owner cannot keep
+    // presenting stale data as synchronized.
+    takeAttempt(transport).endError(ChannelError.protocol("unauthorized", { status: 401 }))
+    await flushMicrotasks()
+
+    expect(channel.status).toBe("closed")
+    expect(onError).toHaveBeenCalledOnce()
+    expect(onError.mock.calls[0]?.[0]).toMatchObject({ status: 401 })
+    expect(closed).toHaveBeenCalledOnce()
+    transport.assertClosed()
+  })
+
+  test("a close() from an onError callback cannot restart recovery after teardown", async () => {
+    const { channel, transport } = channelOn()
+    const events: string[] = []
+    const sink: EventSink<NEvent> = {
+      deliver: () => {},
+      reset: () => void events.push("reset"),
+      close: () => void events.push("close"),
+    }
+    const router = createEventRouter<NEvent>({
+      channel,
+      decode: jsonDecoder(() => {
+        throw new Error("invalid")
+      }),
+      sinks: [sink],
+      onError: () => router.close(),
+    })
+
+    await flushMicrotasks()
+    const attempt = takeAttempt(transport)
+    attempt.open()
+    // The decode failure reports via onError, which closes the router. The follow-up reset() must
+    // not run after close(), or it would leave a fresh, un-abortable recovery signal unowned.
+    attempt.frame({ type: "x", data: JSON.stringify({ n: 1 }) })
+    await flushMicrotasks()
+
+    expect(events).toEqual(["close"])
+    channel.close()
+    transport.assertClosed()
+  })
+
+  test.each([
+    {
+      data: JSON.stringify({ code: "TOKEN_EXPIRED", message: "Sign in.", retryable: true }),
+      error: { code: "TOKEN_EXPIRED", authentication: "unauthenticated" },
+    },
+    { data: "not json", error: { kind: "channel/protocol" } },
+  ])("reports terminal in-stream failures before closing sinks: $data", async ({ data, error }) => {
+    const { channel, transport } = channelOn()
+    const events: string[] = []
+    const onError = vi.fn((_error: ChannelError) => events.push("error"))
+    createEventRouter<NEvent>({
+      channel,
+      decode: jsonDecoder((value) => value as { n: number }),
+      sinks: [{ deliver: () => {}, close: () => void events.push("closed") }],
+      onError,
+    })
+    await flushMicrotasks()
+    takeAttempt(transport).open()
+    takeAttempt(transport).frame({ type: "failure", data })
+    await flushMicrotasks()
+
+    expect(onError).toHaveBeenCalledOnce()
+    expect(onError.mock.calls[0]?.[0]).toMatchObject(error)
+    expect(events).toEqual(["error", "closed"])
+    expect(channel.status).toBe("closed")
+    transport.assertClosed()
   })
 
   test("drops a frame the decoder ignores (returns undefined)", async () => {
@@ -150,6 +238,48 @@ describe("createEventRouter", () => {
     router.close()
   })
 
+  test("a replacement router adopts the terminal outcome until the channel explicitly restarts", async () => {
+    const { channel, transport } = channelOn()
+    await flushMicrotasks()
+    const failure = ChannelError.protocol("Sign in.", { status: 401 })
+    takeAttempt(transport).endError(failure)
+    await flushMicrotasks()
+    expect(channel.error).toBe(failure)
+    const onError = vi.fn()
+    const closed = vi.fn()
+    createEventRouter<NEvent>({
+      channel,
+      decode: jsonDecoder((value) => value as { n: number }),
+      sinks: [{ deliver: () => {}, close: closed }],
+      onError,
+    })
+    expect(onError).toHaveBeenCalledExactlyOnceWith(failure)
+    expect(closed).toHaveBeenCalledOnce()
+    expect(channel.listenerCount).toBe(0)
+
+    channel.connect()
+    expect(channel.error).toBeUndefined()
+    const connected = vi.fn()
+    const router = createEventRouter<NEvent>({
+      channel,
+      decode: jsonDecoder((value) => value as { n: number }),
+      sinks: [{ deliver: () => {}, connected, close: closed }],
+      onError,
+    })
+    await flushMicrotasks()
+    takeAttempt(transport).open()
+    takeAttempt(transport).frame({
+      type: "connected",
+      data: '{"epoch":"00000000000000000000000000000001","cursor":"00000000000000000000000000000001:0"}',
+    })
+    expect(connected).toHaveBeenCalledOnce()
+    expect(onError).toHaveBeenCalledOnce()
+    expect(closed).toHaveBeenCalledOnce()
+    router.close()
+    channel.close()
+    transport.assertClosed()
+  })
+
   describe("overflow", () => {
     /** Stall the sink on event 1, push 2..5 into a capacity-2 buffer, then let the drain finish. */
     async function overflowRun(options: {
@@ -160,11 +290,15 @@ describe("createEventRouter", () => {
       const { channel, transport } = channelOn()
       const gate = deferred<void>()
       const delivered: number[] = []
+      let resets = 0
       const router = createEventRouter<NEvent>({
         channel,
         decode: jsonDecoder((v) => v as { n: number }),
         sinks: [
           {
+            reset: () => {
+              resets++
+            },
             deliver: async (e) => {
               if (e.data.n === 1) {
                 await gate.promise
@@ -187,14 +321,18 @@ describe("createEventRouter", () => {
       await flushMicrotasks()
       gate.resolve()
       await flushMicrotasks()
+      expect(resets).toBe(2)
+      expect(delivered).toEqual([])
+      attempt.frame({ type: "tick", data: JSON.stringify({ n: 6 }) })
+      await flushMicrotasks()
       router.close()
       return { delivered, channel }
     }
 
     test.each([
-      { overflow: "drop-oldest", delivered: [1, 4, 5], dropped: [2, 3] },
-      { overflow: "drop-new", delivered: [1, 2, 3], dropped: [4, 5] },
-      { overflow: "reject", delivered: [1, 2, 3], dropped: [4, 5] },
+      { overflow: "drop-oldest", delivered: [6], dropped: [2, 3] },
+      { overflow: "drop-new", delivered: [6], dropped: [4, 5] },
+      { overflow: "reject", delivered: [6], dropped: [4, 5] },
     ] as const)("$overflow reports every dropped event", async (row) => {
       const dropped: number[] = []
 
@@ -235,7 +373,7 @@ describe("createEventRouter", () => {
         },
       })
 
-      expect(delivered).toEqual([1, 2, 3])
+      expect(delivered).toEqual([6])
     })
   })
 

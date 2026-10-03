@@ -56,13 +56,13 @@ flowchart LR
 | Auth | A BFF session gate keeps tokens on the server. Login, logout, CSRF validation, and authorization run through published auth seams. A sign-in that can't finish returns to the login page with a notice. |
 | Theme and state | Mode and accent are resolved before paint, then persisted through injected state sources. Device-local motion preferences use a versioned browser scope. |
 | UI | Published elements and composites provide navigation, overlays, forms, tables, pagination, feedback, and display formatting. Route sections load lazily behind a shared shell. |
-| Channel | Task events are validated and reconciled into the active query page, with explicit pause and teardown behavior. |
+| Channel | Generated task events invalidate an owned snapshot of the active query page. Reset and overflow share bounded recovery; stale state offers explicit refresh, with pause and teardown controls. |
 | Mocks | `@plainworks/demo` creates deterministic API graphs for SSR, browser development, unit tests, and browser tests. The browser graph also exposes the development-only control plane. |
 | Devtools | HTTP, query, and an app-owned mock source share one session. The host has no operational logging pipeline or standalone store to inspect, and it does not manufacture clients just for diagnostics. The Next host adds the live channel to its inspector session. |
 
 ## Rendering flow
 
-The server resolves the session and theme for each request, prefetches the active section, and streams the shared `<Showcase>` tree. The HTML carries one escaped JSON block, written by `renderHydrationScript`, with the application snapshot and dehydrated query cache. The browser validates it with `readHydration`, rebuilds per-app clients and sources, and hydrates the same tree.
+The server resolves the session and theme for each request, prefetches the active section, and streams the shared `<Showcase>` tree. The HTML carries one escaped JSON block, written by `renderHydrationScript`, with the application snapshot and dehydrated query cache. The browser validates it with `readHydration`, rebuilds per-app clients and sources, and hydrates the same tree. Pausing live updates returns fetch ownership to the normal Query observer, so filtering, paging, and writes still work.
 
 Every section is a route-level lazy boundary. The persistent shell, command palette, toast host, and navigation load once; Overview, Tasks, Orders, Products, Users, Notifications, and Settings load on demand. Lists use bounded server pagination, so virtualization would add cost without improving the current data sizes.
 

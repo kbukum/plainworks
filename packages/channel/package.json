@@ -60,10 +60,13 @@
     "check-packaging": "plainworks-release check-packaging"
   },
   "dependencies": {
+    "@bufbuild/protobuf": "catalog:",
+    "@plainworks/http": "workspace:*",
     "@plainworks/std": "workspace:*",
     "eventsource-parser": "catalog:"
   },
   "devDependencies": {
+    "@plainworks/mocks": "workspace:*",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",

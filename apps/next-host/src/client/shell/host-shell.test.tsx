@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import type { SessionSnapshot } from "@plainworks/auth/session"
+import { createQueryClient } from "@plainworks/query"
 import type { StateSource } from "@plainworks/std/seam"
 import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/client"
 import { fakeStateSource } from "@plainworks/testkit/fakes"
@@ -47,7 +48,7 @@ function renderShell(
   return render(
     <ThemeProvider source={themeSource} initialTheme={DEFAULT_THEME}>
       <SessionProvider initialSnapshot={session}>
-        <HostShell liveSource={createLiveTasksSource()}>
+        <HostShell liveSource={createLiveTasksSource(createQueryClient())}>
           <p>Page content</p>
         </HostShell>
       </SessionProvider>

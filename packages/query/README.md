@@ -21,7 +21,7 @@ bun add @plainworks/query @tanstack/query-core @tanstack/react-query
 | Import | What it gives you |
 |---|---|
 | `@plainworks/query` | `createQueryClient`, the per-request client factory. |
-| `@plainworks/query/cache` | Cache routing: `writeQueryData`, `optimisticUpdate`, `createCacheInvalidator`, and `createQueryEventSink`. |
+| `@plainworks/query/cache` | Cache routing, optimistic updates, and `createLiveQuery` snapshot ownership. |
 | `@plainworks/query/hydration` | RSC prefetch, dehydrate, and hydrate. |
 | `@plainworks/query/remote` | The `remote` state scope. |
 | `@plainworks/query/list` | List cache keys and query options. |
@@ -86,6 +86,34 @@ const sink = createQueryEventSink(client, (event) =>
 )
 await sink.deliver(event) // wired to a channel stream at the app layer
 ```
+
+## Live snapshots
+
+`createLiveQuery(client, plan)` is an `EventSink` that owns snapshot fetching. Wire it into the channel router **before connecting**. A validated `connected` or `reset` boundary starts the first fetch. Application events, resets, local overflow, and ordinary query invalidations mark the snapshot stale; they never overlay event payloads.
+
+```ts
+import { createLiveQuery } from "@plainworks/query/cache"
+
+const live = createLiveQuery(client, {
+  queryKey: ["tasks"],
+  queryFn: ({ signal }) => readTasks(signal),
+})
+const subscription = live.subscribe(() => renderSyncStatus(live.status, live.error))
+// Pass `live` to the channel router's sinks before channel.connect().
+// On an explicit user refresh:
+live.refresh()
+// On teardown (the router also calls live.close()):
+subscription.unsubscribe()
+live.close()
+```
+
+Use one live owner per query key and disabled Query observers for the UI. Remote state sources already use disabled observers; they subscribe but do not fetch. The live owner explicitly fetches those same cache entries, so a remote-only subscriber converges too.
+
+Recovery defaults to **two snapshot attempts in 30 seconds**, with jittered waits. A new event or reconnect cancels an in-flight snapshot and invalidates its generation; a late response cannot roll the cache back even if its fetch ignores cancellation. Repeated invalidations coalesce without resetting the recovery budget. Exhaustion exposes `status: "stale"` and `SnapshotStaleError`, retaining the last known data until explicit `refresh()`. Render that state and a refresh action rather than presenting stale data as current. Keep terminal channel errors separate: teardown sets the owner to `closed`, where `refresh()` cannot restart it.
+
+Query retries are disabled for owned snapshots. A transport failure stops recovery, leaving the transport as the sole retry owner; a server minimum is never bypassed by another Query retry loop. Closing cancels the fetch and waits, removes the invalidation subscription, and releases status listeners.
+
+Generic `createQueryEventSink` remains useful for other event contracts. Its invalidation alone is not a fetch owner for disabled observers, and arbitrary `set` actions are not a replacement for snapshot convergence.
 
 ## The `remote` scope — server-owned state through the unified surface
 
@@ -163,7 +191,7 @@ const plan = listQueryOptions({
 // spread `plan` into useQuery; infiniteListQueryOptions spreads into useInfiniteQuery (cursor-paged)
 ```
 
-`listQueryOptions`/`infiniteListQueryOptions` are optional conveniences — a host may build keys by hand. `fetch` is any function returning the `PaginatedResult<T>`/`CursorResult<T>` envelope, so `query` never learns a protocol.
+`listQueryOptions`/`infiniteListQueryOptions` accept generated responses directly, including types whose `pagination` field is optional. At runtime, missing or invalid pagination throws `ListDecodeError`. Cursor pages end when `nextCursor` is absent; null is not a cursor. The helpers preserve response extensions and need no per-app proto conversion.
 
 ## HTTP lists (`./http-list`)
 

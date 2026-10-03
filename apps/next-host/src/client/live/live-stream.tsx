@@ -1,20 +1,15 @@
 "use client"
 
 import { createChannelContext } from "@plainworks/channel/client"
-import { createEventRouter, createStateSink } from "@plainworks/channel/events"
-import { createQueryEventSink } from "@plainworks/query/cache"
-import { isRecord } from "@plainworks/std"
-import {
-  createSourceReconciler,
-  type PlainEvent,
-  type StateSource,
-  type StreamFrame,
-} from "@plainworks/std/seam"
+import { createEventRouter, protobufDecoder } from "@plainworks/channel/events"
+import { Button } from "@plainworks/elements/button"
+import { createLiveQuery, type LiveQuery, type LiveQueryStatus } from "@plainworks/query/cache"
+import { createSourceReconciler, type StateSource } from "@plainworks/std/seam"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { useQueryClient } from "@tanstack/react-query"
-import { type ReactElement, type ReactNode, useEffect, useState } from "react"
-
-/** The demo event this stream carries: a task upsert with a stable id and a title. */
-export type TaskEvent = PlainEvent<"task.upserted", { readonly id: string; readonly title: string }>
+import { type ReactElement, type ReactNode, useEffect, useRef, useState } from "react"
+import { LIVE_TASKS_SLOT_KEY } from "../../neutral/constants"
+import { TaskChangedSchema } from "../../neutral/live/events_pb"
 
 /** The live-tasks slot shape: last-write-wins by id, so redelivery is idempotent. */
 export type LiveTasks = Record<string, string>
@@ -30,61 +25,68 @@ export const LiveChannelProvider = channel.ChannelProvider
 /** Read the live channel built by {@link LiveChannelProvider}; used to observe it in development. */
 export const useLiveChannel = channel.useChannel
 
-/** Decode an untrusted frame into a typed {@link TaskEvent}, dropping anything malformed. */
-function decodeTaskEvent(frame: StreamFrame): TaskEvent | undefined {
-  if (frame.type !== "task.upserted") {
-    return undefined
-  }
-  let payload: unknown
-  try {
-    payload = JSON.parse(frame.data)
-  } catch {
-    return undefined
-  }
-  if (!isRecord(payload) || typeof payload.id !== "string" || typeof payload.title !== "string") {
-    return undefined
-  }
-  return { type: "task.upserted", data: { id: payload.id, title: payload.title } }
-}
-
 /** Props for {@link LiveTaskSink}. */
 export interface LiveTaskSinkProps {
-  /** The memory-scope slot the stream folds task titles into. */
-  readonly source: StateSource<LiveTasks>
+  /** Authoritative, abortable snapshot; the kit owns its fetch and recovery budget. */
+  readonly snapshot: (signal: WebAbortSignal) => Promise<LiveTasks>
   readonly children: ReactNode
 }
 
 /**
- * Wire the one live stream into **both** a `@plainworks/state` slot and the `@plainworks/query`
- * cache through a single {@link createEventRouter} using the unified event contract. The state sink
- * folds each upsert into the memory slot (id → title); the query sink writes the same payload under
- * `["task", id]`. Both are the one `EventSink` over the one `PlainEvent`, so they share a router
- * with no bespoke bus. The router is torn down on unmount — explicit ownership, no leak.
+ * Decode generated events and invalidate the owned snapshot. Scoped state observes that same
+ * Query entry, including resets, rather than keeping a second copy or overlaying event deltas.
  */
-export function LiveTaskSink({ source, children }: LiveTaskSinkProps): ReactElement {
+export function LiveTaskSink({ snapshot, children }: LiveTaskSinkProps): ReactElement {
   const liveChannel = channel.useChannel()
   const queryClient = useQueryClient()
+  const [snapshotError, setSnapshotError] = useState<string>()
+  const [channelError, setChannelError] = useState<string>()
+  const [status, setStatus] = useState<LiveQueryStatus>("waiting")
+  const owner = useRef<LiveQuery | undefined>(undefined)
 
   useEffect(() => {
-    const router = createEventRouter<TaskEvent>({
-      channel: liveChannel,
-      decode: decodeTaskEvent,
-      sinks: [
-        createStateSink<TaskEvent, LiveTasks>(source, (event, current) => ({
-          ...(current ?? {}),
-          [event.data.id]: event.data.title,
-        })),
-        createQueryEventSink<TaskEvent>(queryClient, (event) => ({
-          kind: "set",
-          queryKey: ["task", event.data.id],
-          update: event.data,
-        })),
-      ],
+    const live = createLiveQuery(queryClient, {
+      queryKey: [LIVE_TASKS_SLOT_KEY],
+      queryFn: ({ signal }) => snapshot(signal),
     })
-    return () => router.close()
-  }, [liveChannel, queryClient, source])
+    owner.current = live
+    setStatus(live.status)
+    setSnapshotError(undefined)
+    setChannelError(undefined)
+    const subscription = live.subscribe(() => {
+      setStatus(live.status)
+      setSnapshotError(live.error?.message)
+      if (live.status === "fresh") setChannelError(undefined)
+    })
+    const router = createEventRouter({
+      channel: liveChannel,
+      decode: protobufDecoder(TaskChangedSchema),
+      sinks: [live],
+      onError: (failure) => setChannelError(failure.message),
+    })
+    return () => {
+      subscription.unsubscribe()
+      router.close()
+      owner.current = undefined
+    }
+  }, [liveChannel, queryClient, snapshot])
 
-  return <>{children}</>
+  const error = channelError ?? snapshotError
+  return (
+    <>
+      {error === undefined ? null : (
+        <div role="alert">
+          <p>{error}</p>
+          {status === "closed" ? null : (
+            <Button variant="outline" onClick={() => owner.current?.refresh()}>
+              Refresh live data
+            </Button>
+          )}
+        </div>
+      )}
+      {children}
+    </>
+  )
 }
 
 /** Result returned by {@link useLiveTasks}. */

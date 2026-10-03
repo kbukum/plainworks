@@ -12,13 +12,13 @@ export function isPageInfo(value: unknown): value is PageInfo {
   )
 }
 
-/** Narrow an untrusted value to the {@link CursorInfo} block; an exhausted cursor is `null`, never absent. */
+/** Narrow proto cursor metadata; an absent cursor ends traversal. */
 export function isCursorInfo(value: unknown): value is CursorInfo {
   return (
     isRecord(value) &&
     typeof value.pageSize === "number" &&
-    (typeof value.nextCursor === "string" || value.nextCursor === null) &&
-    (typeof value.prevCursor === "string" || value.prevCursor === null)
+    (typeof value.nextCursor === "string" || value.nextCursor === undefined) &&
+    (typeof value.prevCursor === "string" || value.prevCursor === undefined)
   )
 }
 

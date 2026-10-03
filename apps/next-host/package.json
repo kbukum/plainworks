@@ -5,6 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "proto:generate": "buf generate proto",
     "dev": "next dev",
     "build": "next build",
     "check-production": "PLAINWORKS_BUNDLE_ANALYSIS=1 next build && plainworks-bundle-exclusion devtools-exclusion.json",
@@ -14,6 +15,7 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@bufbuild/protobuf": "catalog:",
     "@plainworks/app": "workspace:*",
     "@plainworks/auth": "workspace:*",
     "@plainworks/channel": "workspace:*",
@@ -35,6 +37,8 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "catalog:",
+    "@bufbuild/buf": "catalog:",
+    "@bufbuild/protoc-gen-es": "catalog:",
     "@plainworks/bundle-exclusion": "workspace:*",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",

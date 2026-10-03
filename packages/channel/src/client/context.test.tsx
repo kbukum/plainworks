@@ -202,7 +202,7 @@ describe("createChannelContext", () => {
     view.unmount()
   })
 
-  test("an empty-id cursor reset survives a reconnect instead of restoring the seed", async () => {
+  test("a reset control survives reconnect instead of restoring the seed", async () => {
     const { transport, options } = withTransport({ lastEventId: "seed-1" })
     const { ChannelProvider } = createChannelContext()
 
@@ -221,8 +221,10 @@ describe("createChannelContext", () => {
     })
     expect(transport.current?.context.lastEventId).toBe("seed-1")
 
-    // The server resets the cursor (SSE empty id), then the provider closes and reconnects.
-    transport.current?.context.onId?.("")
+    transport.current?.frame({
+      type: "reset",
+      data: '{"reason":"epochChanged","cursor":"00000000000000000000000000000001:0"}',
+    })
     view.rerender(<Tree autoConnect={false} />)
     view.rerender(<Tree autoConnect={true} />)
     await act(async () => {

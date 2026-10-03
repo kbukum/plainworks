@@ -95,11 +95,12 @@ const packageEntries = new Map(
   packages.map((name) => [name, sourceEntries(join(packagesDir, name))]),
 )
 
-// One program over every package's entries, so shared sources are parsed once rather than once per
-// package. It compiles the whole workspace, so it gets its own budget instead of the per-test one.
+// Build and bind one program over every package's entries, so shared sources are initialized once
+// under the workspace budget rather than lazily under the first package's per-test budget.
 let allEntries: ts.Program
 beforeAll(() => {
   allEntries = createEntryProgram([...packageEntries.values()].flatMap((e) => [...e.values()]))
+  allEntries.getTypeChecker()
 }, 120_000)
 
 test.each(packages)("every public name in %s has one import path", (name) => {

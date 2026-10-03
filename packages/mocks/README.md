@@ -29,6 +29,17 @@ bun run --filter @plainworks/mocks fixtures:sync --source=/path/to/gokit
 
 To update the corpus, change the pinned revision in `scripts/sync-failures.ts`, sync, and run the HTTP/RPC contract tests. The importer reads committed Git objects, never dirty working files. Client-only adversarial cases live in `@plainworks/connect/testing`.
 
+### Live convergence fixtures
+
+`@plainworks/mocks/stream` exports `protocolFixture`, `convergenceFixture`, `listsFixture`, and `liveSource`. These pin the published SSE frames, acknowledgement/snapshot operation sequences, and list shapes from gokit, with their immutable revision and SHA-256 digests. The failure corpus also includes `sseFrame`; channel tests consume it through the SSE transport.
+
+```sh
+bun run --filter @plainworks/mocks fixtures:live:check --source=/path/to/gokit
+bun run --filter @plainworks/mocks fixtures:live:sync --source=/path/to/gokit
+```
+
+### Entity mocks
+
 Compose the primitives to mock an entity end to end — a seeded factory feeds an in-memory store, CRUD handlers expose it over REST with filtering/sorting/pagination, and (optionally) the Vite plugin serves the handler set over real HTTP in dev:
 
 ```ts
@@ -106,9 +117,12 @@ import { createScheduledStream } from "@plainworks/mocks/stream"
 
 const transport = createScheduledStream({
   intervalMs: 2000,
-  frame: (seq) => ({ type: "task.upserted", data: JSON.stringify({ id: `task-${seq % 5}` }) }),
+  epoch: "00000000000000000000000000000001",
+  frame: (seq) => ({ type: TaskChangedSchema.typeName, data: JSON.stringify({ id: `task-${seq % 5}` }) }),
 })
 ```
+
+With an `epoch`, the factory emits `connected` before application frames and uses canonical sequence IDs across attempts. A resumed connection sends `replayExpired` reset because this mock retains no replay. The frame callback may be async and receives the attempt signal, letting a demo update its authoritative backend before announcing a change.
 
 A few behaviors worth knowing:
 

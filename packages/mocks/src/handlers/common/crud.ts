@@ -324,9 +324,11 @@ export function createCrudHandlers<
           pagination: {
             pageSize,
             nextCursor:
-              lastRow !== undefined && end < data.length ? `n_${String(lastRow[idField])}` : null,
+              lastRow !== undefined && end < data.length
+                ? `n_${String(lastRow[idField])}`
+                : undefined,
             prevCursor:
-              firstRow !== undefined && start > 0 ? `p_${String(firstRow[idField])}` : null,
+              firstRow !== undefined && start > 0 ? `p_${String(firstRow[idField])}` : undefined,
           },
           facets,
         })

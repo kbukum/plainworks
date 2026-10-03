@@ -25,6 +25,7 @@
       "name": "@plainworks/next-host",
       "version": "0.0.0",
       "dependencies": {
+        "@bufbuild/protobuf": "catalog:",
         "@plainworks/app": "workspace:*",
         "@plainworks/auth": "workspace:*",
         "@plainworks/channel": "workspace:*",
@@ -46,6 +47,8 @@
       },
       "devDependencies": {
         "@axe-core/playwright": "catalog:",
+        "@bufbuild/buf": "catalog:",
+        "@bufbuild/protoc-gen-es": "catalog:",
         "@plainworks/bundle-exclusion": "workspace:*",
         "@plainworks/testkit": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",
@@ -176,11 +179,14 @@
       "name": "@plainworks/demo",
       "version": "0.0.0",
       "dependencies": {
+        "@bufbuild/protobuf": "catalog:",
         "@plainworks/mocks": "workspace:*",
         "@plainworks/std": "workspace:*",
         "msw": "catalog:",
       },
       "devDependencies": {
+        "@bufbuild/buf": "catalog:",
+        "@bufbuild/protoc-gen-es": "catalog:",
         "@plainworks/tsdown-config": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",
         "@types/node": "catalog:",
@@ -397,10 +403,13 @@
       "name": "@plainworks/channel",
       "version": "0.1.0-alpha.1",
       "dependencies": {
+        "@bufbuild/protobuf": "catalog:",
+        "@plainworks/http": "workspace:*",
         "@plainworks/std": "workspace:*",
         "eventsource-parser": "catalog:",
       },
       "devDependencies": {
+        "@plainworks/mocks": "workspace:*",
         "@plainworks/testkit": "workspace:*",
         "@plainworks/tsdown-config": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",
@@ -673,6 +682,7 @@
       },
       "devDependencies": {
         "@plainworks/http": "workspace:*",
+        "@plainworks/mocks": "workspace:*",
         "@plainworks/testkit": "workspace:*",
         "@plainworks/tsdown-config": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",

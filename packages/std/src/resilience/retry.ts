@@ -6,8 +6,9 @@ import { systemRandom } from "../random"
 import { type Clock, systemClock } from "../time"
 import type { WebAbortSignal } from "../web/types"
 import type { BackoffPolicy } from "./backoff"
-import { assertBackoffPolicy, nextBackoff } from "./backoff"
+import { assertBackoffPolicy } from "./backoff"
 import { isRetryable as defaultIsRetryable } from "./classify"
+import { retryDelay } from "./retry-delay"
 import type { Delay } from "./timeout"
 import { AbortError, combineSignals, createDeadline, MAX_TIMER_MS, systemDelay } from "./timeout"
 
@@ -131,10 +132,7 @@ async function runAttempts<T>(
               minimum,
               supplied !== undefined && Number.isFinite(supplied) && supplied >= 0 ? supplied : 0,
             )
-      const waitMs =
-        hint !== undefined && Number.isFinite(hint) && hint >= 0
-          ? Math.max(hint, nextBackoff(policy.backoff, attempt, random, previousMs))
-          : nextBackoff(policy.backoff, attempt, random, previousMs)
+      const waitMs = retryDelay(policy.backoff, attempt, random, previousMs, hint)
       if (waitMs >= remainingMs() || waitMs > MAX_TIMER_MS) {
         throw new RetryError(attempt + 1, { cause: error })
       }

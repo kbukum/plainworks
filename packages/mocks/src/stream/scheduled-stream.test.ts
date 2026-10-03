@@ -37,6 +37,59 @@ function contextFor(controller: AbortController, frames: StreamFrame[]) {
 }
 
 describe("createScheduledStream", () => {
+  it("uses canonical cursors across attempts and resets before a resumed boundary", async () => {
+    const epoch = "00000000000000000000000000000001"
+    const { delay, tick } = manualDelay()
+    const factory = createScheduledStream({
+      epoch,
+      intervalMs: 1,
+      delay,
+      frame: () => ({ type: "event", data: "{}" }),
+    })
+    const first = new AbortController()
+    const frames: StreamFrame[] = []
+    const opened = factory().open(contextFor(first, frames).context)
+    await tick()
+    expect(frames[0]).toEqual({
+      type: "connected",
+      data: JSON.stringify({ epoch, cursor: `${epoch}:0` }),
+    })
+    expect(frames[1]?.id).toBe(`${epoch}:1`)
+    first.abort()
+    await expect(opened).rejects.toBeInstanceOf(AbortError)
+    const second = new AbortController()
+    const resumed: StreamFrame[] = []
+    const running = factory().open({
+      ...contextFor(second, resumed).context,
+      lastEventId: `${epoch}:1`,
+    })
+    expect(resumed.map(({ type }) => type)).toEqual(["reset", "connected"])
+    expect(resumed.every(({ id }) => id === undefined)).toBe(true)
+    expect(JSON.parse(resumed[0]?.data ?? "")).toEqual({
+      reason: "replayExpired",
+      cursor: `${epoch}:1`,
+    })
+    second.abort()
+    await expect(running).rejects.toBeInstanceOf(AbortError)
+  })
+
+  it("may skip a tick without inventing an application event", async () => {
+    const { delay, tick } = manualDelay()
+    const controller = new AbortController()
+    const frames: StreamFrame[] = []
+    const opened = createScheduledStream({
+      intervalMs: 1,
+      delay,
+      frame: (seq) => (seq === 1 ? undefined : { type: "event", data: "{}" }),
+    })().open(contextFor(controller, frames).context)
+    await tick()
+    expect(frames).toEqual([])
+    await tick()
+    expect(frames[0]?.id).toBe("2")
+    controller.abort()
+    await expect(opened).rejects.toBeInstanceOf(AbortError)
+  })
+
   it("opens, then emits one numbered frame per interval", async () => {
     const { delay, pending, tick } = manualDelay()
     const controller = new AbortController()

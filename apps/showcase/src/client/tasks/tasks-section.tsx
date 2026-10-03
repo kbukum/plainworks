@@ -53,7 +53,10 @@ export interface TasksSectionProps {
  */
 export function TasksSection({ streamFactory }: TasksSectionProps): ReactElement {
   const httpClient = useHttpClient()
-  const stream = useMemo(() => streamFactory ?? createDemoTaskStream(), [streamFactory])
+  const stream = useMemo(
+    () => streamFactory ?? createDemoTaskStream(httpClient),
+    [streamFactory, httpClient],
+  )
   const [filters, setFilters] = useState<readonly ListFilter[]>([])
   const [sort, setSort] = useState<DataTableSort | null>({
     columnId: TASK_LIST_PARAMS.sortBy ?? "priority",
@@ -73,8 +76,8 @@ export function TasksSection({ streamFactory }: TasksSectionProps): ReactElement
     [page, sort, filters],
   )
 
-  const plan = taskList.options(httpClient, params)
-  const query = useQuery({ ...plan, placeholderData: keepPreviousData })
+  const plan = useMemo(() => taskList.options(httpClient, params), [httpClient, params])
+  const query = useQuery({ ...plan, enabled: !liveEnabled, placeholderData: keepPreviousData })
   const mutations = useTaskMutations(plan.queryKey, params)
 
   // The same rule the `canManageTasks` policy enforces, read synchronously through the shared
@@ -113,8 +116,7 @@ export function TasksSection({ streamFactory }: TasksSectionProps): ReactElement
           </Can>
         </div>
 
-        {/* Safe updates land immediately; uncertain list placement triggers a server refresh. */}
-        <LiveTaskFold queryKey={plan.queryKey} params={params} enabled={liveEnabled} />
+        <LiveTaskFold plan={plan} enabled={liveEnabled} />
 
         <FilterBar
           fields={FILTER_FIELDS}

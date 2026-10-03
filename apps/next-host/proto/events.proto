@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+package plainworks.reference.v1;
+
+message TaskChanged {
+  string id = 1;
+  string title = 2;
+}

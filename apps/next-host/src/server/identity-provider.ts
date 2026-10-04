@@ -1,16 +1,16 @@
 import "server-only"
 
-// The server-only identity wiring for the running host: it binds `@plainworks/auth`'s session flow
-// to `@plainworks/mocks/idp`'s in-process mock OpenID Provider. The provider mints real,
-// JWKS-verifiable tokens, so the adapter runs its genuine Authorization Code + PKCE + nonce path —
-// only the network is faked. This module carries the `server-only` marker: it custodies the signing
-// key and the provider's token endpoint, so a `"use client"` graph importing it fails the build.
-
-import { resolveSigningKey } from "@plainworks/auth/server"
-import type { MockIdp } from "@plainworks/mocks/idp"
-import { createMockIdp } from "@plainworks/mocks/idp"
+import { join, resolve } from "node:path"
+import { createMockIdp, type MockIdp } from "@plainworks/mocks/idp"
 import { AUTH_CALLBACK_PATH } from "../neutral/constants"
-import { createNextAuth, type NextAuth } from "./auth"
+import { createNextAuth, type NextAuth, nextSessionSchema } from "./auth"
+import {
+  createSqliteMockIdpState,
+  createSqliteRefreshTokenStore,
+  createSqliteSessionStore,
+  deriveKey,
+  resolveRootKey,
+} from "./custody"
 import { appOrigin } from "./origin"
 
 /** The assembled host session flow plus the mock provider that stands in for the interactive login. */
@@ -21,41 +21,92 @@ export interface HostAuth {
   readonly idp: MockIdp
 }
 
-const GLOBAL_AUTH = Symbol.for("@plainworks/next-host.auth")
-
-type GlobalWithAuth = typeof globalThis & {
-  [GLOBAL_AUTH]?: Promise<HostAuth>
+export interface HostAuthOptions {
+  readonly directory: string
+  readonly origin: string
+  readonly configuredKey?: string | undefined
+  readonly allowCreate: boolean
+  readonly demo: boolean
 }
 
-// The mock provider holds the pending authorization codes between `/login` and `/auth/callback`, so
-// it must be one shared instance across those requests — hence a lazily-built singleton created on
-// first use, never at import time (key generation is async). Anchored on globalThis so the separate
-// server chunks Next.js emits (route handlers vs RSC) share the single provider and signing key.
-//
-// Dev-only note: This in-process mock identity provider is a single-process dev adapter. In a
-// multi-instance or serverless deployment, login and callback can hit different instances; replace
-// this with a real external OIDC issuer (e.g. Auth0, Keycloak, or Okta) and configure a shared
-// SESSION_SIGNING_KEY.
-async function build(): Promise<HostAuth> {
-  const idp = await createMockIdp({ claims: { name: "Ada Lovelace" } })
-  const auth = createNextAuth({
-    fetch: idp.fetch,
-    issuer: idp.issuer,
-    clientId: idp.clientId,
-    redirectUri: `${appOrigin()}${AUTH_CALLBACK_PATH}`,
-    // A deployment supplies `SESSION_SIGNING_KEY`; outside production a missing key falls back to
-    // a random per-process key, so sessions end on restart but nobody can forge a cookie.
-    signingKey: resolveSigningKey({
-      configured: process.env.SESSION_SIGNING_KEY,
-      allowEphemeral: process.env.NODE_ENV !== "production",
-    }),
+function hostOptions(): HostAuthOptions {
+  const development = process.env.NODE_ENV !== "production"
+  return {
+    directory: resolve(process.env.PLAINWORKS_DATA_DIR ?? ".private/auth"),
+    origin: appOrigin(),
+    configuredKey: process.env.SESSION_ROOT_KEY,
+    allowCreate: development,
+    demo: development || process.env.PLAINWORKS_DEMO_AUTH === "1",
+  }
+}
+
+/** Own request-local resources; only encrypted data survives requests or normal server restart. */
+export async function withHostAuth<Value>(
+  operation: (host: HostAuth) => Value | Promise<Value>,
+  options: HostAuthOptions = hostOptions(),
+): Promise<Value> {
+  if (!options.demo) throw new Error("bundled sign-in requires explicit demo mode")
+  const root = resolveRootKey({
+    filename: join(options.directory, "root.key"),
+    configured: options.configuredKey,
+    allowCreate: options.allowCreate,
   })
-  return { auth, idp }
-}
-
-/** The host's shared authentication, created on first use. */
-export function hostAuth(): Promise<HostAuth> {
-  const target = globalThis as GlobalWithAuth
-  target[GLOBAL_AUTH] ??= build()
-  return target[GLOBAL_AUTH]
+  const keys: Uint8Array[] = [root]
+  const resources: { close(): void }[] = []
+  let outcome: { ok: true; value: Value } | { ok: false; failure: unknown }
+  try {
+    const key = (purpose: string): Uint8Array => {
+      const value = deriveKey(root, purpose)
+      keys.push(value)
+      return value
+    }
+    const store = createSqliteSessionStore({
+      filename: join(options.directory, "sessions.sqlite"),
+      encryptionKey: key("sessions"),
+      schema: nextSessionSchema,
+    })
+    resources.push(store)
+    const tokenStore = createSqliteRefreshTokenStore({
+      filename: join(options.directory, "refresh.sqlite"),
+      encryptionKey: key("refresh"),
+      maxEntries: 1024,
+    })
+    resources.push(tokenStore)
+    const state = createSqliteMockIdpState({
+      filename: join(options.directory, "fixture.sqlite"),
+      encryptionKey: key("fixture"),
+    })
+    resources.push(state)
+    const idp = await createMockIdp({ state, claims: { name: "Ada Lovelace" }, alg: "ES256" })
+    resources.push(idp)
+    const auth = createNextAuth({
+      store,
+      tokenStore,
+      fetch: idp.fetch,
+      issuer: idp.issuer,
+      clientId: idp.clientId,
+      redirectUri: `${options.origin}${AUTH_CALLBACK_PATH}`,
+      signingKey: key("transactions"),
+    })
+    outcome = { ok: true, value: await operation({ auth, idp }) }
+  } catch (cause) {
+    outcome = { ok: false, failure: cause }
+  }
+  const errors: unknown[] = []
+  for (const resource of resources.reverse()) {
+    try {
+      resource.close()
+    } catch (cause) {
+      errors.push(cause)
+    }
+  }
+  for (const key of keys) key.fill(0)
+  if (errors.length > 0) {
+    throw new AggregateError(
+      outcome.ok ? errors : [outcome.failure, ...errors],
+      "host authentication cleanup failed",
+    )
+  }
+  if (!outcome.ok) throw outcome.failure
+  return outcome.value
 }

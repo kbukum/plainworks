@@ -6,6 +6,4 @@ export {
   type ReadShowcaseSession,
   type ShowcaseAuth,
   type ShowcaseSessionValue,
-  showcaseSessionCodec,
-  showcaseSessionReader,
 } from "./session"

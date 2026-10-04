@@ -66,6 +66,7 @@
     "build": "tsdown",
     "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.playwright.json",
     "test": "vitest run --coverage",
+    "e2e": "vitest run -c vitest.e2e.config.ts",
     "gen:proto": "buf generate",
     "check-packaging": "plainworks-release check-packaging"
   },

@@ -1,106 +1,25 @@
 # plainworks
 
-Foundational, **host-independent** React/TypeScript kit: runtime-agnostic cores plus thin, optional client bindings. Cores assume **no host** (no DOM, React, or host globals), so Next.js, Vite, Astro, TanStack Start, and Remix plug in through explicit seams. The authoritative taxonomy and layer map live in [`../docs/architecture.md`](../docs/architecture.md). This file is the engineering baseline for every change.
+Host-independent React/TypeScript capabilities. Consumers choose hosts/backends. `packages/` publishes capabilities; `apps/` owns hosts; `internal/` owns dev tooling. Use Bun and the catalog/tool versions in `package.json`.
 
-## Development stage: alpha, redesign over compatibility
+## Invariants
 
-plainworks is in **active development** on the `0.1.0-alpha.x` line. **No backward compatibility is owed** to anyone: not consumers, not apps, not templates, not earlier versions of our own code. This stance applies to **every** change, plan, review, and fix:
+- Alpha: redesign root causes; no compatibility shims or parallel old/new models. Replace dependent consumers and remove superseded paths together. Breaking changes use a minor Changeset.
+- Imports point strictly downward. Reuse [concern owners](../docs/architecture.md#concern-owners); enhance them before consuming. Core never imports/re-exports a technology integration or declares its driver, including optional peers. A subpath is not a dependency boundary; prove clean core-only installs.
+- Typed APIs/errors; no `any`, unchecked assertions, swallowed errors, or success-shaped fallbacks. Concern-named modules; `index.ts` re-exports only. Named exports, one path per name.
+- Neutral cores are host-independent. Inject varying behavior; keep server custody out of client graphs. Preserve ES2023 portability and per-module `"use client"`. No import-time I/O, globals, or service locators; hosts own resource lifetimes.
+- Validate boundaries; never retain secrets or put credentials in URLs. Browser sessions use opaque Secure/HttpOnly/SameSite=Strict `__Host-` cookies with authoritative backend custody, not browser-token fallback. Preserve server-side OIDC/PKCE and CSRF.
+- Bound calls/retries/buffers and own cancellation/cleanup. Cancellation fences late effects; cleanup preserves the initiating failure and a retryable owner.
+- Test-first, deterministic behavior/failures; use testkit and mocks. Unit proof is not integration proof. WCAG 2.2 AA and responsive UI are defaults; UI acceptance requires passing flows and opened/judged captures.
+- Never hand-edit vendored shadcn atoms/locks. Use registry commands; deviations go theme -> call site -> UI wrapper. Never weaken the TS compiler boundary or generated manifest/layer gates.
 
-- **Redesign beats patching.** When code is wrong, outdated, or no longer the simplest design, redesign it on current best practices. Don't bolt a fix onto it. **Breaking changes are welcome**; a patch that preserves a flawed shape is the defect.
-- **Design for the end state.** Build new code as if the thing it supersedes is already gone. Never shape new code around, on top of, or next to a legacy path.
-- **Replace, don't add alongside.** When a change supersedes something, the **same change** moves every consumer (packages, `apps/*`, `internal/*`, `create-plainworks` templates, docs, skills, instructions) and **deletes** the old path. One concern, one model.
-- **Zero compatibility scaffolding.** No shims, aliases, deprecated re-exports, compat flags, `legacy`/`old`/`v2`/`next` names, parallel old-and-new models, or "additive now, remove later" plans.
-- **Too big for one PR?** Plan it (`create-plan`). New code still never builds on the old path. The old path is closed off and listed for deletion in a named step, and **no release ships both**.
-- **Clean up what you find.** Legacy, dead code, unused exports, stale docs, and outdated patterns in a change's blast radius are removed in that change, not left for later.
+## Work and validation
 
-Breaking changes take a `minor` Changeset while pre-1.0 (see the `release` skill). Describe the change as a redesign, never as a migration path.
+Preserve worktree/index changes. Commit/amend/push/publish/open draft PRs only when authorized. Load only the matching [skill](skills/README.md) and required sections. Keep multi-step state in `tmp/plans/<task>/handoff.md`, not session transcripts.
 
-## Engineering principles
+`bun run verify --filter=@plainworks/<name>` scopes package gates; `bun run verify --list` lists them; unscoped `verify` is full acceptance. Use [validate](skills/validate/SKILL.md) for integration/UI/generator requirements. Prose-only edits need documentation checks. Markdown is not hard-wrapped; TS comments wrap at 100 columns.
 
-Shared baseline — apply to all work here:
-
-- **Phases:** discover → decide (Redesign / Align / Enhance / Drop / Leave) → implement completely → validate. **Leave** only what is already the right design. Anything legacy, outdated, or superseded is Redesigned or Dropped (see [Development stage](#development-stage-alpha-redesign-over-compatibility)). Implement the *simplest* design that fully solves it — flexible, extensible, scalable — on current idiomatic TS best practices, not folklore. Complexity must earn its place.
-- **Layering & reuse:** explicit, acyclic dependency direction — a package in `Ln` imports `@plainworks` packages only in a strictly lower layer (see the layer map). Reuse or enhance the canonical lower owner before writing new code; never duplicate a shared concern (errors, result/guards, retry/backoff, contracts/seams, event shapes). A cross-layer need **defines the seam in the lower layer and implements it higher** — never an upward or sideways import. `@plainworks/std` is the bottom and depends on no other package.
-- **Structure & naming (self-documenting by path):** organize by concern the way `rskit` does — a concern that spans more than one module is a **folder** with a re-export-only `index.ts` barrel (the TS equivalent of a barrel-only `mod.rs`) plus concern-named files inside; a single concern is one clearly named file. The folder/file path must tell a reader *what the code is without opening it*: no junk-drawer `utils`/`helpers`/`misc`/`core`, and no bare, ambiguous verb modules or exports (`compose`, `classify`, `handle`, `process`) — qualify by concern (`pipeline/interceptor.ts` exporting `composeInterceptors`, `resilience/classify.ts` exporting `classifyError`). Group **proactively** when a second sub-concern appears, not reactively once a file is "too long"; a cohesive single-concern file is fine at any length. Barrels (`index.ts`/`src/index.ts`) re-export only — never logic.
-- **APIs:** typed and minimal; **no `any`** (and no unchecked `as`/`!`) in public surfaces — use `unknown` + narrowing, generics, and discriminated unions. Actionable typed errors that preserve cause; never throw strings.
-- **Errors & resilience:** no swallowed errors or success-shaped fallbacks on runtime paths; timeout every remote call (`AbortSignal`); bounded, jittered retries for idempotent operations only; reconnect/backpressure/circuit-break and degrade gracefully.
-- **Concurrency & async:** every stream/subscription/timer/`AbortController` has explicit ownership, cancellation, and teardown; bound queues and buffers with documented backpressure; drain and unsubscribe on shutdown. No unbounded in-memory buffering.
-- **Host-independence (the axis):** "assume no host" targets **any web-standard runtime** — a package runs where its declared **runtime primitives** exist. The **universal WHATWG value primitives** the repo shim binds — `AbortController`/`AbortSignal`, `Headers`, `URL`/`URLSearchParams`, `Response`, `TextDecoder` (pure, deterministic, present on every target runtime) — may be used **directly**; every primitive with real **host variance or that needs test substitution** (`fetch`, SSE/`WebSocket` transports, `crypto.subtle`, token storage) is an **injected seam with a platform default**, never a hard import (`http`'s `options.fetch` is the reference). The tie-breaker: inject what varies by host or must be faked; use directly the standardized value types the shim binds. Every package uses **one entry vocabulary** (see `docs/architecture.md › Choose an entry point`): **neutral `.`** and concern subpaths (no React/DOM — server, edge, workers, RSC, **and React Native**), **`./client`** for React bindings (DOM-free — `state`/`http`/`query`/`channel`/`auth`/`connect`/`app` run on RN/Expo — unless the package declares `dom: true` because its product is browser UI), **`./server`**, **adapter subpaths named after what they do** (`state/web-storage`, `auth/form-post` — never `dom`/`browser`/`node`), per-component subpaths, assets, and **`./testing`** (test-only, never imported by production code). Barrels use named exports only, and every name has exactly one import path. Client is never the default import. The **portability gate** is the shared **ES2023-only compile config** (`tsconfig.base.json`: no DOM/Node lib, `types: []`) plus the explicit `types/universal-web.d.ts` global shim — enforced at `typecheck` on every package and proven by fixtures in `@plainworks/boundaries`: the neutral `.` entry fails to compile the moment it names a host-only global (`document`/`window`/`localStorage`/`navigator`/`EventSource`) or Node builtin, because that name is simply undeclared (not a regex heuristic). Token-custody code (auth server) must never be pulled into a `"use client"` graph — an enforced import boundary, not a convention.
-- **Composition:** explicitly injected registries and config-driven selection. **No import-time side effects** (importing a module never dials the network, reads env, or opens a handle); **no module-level singletons** — stores, query clients, and sessions are built by per-request factories, SSR/RSC-safe. Adapters register via an explicit `register()` / `createX({...})`, never a package-global mutable registry or service-locator lookup by string.
-- **Security & privacy:** validate at every trust boundary; least-privilege and secure-by-default; **header-only** auth (never a token in a URL/query string); `Secure`+`HttpOnly`+`SameSite` cookies with the `__Host-` prefix; Authorization Code + PKCE `S256` only (implicit dead); current crypto only (Web Crypto; reject `alg: none`, no MD5/SHA-1 for security); minimize, redact, and retention-bound sensitive data — never log tokens or payloads. Treat all rendered user/model/retrieved content as untrusted (no `dangerouslySetInnerHTML` with unsanitized input); the kit is CSP-friendly (no inline-script requirement, no `eval`) so a consumer can enforce a strict `nonce` + `strict-dynamic` policy without `unsafe-inline`; tokens never live in `localStorage`/`sessionStorage` (BFF `__Host-` cookie is the default, in-memory access token the SPA fallback).
-- **Accessibility & responsive UI (the client-binding acceptance bar):** interactive `./client` code is accessible and responsive **by default, not as a follow-up** — semantic HTML with correct ARIA roles, full keyboard operability with a visible focus ring, and WCAG 2.2 AA (text contrast, `24×24` CSS-px minimum target size, focus never obscured). Every client render test file awaits `expectNoAxeViolations` from `@plainworks/testkit/client` at least once, and the `check-axe-coverage` gate rejects a file that doesn't (automation catches ~half of WCAG issues — it is a floor, not proof; keyboard/focus/roles are still reviewed). Layout is mobile-first and fluid — relative units, `clamp()` type (never `vw`-only, it breaks zoom), `minmax()`/`auto-fit` grids, no fixed-pixel width/height traps; component-scoped adaptivity uses CSS **container queries** over viewport media queries; honor `prefers-reduced-motion` and `prefers-color-scheme`.
-- **Performance:** code-split heavy and route-level surfaces behind `React.lazy` + `Suspense`; keep components small and let the React compiler memoize — reach for `memo`/`useMemo`/`useCallback` only where a profile shows a measurable win, never prophylactically; virtualize large lists; keep the client bundle tree-shakeable (per-component subpath exports, `"sideEffects": false`).
-- **Tests:** behavioral and deterministic; **test-first** (failing test → minimal code → refactor while green); cover failure paths; injected clocks and seeded RNG, no real network/FS in unit tests; race/shuffle safe. Coverage ≥ 80% per package, ≥ 85% for security-load-bearing packages (`auth`). React/DOM tests assert what the user perceives — query by role/label (`getByRole` first, `getByTestId` last resort), drive interaction with `@testing-library/user-event` (not `fireEvent`), never couple to implementation detail (class names, internal state); mock the network at the boundary with **MSW** (`onUnhandledRequest: "error"`), not by stubbing `fetch`. Shared fakes and harnesses live in **`@plainworks/testkit`**; mocked services, request dispatch, and MSW lifecycle live in **`@plainworks/mocks`**. Tests may import either package upward through the narrow test-only boundary carve-out. The one exception is `@plainworks/std`, which testkit depends on and therefore tests with local fakes to avoid a cycle.
-- **AI / model features:** treat model output and retrieved context as untrusted; enforce structured, validated outputs; least-privilege tool calls with a human gate on destructive actions; version prompts/models and gate changes on evals.
-- **Supply chain:** one shared version list (the bun **catalog**) enforced by Sherif + Syncpack; ESM-only with correct `exports`/`types`/`files` proven by the **publint + are-the-types-wrong** packaging gate; pin CI actions by commit SHA; audit and license-check new dependencies; Changesets-driven releases published with npm **provenance** (SLSA attestation).
-- **Keep code current:** use current idioms and standards. Verify that each dependency is maintained, no platform or standard-library feature already covers the need, and no open advisory applies.
-- **Best practices over parity, consistency above both:** current idiomatic TS/React best practices outrank any cross-kit mimicry of gokit/rskit — parity is spirit and intuition-transfer, never a forced non-idiomatic type or API shape. Above both, be **consistent across plainworks**: internal consistency of naming, seams, and package shapes is one of the most important properties.
-
-Standing, re-runnable development skills that encode this baseline live in [`skills/`](skills/README.md) — the `review` skill runs the review passes in a fresh, clean-context agent (high-capability model) after every change set and before releases (reviewing the change's **blast radius**, not just the diff, and reporting/fixing pre-existing problems it surfaces, redesign over patch); `create-branch`, `create-plan`, `apply-plan`, `apply-step`, `commit`, `create-pr`, `fix-reviews`, `validate`, `new-package`, `new-backend`, `update-atoms`, `docs`, and `release` cover the rest of the workflow. Validation is driven through `bun run` / `turbo`, scoped to the changed package(s).
-
-## Stack
-
-- **Language:** TypeScript, pinned at **`^6.0.3`** in the catalog deliberately. See the TypeScript compiler boundary below. Strict, `isolatedDeclarations`, `moduleResolution: bundler`, ESM-only.
-- **Runtime / package manager:** **bun** (`bun@1.3.6`); Node `^22.12 || ^24 || >=26` (N / N-1 LTS matrix in CI).
-- **Task runner / caching:** **Turborepo** (`turbo`) — cache-correct, topological, affected-aware. Dev-only; zero consumer footprint.
-- **Build:** **tsdown** (ESM-only, per-module `"use client"` preserved, `react`/`react-dom` externalized as peers, ships `dist` plus source maps), via the shared `@plainworks/tsdown-config` preset.
-- **Lint / format:** **Biome**.
-- **Layer boundaries + cycles:** **dependency-cruiser**, isolated in `@plainworks/boundaries`.
-- **Version sync (single catalog):** **Sherif** (fast CI gate) + **Syncpack** (catalog-aware fix/migrate).
-- **Tests / coverage:** **Vitest** (v8 coverage) through `@plainworks/vitest-config`.
-- **Releases:** **Changesets**.
-- **Workspace shape:** `@plainworks/shape` derives manifest fields, scripts, exports, files, and preset dependencies for every workspace profile.
-- **Generator:** `@turbo/gen` via `bun run gen` — the golden package and tool templates.
-
-## Build, Test, and Lint
-
-`bun run verify` runs every Definition-of-Done gate in order, and it is the only place the gate list lives (`internal/verify`). CI, the release workflow, and the skills all call it. Each gate is also a root script, cache-correct through `turbo`. **Scope to the package(s) you changed**; the unscoped run is for CI sign-off. See the `validate` skill for the scoped forms.
-
-```bash
-bun install                                   # bun workspaces + catalog
-bun run verify                                # every gate, in order
-bun run verify --filter=@plainworks/<name>    # scope the package gates (repeatable turbo filter)
-bun run verify --list                         # the gates and what each enforces
-bun run format                                # Biome safe fixes
-bun run format-comments                       # reflow over-width comment prose
-bun run check-shape                           # verify generated workspace manifests
-bun run sync-shape                            # rewrite derived workspace manifest fields
-bun run sync-layer-map                        # regenerate the layer-map docs from layers.json
-bun run gen package                           # scaffold a new @plainworks/* package from the golden template
-bun run gen tool                              # scaffold a new internal tool from the golden template
-bun run changeset                             # add a Changeset for the release
-```
-
-The Definition of Done for every change is `verify` green, a Changeset, and the architecture invariants below. `verify` includes the vendored-atom lock check (`check-registry`), the generated workspace-shape check (`check-shape`), and the render-test axe check (`check-axe-coverage`); also run the `elements` tests when `theme` changes. Scope with turbo filters: `--filter=@plainworks/<name>` for one package, `--filter='...[origin/main]'` for the affected set.
-
-A change that alters what a user sees or does in an app also meets the **UI Definition of Done**. Run it in the app (today `apps/showcase`):
-
-1. **Check** the flows you touched: `bun run e2e -- e2e/flows.spec.ts --grep "<flow>"`. They must pass.
-2. **Look** at them: `bun run ui:capture --flow <flow>` writes a frame at every checkpoint (desktop and mobile, light and dark). Open the frames or the contact sheets in `sheets/` and confirm the change looks as intended. Add `--save-as before` before editing and `--base before` after when a side-by-side diff helps.
-3. **Record a short summary** in the hand-off or PR: which flows you checked and looked at, and what changed visually and why.
-
-A new user-facing journey gets a flow in `apps/<app>/e2e/flows/` with `covers` globs, so `--affected` selects it. If the change alters a screen an app README shows, rerun `bun run ui:capture --docs` in that app and look at the refreshed images. See the [testkit guide](../packages/testkit/README.md#the-ui-loop--uicapture).
-
-## Package structure
-
-bun workspaces, three roots:
-
-- `packages/<name>/` — published `@plainworks/*` packages. One concern, one plain word, the **same word everywhere** — no `core`, `engine`, `foundation`, or junk-drawer `utils`. Each is born from the golden generator.
-- `apps/<name>/` — private reference hosts and examples. Route trees stay app-local and packages never import them.
-- `internal/<name>/` — dev-only tooling, private package fixtures, and cross-package tests that are never published.
-
-Every workspace follows exactly one generated profile:
-
-| Profile | Workspaces | Shape |
-|---|---|---|
-| **package** | `packages/*` and built private packages such as `internal/demo` | `tsdown.config.ts` exports `build: PackageBuild`; `sync-shape` derives `exports`, `files`, `sideEffects`, scripts, and preset dev dependencies. |
-| **cli** | `create-plainworks` | Published command package with a bin build and packaging checks. |
-| **tool** | dev-only `internal/*` tools | `src/` with colocated tests, optional `src/cli.ts` bin named `plainworks-<dirname>` whose shebang runs Bun with the `@plainworks/source` condition, optional `src/index.ts` export, `tsconfig.json` extends `../../tsconfig.tool.json`, no root source files and no `test/` directory. |
-| **app** | `apps/*` and `internal/integration` | `tsconfig.json` extends `../../tsconfig.app.json`, tests use `appTestConfig`, and package tasks run against built package surfaces. |
-
-Do not hand-maintain derived manifest fields. Add a package subpath in `tsdown.config.ts` (`export const build: PackageBuild = { entry: { ... } }`, then `export default preset(build)`) and run `bun run sync-shape`. Per-workspace `lint` scripts are absent; root `bun run lint` runs Biome over the repository.
-
-Shared root tsconfigs match the profiles: `tsconfig.base.json` for packages, `tsconfig.tool.json` for source-run internal tools with Node types and `.ts` import specifiers, and `tsconfig.app.json` for apps and integration with DOM+Node types and dist resolution.
+Before implementation, read only applicable sections of [engineering](engineering.md): **Product and ownership boundary** for integrations; **Engineering principles** for runtime/test/security/UI; **Package structure** for exports/tooling; **TypeScript compiler boundary** for compiler updates; **Architecture invariants** for failures/forms/retries; **Build, Test, and Lint** for acceptance; **Vendored atoms** for primitives. Do not preload the whole reference.
 
 ## Layer map
 
@@ -113,68 +32,3 @@ Shared root tsconfigs match the profiles: `tsconfig.base.json` for packages, `ts
 | **L3** | `auth`, `ui` | Authentication, OIDC with PKCE, forms, data, navigation, and UI composites. |
 | **L4** | `app`, `testkit`, `mocks`, `devtools` | Application composition, shared test tooling, reusable MSW mock-building primitives, and the development-only runtime inspector. |
 <!-- /layer-map:table -->
-
-The map has a single source of truth: [`../internal/boundaries/layers.json`](../internal/boundaries/layers.json). The table above, the README, and `docs/architecture.md` are generated from it (`bun run sync-layer-map`), and `verify` fails when they drift. Adding a package means adding it to `layers.json` (a package absent from the map may import no other `@plainworks` package — the gate fails **closed**, never vacuously green). A fixture-backed test in `@plainworks/boundaries` proves the gate rejects an upward import.
-
-## Vendored atoms
-
-`@plainworks/elements` has two folders. **`src/shadcn/`** holds **vendored** atoms: exact shadcn CLI output plus only the compat transform (`cn` from `@plainworks/theme`, `"use client"`) and Biome safe fixes. They are **locked** by `shadcn.lock.json` (CLI version, style, per-atom hash). **`src/atoms/`** holds primitives we write and own (today, `number-field`). A name lives in only one folder.
-
-- **Never hand-edit `src/shadcn/**` or `shadcn.lock.json`.** Change an atom only with `registry:update <atom>` (or `registry:add`), which relocks it and reruns `registry:codegen`. `registry:validate` and the lock test fail on a hand edit, an unlocked atom, or a stale entry.
-- **Never re-add a variant upstream doesn't ship** (a tone, size, or state). Follow the **deviation ladder** and stop at the lowest rung that fixes it:
-  1. **Theme** — `@plainworks/theme` tokens and rules: color, contrast, focus, radius, and focus for keyboard stops an atom leaves unmarked.
-  2. **Call site** — props, `className`, `role`.
-  3. **`@plainworks/ui` wrapper** — reusable tones or behavior.
-- **Upstream bug?** Fix it at the lowest rung and note it for upstream reporting. Never patch the atom.
-
-The strictness relaxations for vendored code (`tsconfig.shadcn.json`, the `src/shadcn` Biome override) exist only for `src/shadcn`; `src/atoms` stays under the full rules. See [`../packages/elements/README.md`](../packages/elements/README.md).
-
-## Code style
-
-- **ESM-only.** Correct generated `exports` / `types` / `files`; `dist` is built, never committed. Packages ship `dist` plus `src` (tests excluded) so JavaScript and declaration source maps point at real TypeScript source. `typecheck` is a **separate** script from `build` (`tsc --noEmit` vs `tsdown`).
-- **Server/client split.** Per-module `"use client"` at the top of client-only modules; tsdown preserves it (`unbundle`). Never a global banner — it would poison the server entry. A server-only module must not be imported by a `"use client"` module.
-- **Typed, minimal public API.** No `any` in public surfaces; prefer `unknown` + narrowing, generics, `satisfies`, discriminated unions. Typed errors (a small error type / result), never thrown strings. Export a flat public surface; keep internals unexported.
-- **No import-time side effects, no module-level singletons.** Factories over globals; explicit adapter registration into an injected registry.
-- **Biome** owns format + lint (2-space, width 100, LF, organized imports). Run `bun run format` to fix.
-- **Organize by concern; self-documenting by path.** Group related modules into a **concern folder** with a re-export-only `index.ts` barrel plus concern-named files inside (as `rskit` groups `retry/{backoff,policy,error}.rs` under a barrel-only `mod.rs`, and as `packages/mocks` already does with `data/`, `filter/`, `handlers/`). A single concern stays one clearly named file (`circuit-breaker.ts`). The path must convey the concern on its own — no junk-drawer `utils`/`helpers`/`core`, and no bare verb modules/exports (`compose`, `classify`); qualify them (`pipeline/interceptor.ts` → `composeInterceptors`). Fold proactively when a second sub-concern appears, not once a file grows "too long". A barrel `index.ts` re-exports; it holds no logic.
-- **Conventional Commits:** `feat`, `fix`, `docs`, `refactor`, `test`, `chore`. One commit per branch (amend), no `Co-authored-by` trailer.
-
-### TypeScript compiler boundary
-
-The catalog pins `typescript` at `^6.0.3` because TypeScript 7 does not ship a JavaScript Compiler API. The TS-AST toolchain, including **dependency-cruiser**, cannot run on TypeScript 7. Raising the catalog would make dependency-cruiser stop extracting imports and silently **disable the layer gate**. A test in `@plainworks/boundaries` enforces the TypeScript 6 line. Do not raise the catalog past TypeScript 6 unless the boundary package first receives a compiler implementation that still extracts and validates imports. See `docs/architecture.md › TypeScript 6 boundary`.
-
-## Architecture invariants
-
-For remote failures, use `std/failure` as the application vocabulary. HTTP/Connect decode at their boundaries; apps use `createFailureHandler`, not local detail decoders. Connect transport owns retries and total budgets; its Query options/hooks disable a second retry loop. Forms consume the lower `FormSchema` seam; protobuf requests use `connect/forms` with real Protovalidate and descriptor JSON names. Malformed responses and validator failures stay operational, never field prompts.
-
-Checked in review and by the gates, for every package:
-
-- **No import-time side effects; no module-level singletons** (per-request factories for stores/clients/sessions).
-- **Explicit adapter registration** via an injected registry — no global registry, no string service-locator.
-- **Header-only auth** — no token in a URL. Server-only auth stays out of `"use client"` graphs.
-- **Typed errors; no `any`** in public APIs.
-- **ESM-only**, `exports`/`types`/`files` discipline; each package ships a real tsdown `dist`.
-- **Single catalog** — every dependency (peer ranges included) references `catalog:`; Syncpack/Sherif fail CI on an inline version or cross-package drift.
-- **Accessible & responsive by default** — interactive `./client` code meets WCAG 2.2 AA (semantic roles, keyboard/focus, contrast, target size), is mobile-first and fluid (no fixed-pixel traps; container queries for component adaptivity), and honors `prefers-reduced-motion` / `prefers-color-scheme`. Non-negotiable for any UI/client change.
-- **Vendored atoms are locked** — `packages/elements/src/shadcn/**` changes only through `registry:update`/`registry:add`, never by hand, and never gains a variant upstream doesn't ship. Deviations follow the deviation ladder (theme → call site → `ui` wrapper); see [Vendored atoms](#vendored-atoms).
-
-## Documentation
-
-**How it reads (standards):**
-
-- Write Markdown paragraphs as **one continuous source line** — do not hard-wrap prose to a column; renderers wrap for the viewport. Preserve intentional structure: headings, lists, tables, blockquotes, mermaid diagrams, fenced code.
-- **Code comments are the exception — wrap them.** A `/** */` TSDoc or `//` comment is read at its source column, not reflowed by a renderer, so wrap its prose to the Biome print width (100 columns) like the code it documents — never a long single line trailing off-screen, and never hard-wrap Markdown to match. Keep TSDoc tags, directives (`@param`, `@throws`, `{@link}`), lists, and code examples intact, and break paragraphs on blank comment lines rather than joining them. Biome does not touch comment content, so `bun run check-comments` reports over-width comments and `bun run format-comments` reflows them safely (via `@plainworks/comment-format`, which edits only comment prose and never code).
-- Comments and docs describe the code **as it is now** — not history, plans, or the process that produced it.
-
-**How it lands (clarity — every reader-facing artifact is for a human skimming under time pressure):** the same voice governs docs, READMEs, comment prose, changesets, and PR/commit descriptions.
-
-- **Simple and organized beats complete.** A crowded, jargon-dense, or overlong explanation is a **defect**, not thoroughness — a reader gives up on a wall of text. Prefer the shortest organized version that still answers the question. Follow current documentation best practices, not old habit.
-- **One idea per sentence, plain and active.** Write "Call `createStore`", not a clause-stacked paragraph. Bold the load-bearing terms; keep paragraphs to a few sentences.
-- **Describe the benefit, not the mechanism.** Say what the reader can now do — "you control the table's state" — not the internal shape — "compound, controlled-first, injected labels/icons". Name a representative identifier or two, never dump an exhaustive API list.
-- **Scannable structure.** Lead a page or section with the shortest working path (a quickstart) before deep reference. Use meaningful headings, short lists, and tables. Move dense identifier/option detail **into a table or a runnable example** rather than packing it into a sentence.
-- **Diagram where prose is the wrong tool.** Reach for a focused `mermaid` diagram for architecture, dependency direction, an auth/reconnect flow, or a state machine — one idea per diagram, with a one-line caption. Don't diagram the trivial.
-- The `docs` skill (Pass 3) is the standing check for this; run it when writing or auditing docs.
-
-## Repo workflow
-
-The **agent creates branches and makes edits; the maintainer commits and pushes.** Commit / push / open a PR only when explicitly asked. Branches are named by the change, prefixed `kbukum/`, cut off an up-to-date `main`. PRs are opened in **draft**. Plans are gitignored scratch under `tmp/`. Never commit secrets or `tmp/`. This repo is **alpha, with no backward compatibility owed**. Redesign at the root, welcome breaking changes, and delete legacy in the same change (see [Development stage](#development-stage-alpha-redesign-over-compatibility)).

@@ -1,4 +1,5 @@
 import { isRecord } from "@plainworks/std"
+import { decodeSessionResponse, type SessionResponse } from "./response"
 import type { SessionSnapshot } from "./store"
 
 /**
@@ -9,6 +10,7 @@ export interface AuthSnapshot {
   readonly authenticated: boolean
   readonly subject: string | null
   readonly name: string | null
+  readonly session?: SessionResponse
 }
 
 /** The slice a request without a valid session resolves to. */
@@ -29,6 +31,9 @@ export function authSnapshotOf(resolved: unknown): AuthSnapshot {
       authenticated: true,
       subject: resolved.subject,
       name: typeof resolved.name === "string" ? resolved.name : null,
+      ...(resolved.session === undefined
+        ? {}
+        : { session: decodeSessionResponse(resolved.session) }),
     }
   }
   return ANONYMOUS_AUTH
@@ -37,6 +42,13 @@ export function authSnapshotOf(resolved: unknown): AuthSnapshot {
 /** Narrow an untrusted serialized value to the session shape consumed by client bindings. */
 export function sessionSnapshotOf(resolved: unknown): SessionSnapshot {
   const auth = authSnapshotOf(resolved)
+  if (auth.session !== undefined) {
+    return {
+      status: "authenticated",
+      identity: auth.session.identity,
+      expiresAt: auth.session.expiresAt,
+    }
+  }
   if (!auth.authenticated || auth.subject === null) {
     return { status: "unauthenticated", identity: null }
   }

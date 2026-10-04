@@ -1,12 +1,15 @@
 import { base64urlEncode } from "@plainworks/std/encoding"
-import { combineSignals, createDeadline, raceAbort } from "@plainworks/std/resilience"
+import { raceAbort, withTimeout } from "@plainworks/std/resilience"
 import type { AuthHeaders } from "@plainworks/std/seam"
 import type { Clock } from "@plainworks/std/time"
 import {
+  PayloadTooLargeError,
+  readBoundedBytes,
   resolveFetch,
   type WebAbortController,
   type WebAbortSignal,
   type WebBodyInit,
+  type WebRequestInit,
   type WebResponse,
   type WebURLSearchParams,
 } from "@plainworks/std/web"
@@ -14,7 +17,6 @@ import * as oauth from "oauth4webapi"
 import type { AuthCrypto } from "../../crypto"
 import { AuthError } from "../../errors"
 import { sanitizeReturnTo } from "../../redirect"
-import type { TokenSet } from "../../session"
 import type { SessionSigner } from "../../signer/seam"
 import { createJwtVerifier, type JwtVerifier, type VerifiedClaims } from "../jwt/verify"
 import type {
@@ -25,6 +27,8 @@ import type {
   CompleteLoginRequest,
   InteractiveAuthAdapter,
   LoginRedirect,
+  ProviderSessionRequest,
+  ProviderTokens,
 } from "../seam"
 import { OIDC_ADAPTER_KIND, type OidcAdapterConfig, validateOidcAdapterConfig } from "./config"
 import { createRefreshTokenStore, type RefreshTokenStore } from "./refresh-store"
@@ -35,6 +39,10 @@ const DEFAULT_ALGS = ["RS256", "ES256"] as const
 const DEFAULT_TRANSACTION_TTL_SECONDS = 600
 const DEFAULT_ACCESS_TTL_SECONDS = 300
 const DEFAULT_TIMEOUT_MS = 10_000
+// Discovery, JWKS and token responses are small JSON documents. A larger body is hostile.
+const MAX_PROVIDER_BODY_BYTES = 64 * 1024
+const MAX_IN_FLIGHT_REFRESHES = 256
+const NULL_BODY_STATUSES = new Set([101, 204, 205, 304])
 const encoder = new TextEncoder()
 
 // One `fetch` shape that every oauth4webapi request accepts: it is a supertype of each call's
@@ -140,6 +148,29 @@ export function oidcAdapter(
     }
   }
 
+  // Every provider response is buffered under one byte cap before a parser sees it, so neither
+  // oauth4webapi nor jose reads an unbounded body.
+  async function providerFetch(url: string, init: WebRequestInit): Promise<WebResponse> {
+    const response = await fetchImpl(url, { ...init, redirect: "manual" })
+    let body: Uint8Array<ArrayBuffer>
+    try {
+      body = await readBoundedBytes(response.body, {
+        maxBytes: MAX_PROVIDER_BODY_BYTES,
+        ...(init.signal === undefined || init.signal === null ? {} : { signal: init.signal }),
+      })
+    } catch (cause) {
+      if (cause instanceof PayloadTooLargeError) {
+        throw new AuthError("auth/adapter", "provider response body is too large", { cause })
+      }
+      throw cause
+    }
+    return new Response(NULL_BODY_STATUSES.has(response.status) ? null : body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
+    })
+  }
+
   const oauthFetch: OAuthCustomFetch = (url, options) => {
     let targetOrigin: string | undefined
     try {
@@ -148,17 +179,14 @@ export function oidcAdapter(
       // relative or invalid
     }
     if (targetOrigin !== undefined && !allowedOrigins.has(targetOrigin)) {
-      throw new AuthError(
-        "auth/adapter",
-        `outbound fetch to origin "${targetOrigin}" is not allowed (allowed: ${[...allowedOrigins].join(", ")})`,
+      return Promise.reject(
+        new AuthError(
+          "auth/adapter",
+          `outbound fetch to origin "${targetOrigin}" is not allowed (allowed: ${[...allowedOrigins].join(", ")})`,
+        ),
       )
     }
-    const init: {
-      method: string
-      headers: Record<string, string>
-      body?: WebBodyInit
-      signal?: WebAbortSignal
-    } = { method: options.method, headers: options.headers }
+    const init: WebRequestInit = { method: options.method, headers: options.headers }
     if (options.body !== undefined && options.body !== null) {
       // oauth4webapi only ever sends a form-encoded `URLSearchParams`/string body, both
       // `WebBodyInit`.
@@ -167,7 +195,7 @@ export function oidcAdapter(
     if (options.signal !== undefined) {
       init.signal = options.signal
     }
-    return fetchImpl(url, init)
+    return providerFetch(url, init)
   }
   const fetchOption = { [oauth.customFetch]: oauthFetch }
 
@@ -175,11 +203,10 @@ export function oidcAdapter(
   let discoveryPromise: Promise<DiscoveredProvider> | undefined
 
   async function discover(): Promise<DiscoveredProvider> {
-    const deadline = createDeadline(timeoutMs)
-    try {
+    return withTimeout(async (signal) => {
       const response = await oauth.discoveryRequest(issuerUrl, {
         ...fetchOption,
-        signal: deadline.signal,
+        signal,
       })
       const as = await oauth.processDiscoveryResponse(issuerUrl, response)
       if (as.jwks_uri === undefined) {
@@ -190,13 +217,13 @@ export function oidcAdapter(
       assertAllowedEndpointOrigin(as.authorization_endpoint, "authorization_endpoint")
       assertAllowedEndpointOrigin(as.userinfo_endpoint, "userinfo_endpoint")
       assertAllowedEndpointOrigin(as.revocation_endpoint, "revocation_endpoint")
-      const jwksResponse = await fetchImpl(as.jwks_uri, { signal: deadline.signal })
+      const jwksResponse = await providerFetch(as.jwks_uri, { signal })
       if (!jwksResponse.ok) {
         throw new AuthError("auth/adapter", `JWKS fetch failed with status ${jwksResponse.status}`)
       }
       const verifier = createJwtVerifier({
         jwksUri: as.jwks_uri,
-        fetch: fetchImpl,
+        fetch: (url, init) => providerFetch(String(url), init ?? {}),
         issuer: as.issuer,
         audience: validated.clientId,
         algorithms,
@@ -204,9 +231,7 @@ export function oidcAdapter(
         cooldownDurationMs: validated.cooldownDurationMs,
       })
       return { as, verifier }
-    } finally {
-      deadline.dispose()
-    }
+    }, timeoutMs)
   }
 
   function ready(signal?: WebAbortSignal): Promise<DiscoveredProvider> {
@@ -227,10 +252,7 @@ export function oidcAdapter(
     return raceAbort(discoveryPromise, signal)
   }
 
-  // Fallback handle for single-session environments and tests that omit explicit sessionHandle.
-  let lastSessionHandle: string | undefined
-  const inFlightRefreshes = new Map<string, Promise<TokenSet>>()
-  const refreshGenerations = new Map<string, number>()
+  const inFlightRefreshes = new Map<string, Promise<ProviderTokens>>()
   const refreshControllers = new Map<string, WebAbortController>()
 
   // A detected refresh-token compromise — locally (a replayed retired token) or upstream (the
@@ -265,93 +287,122 @@ export function oidcAdapter(
     },
 
     async beginLogin(request: BeginLoginRequest = {}): Promise<LoginRedirect> {
-      const { as } = await ready(request.signal)
-      if (as.authorization_endpoint === undefined) {
-        throw new AuthError("auth/adapter", "provider has no authorization_endpoint")
-      }
-      const codeVerifier = base64urlEncode(crypto.randomBytes(32))
-      const codeChallenge = base64urlEncode(await crypto.digestSha256(encoder.encode(codeVerifier)))
-      const state = base64urlEncode(crypto.randomBytes(32))
-      const nonce = base64urlEncode(crypto.randomBytes(32))
-      const returnTo = sanitizeReturnTo(request.returnTo)
+      return withTimeout(
+        async (signal) => {
+          const { as } = await ready(signal)
+          if (as.authorization_endpoint === undefined) {
+            throw new AuthError("auth/adapter", "provider has no authorization_endpoint")
+          }
+          const codeVerifier = base64urlEncode(crypto.randomBytes(32))
+          const codeChallenge = base64urlEncode(
+            await crypto.digestSha256(encoder.encode(codeVerifier)),
+          )
+          const state = base64urlEncode(crypto.randomBytes(32))
+          const nonce = base64urlEncode(crypto.randomBytes(32))
+          const returnTo = sanitizeReturnTo(request.returnTo)
 
-      const url = new URL(as.authorization_endpoint)
-      url.searchParams.set("client_id", validated.clientId)
-      url.searchParams.set("redirect_uri", validated.redirectUri)
-      url.searchParams.set("response_type", "code")
-      url.searchParams.set("scope", scope)
-      url.searchParams.set("code_challenge", codeChallenge)
-      url.searchParams.set("code_challenge_method", "S256")
-      url.searchParams.set("state", state)
-      url.searchParams.set("nonce", nonce)
+          const url = new URL(as.authorization_endpoint)
+          url.searchParams.set("client_id", validated.clientId)
+          url.searchParams.set("redirect_uri", validated.redirectUri)
+          url.searchParams.set("response_type", "code")
+          url.searchParams.set("scope", scope)
+          url.searchParams.set("code_challenge", codeChallenge)
+          url.searchParams.set("code_challenge_method", "S256")
+          url.searchParams.set("state", state)
+          url.searchParams.set("nonce", nonce)
 
-      const transaction = await signTransaction(signer, {
-        codeVerifier,
-        state,
-        nonce,
-        returnTo,
-        iat: Math.floor(clock.now() / 1000),
-      })
-      return { authorizationUrl: url.toString(), transaction }
+          const transaction = await signTransaction(signer, {
+            codeVerifier,
+            state,
+            nonce,
+            returnTo,
+            iat: Math.floor(clock.now() / 1000),
+          })
+          signal.throwIfAborted()
+          return { authorizationUrl: url.toString(), transaction }
+        },
+        timeoutMs,
+        { ...(request.signal === undefined ? {} : { signal: request.signal }) },
+      )
     },
 
     async completeLogin(request: CompleteLoginRequest): Promise<AuthSession> {
-      const { as, verifier } = await ready(request.signal)
-      const tx = await verifyTransaction(signer, clock, transactionTtl, request.transaction)
-
-      const callbackParams = new URLSearchParams({ ...request.params })
-      let validatedParams: WebURLSearchParams
+      const sessionHandle = base64urlEncode(crypto.randomBytes(32))
       try {
-        validatedParams = oauth.validateAuthResponse(as, client, callbackParams, tx.state)
-      } catch (cause) {
-        throw new AuthError("auth/adapter", "authorization response failed validation", { cause })
-      }
+        return await withTimeout(
+          async (signal) => {
+            const { as, verifier } = await ready(signal)
+            const tx = await verifyTransaction(signer, clock, transactionTtl, request.transaction)
 
-      const deadline = createDeadline(timeoutMs)
-      const combinedSignal = combineSignals(request.signal, deadline.signal)
-      let tokenResponse: WebResponse
-      try {
-        tokenResponse = await oauth.authorizationCodeGrantRequest(
-          as,
-          client,
-          clientAuth,
-          validatedParams,
-          validated.redirectUri,
-          tx.codeVerifier,
-          { ...fetchOption, signal: combinedSignal },
+            const callbackParams = new URLSearchParams({ ...request.params })
+            let validatedParams: WebURLSearchParams
+            try {
+              validatedParams = oauth.validateAuthResponse(as, client, callbackParams, tx.state)
+            } catch (cause) {
+              throw new AuthError("auth/adapter", "authorization response failed validation", {
+                cause,
+              })
+            }
+
+            const tokenResponse = await oauth.authorizationCodeGrantRequest(
+              as,
+              client,
+              clientAuth,
+              validatedParams,
+              validated.redirectUri,
+              tx.codeVerifier,
+              { ...fetchOption, signal },
+            )
+            let result: oauth.TokenEndpointResponse
+            try {
+              result = await oauth.processAuthorizationCodeResponse(as, client, tokenResponse, {
+                expectedNonce: tx.nonce,
+                requireIdToken: true,
+              })
+            } catch (cause) {
+              throw new AuthError("auth/adapter", "token exchange failed", { cause })
+            }
+            if (result.id_token === undefined) {
+              throw new AuthError("auth/adapter", "token response carried no ID token")
+            }
+            // jose is the authoritative ID-token verifier: pinned algorithms (never `none`),
+            // iss/aud/exp, and the transaction nonce — independent of oauth4webapi's parse
+            // validation.
+            const claims = await verifier.verifyIdToken(result.id_token, tx.nonce, signal)
+            const identity = identityFrom(claims)
+            signal.throwIfAborted()
+            if (result.refresh_token !== undefined) {
+              await tokenStore.issue(sessionHandle, result.refresh_token, signal)
+              if ((await tokenStore.current(sessionHandle, signal)) !== result.refresh_token) {
+                throw new AuthError(
+                  "auth/session-revoked",
+                  "provider custody was revoked during login",
+                )
+              }
+            }
+            signal.throwIfAborted()
+            return {
+              identity,
+              tokens: {
+                accessToken: result.access_token,
+                expiresAt: expiryFrom(result.expires_in),
+                identity,
+              },
+              sessionHandle,
+            }
+          },
+          timeoutMs,
+          { ...(request.signal === undefined ? {} : { signal: request.signal }) },
         )
-      } finally {
-        deadline.dispose()
-      }
-      let result: oauth.TokenEndpointResponse
-      try {
-        result = await oauth.processAuthorizationCodeResponse(as, client, tokenResponse, {
-          expectedNonce: tx.nonce,
-          requireIdToken: true,
-        })
       } catch (cause) {
-        throw new AuthError("auth/adapter", "token exchange failed", { cause })
-      }
-      if (result.id_token === undefined) {
-        throw new AuthError("auth/adapter", "token response carried no ID token")
-      }
-      // jose is the authoritative ID-token verifier: pinned algorithms (never `none`),
-      // iss/aud/exp, and the transaction nonce — independent of oauth4webapi's parse validation.
-      const claims = await verifier.verifyIdToken(result.id_token, tx.nonce)
-      const identity = identityFrom(claims)
-      const sessionHandle = request.sessionHandle ?? base64urlEncode(crypto.randomBytes(32))
-      if (result.refresh_token !== undefined) {
-        await tokenStore.issue(sessionHandle, result.refresh_token)
-        lastSessionHandle = sessionHandle
-      }
-      return {
-        identity,
-        tokens: {
-          accessToken: result.access_token,
-          expiresAt: expiryFrom(result.expires_in),
-          identity,
-        },
-        sessionHandle,
+        try {
+          await withTimeout(async (signal) => tokenStore.revoke(sessionHandle, signal), 2000)
+        } catch (cleanupCause) {
+          throw new AuthError("auth/store-unavailable", "provider login and cleanup failed", {
+            cause: new AggregateError([cause, cleanupCause]),
+          })
+        }
+        throw cause
       }
     },
 
@@ -374,29 +425,27 @@ export function oidcAdapter(
       }
     },
 
-    async refresh(signal?: WebAbortSignal, sessionHandle?: string): Promise<TokenSet> {
-      const targetHandle = sessionHandle ?? lastSessionHandle
-      if (targetHandle === undefined) {
-        throw new AuthError("auth/refresh-failed", "no refresh token is held for this session")
-      }
-      const handle = targetHandle
+    async refresh({
+      sessionHandle: handle,
+      signal,
+    }: ProviderSessionRequest): Promise<ProviderTokens> {
       const inFlight = inFlightRefreshes.get(handle)
       if (inFlight !== undefined) {
         return raceAbort(inFlight, signal)
       }
 
-      const generation = refreshGenerations.get(handle) ?? 0
+      if (inFlightRefreshes.size >= MAX_IN_FLIGHT_REFRESHES) {
+        throw new AuthError("auth/store-unavailable", "provider operation capacity exhausted")
+      }
       const exchangeController = new AbortController()
       refreshControllers.set(handle, exchangeController)
 
-      async function doRefresh(): Promise<TokenSet> {
-        const currentRefreshToken = await tokenStore.current(handle)
+      async function doRefresh(exchangeSignal: WebAbortSignal): Promise<ProviderTokens> {
+        const currentRefreshToken = await tokenStore.current(handle, exchangeSignal)
         if (currentRefreshToken === undefined) {
           throw new AuthError("auth/refresh-failed", "no refresh token is held for this session")
         }
-        const { as, verifier } = await ready()
-        const deadline = createDeadline(timeoutMs)
-        const exchangeSignal = combineSignals(deadline.signal, exchangeController.signal)
+        const { as, verifier } = await ready(exchangeSignal)
         let result: oauth.TokenEndpointResponse
         try {
           const response = await oauth.refreshTokenGrantRequest(
@@ -418,40 +467,43 @@ export function oidcAdapter(
             throw await signalReuse(handle, "refresh token rejected by provider (invalid_grant)")
           }
           throw new AuthError("auth/refresh-failed", "refresh token exchange failed", { cause })
-        } finally {
-          deadline.dispose()
         }
-        // Verify session was not invalidated/logged out during the remote exchange
-        if ((refreshGenerations.get(handle) ?? 0) !== generation) {
-          throw new AuthError("auth/refresh-failed", "session was invalidated during refresh")
-        }
+        exchangeSignal.throwIfAborted()
         // Refresh-token rotation with reuse detection: hand the store the token we presented and
         // the provider's replacement. A replay of an already-retired token means the credential
         // leaked — deny the refresh and signal revocation so the session cookie is rejected too.
-        if (result.refresh_token !== undefined) {
+        const nextRefreshToken = result.refresh_token ?? currentRefreshToken
+        {
           const rotation = await tokenStore.rotate(
             handle,
             currentRefreshToken,
-            result.refresh_token,
+            nextRefreshToken,
+            exchangeSignal,
           )
           if (rotation.status === "reuse-detected") {
             throw await signalReuse(handle, "refresh token reuse detected")
           }
         }
-        const tokens: TokenSet = {
+        let tokens: ProviderTokens = {
           accessToken: result.access_token,
           expiresAt: expiryFrom(result.expires_in),
         }
         if (result.id_token !== undefined) {
           // A refreshed ID token carries no meaningful `nonce` (that belonged to original login),
           // so verify signature/iss/aud/exp without re-asserting a nonce.
-          const claims = await verifier.verifyIdToken(result.id_token)
-          return { ...tokens, identity: identityFrom(claims) }
+          const claims = await verifier.verifyIdToken(result.id_token, undefined, exchangeSignal)
+          tokens = { ...tokens, identity: identityFrom(claims) }
         }
+        if ((await tokenStore.current(handle, exchangeSignal)) !== nextRefreshToken) {
+          throw new AuthError("auth/session-revoked", "provider custody changed during refresh")
+        }
+        exchangeSignal.throwIfAborted()
         return tokens
       }
 
-      const refreshPromise = doRefresh().finally(() => {
+      const refreshPromise = withTimeout(doRefresh, timeoutMs, {
+        signal: exchangeController.signal,
+      }).finally(() => {
         inFlightRefreshes.delete(handle)
         if (refreshControllers.get(handle) === exchangeController) {
           refreshControllers.delete(handle)
@@ -461,21 +513,15 @@ export function oidcAdapter(
       return raceAbort(refreshPromise, signal)
     },
 
-    async logout(_signal?: WebAbortSignal, sessionHandle?: string): Promise<void> {
-      const targetHandle = sessionHandle ?? lastSessionHandle
-      if (targetHandle !== undefined) {
-        refreshGenerations.set(targetHandle, (refreshGenerations.get(targetHandle) ?? 0) + 1)
-        const controller = refreshControllers.get(targetHandle)
-        if (controller !== undefined) {
-          controller.abort()
-          refreshControllers.delete(targetHandle)
-        }
-        inFlightRefreshes.delete(targetHandle)
-        await tokenStore.revoke(targetHandle)
-        if (lastSessionHandle === targetHandle) {
-          lastSessionHandle = undefined
-        }
-      }
+    async logout({ sessionHandle: handle, signal }: ProviderSessionRequest): Promise<void> {
+      refreshControllers.get(handle)?.abort()
+      refreshControllers.delete(handle)
+      inFlightRefreshes.delete(handle)
+      await withTimeout(
+        async (operationSignal) => tokenStore.revoke(handle, operationSignal),
+        timeoutMs,
+        { ...(signal === undefined ? {} : { signal }) },
+      )
     },
   }
 

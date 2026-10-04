@@ -1,10 +1,6 @@
 ---
 name: validate
-description: >-
-    Build, typecheck, lint, boundary-check, version-check, and test plainworks changes through bun
-    run and turbo — scoped to the packages that actually changed. Use whenever you need to validate a
-    plainworks change, run the DoD gates, reproduce CI locally, or check the affected area of an edit
-    before handing it off.
+description: "plainworks: Run the repository's build, test, lint, and documentation gates scoped to the change."
 ---
 
 # Validating plainworks changes with bun run / turbo
@@ -50,7 +46,7 @@ bun run check-registry                       # atoms match shadcn.lock.json (par
 turbo run test --filter=@plainworks/elements # lock test + theme-variables contract
 ```
 
-A lock failure means a file under `src/shadcn/` changed outside the pipeline. Don't relock by hand: restore the file, or rerun `registry:update <atom>` and move your change down the deviation ladder (see the [Vendored atoms](../../copilot-instructions.md#vendored-atoms) baseline and the [`update-atoms`](../update-atoms/SKILL.md) skill).
+A lock failure means a file under `src/shadcn/` changed outside the pipeline. Don't relock by hand: restore the file, or rerun `registry:update <atom>` and move your change down the deviation ladder (see the [Vendored atoms](../../engineering.md#vendored-atoms) baseline and the [`update-atoms`](../update-atoms/SKILL.md) skill).
 
 ## Generator changes
 
@@ -73,6 +69,14 @@ cd packages/create-plainworks && bun run smoke
 
 The smoke packs the kit, scaffolds a starter, installs it, and runs the starter's own gates: typecheck, build, boot, and e2e. CI runs the same script in the `create-smoke` job.
 
+## Core/integration dependency isolation
+
+For an integration or package-boundary change, a workspace build is not enough. Use clean installed tarballs to prove three consumers: core without integrations/drivers, a consumer-supplied adapter using only public contracts, and the explicitly selected integration with its driver (through its package, or through the clean generated host that owns it). Inspect manifests, installed dependency graphs, browser graphs, and shipped sources. An optional peer declaration in core or a core forwarding export is still a boundary violation.
+
+When an integration is a new package, prove its generated shape, packaging, and negative layer rules. Native loading, filesystem contention, process cleanup, and TLS need real integration tests on the declared runtimes; unit doubles cannot certify them.
+
+Documentation-only work needs link and consistency checks, not execution of the unfinished implementation's acceptance suite. Distinguish policy requirements from gates that already exist.
+
 ## Production exclusion
 
 `check-production` builds each host with source maps and fails when a forbidden source (the development inspector) reaches the production bundle, or when the scan can't see the app's expected sources. Each app declares its rule in `devtools-exclusion.json`. Paths starting with `./` are app paths, other entries are package paths resolved like imports, and `allowUnmapped` lists output files without a source map, as globs or `manifest.json#field`.
@@ -85,6 +89,6 @@ Treat a green run as **necessary but not sufficient**: it does not catch unbound
 
 For a client/UI package, accessibility and responsiveness are part of the acceptance bar (review pass [`08`](../review/references/08-ui-accessibility.md)): each component test runs `expectNoAxeViolations` in-band with the scoped `turbo run test`. `bun run check-axe-coverage` is the repo-wide gate that fails any render test file that never awaits that assertion or importing `axe-core` directly.
 
-For a change an app user can see, `verify` is not enough: also meet the [UI Definition of Done](../../copilot-instructions.md#build-test-and-lint) in the app. Run the touched flows in the app's e2e suite (`bun run e2e -- e2e/flows.spec.ts --grep "<flow>"`); a failed check leaves its evidence in `.ui-artifacts/latest/report.md`. Then `bun run ui:capture --flow <flow>` and look at the frames. Exit code 1 means a flow broke; exit code 2 means the harness could not run: fix the setup, don't retry blindly. Start `bun run ui:host` once to keep captures fast.
+For a change an app user can see, `verify` is not enough: also meet the [UI Definition of Done](../../engineering.md#build-test-and-lint) in the app. Run the touched flows in the app's e2e suite (`bun run e2e -- e2e/flows.spec.ts --grep "<flow>"`); a failed check leaves its evidence in `.ui-artifacts/latest/report.md`. Then `bun run ui:capture --flow <flow>` and look at the frames. Exit code 1 means a flow broke; exit code 2 means the harness could not run: fix the setup, don't retry blindly. Start `bun run ui:capture serve` to keep captures fast; use `serve --explore` for a separate signed-out MCP host. Session tests reset before fresh sign-in and never reuse credential-bearing storage state. Owned outage/restart flows cannot use an external warm host. Real HTTPS proof must trust an isolated CA in Node and the browser, never bypass TLS validation.
 
 Per repo workflow, **make edits only** — the maintainer commits and pushes.

@@ -285,11 +285,11 @@ const forbidden = [
     // server graph (`server.ts` + `server/**`) is exempt so the barrel can re-export its modules.
     name: "no-nonserver-into-auth-server",
     comment:
-      "Only @plainworks/auth's own server graph (server.ts + server/**) may import its server-only token-custody modules; the neutral `.` and client graphs must never reach the signing secret, even transitively.",
+      "Only @plainworks/auth's server graph and test-only helpers may import server custody; no-production-testing-import keeps those helpers out of neutral and client production graphs.",
     severity: "error",
     from: {
       path: "(^|/)packages/auth/src/",
-      pathNot: ["(^|/)packages/auth/src/server(\\.tsx?$|/)", TEST_FILE],
+      pathNot: ["(^|/)packages/auth/src/server(\\.tsx?$|/)", TEST_FILE, TESTING_MODULE],
     },
     to: { path: "(^|/)packages/auth/src/server(\\.tsx?$|/)" },
   },
@@ -322,7 +322,7 @@ const forbidden = [
     // `.` barrel can never reach custody (config.ts is exempt).
     name: "no-nonserver-into-auth-oidc",
     comment:
-      "Only @plainworks/auth's own server graph (server.ts + server/**) and the OIDC adapter itself may import OIDC adapter modules; the neutral `.` and client graphs must never reach the OAuth stack or token custody (config.ts is exempt).",
+      "Only @plainworks/auth's server graph, OIDC adapter and test-only helpers may import OIDC custody; no-production-testing-import keeps those helpers out of neutral and client production graphs (config.ts is exempt).",
     severity: "error",
     from: {
       path: "(^|/)packages/auth/src/",
@@ -330,6 +330,7 @@ const forbidden = [
         "(^|/)packages/auth/src/server(\\.tsx?$|/)",
         "(^|/)packages/auth/src/adapter/oidc/",
         TEST_FILE,
+        TESTING_MODULE,
       ],
     },
     to: {

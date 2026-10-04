@@ -6,7 +6,7 @@ import { defineConfig, devices } from "@playwright/test"
 // clock, locale, time zone, and motion come from `@plainworks/testkit/playwright`. See
 // `docs/browser-gate.md`.
 //
-// Each worker starts its own `next dev` on its own port and signs in once (`e2e/support/gate.ts`),
+// Each worker owns `next dev` on its own port; tests reset then sign in (`e2e/support/gate.ts`),
 // so workers never share a backend and the suite runs in parallel.
 const CI = Boolean(process.env.CI)
 

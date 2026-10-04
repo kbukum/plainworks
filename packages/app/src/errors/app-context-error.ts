@@ -7,6 +7,7 @@ import { PlainError, type PlainErrorOptions } from "@plainworks/std"
  * missing-provider read apart from a setup mistake.
  */
 export class AppContextError extends PlainError<"app/missing-provider"> {
+  override readonly name: string = "AppContextError"
   constructor(message: string, options?: PlainErrorOptions) {
     super("app/missing-provider", message, options)
   }

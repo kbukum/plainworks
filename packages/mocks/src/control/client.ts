@@ -9,6 +9,7 @@ type MockControlErrorKind = "mocks/invalid-control-response"
 
 /** The control plane answered with a body that does not match its wire contract. */
 export class MockControlError extends PlainError<MockControlErrorKind> {
+  override readonly name: string = "MockControlError"
   /** The control path whose response was rejected. */
   readonly path: string
 

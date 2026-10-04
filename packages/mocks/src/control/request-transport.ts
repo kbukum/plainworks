@@ -18,6 +18,7 @@ export interface ApiRequestContext {
 
 /** A mock control request failed before its response body could be validated. */
 export class MockControlRequestError extends PlainError<"mocks/control-request-failed"> {
+  override readonly name: string = "MockControlRequestError"
   readonly path: string
   readonly status: number
 

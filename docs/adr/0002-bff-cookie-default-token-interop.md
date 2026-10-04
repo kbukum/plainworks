@@ -1,6 +1,6 @@
 # 0002 — The BFF session cookie is the default token interop
 
-**Status:** Accepted · **Date:** 2026-09-19
+**Status:** Superseded by [0011](./0011-opaque-browser-sessions.md) · **Date:** 2026-09-19
 
 ## Context
 

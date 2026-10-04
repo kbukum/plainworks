@@ -153,7 +153,7 @@ function harness(
       if (baseScenario instanceof Error) throw baseScenario
       await capture(run.dir, env, baseScenario)
     },
-    serve: async () => void lines.push("serving"),
+    serve: async (mode) => void lines.push(`serving:${mode}`),
     clock: { now: () => (clock += 1000) },
     print: (line) => void lines.push(line),
   }
@@ -177,6 +177,12 @@ function harness(
 }
 
 describe("runUiCapture", () => {
+  it("uses configured HTTPS for warm-host lookup and single-worker capture", async () => {
+    const h = harness({ warm: true })
+    await h.capture([], { host: { ...config.host, origin: (port) => `https://localhost:${port}` } })
+    expect(h.suites[0]?.env[GATE_ORIGIN_ENV]).toBe("https://localhost:5190")
+    expect(h.suites[0]?.workers).toBe(1)
+  })
   it("captures every flow and publishes the report, comparing nothing without --base", async () => {
     const h = harness()
     expect(await h.capture([])).toBe(UI_CAPTURE_EXIT.pass)
@@ -440,6 +446,8 @@ describe("runUiCapture", () => {
     expect(await h.capture(["--help"])).toBe(UI_CAPTURE_EXIT.pass)
     expect(h.lines[0]).toContain("Usage: ui:capture")
     expect(await h.capture(["serve"])).toBe(UI_CAPTURE_EXIT.pass)
-    expect(h.lines).toContain("serving")
+    expect(h.lines).toContain("serving:capture")
+    expect(await h.capture(["serve", "--explore"])).toBe(UI_CAPTURE_EXIT.pass)
+    expect(h.lines).toContain("serving:explore")
   })
 })

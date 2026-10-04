@@ -1,11 +1,14 @@
 import { isErr } from "@plainworks/std"
+import { RemoteFailure } from "@plainworks/std/failure"
 import { composeInterceptors } from "@plainworks/std/pipeline"
 import { type RandomSource, systemRandom } from "@plainworks/std/random"
 import {
+  combineSignals,
   type Delay,
   type RetryDeps,
   RetryError,
   type RetryPolicy,
+  raceAbort,
   runWithRetry,
   systemDelay,
   TimeoutError,
@@ -14,17 +17,18 @@ import {
 import {
   type AuthHeaderProvider,
   type InferSchemaOutput,
+  type ProtectedSession,
   type StandardSchemaV1,
   type Telemetry,
   validateWithSchema,
 } from "@plainworks/std/seam"
 import { type Clock, systemClock } from "@plainworks/std/time"
 import {
+  createHeaders,
   resolveFetch,
   type WebAbortSignal,
   type WebBodyInit,
   type WebFetch,
-  type WebHeaders,
   type WebHeadersInit,
 } from "@plainworks/std/web"
 import { type BodyCodec, jsonCodec } from "../codec"
@@ -51,6 +55,8 @@ export interface HttpClientOptions {
   readonly fetch?: WebFetch
   /** Header-only credential seam; when set, its headers are injected on every attempt. */
   readonly authProvider?: AuthHeaderProvider
+  /** Lifetime and CSRF seam for opaque cookie-authenticated operations. */
+  readonly protectedSession?: ProtectedSession
   /** Extra interceptors, ordered outermost-first, run between telemetry and auth injection. */
   readonly interceptors?: readonly HttpInterceptor[]
   /** Body encode/decode seam; defaults to {@link jsonCodec}. */
@@ -141,9 +147,9 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
       urlInput.query = input.query
     }
     const url = buildUrl(urlInput)
-    const headers = new Headers(options.headers)
+    const headers = createHeaders(options.headers)
     if (input.headers !== undefined) {
-      new Headers(input.headers).forEach((value, key) => {
+      createHeaders(input.headers).forEach((value, key) => {
         headers.set(key, value)
       })
     }
@@ -168,8 +174,10 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
     // URL across origins must not carry the injected credential to a different host.
     const expectedOrigin = originOf(url)
     // The terminal records the final outbound URL (after every interceptor rewrite) so the response
-    // can fall back to it when the transport does not report one; request-scoped for concurrency.
-    const outbound = { url }
+    // can fall back to it when the transport does not report one. It also holds the session-proof
+    // header names this attempt injected, so an interceptor that rebuilds the request object cannot
+    // shed the protection. Request-scoped for concurrency; attempts run one at a time.
+    const outbound: Outbound = { url, injected: [] }
     const handler = composeChain(makeTerminal(fetchImpl, expectedOrigin, outbound))
 
     const attempt = (outerSignal?: WebAbortSignal): Promise<HttpResponse<unknown>> => {
@@ -179,38 +187,61 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
       }
       return withTimeout(
         async (timeoutSignal) => {
-          // Clone the base headers per attempt: an interceptor that mutates the request headers in
-          // place must not accumulate changes into a later retry — every attempt starts from the
-          // same base request.
-          const response = await handler({
-            ...base,
-            headers: new Headers(base.headers),
-            signal: timeoutSignal,
-          })
-          // Classify the status here, after the whole chain has run, so a non-2xx response is a
-          // typed failure whether the transport produced it or an interceptor short-circuited with
-          // one — a status error can never slip past by bypassing the terminal handler.
-          if (!response.ok) {
-            throw await decodeResponseFailure(response, timeoutSignal, clock.now())
+          const lease = await options.protectedSession?.acquire({ signal: timeoutSignal })
+          const owner = new AbortController()
+          const signal = combineSignals(timeoutSignal, lease?.signal, owner.signal)
+          const execute = async (): Promise<HttpResponse<unknown>> => {
+            // Clone the base headers per attempt: an interceptor that mutates the request headers
+            // in place must not accumulate changes into a later retry — every attempt starts from
+            // the same base request.
+            const requestHeaders = createHeaders(base.headers)
+            for (const [name, value] of Object.entries(lease?.headers ?? {}))
+              requestHeaders.set(name, value)
+            outbound.injected = Object.keys(lease?.headers ?? {})
+            const response = await handler({ ...base, headers: requestHeaders, signal })
+            // Classify the status here, after the whole chain has run, so a non-2xx response is a
+            // typed failure whether the transport produced it or an interceptor short-circuited
+            // with one — a status error can never slip past by bypassing the terminal handler.
+            if (!response.ok) {
+              throw await decodeResponseFailure(response, signal, clock.now())
+            }
+            // Decode under the attempt's timeout/abort signal so a response that sends headers and
+            // then stalls its body cannot hang forever and post-headers cancellation is still
+            // honored.
+            const decoded = await codec.decode(response, signal)
+            // The wire is untrusted: validate the decoded body against the caller's schema at the
+            // boundary (no schema → the raw `unknown` is returned, never a fabricated `T`).
+            // An empty body is `undefined` and has nothing to validate.
+            const data =
+              input.schema === undefined || decoded === undefined
+                ? decoded
+                : await validateBody(input.schema, decoded)
+            return {
+              status: response.status,
+              headers: response.headers,
+              // Fall back to the final outbound URL (after any interceptor rewrite), not the
+              // pre-interceptor build, when the transport reports no response URL.
+              url: response.url || outbound.url,
+              data,
+            }
           }
-          // Decode under the attempt's timeout/abort signal so a response that sends headers and
-          // then stalls its body cannot hang forever and post-headers cancellation is still
-          // honored.
-          const decoded = await codec.decode(response, timeoutSignal)
-          // The wire is untrusted: validate the decoded body against the caller's schema at the
-          // boundary (no schema → the raw `unknown` is returned, never a fabricated `T`). An empty
-          // body is `undefined` and has nothing to validate.
-          const data =
-            input.schema === undefined || decoded === undefined
-              ? decoded
-              : await validateBody(input.schema, decoded)
-          return {
-            status: response.status,
-            headers: response.headers,
-            // Fall back to the final outbound URL (after any interceptor rewrite), not the
-            // pre-interceptor build, when the transport reports no response URL.
-            url: response.url || outbound.url,
-            data,
+          try {
+            const running = execute()
+            // raceAbort abandons the loser by design; guard the in-flight attempt so a late
+            // rejection after the signal wins the race never surfaces as an unhandled rejection.
+            running.catch(() => {})
+            return await raceAbort(running, signal)
+          } catch (cause) {
+            if (
+              cause instanceof RemoteFailure &&
+              (cause.authentication !== undefined || cause.reason === "AUTH_STORE_UNAVAILABLE")
+            ) {
+              options.protectedSession?.invalidate(cause)
+            }
+            throw cause
+          } finally {
+            owner.abort()
+            lease?.release()
           }
         },
         timeoutMs,
@@ -276,10 +307,15 @@ function unwrapRetryError(error: unknown): unknown {
  * credential to a different origin, records the final outbound URL for the response fallback, then
  * calls the transport — mapping a non-abort transport failure to a typed network error.
  */
+interface Outbound {
+  url: string
+  injected: readonly string[]
+}
+
 function makeTerminal(
   fetchImpl: WebFetch,
   expectedOrigin: string,
-  outbound: { url: string },
+  outbound: Outbound,
 ): HttpHandler {
   return async (request) => {
     // An interceptor may have rewritten the URL after buildUrl ran; re-run the credential guards on
@@ -288,10 +324,17 @@ function makeTerminal(
     assertSafeRequestUrl(request.url)
     // A rewrite that also crossed origins would deliver the injected Authorization (or a cookie) to
     // a different host than the caller targeted; refuse it rather than leak the credential.
-    assertNoCrossOriginCredentialLeak(request.url, expectedOrigin, request.headers)
+    const credentialed =
+      outbound.injected.some((name) => request.headers.has(name)) ||
+      (request.credentialHeaders?.length ?? 0) > 0 ||
+      CREDENTIAL_HEADERS.some((name) => request.headers.has(name))
+    assertNoCrossOriginCredentialLeak(request.url, expectedOrigin, credentialed)
     outbound.url = request.url
     try {
-      return await fetchImpl(request.url, toRequestInit(request))
+      return await fetchImpl(request.url, {
+        ...toRequestInit(request),
+        ...(credentialed ? { redirect: "error" } : {}),
+      })
     } catch (cause) {
       // A cancellation raised by the timeout/caller signal is already the settled outcome upstream;
       // let it through rather than masking it as a network fault.
@@ -315,17 +358,15 @@ const CREDENTIAL_HEADERS = ["authorization", "cookie", "proxy-authorization"] as
 function assertNoCrossOriginCredentialLeak(
   finalUrl: string,
   expectedOrigin: string,
-  headers: WebHeaders,
+  credentialed: boolean,
 ): void {
   if (originOf(finalUrl) === expectedOrigin) {
     return
   }
-  for (const name of CREDENTIAL_HEADERS) {
-    if (headers.has(name)) {
-      throw HttpError.unsafeUrl(
-        "Refusing to send a credential to a different origin than the request targeted; an interceptor rewrote the URL across origins.",
-      )
-    }
+  if (credentialed) {
+    throw HttpError.unsafeUrl(
+      "Refusing to send a credential to a different origin than the request targeted; an interceptor rewrote the URL across origins.",
+    )
   }
 }
 

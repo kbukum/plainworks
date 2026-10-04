@@ -4,6 +4,9 @@
   "description": "Second reference host: a Next.js App Router / RSC application that assembles the published @plainworks/* surfaces — composition kernel, theme, query, channel, state, ui, and auth — over a local backend built on @plainworks/mocks, proving host-independence beside the Vite SPA showcase. Never published; nothing depends on it.",
   "private": true,
   "type": "module",
+  "trustedDependencies": [
+    "better-sqlite3"
+  ],
   "scripts": {
     "proto:generate": "buf generate proto",
     "dev": "next dev",
@@ -12,7 +15,8 @@
     "start": "next start",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "ui:capture": "bun e2e/ui-capture.ts"
   },
   "dependencies": {
     "@bufbuild/protobuf": "catalog:",
@@ -29,6 +33,7 @@
     "@plainworks/theme": "workspace:*",
     "@plainworks/ui": "workspace:*",
     "@tanstack/react-query": "catalog:",
+    "better-sqlite3": "catalog:",
     "lucide-react": "catalog:",
     "next": "catalog:",
     "react": "catalog:",
@@ -47,6 +52,7 @@
     "@testing-library/dom": "catalog:",
     "@testing-library/react": "catalog:",
     "@testing-library/user-event": "catalog:",
+    "@types/better-sqlite3": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

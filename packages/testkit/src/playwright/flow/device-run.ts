@@ -207,8 +207,8 @@ async function runVariant(
   const { session, run, mode, plan } = context
   const step = <T>(what: string, work: (signal: AbortSignal) => Promise<T>) =>
     runStep(context, `"${checkpoint.name}" › ${variant.id} › ${what}`, work, context.timeouts.step)
+  await step("settle", (signal) => session.settle(signal))
   if (mode === "capture") {
-    await step("settle", (signal) => session.settle(signal))
     const bytes = await step("frame", (signal) => session.screenshot(checkpoint, signal))
     const frame = await run.write(
       flowArtifactPaths.variant(at, variant.id, "png"),

@@ -8,5 +8,5 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "types": ["node"]
   },
-  "include": ["src/playwright"]
+  "include": ["src/playwright", "test/gate"]
 }

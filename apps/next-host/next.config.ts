@@ -14,6 +14,7 @@ const analysis = process.env.PLAINWORKS_BUNDLE_ANALYSIS === "1"
 const e2eDistDir = process.env.PLAINWORKS_E2E_DIST_DIR
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ["better-sqlite3"],
   reactStrictMode: true,
   // The Plainworks inspector is this host's development tool. Next's own badge would cover the page
   // under every browser-gate check; build and runtime errors still open Next's overlay.

@@ -5,14 +5,13 @@ import {
 } from "@plainworks/testkit/playwright"
 import { expect, test } from "./support/gate"
 import { hostRoute, openRoute, pauseLiveActivity } from "./support/host"
-import { SIGNED_OUT_STATE } from "./support/session"
 
 // The Next host as a user meets it: anonymous overview, sign-in through the BFF, the prefetched
 // task list, the live feed, the account menu, and the color mode. Each page's axe, reflow, and
 // focus checks run in the flows (`e2e/flows/`).
 
 test.describe("signed out", () => {
-  test.use({ storageState: SIGNED_OUT_STATE })
+  test.use({ gateSignIn: false })
 
   test("the public overview offers sign-in, which lands on the gated tasks", async ({ page }) => {
     await openRoute(page, hostRoute("overview"))

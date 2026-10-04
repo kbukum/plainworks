@@ -28,3 +28,6 @@ playwright/.cache/
 .env
 .env.*
 !.env.example
+
+# Private local SQLite custody (including journals and demo root key)
+.private/

@@ -1,390 +1,379 @@
-import { createMockIdp } from "@plainworks/mocks/idp"
+import { isRecord } from "@plainworks/std"
+import { base64urlEncode } from "@plainworks/std/encoding"
 import { guardSchema } from "@plainworks/std/seam"
-import { systemClock } from "@plainworks/std/time"
-import { describe, expect, test } from "vitest"
-import { oidcAdapter } from "../adapter/oidc"
+import type { WebAbortSignal } from "@plainworks/std/web"
+import { deferred, manualClock } from "@plainworks/testkit"
+import { describe, expect, test, vi } from "vitest"
+import type { AuthAdapter } from "../adapter"
 import { defaultAuthCrypto } from "../crypto"
 import { AuthError } from "../errors"
-import { createRevocationRegistry } from "../session-store"
 import { hmacSessionSigner } from "./hmac-signer"
-import { createServerSession, type ServerSession, type ServerSessionJar } from "./server-session"
+import {
+  createMemorySessionStore,
+  type OpaqueSessionStore,
+  type StoredSession,
+} from "./opaque-store"
+import { createServerSession, type ServerSessionJar } from "./server-session"
 
-const REDIRECT_URI = "https://app.test/auth/callback"
-
-interface SessionValue {
+interface Value {
   readonly subject: string
 }
-
-const sessionSchema = guardSchema<SessionValue>(
-  (value): value is SessionValue =>
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as { subject?: unknown }).subject === "string",
+const schema = guardSchema<Value>(
+  (value): value is Value => isRecord(value) && typeof value.subject === "string",
 )
 
-/**
- * An in-memory cookie jar that models one browser: `set` records outbound `Set-Cookie` entries, and
- * `commit()` folds them back into the inbound store the way a browser sends stored cookies on the
- * next request (honoring `Max-Age=0` deletions), so a test can walk the multi-request login flow.
- */
-function browserJar(): ServerSessionJar & { commit(): void } {
+function browserJar(): ServerSessionJar & { entries: string[]; commit(): void } {
   const inbound = new Map<string, string>()
-  const outbound = new Map<string, string | null>()
+  const entries: string[] = []
   return {
+    entries,
     get: (name) => inbound.get(name),
-    set(setCookie) {
-      const eq = setCookie.indexOf("=")
-      const semi = setCookie.indexOf(";")
-      const name = setCookie.slice(0, eq)
-      const value = setCookie.slice(eq + 1, semi === -1 ? undefined : semi)
-      outbound.set(name, /Max-Age=0(?:;|$)/.test(setCookie) ? null : value)
-    },
+    set: (cookie) => entries.push(cookie),
     commit() {
-      for (const [name, value] of outbound) {
-        if (value === null) {
-          inbound.delete(name)
-        } else {
-          inbound.set(name, value)
-        }
+      for (const cookie of entries.splice(0)) {
+        const [pair] = cookie.split(";")
+        if (pair === undefined) throw new Error("missing cookie pair")
+        const index = pair.indexOf("=")
+        const name = pair.slice(0, index)
+        if (cookie.includes("Max-Age=0")) inbound.delete(name)
+        else inbound.set(name, pair.slice(index + 1))
       }
-      outbound.clear()
     },
   }
 }
 
-async function buildSession(): Promise<{
-  session: ServerSession<typeof sessionSchema>
-  idp: Awaited<ReturnType<typeof createMockIdp>>
-}> {
-  const idp = await createMockIdp()
-  const signer = hmacSessionSigner({ keys: [new Uint8Array(32).fill(0x22)] })
-  const adapter = oidcAdapter(
-    {
-      kind: "oidc",
-      issuer: idp.issuer,
-      clientId: idp.clientId,
-      redirectUri: REDIRECT_URI,
-      signer,
-      fetch: idp.fetch,
-    },
-    { crypto: defaultAuthCrypto(), clock: systemClock },
-  )
-  const session = createServerSession({
+function setup(store?: OpaqueSessionStore<Value>, adapterOverride?: AuthAdapter) {
+  const clock = manualClock(0)
+  const memory = createMemorySessionStore<Value>({ clock, schema })
+  const adapter: AuthAdapter = adapterOverride ?? {
+    id: "test-verifier",
+    authenticate: async () => null,
+    beginLogin: async () => ({ authorizationUrl: "https://idp.test", transaction: "pkce" }),
+    completeLogin: async () => ({
+      identity: { subject: "ada", claims: {} },
+      tokens: { accessToken: "server-only", expiresAt: 1000 },
+      sessionHandle: "provider-slot",
+    }),
+    refresh: async () => ({ accessToken: "server-refresh", expiresAt: 2000 }),
+    logout: async () => {},
+  }
+  const config = {
     adapter,
-    signer,
-    sessionSchema,
-    toSessionValue: (result) => ({ subject: result.identity.subject }),
+    store: store ?? memory,
+    sessionSchema: schema,
+    signer: hmacSessionSigner({ keys: [new Uint8Array(32).fill(22)] }),
+    crypto: defaultAuthCrypto(),
+    clock,
+    toSessionValue: () => ({ subject: "ada" }),
+    toIdentity: (value: Value) => ({
+      subject: value.subject,
+      kind: "user" as const,
+      restrictions: { mode: "unrestricted" as const },
+    }),
     guard: { loginPath: "/login" },
-  })
-  return { session, idp }
+  }
+  return { session: createServerSession(config), config, clock, memory }
 }
 
-/** Drive a full begin → authorize → complete login, returning the jar mid-flow. */
-async function login(
-  session: ServerSession<typeof sessionSchema>,
-  idp: Awaited<ReturnType<typeof createMockIdp>>,
-  returnTo?: string,
-): Promise<ReturnType<typeof browserJar>> {
-  const jar = browserJar()
-  const begin = await session.beginLogin(jar, returnTo === undefined ? {} : { returnTo })
+async function login(session: ReturnType<typeof setup>["session"], jar = browserJar()) {
+  await session.beginLogin(jar, { returnTo: "/dashboard" })
   jar.commit()
-  const { callbackUrl } = idp.authorize(begin.authorizationUrl)
-  const params = Object.fromEntries(new URL(callbackUrl).searchParams)
-  await session.completeLogin(jar, { params })
-  jar.commit()
+  await session.completeLogin(jar, { params: {} })
   return jar
 }
 
-describe("createServerSession login flow", () => {
-  test("mints a readable session across the begin → callback round trip", async () => {
-    const { session, idp } = await buildSession()
-    const jar = await login(session, idp)
-    expect(await session.read(jar)).toEqual({ subject: "user-123" })
-  })
-
-  test("carries the sanitized return target through the transaction", async () => {
-    const { session, idp } = await buildSession()
+describe("opaque server session", () => {
+  test("failed persistence admission releases newly verified provider custody", async () => {
+    const base = setup()
+    const logout = vi.fn<NonNullable<AuthAdapter["logout"]>>(async () => {})
+    const session = createServerSession({
+      ...base.config,
+      adapter: { ...base.config.adapter, logout },
+      store: {
+        ...base.memory,
+        create: async () => {
+          throw new Error("store unavailable")
+        },
+      },
+    })
     const jar = browserJar()
-    const begin = await session.beginLogin(jar, { returnTo: "/dashboard" })
+    await expect(login(session, jar)).rejects.toThrow("store unavailable")
+    expect(logout).toHaveBeenCalledOnce()
+    expect(logout.mock.calls[0]?.[0].sessionHandle).toBe("provider-slot")
+    expect(jar.entries.some((entry) => entry.startsWith("__Host-session="))).toBe(false)
+  })
+  test("only a random 32-byte credential enters the exact hardened cookie", async () => {
+    const records: StoredSession<Value>[] = []
+    const backing = createMemorySessionStore<Value>({ clock: manualClock(0), schema })
+    const store: OpaqueSessionStore<Value> = {
+      ...backing,
+      async create(record, previous, signal) {
+        records.push(record)
+        await backing.create(record, previous, signal)
+      },
+    }
+    const { session } = setup(store)
+    const jar = await login(session)
+    expect(jar.get("__Host-login_tx")).toMatch(/^[A-Za-z0-9_-]{43}$/)
+    const cookie = jar.entries.find((entry) => entry.startsWith("__Host-session="))
+    expect(cookie).toMatch(/^__Host-session=[A-Za-z0-9_-]{43};/)
+    expect(cookie).toContain("HttpOnly")
+    expect(cookie).toContain("Secure")
+    expect(cookie).toContain("SameSite=Strict")
+    expect(cookie).toContain("Path=/")
+    expect(cookie).not.toContain("Domain=")
+    expect(cookie).not.toContain("ada")
+    expect(cookie).not.toContain("server-only")
     jar.commit()
-    const { callbackUrl } = idp.authorize(begin.authorizationUrl)
-    const params = Object.fromEntries(new URL(callbackUrl).searchParams)
-    const result = await session.completeLogin(jar, { params })
-    expect(result.returnTo).toBe("/dashboard")
+    expect(records[0]?.reference).not.toBe(jar.get("__Host-session"))
+    expect(await session.read(jar)).toEqual({ subject: "ada" })
+    const status = await session.status(jar)
+    expect(status).toMatchObject({
+      status: "authenticated",
+      identity: { subject: "ada", kind: "user" },
+      expiresAt: "1970-01-01T01:00:00.000Z",
+    })
+    expect(jar.entries).toEqual([])
+    expect(await session.verifyCsrf(jar, status.csrfToken)).toBe(true)
+    expect(await session.verifyCsrf(jar, "forged")).toBe(false)
+    expect(await session.verifyCsrf(jar, "x".repeat(257))).toBe(false)
   })
 
-  test("collapses an off-origin return target to the fallback", async () => {
-    const { session, idp } = await buildSession()
-    const jar = browserJar()
-    const begin = await session.beginLogin(jar, { returnTo: "https://evil.test/phish" })
+  test("provider refresh stays server-only, and logout revokes before deletion", async () => {
+    const { session } = setup()
+    const jar = await login(session)
     jar.commit()
-    const { callbackUrl } = idp.authorize(begin.authorizationUrl)
-    const params = Object.fromEntries(new URL(callbackUrl).searchParams)
-    const result = await session.completeLogin(jar, { params })
-    expect(result.returnTo).toBe("/")
-  })
-})
-
-describe("createServerSession guard", () => {
-  test("redirects an unauthenticated caller to the login route with the return path", async () => {
-    const { session } = await buildSession()
-    const redirect = await session.guard(browserJar(), "/tasks")
-    expect(redirect).not.toBeNull()
-    expect(redirect?.to).toBe("/login?returnTo=%2Ftasks")
-    expect(redirect?.reason).toBe("unauthenticated")
-  })
-
-  test("lets an authenticated caller through", async () => {
-    const { session, idp } = await buildSession()
-    const jar = await login(session, idp)
-    expect(await session.guard(jar, "/tasks")).toBeNull()
-  })
-})
-
-describe("createServerSession CSRF", () => {
-  test("accepts a double-submit echo of the session-bound token", async () => {
-    const { session, idp } = await buildSession()
-    const jar = await login(session, idp)
-    const csrfToken = jar.get("__Host-csrf") ?? ""
-    expect(csrfToken).not.toBe("")
-    expect(await session.verifyCsrf(jar, csrfToken)).toBe(true)
-  })
-
-  test("rejects a missing or mismatched CSRF echo", async () => {
-    const { session, idp } = await buildSession()
-    const jar = await login(session, idp)
-    expect(await session.verifyCsrf(jar, "")).toBe(false)
-    expect(await session.verifyCsrf(jar, "not-the-token")).toBe(false)
-  })
-
-  test("rejects CSRF when there is no valid session", async () => {
-    const { session } = await buildSession()
-    expect(await session.verifyCsrf(browserJar(), "anything")).toBe(false)
-  })
-})
-
-describe("createServerSession teardown and failure paths", () => {
-  test("logout clears the session so a later read is unauthenticated", async () => {
-    const { session, idp } = await buildSession()
-    const jar = await login(session, idp)
+    expect(await session.refreshProvider(jar)).toMatchObject({ accessToken: "server-refresh" })
     await session.logout(jar)
-    jar.commit()
     expect(await session.read(jar)).toBeUndefined()
-    expect(await session.guard(jar, "/tasks")).not.toBeNull()
-  })
-
-  test("a tampered session cookie reads as unauthenticated, never an error", async () => {
-    const { session, idp } = await buildSession()
-    const jar = await login(session, idp)
-    const raw = jar.get("__Host-session") ?? ""
-    jar.set(
-      `__Host-session=${raw}tampered; Path=/; SameSite=Strict; Max-Age=3600; Secure; HttpOnly`,
-    )
+    expect(jar.entries[0]).toContain("Max-Age=0")
     jar.commit()
+    expect(await session.refreshProvider(jar)).toBeUndefined()
+    expect(await session.guard(jar, "/tasks")).toMatchObject({ to: "/login?returnTo=%2Ftasks" })
+  })
+
+  test("expiry is authoritative and status rejects without a cookie renewal", async () => {
+    const { session, clock } = setup()
+    const jar = await login(session)
+    jar.commit()
+    clock.set(3_600_000)
     expect(await session.read(jar)).toBeUndefined()
+    await expect(session.status(jar)).rejects.toMatchObject({ kind: "auth/unauthenticated" })
+    expect(jar.entries).toEqual([])
   })
 
-  test("completeLogin without a transaction cookie is a typed auth/login-transaction error", async () => {
-    const { session } = await buildSession()
-    const failure = session.completeLogin(browserJar(), { params: { code: "x", state: "y" } })
-    await expect(failure).rejects.toBeInstanceOf(AuthError)
-    await expect(failure).rejects.toMatchObject({ kind: "auth/login-transaction" })
-  })
-
-  test("completeLogin rejects a forged transaction cookie and clears it", async () => {
-    const { session } = await buildSession()
+  test("store lookup and revoke failures propagate, and failed revoke sets no deletion", async () => {
+    const store: OpaqueSessionStore<Value> = {
+      ...createMemorySessionStore<Value>({ schema }),
+      read: async () => {
+        throw new AuthError("auth/store-unavailable", "writer down")
+      },
+      create: async () => {},
+      revoke: async () => {
+        throw new AuthError("auth/store-unavailable", "writer down")
+      },
+    }
+    const { session } = setup(store)
     const jar = browserJar()
-    jar.set("__Host-login_tx=forged.value; Path=/; SameSite=Lax; Max-Age=600; Secure; HttpOnly")
+    jar.set(`__Host-session=${"A".repeat(43)}; Secure`)
     jar.commit()
-    await expect(
-      session.completeLogin(jar, { params: { code: "x", state: "y" } }),
-    ).rejects.toMatchObject({ kind: "auth/login-transaction" })
-    jar.commit()
-    expect(jar.get("__Host-login_tx")).toBeUndefined()
-  })
-
-  test("concurrent users maintain independent sessions and token custody", async () => {
-    const { session, idp } = await buildSession()
-    // User 1 logs in
-    const jar1 = await login(session, idp)
-    // User 2 logs in
-    const jar2 = await login(session, idp)
-
-    // User 1 refreshes
-    const r1 = await session.refresh(jar1)
-    expect(r1?.accessToken).toBeTruthy()
-
-    // User 1 logs out
-    await session.logout(jar1)
-    jar1.commit()
-
-    // User 2's session and refresh are unaffected by User 1's logout
-    expect(await session.read(jar2)).toEqual({ subject: "user-123" })
-    const r2 = await session.refresh(jar2)
-    expect(r2?.accessToken).toBeTruthy()
-
-    // User 1 cannot refresh after logout
-    expect(await session.refresh(jar1)).toBeUndefined()
-  })
-
-  test("validates configuration TTLs and bounds", () => {
-    const signer = hmacSessionSigner({ keys: [new Uint8Array(32).fill(0x22)] })
-    const adapter = { beginLogin: () => {}, completeLogin: () => {} } as never
-    const baseConfig = {
-      signer,
-      adapter,
-      sessionSchema,
-      toSessionValue: (s: { identity: { subject: string } }) => ({ subject: s.identity.subject }),
-    }
-
-    expect(() => createServerSession({ ...baseConfig, ttlSeconds: 0 })).toThrowError(AuthError)
-    expect(() => createServerSession({ ...baseConfig, ttlSeconds: -1 })).toThrowError(AuthError)
-    expect(() => createServerSession({ ...baseConfig, ttlSeconds: 1.5 })).toThrowError(AuthError)
-    expect(() => createServerSession({ ...baseConfig, transactionTtlSeconds: 0 })).toThrowError(
-      AuthError,
-    )
-    expect(() => createServerSession({ ...baseConfig, transactionTtlSeconds: -10 })).toThrowError(
-      AuthError,
-    )
-    expect(() => createServerSession({ ...baseConfig, clockSkewSeconds: -1 })).toThrowError(
-      AuthError,
-    )
-    expect(() => createServerSession({ ...baseConfig, maxAgeSeconds: 0 })).toThrowError(AuthError)
-    expect(() => createServerSession({ ...baseConfig, maxAgeSeconds: -5 })).toThrowError(AuthError)
-  })
-
-  test("refresh returns undefined when session cookie is tampered or expired", async () => {
-    const { session, idp } = await buildSession()
-    const jar = await login(session, idp)
-
-    // Tampered cookie returns undefined instead of throwing
-    jar.set("__Host-session=tampered.envelope; Path=/; SameSite=Strict; Secure; HttpOnly")
-    jar.commit()
-    expect(await session.refresh(jar)).toBeUndefined()
-  })
-})
-
-describe("createServerSession revocation wiring", () => {
-  test("a detected refresh-token reuse revokes the session cookie on its next read", async () => {
-    const idp = await createMockIdp()
-    const signer = hmacSessionSigner({ keys: [new Uint8Array(32).fill(0x33)] })
-    // A store that never advances custody, so the second refresh replays the retired token and the
-    // provider rejects it with `invalid_grant` — the reuse signal.
-    let held: string | undefined
-    const tokenStore = {
-      issue: (_h: string, t: string) => {
-        held = t
-      },
-      current: () => held,
-      rotate: () => ({ status: "rotated" }) as const,
-      revoke: () => {
-        held = undefined
-      },
-    }
-    const adapter = oidcAdapter(
-      {
-        kind: "oidc",
-        issuer: idp.issuer,
-        clientId: idp.clientId,
-        redirectUri: REDIRECT_URI,
-        signer,
-        fetch: idp.fetch,
-        tokenStore,
-      },
-      { crypto: defaultAuthCrypto(), clock: systemClock },
-    )
-    const revocation = createRevocationRegistry<SessionValue>()
-    const session = createServerSession({
-      adapter,
-      signer,
-      sessionSchema,
-      toSessionValue: (result) => ({ subject: result.identity.subject }),
-      revocation,
+    await expect(session.read(jar)).rejects.toMatchObject({ kind: "auth/store-unavailable" })
+    await expect(session.verifyCsrf(jar, "proof")).rejects.toMatchObject({
+      kind: "auth/store-unavailable",
     })
-    const jar = await login(session, idp)
+    await expect(session.logout(jar)).rejects.toMatchObject({ kind: "auth/store-unavailable" })
+    expect(jar.entries).toEqual([])
+  })
 
-    expect(await session.read(jar)).toBeDefined()
-    await session.refresh(jar)
-    // The replayed token is rejected by the provider; the flow records the revocation.
-    expect(await session.refresh(jar)).toBeUndefined()
-    // The still-unexpired signed cookie is now rejected at read — secure-by-default, no manual
-    // onReuseDetected wiring required.
+  test("malformed opaque credentials fail before storage; absent sessions are anonymous", async () => {
+    const { session } = setup()
+    const jar = browserJar()
+    expect(await session.read(jar)).toBeUndefined()
+    await expect(session.verifyCsrf(jar, "token")).rejects.toMatchObject({
+      kind: "auth/unauthenticated",
+    })
+    jar.set("__Host-session=identity.signature; Secure")
+    jar.commit()
+    await expect(session.read(jar)).rejects.toMatchObject({ kind: "auth/session-invalid" })
+  })
+
+  test.each(["expired", "revoked"] as const)(
+    "%s sessions reject write admission even with a previously valid CSRF proof",
+    async (state) => {
+      const { session, clock } = setup()
+      const jar = await login(session)
+      jar.commit()
+      const { csrfToken } = await session.status(jar)
+      if (state === "expired") clock.set(3_600_000)
+      else await session.logout(jar)
+      await expect(session.verifyCsrf(jar, csrfToken)).rejects.toMatchObject({
+        kind: "auth/unauthenticated",
+      })
+    },
+  )
+
+  test("a committed logout defeats a login begun with the prior generation", async () => {
+    const { session } = setup()
+    const jar = await login(session)
+    jar.commit()
+    await session.beginLogin(jar)
+    jar.commit()
+    await session.logout(jar)
+    await expect(session.completeLogin(jar, { params: {} })).rejects.toMatchObject({
+      kind: "auth/session-revoked",
+    })
+    expect(jar.entries.filter((entry) => entry.startsWith("__Host-session="))).toHaveLength(1)
+  })
+
+  test("a stale revoked cookie can recover through a new strongly verified login", async () => {
+    const { session } = setup()
+    const jar = await login(session)
+    jar.commit()
+    await session.logout(jar)
+    // A lost logout response leaves the old browser cookie. Login revokes its family again.
+    jar.entries.splice(0)
+    await login(session, jar)
+    jar.commit()
+    expect(await session.read(jar)).toEqual({ subject: "ada" })
+  })
+
+  test("a login begun before absolute expiry cannot renew the expired family", async () => {
+    const { session, clock } = setup()
+    const jar = await login(session)
+    jar.commit()
+    clock.set(3_599_000)
+    await session.beginLogin(jar)
+    jar.commit()
+    clock.set(3_600_000)
+    await expect(session.completeLogin(jar, { params: {} })).rejects.toMatchObject({
+      kind: "auth/session-revoked",
+    })
+    expect(jar.entries.some((entry) => entry.startsWith("__Host-session="))).toBe(false)
     expect(await session.read(jar)).toBeUndefined()
   })
 
-  test("surfaces a mid-refresh compromise when no writable revocation path is configured", async () => {
-    const idp = await createMockIdp()
-    const signer = hmacSessionSigner({ keys: [new Uint8Array(32).fill(0x44)] })
-    let held: string | undefined
-    const tokenStore = {
-      issue: (_h: string, t: string) => {
-        held = t
-      },
-      current: () => held,
-      rotate: () => ({ status: "rotated" }) as const,
-      revoke: () => {
-        held = undefined
-      },
-    }
-    const adapter = oidcAdapter(
-      {
-        kind: "oidc",
-        issuer: idp.issuer,
-        clientId: idp.clientId,
-        redirectUri: REDIRECT_URI,
-        signer,
-        fetch: idp.fetch,
-        tokenStore,
-      },
-      { crypto: defaultAuthCrypto(), clock: systemClock },
-    )
-    // No `revocation` field: the cookie cannot be invalidated here, so the compromise must not be
-    // swallowed — it surfaces for the caller to clear the session.
-    const session = createServerSession({
-      adapter,
-      signer,
-      sessionSchema,
-      toSessionValue: (result) => ({ subject: result.identity.subject }),
-    })
-    const jar = await login(session, idp)
-
-    await session.refresh(jar)
-    await expect(session.refresh(jar)).rejects.toMatchObject({ kind: "auth/session-revoked" })
+  test("a login begun after expiry establishes a new family", async () => {
+    const { session, clock } = setup()
+    const jar = await login(session)
+    jar.commit()
+    clock.set(3_600_000)
+    await login(session, jar)
+    jar.commit()
+    expect((await session.status(jar)).expiresAt).toBe("1970-01-01T02:00:00.000Z")
   })
-})
 
-describe("createServerSession cookie hardening", () => {
-  test("mints only __Host- cookies that are Secure, Path=/, and SameSite, HttpOnly unless CSRF", async () => {
-    const { session, idp } = await buildSession()
+  test("old-generation logout revokes a replacement and absolute expiry does not slide", async () => {
+    const { session, clock } = setup()
+    const jar = await login(session)
+    jar.commit()
+    const old = jar.get("__Host-session")
+    clock.set(1000)
+    await login(session, jar)
+    jar.commit()
+    expect((await session.status(jar)).expiresAt).toBe("1970-01-01T01:00:00.000Z")
+    const oldJar = browserJar()
+    oldJar.set(`__Host-session=${old}; Secure`)
+    oldJar.commit()
+    await session.logout(oldJar)
+    expect(await session.read(jar)).toBeUndefined()
+  })
+
+  test("transaction verification, guard config and adapter capability failures are explicit", async () => {
+    const { session, config } = setup()
     const jar = browserJar()
-    const minted: string[] = []
-    const recording: ServerSessionJar = {
-      get: (name) => jar.get(name),
-      set(setCookie) {
-        minted.push(setCookie)
-        jar.set(setCookie)
-      },
-    }
-    const begin = await session.beginLogin(recording, { returnTo: "/tasks" })
-    jar.commit()
-    const { callbackUrl } = idp.authorize(begin.authorizationUrl)
-    await session.completeLogin(recording, {
-      params: Object.fromEntries(new URL(callbackUrl).searchParams),
+    await expect(session.completeLogin(jar, { params: {} })).rejects.toMatchObject({
+      kind: "auth/login-transaction",
     })
+    jar.set("__Host-login_tx=forged.value; Secure")
     jar.commit()
-    await session.logout(recording)
+    await expect(session.completeLogin(jar, { params: {} })).rejects.toThrow()
+    const noInteractive = createServerSession({
+      ...config,
+      adapter: { id: "stateless", authenticate: async () => null },
+    })
+    await expect(noInteractive.beginLogin(jar)).rejects.toMatchObject({ kind: "auth/config" })
+    await expect(noInteractive.completeLogin(jar, { params: {} })).rejects.toMatchObject({
+      kind: "auth/config",
+    })
+    expect(() => createServerSession({ ...config, ttlSeconds: 3601 })).toThrow()
+    expect(() => createServerSession({ ...config, transactionTtlSeconds: 0 })).toThrow()
+  })
 
-    expect(minted.length).toBeGreaterThanOrEqual(4)
-    for (const cookie of minted) {
-      const attributes = cookie.split(";").map((part) => part.trim())
-      expect(cookie).toMatch(/^__Host-/)
-      expect(attributes).toContain("Secure")
-      expect(attributes).toContain("Path=/")
-      expect(attributes.some((part) => /^Domain=/i.test(part))).toBe(false)
-      expect(attributes.some((part) => /^SameSite=(Strict|Lax)$/.test(part))).toBe(true)
-      expect(attributes.includes("HttpOnly")).toBe(!cookie.startsWith("__Host-csrf="))
-    }
-    const sessionCookies = minted.filter((cookie) => cookie.startsWith("__Host-session="))
-    expect(sessionCookies.every((cookie) => cookie.includes("SameSite=Strict"))).toBe(true)
+  test("a family revoked while provider refresh is held publishes no credentials", async () => {
+    const { config, memory } = setup()
+    const entered = deferred<void>()
+    const release = deferred<void>()
+    const session = createServerSession({
+      ...config,
+      adapter: {
+        ...config.adapter,
+        async refresh() {
+          entered.resolve()
+          await release.promise
+          return { accessToken: "late-credential", expiresAt: 2000 }
+        },
+      },
+    })
+    const jar = await login(session)
+    jar.commit()
+    const refreshed = session.refreshProvider(jar)
+    await entered.promise
+    // Another request committed the family revocation; its provider release has not run yet.
+    const credential = jar.get("__Host-session") ?? ""
+    const reference = base64urlEncode(
+      await defaultAuthCrypto().digestSha256(new TextEncoder().encode(`session.${credential}`)),
+    )
+    await memory.revoke(reference)
+    release.resolve()
+    await expect(refreshed).rejects.toMatchObject({ kind: "auth/session-revoked" })
+  })
+
+  test("logout releases every provider handle in the family even when one release fails", async () => {
+    const { config } = setup()
+    let minted = 0
+    const released: string[] = []
+    const session = createServerSession({
+      ...config,
+      adapter: {
+        ...config.adapter,
+        completeLogin: async () => ({
+          identity: { subject: "ada", claims: {} },
+          tokens: { accessToken: "server-only", expiresAt: 1000 },
+          sessionHandle: `provider-slot-${++minted}`,
+        }),
+        async logout({ sessionHandle }) {
+          released.push(sessionHandle)
+          if (sessionHandle === "provider-slot-1") {
+            throw new AuthError("auth/store-unavailable", "provider custody down")
+          }
+        },
+      },
+    })
+    const jar = await login(session)
+    jar.commit()
+    await login(session, jar)
+    jar.commit()
+    await expect(session.logout(jar)).rejects.toMatchObject({ kind: "auth/store-unavailable" })
+    expect(released.sort()).toEqual(["provider-slot-1", "provider-slot-2"])
+    expect(await session.read(jar)).toBeUndefined()
+  })
+
+  test("compromised provider refresh revokes the opaque family and propagates", async () => {
+    const { config } = setup()
+    const refresh = vi.fn(async (_request: { readonly signal?: WebAbortSignal }) => {
+      throw new AuthError("auth/session-revoked", "provider compromise")
+    })
+    const logout = vi.fn<NonNullable<AuthAdapter["logout"]>>(async () => {})
+    const session = createServerSession({
+      ...config,
+      adapter: { ...config.adapter, refresh, logout },
+    })
+    const jar = await login(session)
+    jar.commit()
+    await expect(session.refreshProvider(jar)).rejects.toMatchObject({
+      kind: "auth/session-revoked",
+    })
+    expect(await session.read(jar)).toBeUndefined()
+    expect(logout.mock.calls.map(([request]) => request.sessionHandle)).toEqual(["provider-slot"])
   })
 })

@@ -1,109 +1,96 @@
 # @plainworks/auth
 
-> Pluggable authentication and authorization: host-neutral core, secure BFF default, swappable adapters.
+Opaque browser sessions, server-only OIDC credentials, and default-deny authorization.
 
-Part of the [plainworks](../../README.md) kit.
-
-## Install
+## Connect a browser to a session host
 
 ```sh
-bun add @plainworks/auth
+bun add @plainworks/auth @plainworks/http
 ```
 
-## Usage
-
-Compose a runtime from an adapter selection — an explicit factory, no module-level singletons:
-
 ```ts
-import { createAuth } from "@plainworks/auth"
+import { createAuthStore } from "@plainworks/auth/session"
+import { createHttpClient } from "@plainworks/http"
 
-const auth = createAuth({
-  adapter: { kind: "custom", adapter: myAdapter },
+const session = createAuthStore()
+const protectedHttp = createHttpClient({
+  baseUrl: "https://app.example.test/api", // Use the host's actual same-origin API.
+  protectedSession: session.protectedSession,
 })
 
-// Injected into any transport as the AuthHeaderProvider — the transport never imports auth.
-const headers = await auth.getAuthHeader()
+await session.login({ username: "ada", password: "example-password" })
+const snapshot = session.getSnapshot()
+await session.logout()
+session.close()
 ```
 
-The in-memory session store custodies the access token (memory only — never `localStorage`), refreshes lazily and single-flight, and neutralizes a late refresh on logout.
+The browser never receives access tokens, refresh tokens, or the session credential. It retains only the published identity, expiry and CSRF proof. The HttpOnly cookie is sent by the browser itself; there is no token store, refresh endpoint or signed identity-cookie API.
 
-## Runtime primitives
+### Session protocol
 
-Every entry is **neutral** except `./client` (React, DOM-free) and `./form-post` (browser): they touch no host globals, so they run on Node, edge, RSC, and React Native. The one non-universal primitive auth needs, **Web Crypto**, is an injected seam (`AuthCrypto`) with a lazy platform default and a typed `auth/crypto-unavailable` error when a host lacks it. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives) for the primitive contract.
+The browser speaks the published gokit session contract directly, without application role conversion:
 
-| Entry | What it gives you |
-|---|---|
-| `.` | `createAuth` and the typed `AuthError` family. |
-| `./adapter` | The adapter registry and the JWT, API-key, and custom adapters. |
-| `./authz` | Default-deny authorization policies and decisions. |
-| `./crypto` | The `AuthCrypto` seam, its Web Crypto default, and `constantTimeEqual`. |
-| `./csrf` | Session-bound CSRF tokens. |
-| `./redirect` | `sanitizeReturnTo`, `guardSession`, and the unauthenticated-redirect signal. |
-| `./session` | The reactive auth store and session snapshots. |
-| `./session-store` | The signed cookie session store, its envelope codec, and the revocation registry. |
-| `./signer` | The `SessionSigner` seam. |
-| `./server` | Server-only: cookie sessions, the OIDC adapter, the HMAC signer, and the BFF route helpers. Never import it from a `"use client"` module. |
-| `./client` | React session hooks, auth gates, and `login`/`logout`. Identity only, never a token. |
-| `./form-post` | The browser navigator `login`/`logout` drive. |
+| Operation | Contract | Budget |
+|---|---|---|
+| Login | `POST /auth/login`, JSON `{ username, password }`; successful session response | 5 seconds |
+| Status | `GET /auth/session`; successful session response, no cookie renewal | 1 second |
+| Logout | `POST /auth/logout`, `X-CSRF-Token`; `204` on confirmed revocation | 2 seconds, including CSRF preparation |
 
-## Adapters and the login flow
+The response is `{ status: "authenticated", identity, expiresAt, csrfToken }`. `expiresAt` is RFC3339 with at most one hour remaining. Identity carries `subject`, `kind: "user" | "service"`, and either `{ mode: "unrestricted" }` or `{ mode: "restricted", resources, scopes }`; empty restriction arrays remain restrictive. Optional claims are application data, not a replacement authorization model.
 
-Four adapters ship. Two are stateless verifiers on `./adapter` — the **JWT bearer** adapter (`kind: "jwt"`, verifies an inbound token against the provider JWKS) and the **API-key** adapter (`kind: "apikey"`, validates a header key through your injected verifier; pair it with the exported `constantTimeEqual` for a timing-safe compare). The other two drive interactive or custom login — the **custom / bring-your-own** adapter (`kind: "custom"`) and the full **OIDC Authorization Code + PKCE** adapter (`kind: "oidc"`, discovers the provider, verifies the ID token, and custodies refresh tokens with rotation and reuse detection). `AuthAdapterConfig` is an open discriminated union, so a new adapter kind extends it without touching the core.
+The credential is exactly `__Host-session`: 32 cryptographically random bytes encoded as 43 canonical base64url characters, with `HttpOnly; Secure; SameSite=Strict; Path=/` and no Domain. JavaScript cannot read it. CSRF travels in a header, not a cookie reader, form logout or query parameter.
 
-Register a stateless adapter into your injected registry, then select it by kind:
+### Lifecycle and cancellation
 
-```ts
-import { createAdapterRegistry, registerApiKeyAdapter, registerJwtAdapter } from "@plainworks/auth/adapter"
+`createAuthStore({ fetch?, baseUrl?, clock?, delay?, initialSnapshot? })` exposes `getSnapshot`, `subscribe`, `login`, `confirm`, `revalidate`, `logout`, `getAuthHeader`, `protectedSession` and `close`. `confirm` checks a signed-in seed without requesting status for a signed-out seed. `close` stops owned work without ending the store, so a root owner can call it on every teardown. `getAuthHeader` supplies CSRF only.
+
+Status checks are generation-fenced and single-flight. Login and logout serialize in a queue capped at 16 mutations. Cancelling a caller stops its wait, not proof that the server mutation did not commit; a queued logout cannot overtake login. Each active mutation owns its request deadline. `close` cancels owned work and expiry timers.
+
+Expiry, terminal authentication failure and operational status failure immediately cancel protected lifetimes and settle unauthenticated. Reconnect checks status before opening another protected stream; it does not refresh credentials. After local teardown, automatic status cannot silently reacquire the session: explicit successful login starts a new generation.
+
+Logout clears local identity and stops protected work immediately. `revocation: "unconfirmed"` means the server has not confirmed revocation; only successful `204` changes it to `"confirmed"`. Show this distinction rather than claiming the cookie was revoked or automatically navigating into another login.
+
+## Protect HTTP, RPC and channels
+
+Inject the same `session.protectedSession` into `createHttpClient`, `createRpcTransport`, and `createChannel`. The seam lives in `@plainworks/std`; transports never import auth. It owns cancellation through HTTP body decoding, RPC stream iteration and channel attempts. Existing finite channel retry/burst budgets remain authoritative, with one bounded status check before reconnect.
+
+Keep genuinely public clients separate. Showcase protects its browser data requests with the shared session runtime. Next keeps its browser demo API public and enforces protected page access on the server.
+
+## Compose an opaque BFF
+
+`@plainworks/auth/server` provides session composition, bounded memory storage and the `OpaqueSessionStore<Value>` persistence contract. Inject the store, an adapter, a session schema, `toSessionValue` and `toIdentity` into `createServerSession`. Separate request-local handles must share the same authoritative records.
+
+The required signer protects CSRF proofs and OIDC transactions, not identity cookies. `hmacSessionSigner` supplies the server-side HMAC implementation. Identity and provider credentials remain in server custody.
+
+The memory default bounds physical generations/tombstones to 1024 and pending login transactions to 256, with no live-session eviction. Retained expired generations support logout only: reads and replacement reject them. Replacement preserves the family's absolute expiry. Production multi-instance hosts inject transactional persistence implementing these same rules, family revocation and one-time login transaction consumption. Store failure must reject, never masquerade as a missing session.
+
+Only domain-separated credential digests are persisted. OIDC PKCE/provider transaction material stays server-side behind a separate opaque login cookie. Re-login uses compare-and-swap; an older generation can revoke its successor. Provider access/refresh tokens remain in server-only adapter custody, and `refreshProvider` preserves legitimate provider refresh without a browser refresh protocol. The standalone Next starter needs no Go service.
+
+```mermaid
+sequenceDiagram
+    Browser->>BFF: OIDC login navigation
+    BFF->>Store: Persist one-time provider transaction
+    BFF->>Provider: Authorization Code + PKCE
+    Provider->>BFF: Verified callback
+    BFF->>Store: Create opaque session family
+    BFF-->>Browser: HttpOnly opaque cookie
+    Browser->>BFF: GET /auth/session
+    BFF->>Store: Authoritative digest lookup
+    BFF-->>Browser: Identity + expiry + CSRF, never credentials
 ```
 
-### Authorization
+OIDC is server credential verification, not a second browser session model. The reference hosts retain their explicit OIDC sign-in navigation; `login({ username, password })` is for hosts exposing the published JSON login endpoint.
 
-Beyond authentication, the package ships a default-deny authorization layer: `createAllowListPolicy` / `requireClaim` build a server `Authorizer`, `guardDecision` turns a decision into a typed outcome, and the `./client` gates (`createAuthGates` → `RequireAuth` / `Can`) render UX affordances. The gates are fail-closed presentation only — the real authorization boundary is enforced on the server.
+### Server boundary helpers
 
-On the server, `createServerSession` composes an interactive adapter, a `SessionSigner`, and the hardened cookie jar into the full BFF login flow — `beginLogin` / `completeLogin` / `logout` / `read` / `guard` — with session-bound signed CSRF and verify-before-parse session cookies. Pass a shared, app-scoped `RevocationRegistry` as `revocation` so a detected refresh-token reuse rejects the session cookie on its next read:
+`createRequestJar` collects outbound cookies and rejects duplicate session cookies or unsupported browser credential headers. `isSameOriginRequest` protects unsafe methods. Use `verifyCsrf` for active-session writes: it rejects missing, expired or revoked sessions, and returns `false` only for a bad proof on a live session. Pass rejected session checks to `authFailureResponse` so terminal authentication returns `401/SESSION_INVALID`, not a permission failure. Use `verifyLogoutCsrf` for family revocation through a retained generation. `authFailureResponse` also reports `AUTH_STORE_UNAVAILABLE` without exposing causes or credentials.
 
-```ts
-import { createServerSession, oidcAdapter, hmacSessionSigner } from "@plainworks/auth/server"
-import { createRevocationRegistry } from "@plainworks/auth/session-store"
-```
+`redirectToPath` sanitizes same-origin return paths, `redirectToUrl` accepts trusted provider URLs, and `readFormBody` bounds OIDC navigation forms to 16 KiB.
 
-### BFF route helpers
+## React and authorization
 
-`./server` also ships small helpers for the BFF routes, over Web `Request`/`Response`, so any server framework can use them. They keep the risky parts safe by default:
+`@plainworks/auth/client` exposes `createSessionContext`, `SessionProvider`, `useSession`, `useIdentity`, `useIsAuthenticated`, `useSessionRuntime`, `useSessionOwner`, auth gates and injected login navigation. The browser root creates one runtime and calls `useSessionOwner(runtime)`, which confirms a signed-in seed against authoritative status after hydration (a signed-out seed is already the server's answer) and closes on teardown. Session expiry is measured on the server's clock, so browser clock skew never ends or extends a session. `SessionProvider` and protected transports only borrow that runtime; unmounting them never ends it. SSR identity seeds rendering, never certifies protected work.
 
-| Helper | What it does |
-|---|---|
-| `createRequestJar(request)` | Reads the request's cookies and collects every cookie the session flow sets. |
-| `redirectToPath({ origin, path, cookies })` | `303` to a sanitized same-origin path. A caller's `returnTo` can never become an open redirect. |
-| `redirectToUrl(url, cookies)` | `303` to a trusted absolute URL, such as the provider's authorization URL. |
-| `isSameOriginRequest(request, origin)` | Checks `Sec-Fetch-Site`, then `Origin`, then `Referer`. Denies a request with none of them. |
-| `parseAppOrigin(value)` | Validates your configured app origin. Never read it from `X-Forwarded-Host`. |
-| `resolveSigningKey({ configured, allowEphemeral })` | Rejects a key under 32 bytes. Mints a random key only when you allow it, never in production. |
-| `readFormBody(request)` | Reads a form body with a 16 KiB cap. Throws `PayloadTooLargeError`, which you answer with `413`. |
+`createAllowListPolicy`, `requireClaim` and `guardDecision` remain default-deny authorization helpers. Client gates are presentation only; enforce policy and credential restrictions server-side.
 
-A logout route checks the sender, reads the capped form, verifies CSRF, then redirects with the cleared cookies:
-
-```ts
-import { createRequestJar, isSameOriginRequest, readFormBody, redirectToPath } from "@plainworks/auth/server"
-
-export async function POST(request: Request): Promise<Response> {
-  if (!isSameOriginRequest(request, origin)) return new Response(null, { status: 403 })
-  const { jar, cookies } = createRequestJar(request)
-  const form = await readFormBody(request)
-  if (!(await session.verifyCsrf(jar, form.get("csrf") ?? ""))) return new Response(null, { status: 403 })
-  await session.logout(jar)
-  return redirectToPath({ origin, path: "/", cookies })
-}
-```
-
-On the browser, `./client` exposes `createSessionContext` (a `SessionProvider` + `useSession` / `useIdentity` / `useIsAuthenticated`) and `login` / `logout` that bounce to the BFF routes. Tokens never cross into this graph — a dependency-cruiser boundary rule proves it.
-
-`login` and `logout` take an injected `AuthNavigator`, so `./client` stays DOM-free and runs on React Native too. In a browser, pass `formPostNavigator`: it navigates with `location.assign`, logs out with a hidden-form POST, and reads the CSRF token from the `__Host-csrf` cookie. Use `createFormPostNavigator({ csrfCookieName })` when the server issues the cookie under another name.
-
-```tsx
-import { login, logout } from "@plainworks/auth/client"
-import { formPostNavigator } from "@plainworks/auth/form-post"
-
-login({ navigator: formPostNavigator, returnTo: "/tasks" })
-logout({ navigator: formPostNavigator })
-```
+All neutral entries use injected structural Web primitives. `./client` is React but DOM-free; `./form-post` supplies browser sign-in navigation only; `./server` must never enter a client graph. Stateless JWT and API-key verifiers remain explicit registry adapters in `./adapter`. See [architecture](../../docs/architecture.md) for runtime and dependency boundaries.

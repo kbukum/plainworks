@@ -2,7 +2,7 @@ import type { Interceptor, Transport } from "@connectrpc/connect"
 import { createConnectTransport, createGrpcWebTransport } from "@connectrpc/connect-web"
 import type { RandomSource } from "@plainworks/std/random"
 import type { Delay } from "@plainworks/std/resilience"
-import type { AuthHeaderProvider } from "@plainworks/std/seam"
+import type { AuthHeaderProvider, ProtectedSession } from "@plainworks/std/seam"
 import type { WebFetch } from "@plainworks/std/web"
 import type { ConnectRetryPolicy } from "../interceptor/resilience"
 import { failureTransport } from "./failure-transport"
@@ -41,6 +41,7 @@ export interface CreateConnectTransportOptions {
    * closest to the wire). Prefer this over hand-placing an auth interceptor.
    */
   readonly authProvider?: AuthHeaderProvider
+  readonly protectedSession?: ProtectedSession
   /**
    * Per-attempt timeout in ms — the C1 fix: every outbound call is bounded by a `std` deadline
    * (rather than left unbounded). Defaults to 30s. For a unary call it is the per-attempt budget
@@ -103,6 +104,9 @@ export function createConnectRpcTransport(options: CreateConnectTransportOptions
     timeoutMs,
     ...(interceptors !== undefined ? { interceptors } : {}),
     ...(authProvider !== undefined ? { authProvider } : {}),
+    ...(options.protectedSession === undefined
+      ? {}
+      : { protectedSession: options.protectedSession }),
     ...(retry !== undefined ? { retry } : {}),
     ...(delay !== undefined ? { delay } : {}),
     ...(random !== undefined ? { random } : {}),
@@ -119,5 +123,6 @@ export function createConnectRpcTransport(options: CreateConnectTransportOptions
     protocol === "grpc-web"
       ? createGrpcWebTransport(transportOptions)
       : createConnectTransport(transportOptions),
+    options.protectedSession,
   )
 }

@@ -10,6 +10,7 @@ export type Delay = (ms: number, signal?: WebAbortSignal) => Promise<void>
 
 /** Raised when an operation exceeds its per-attempt time budget. Retryable under the classifier. */
 export class TimeoutError extends PlainError<"std/timeout"> {
+  override readonly name: string = "TimeoutError"
   constructor(ms: number, options?: { cause?: unknown }) {
     super("std/timeout", `Operation timed out after ${ms}ms`, options)
   }
@@ -17,6 +18,7 @@ export class TimeoutError extends PlainError<"std/timeout"> {
 
 /** Raised when a caller/deadline `WebAbortSignal` cancels an operation. Fatal under the classifier. */
 export class AbortError extends PlainError<"std/aborted"> {
+  override readonly name: string = "AbortError"
   constructor(options?: { cause?: unknown }) {
     super("std/aborted", "Operation aborted", options)
   }

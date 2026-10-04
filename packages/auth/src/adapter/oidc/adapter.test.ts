@@ -1,6 +1,6 @@
 import { createMockIdp } from "@plainworks/mocks/idp"
 import { systemClock } from "@plainworks/std/time"
-import { manualClock } from "@plainworks/testkit"
+import { deferred, manualClock } from "@plainworks/testkit"
 import { describe, expect, test } from "vitest"
 import { defaultAuthCrypto } from "../../crypto"
 import { AuthError } from "../../errors"
@@ -20,6 +20,15 @@ function signingKey(): Uint8Array {
 
 function paramsFromCallback(callbackUrl: string): Record<string, string> {
   return Object.fromEntries(new URL(callbackUrl).searchParams)
+}
+
+function handleOf(handle: string | undefined): string {
+  if (handle === undefined) throw new Error("login returned no provider session handle")
+  return handle
+}
+
+function requestUrl(input: Parameters<typeof fetch>[0]): string {
+  return input instanceof URL ? input.href : String(input)
 }
 
 async function buildAdapter(
@@ -48,6 +57,140 @@ async function buildAdapter(
 }
 
 describe("oidcAdapter happy path", () => {
+  test("a separately composed logout fences a refresh held after custody rotation", async () => {
+    const inner = createRefreshTokenStore()
+    const rotated = deferred<void>()
+    const release = deferred<void>()
+    const tokenStore = {
+      ...inner,
+      async rotate(handle: string, presented: string, next: string) {
+        const result = await inner.rotate(handle, presented, next)
+        rotated.resolve()
+        await release.promise
+        return result
+      },
+    }
+    const { adapter, idp } = await buildAdapter({ tokenStore })
+    const { adapter: other } = await buildAdapter({ tokenStore })
+    const login = await adapter.beginLogin({})
+    const callback = idp.authorize(login.authorizationUrl)
+    const session = await adapter.completeLogin({
+      params: paramsFromCallback(callback.callbackUrl),
+      transaction: login.transaction,
+    })
+    const refresh = adapter.refresh({ sessionHandle: handleOf(session.sessionHandle) }).then(
+      () => "published",
+      (cause: unknown) => (cause instanceof AuthError ? cause.kind : "unexpected-error"),
+    )
+    await rotated.promise
+    await other.logout({ sessionHandle: handleOf(session.sessionHandle) })
+    release.resolve()
+    expect(await refresh).toBe("auth/session-revoked")
+    expect(await inner.current(session.sessionHandle ?? "")).toBeUndefined()
+  })
+
+  test("a separately composed logout fences a refresh whose provider issued no replacement", async () => {
+    const idp = await createMockIdp()
+    const entered = deferred<void>()
+    const release = deferred<void>()
+    let holdRefresh = false
+    const fetchStripping: typeof fetch = async (input, init) => {
+      const response = await idp.fetch(input, init)
+      if (!holdRefresh || !requestUrl(input).endsWith("/token")) return response
+      const { refresh_token: _rotated, ...body } = (await response.json()) as Record<
+        string,
+        unknown
+      >
+      entered.resolve()
+      await release.promise
+      return Response.json(body, { status: response.status })
+    }
+    const tokenStore = createRefreshTokenStore()
+    const shared = { issuer: idp.issuer, clientId: idp.clientId, tokenStore }
+    const { adapter } = await buildAdapter({ ...shared, fetch: fetchStripping })
+    const { adapter: other } = await buildAdapter({ ...shared, fetch: idp.fetch })
+    const login = await adapter.beginLogin({})
+    const session = await adapter.completeLogin({
+      params: paramsFromCallback(idp.authorize(login.authorizationUrl).callbackUrl),
+      transaction: login.transaction,
+    })
+    const sessionHandle = handleOf(session.sessionHandle)
+    holdRefresh = true
+    const refresh = adapter.refresh({ sessionHandle }).then(
+      () => "published",
+      (cause: unknown) => (cause instanceof AuthError ? cause.kind : "unexpected-error"),
+    )
+    await entered.promise
+    await other.logout({ sessionHandle })
+    release.resolve()
+    expect(await refresh).toBe("auth/session-revoked")
+    expect(await tokenStore.current(sessionHandle)).toBeUndefined()
+  })
+
+  test("an oversized token response is rejected", async () => {
+    const idp = await createMockIdp()
+    let inflateToken = false
+    const { adapter } = await buildAdapter({
+      issuer: idp.issuer,
+      clientId: idp.clientId,
+      fetch: async (input, init) => {
+        if (inflateToken && requestUrl(input).endsWith("/token")) {
+          return new Response(`{"padding":"${"x".repeat(70 * 1024)}"}`, {
+            headers: { "content-type": "application/json" },
+          })
+        }
+        return idp.fetch(input, init)
+      },
+    })
+    const login = await adapter.beginLogin({})
+    inflateToken = true
+    await expect(
+      adapter.completeLogin({
+        params: paramsFromCallback(idp.authorize(login.authorizationUrl).callbackUrl),
+        transaction: login.transaction,
+      }),
+    ).rejects.toMatchObject({ kind: "auth/adapter", cause: { kind: "std/payload-too-large" } })
+  })
+
+  test("an oversized discovery document fails discovery", async () => {
+    const idp = await createMockIdp()
+    const { adapter } = await buildAdapter({
+      issuer: idp.issuer,
+      clientId: idp.clientId,
+      fetch: async (input, init) =>
+        requestUrl(input).includes("/.well-known/")
+          ? new Response(`{"padding":"${"x".repeat(70 * 1024)}"}`, {
+              headers: { "content-type": "application/json" },
+            })
+          : idp.fetch(input, init),
+    })
+    await expect(adapter.beginLogin({})).rejects.toMatchObject({
+      kind: "auth/adapter",
+      cause: { kind: "std/payload-too-large" },
+    })
+  })
+
+  test("provider requests preserve manual redirect policy", async () => {
+    const idp = await createMockIdp()
+    const redirects: (string | undefined)[] = []
+    const { adapter } = await buildAdapter({
+      issuer: idp.issuer,
+      clientId: idp.clientId,
+      fetch: (input, init) => {
+        redirects.push(init?.redirect)
+        return idp.fetch(input, init)
+      },
+    })
+    const login = await adapter.beginLogin({})
+    const callback = idp.authorize(login.authorizationUrl)
+    await adapter.completeLogin({
+      params: paramsFromCallback(callback.callbackUrl),
+      transaction: login.transaction,
+    })
+    expect(redirects.length).toBeGreaterThan(2)
+    expect(redirects.every((redirect) => redirect === "manual")).toBe(true)
+  })
+
   test("completes an Authorization Code + PKCE login and resolves the identity", async () => {
     const { adapter, idp } = await buildAdapter()
     const redirect = await adapter.beginLogin({ returnTo: "/dashboard" })
@@ -95,14 +238,16 @@ describe("oidcAdapter happy path", () => {
       params: paramsFromCallback(callbackUrl),
       transaction: redirect.transaction,
     })
-    const refreshed = await adapter.refresh()
+    const refreshed = await adapter.refresh({ sessionHandle: handleOf(first.sessionHandle) })
     expect(refreshed.accessToken).toBeTruthy()
     expect(refreshed.accessToken).not.toBe(first.tokens.accessToken)
   })
 
   test("refresh without a held token is a typed auth/refresh-failed error", async () => {
     const { adapter } = await buildAdapter()
-    await expect(adapter.refresh()).rejects.toMatchObject({ kind: "auth/refresh-failed" })
+    await expect(adapter.refresh({ sessionHandle: "never-issued" })).rejects.toMatchObject({
+      kind: "auth/refresh-failed",
+    })
   })
 
   test("detects a replayed refresh token and denies the refresh while signaling revocation", async () => {
@@ -130,7 +275,7 @@ describe("oidcAdapter happy path", () => {
     })
     const handle = session.sessionHandle as string
     armed = true
-    await expect(adapter.refresh(undefined, handle)).rejects.toMatchObject({
+    await expect(adapter.refresh({ sessionHandle: handleOf(handle) })).rejects.toMatchObject({
       kind: "auth/session-revoked",
     })
     expect(revoked).toEqual([handle])
@@ -138,22 +283,21 @@ describe("oidcAdapter happy path", () => {
 
   test("treats a provider invalid_grant on refresh as reuse and signals revocation", async () => {
     const revoked: string[] = []
-    // A store that never advances custody: after the provider consumes the login refresh token on
-    // the first refresh, the second presents the same (now-retired) token, so the provider's own
-    // reuse detection rejects it with `invalid_grant`.
-    let held: string | undefined
-    const tokenStore = {
-      issue: (_h: string, t: string) => {
-        held = t
-      },
-      current: () => held,
-      rotate: () => ({ status: "rotated" }) as const,
-      revoke: () => {
-        held = undefined
-      },
-    }
-    const { adapter, idp } = await buildAdapter({
+    const idp = await createMockIdp()
+    const tokenStore = createRefreshTokenStore()
+    const { adapter } = await buildAdapter({
       tokenStore,
+      issuer: idp.issuer,
+      clientId: idp.clientId,
+      fetch: (input, init) =>
+        String(init?.body).includes("grant_type=refresh_token")
+          ? Promise.resolve(
+              new Response(JSON.stringify({ error: "invalid_grant" }), {
+                status: 400,
+                headers: { "content-type": "application/json" },
+              }),
+            )
+          : idp.fetch(input, init),
       onReuseDetected: (h) => {
         revoked.push(h)
       },
@@ -165,8 +309,7 @@ describe("oidcAdapter happy path", () => {
       transaction: redirect.transaction,
     })
     const handle = session.sessionHandle as string
-    await adapter.refresh(undefined, handle)
-    await expect(adapter.refresh(undefined, handle)).rejects.toMatchObject({
+    await expect(adapter.refresh({ sessionHandle: handleOf(handle) })).rejects.toMatchObject({
       kind: "auth/session-revoked",
     })
     expect(revoked).toEqual([handle])
@@ -195,9 +338,9 @@ describe("oidcAdapter happy path", () => {
       transaction: redirect.transaction,
     })
     armed = true
-    await expect(adapter.refresh(undefined, session.sessionHandle as string)).rejects.toMatchObject(
-      { kind: "auth/session-revoked" },
-    )
+    await expect(
+      adapter.refresh({ sessionHandle: handleOf(session.sessionHandle) }),
+    ).rejects.toMatchObject({ kind: "auth/session-revoked" })
   })
 
   test("makes both revocation attempts and still denies when tokenStore.revoke throws", async () => {
@@ -227,7 +370,7 @@ describe("oidcAdapter happy path", () => {
     })
     const handle = session.sessionHandle as string
     armed = true
-    await expect(adapter.refresh(undefined, handle)).rejects.toMatchObject({
+    await expect(adapter.refresh({ sessionHandle: handleOf(handle) })).rejects.toMatchObject({
       kind: "auth/session-revoked",
     })
     // A failing tokenStore.revoke never skips the out-of-band signal or downgrades the deny.
@@ -328,18 +471,20 @@ describe("oidcAdapter failure paths", () => {
     expect(s2.sessionHandle).not.toBe(s1.sessionHandle)
 
     // First user refreshes explicitly by session handle
-    const refreshed1 = await adapter.refresh(undefined, s1.sessionHandle)
+    const refreshed1 = await adapter.refresh({ sessionHandle: handleOf(s1.sessionHandle) })
     expect(refreshed1.accessToken).toBeTruthy()
 
     // First user logs out explicitly by session handle
-    await adapter.logout(undefined, s1.sessionHandle)
+    await adapter.logout({ sessionHandle: handleOf(s1.sessionHandle) })
 
     // Second user refresh is unaffected by first user's logout
-    const refreshed2 = await adapter.refresh(undefined, s2.sessionHandle)
+    const refreshed2 = await adapter.refresh({ sessionHandle: handleOf(s2.sessionHandle) })
     expect(refreshed2.accessToken).toBeTruthy()
 
     // First user refresh now fails
-    await expect(adapter.refresh(undefined, s1.sessionHandle)).rejects.toMatchObject({
+    await expect(
+      adapter.refresh({ sessionHandle: handleOf(s1.sessionHandle) }),
+    ).rejects.toMatchObject({
       kind: "auth/refresh-failed",
     })
   })
@@ -354,8 +499,8 @@ describe("oidcAdapter failure paths", () => {
     })
 
     const [tokens1, tokens2] = await Promise.all([
-      adapter.refresh(undefined, s1.sessionHandle),
-      adapter.refresh(undefined, s1.sessionHandle),
+      adapter.refresh({ sessionHandle: handleOf(s1.sessionHandle) }),
+      adapter.refresh({ sessionHandle: handleOf(s1.sessionHandle) }),
     ])
 
     expect(tokens1.accessToken).toBeTruthy()
@@ -373,8 +518,11 @@ describe("oidcAdapter failure paths", () => {
     })
 
     const controller = new AbortController()
-    const refresh1 = adapter.refresh(controller.signal, s1.sessionHandle)
-    const refresh2 = adapter.refresh(undefined, s1.sessionHandle)
+    const refresh1 = adapter.refresh({
+      sessionHandle: handleOf(s1.sessionHandle),
+      signal: controller.signal,
+    })
+    const refresh2 = adapter.refresh({ sessionHandle: handleOf(s1.sessionHandle) })
     controller.abort()
 
     await expect(refresh1).rejects.toThrow()
@@ -396,7 +544,8 @@ describe("oidcAdapter failure paths", () => {
 
     // Provider rotates signing key
     const { kid: newKid } = await idp.rotateSigningKey()
-    expect(newKid).toBe("mock-idp-key-2")
+    const { kid: nextKid } = await idp.rotateSigningKey()
+    expect(newKid).not.toBe(nextKid)
 
     // User 2 logs in with tokens signed by the new key
     const r2 = await adapter.beginLogin({})
@@ -568,10 +717,10 @@ describe("oidcAdapter failure paths", () => {
 
     // Arm gate and start refresh (which blocks waiting for tokenGate)
     gateRefresh = true
-    const refreshPromise = adapter.refresh(undefined, sessionHandle)
+    const refreshPromise = adapter.refresh({ sessionHandle: handleOf(sessionHandle) })
 
     // User logs out while refresh is in flight
-    await adapter.logout(undefined, sessionHandle)
+    await adapter.logout({ sessionHandle: handleOf(sessionHandle) })
     expect(await tokenStore.current(sessionHandle)).toBeUndefined()
 
     // Release token exchange

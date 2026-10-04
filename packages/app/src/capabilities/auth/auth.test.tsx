@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
 import { createSessionContext } from "@plainworks/auth/client"
-import { ANONYMOUS_AUTH, type AuthSnapshot } from "@plainworks/auth/session"
+import {
+  ANONYMOUS_AUTH,
+  type AuthSnapshot,
+  createAuthStore,
+  sessionSnapshotOf,
+} from "@plainworks/auth/session"
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { cleanup, render, screen } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { renderToString } from "react-dom/server"
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { AppProvider } from "../../client/provider"
 import { createApp } from "../../kernel/app"
 import { createAuthCapability } from "./provider"
@@ -50,11 +55,15 @@ describe("createAuthCapability", () => {
     return <p>{identity?.subject ?? "anonymous"}</p>
   }
 
-  it("seeds the session from the server slice on the first render", () => {
+  function seeded(slice: unknown) {
+    return createAuthStore({ fetch: vi.fn(), initialSnapshot: sessionSnapshotOf(slice) })
+  }
+
+  it("renders the borrowed runtime seeded from the server slice on the first render", () => {
     const session = createSessionContext()
     const html = renderToString(
       <AppProvider
-        capabilities={[createAuthCapability({ session })]}
+        capabilities={[createAuthCapability({ session, runtime: seeded(ada) })]}
         snapshot={{ capabilities: { [AUTH_CAPABILITY_ID]: ada } }}
       >
         <Who session={session} />
@@ -65,9 +74,10 @@ describe("createAuthCapability", () => {
 
   it("treats a malformed or absent slice as signed out", async () => {
     const session = createSessionContext()
+    const runtime = seeded({ authenticated: "yes" })
     const { container } = render(
       <AppProvider
-        capabilities={[createAuthCapability({ session, id: "who", dependsOn: [] })]}
+        capabilities={[createAuthCapability({ session, runtime, id: "who", dependsOn: [] })]}
         snapshot={{ capabilities: { who: { authenticated: "yes" } } }}
       >
         <Who session={session} />

@@ -1,8 +1,9 @@
 import type { Interceptor } from "@connectrpc/connect"
 import type { RandomSource } from "@plainworks/std/random"
 import type { Delay } from "@plainworks/std/resilience"
-import type { AuthHeaderProvider } from "@plainworks/std/seam"
+import type { AuthHeaderProvider, ProtectedSession } from "@plainworks/std/seam"
 import { authHeaderInterceptor } from "../interceptor/auth-header"
+import { protectedSessionInterceptor } from "../interceptor/protected-session"
 import { type ConnectRetryPolicy, resilienceInterceptor } from "../interceptor/resilience"
 import { originGuardInterceptor } from "./origin-guard"
 
@@ -14,6 +15,7 @@ export interface InterceptorChainOptions {
   readonly interceptors?: readonly Interceptor[]
   /** Header-only credential seam injected innermost (closest to the wire). */
   readonly authProvider?: AuthHeaderProvider
+  readonly protectedSession?: ProtectedSession
   /** Per-attempt timeout in ms applied by the resilience interceptor. */
   readonly timeoutMs: number
   /** Idempotent-only retry policy; omit for a single attempt. */
@@ -47,6 +49,9 @@ export function buildInterceptorChain(options: InterceptorChainOptions): Interce
   const chain: Interceptor[] = [resilience, ...interceptors]
   if (authProvider !== undefined) {
     chain.push(authHeaderInterceptor(authProvider))
+  }
+  if (options.protectedSession !== undefined) {
+    chain.push(protectedSessionInterceptor(options.protectedSession))
   }
   chain.push(originGuardInterceptor(baseUrl))
   return chain

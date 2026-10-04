@@ -2,6 +2,7 @@
 
 import { createMotionCapability } from "@plainworks/app/capabilities/theme"
 import { AppProvider } from "@plainworks/app/client"
+import { createSessionFixture } from "@plainworks/auth/testing"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import { HttpClientProvider } from "@plainworks/http/client"
@@ -56,7 +57,7 @@ function renderSettings(options: { authed?: boolean; named?: boolean; path?: str
       }
   return render(
     <TestQueryClientProvider client={queryClient}>
-      <SessionProvider {...(authed ? { initialSnapshot: snapshot } : {})}>
+      <SessionProvider runtime={createSessionFixture(authed ? snapshot : undefined)}>
         <HttpClientProvider client={httpClient}>
           <ThemeProvider source={fakeStateSource()}>
             <RouterProvider initialPath={path}>

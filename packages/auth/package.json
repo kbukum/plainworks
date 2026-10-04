@@ -67,11 +67,6 @@
       "types": "./dist/session.d.ts",
       "default": "./dist/session.js"
     },
-    "./session-store": {
-      "@plainworks/source": "./src/session-store/index.ts",
-      "types": "./dist/session-store.d.ts",
-      "default": "./dist/session-store.js"
-    },
     "./signer": {
       "@plainworks/source": "./src/signer/index.ts",
       "types": "./dist/signer.d.ts",
@@ -91,15 +86,21 @@
       "@plainworks/source": "./src/adapters/form-post.ts",
       "types": "./dist/form-post.d.ts",
       "default": "./dist/form-post.js"
+    },
+    "./testing": {
+      "@plainworks/source": "./src/testing/index.ts",
+      "types": "./dist/testing.d.ts",
+      "default": "./dist/testing.js"
     }
   },
   "scripts": {
     "build": "tsdown",
-    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.adapters.json && tsc --noEmit -p tsconfig.test.json",
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.adapters.json && tsc --noEmit -p tsconfig.test.json && tsc --noEmit -p tsconfig.testing.json",
     "test": "vitest run --coverage",
     "check-packaging": "plainworks-release check-packaging"
   },
   "dependencies": {
+    "@plainworks/http": "workspace:*",
     "@plainworks/state": "workspace:*",
     "@plainworks/std": "workspace:*",
     "jose": "catalog:",

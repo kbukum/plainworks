@@ -1,117 +1,67 @@
-import { encodeSession } from "@plainworks/auth/session-store"
-import { createMockServerHandle } from "@plainworks/demo/server"
-import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
-import { type ShowcaseSessionValue, showcaseSessionCodec, showcaseSessionReader } from "../auth"
-import {
-  NOTIFICATION_MUTATION_HEADER,
-  NOTIFICATION_MUTATION_HEADER_VALUE,
-  SESSION_COOKIE,
-} from "../constants"
-import { createNotificationMutationAuthorizer } from "./authz"
+import { afterEach, describe, expect, it } from "vitest"
+import { createShowcaseBackend, type ShowcaseBackend } from "../../../test/backend"
+import { NOTIFICATION_MUTATION_HEADER, NOTIFICATION_MUTATION_HEADER_VALUE } from "../constants"
 
-// The notification mutation boundary proven where it is enforced — the mock backend. The client
-// `<Can>` gate only hides the act-on controls; this seam is the real authorization. It verifies the
-// signed session cookie the BFF issues (a forged or tampered value never passes) and applies the
-// same named-identity policy as the gate, so only a signed-in user carrying a valid cookie is
-// served — across the per-row writes and the bulk mark-all-read alike.
+let backend: ShowcaseBackend | undefined
+afterEach(() => backend?.close())
 
-const SIGNING_KEY = new TextEncoder().encode("showcase-notification-authz-test-signing-key")
-const codec = showcaseSessionCodec(SIGNING_KEY)
-const authorize = createNotificationMutationAuthorizer(showcaseSessionReader(SIGNING_KEY))
-const base = "http://showcase.test"
+const MUTATION = { [NOTIFICATION_MUTATION_HEADER]: NOTIFICATION_MUTATION_HEADER_VALUE }
 
-async function signedCookie(value: ShowcaseSessionValue): Promise<string> {
-  return `${SESSION_COOKIE}=${await encodeSession(codec, value)}`
+function markAllRead(target: ShowcaseBackend, headers: Record<string, string>) {
+  return target.send("/api/notifications/read-all", { method: "POST", headers })
 }
 
-function patchRequest(cookie?: string, mutationHeader = true): Request {
-  return new Request(`${base}/api/notifications/n1`, {
-    method: "PATCH",
-    headers: {
-      ...(cookie === undefined ? {} : { cookie }),
-      ...(mutationHeader
-        ? { [NOTIFICATION_MUTATION_HEADER]: NOTIFICATION_MUTATION_HEADER_VALUE }
-        : {}),
-    },
-  })
+function unread(target: ShowcaseBackend): number {
+  return target.api.stores.notifications.getAll().filter((item) => !item.read).length
 }
 
-describe("createNotificationMutationAuthorizer", () => {
-  it("accepts a request carrying a validly-signed, named session cookie", async () => {
-    const request = patchRequest(await signedCookie({ subject: "user-123", name: "Ada" }))
-    expect(await authorize(request)).toBe(true)
+describe("notification writes at the backend boundary", () => {
+  it("a named operator's opaque session marks every notification read", async () => {
+    backend = await createShowcaseBackend()
+    expect(unread(backend)).toBeGreaterThan(0)
+    const response = await markAllRead(backend, { ...MUTATION, cookie: await backend.signIn() })
+    expect(response.status).toBe(200)
+    expect(unread(backend)).toBe(0)
   })
 
-  it("rejects a forged cookie value under the session name", async () => {
-    expect(await authorize(patchRequest(`${SESSION_COOKIE}=forged.value`))).toBe(false)
-  })
-
-  it("rejects a validly-signed session with no name (fails the manage policy)", async () => {
-    const request = patchRequest(await signedCookie({ subject: "guest-1" }))
-    expect(await authorize(request)).toBe(false)
-  })
-
-  it("rejects a request with no cookie header", async () => {
-    expect(await authorize(patchRequest())).toBe(false)
-  })
-
-  it("rejects a valid session without the non-simple mutation header", async () => {
-    const request = patchRequest(await signedCookie({ subject: "user-123", name: "Ada" }), false)
-    expect(await authorize(request)).toBe(false)
-  })
-})
-
-describe("notification mutation boundary", () => {
-  const handle = createMockServerHandle({ seed: 5, authorizeNotificationMutation: authorize })
-
-  bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll } })
-  afterEach(() => {
-    handle.api.reset()
-  })
-
-  it("rejects mark-read and mark-all-read from a caller without a session (403)", async () => {
-    const notification = handle.api.stores.notifications.getAll()[0]
-    if (notification === undefined) throw new Error("expected a seeded notification")
-
-    const patch = await fetch(`${base}/api/notifications/${notification.id}`, {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ read: true }),
-    })
-    expect(patch.status).toBe(403)
-
-    const bulk = await fetch(`${base}/api/notifications/read-all`, { method: "POST" })
-    expect(bulk.status).toBe(403)
-  })
-
-  it("rejects bodyless mark-all-read with a valid session but no mutation proof", async () => {
-    const before = handle.api.stores.notifications.getAll().filter((row) => !row.read).length
-    const bulk = await fetch(`${base}/api/notifications/read-all`, {
-      method: "POST",
-      headers: { cookie: await signedCookie({ subject: "user-123", name: "Ada" }) },
-    })
-
-    expect(bulk.status).toBe(403)
-    expect(handle.api.stores.notifications.getAll().filter((row) => !row.read)).toHaveLength(before)
-  })
-
-  it("serves mark-read for a caller carrying a valid session cookie", async () => {
-    const notification = handle.api.stores.notifications.getAll()[0]
-    if (notification === undefined) throw new Error("expected a seeded notification")
-
-    const res = await fetch(`${base}/api/notifications/${notification.id}`, {
-      method: "PATCH",
-      headers: {
-        "content-type": "application/json",
-        cookie: await signedCookie({ subject: "user-123", name: "Ada" }),
-        [NOTIFICATION_MUTATION_HEADER]: NOTIFICATION_MUTATION_HEADER_VALUE,
+  it.each([
+    ["a guest", async () => MUTATION, { name: "Ada" }],
+    [
+      "a forged session cookie",
+      async () => ({ ...MUTATION, cookie: "__Host-session=forged" }),
+      {
+        name: "Ada",
       },
-      body: JSON.stringify({ read: true }),
-    })
-    const body = (await res.json()) as { data: { read: boolean } | null }
+    ],
+    [
+      "a missing mutation header",
+      async (b: ShowcaseBackend) => ({ cookie: await b.signIn() }),
+      {
+        name: "Ada",
+      },
+    ],
+    [
+      "an unnamed identity",
+      async (b: ShowcaseBackend) => ({
+        ...MUTATION,
+        cookie: await b.signIn(),
+      }),
+      {},
+    ],
+  ] as const)("%s is denied and no notification changes", async (_, headersOf, claims) => {
+    backend = await createShowcaseBackend(claims)
+    const headers = await headersOf(backend)
+    const before = structuredClone(backend.api.stores.notifications.getAll())
+    expect((await markAllRead(backend, headers)).status).toBe(403)
+    expect(backend.api.stores.notifications.getAll()).toEqual(before)
+  })
 
-    expect(res.status).toBe(200)
-    expect(body.data?.read).toBe(true)
+  it("unavailable session storage fails the write and no notification changes", async () => {
+    backend = await createShowcaseBackend()
+    const cookie = await backend.signIn()
+    const before = structuredClone(backend.api.stores.notifications.getAll())
+    backend.failStorage()
+    expect((await markAllRead(backend, { ...MUTATION, cookie })).status).toBe(500)
+    expect(backend.api.stores.notifications.getAll()).toEqual(before)
   })
 })

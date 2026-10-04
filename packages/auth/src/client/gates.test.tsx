@@ -5,7 +5,8 @@ import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { type ReactNode, useState } from "react"
-import { afterEach, describe, expect, test } from "vitest"
+import { afterEach, describe, expect, test, vi } from "vitest"
+import { createAuthStore, type SessionSnapshot } from "../session"
 import { createAuthGates } from "./gates"
 import { createSessionContext } from "./session-context"
 
@@ -13,10 +14,18 @@ afterEach(cleanup)
 
 const admin: Identity = { subject: "u1", claims: { role: "admin" } }
 
+/** A borrowed runtime seeded for rendering; gates never reach the network. */
+function seeded(initialSnapshot?: SessionSnapshot) {
+  return createAuthStore({
+    fetch: vi.fn(),
+    ...(initialSnapshot === undefined ? {} : { initialSnapshot }),
+  })
+}
+
 const allowAll: Authorizer = () => ({ allow: true })
 const denyAll: Authorizer = () => ({ allow: false, reason: "forbidden" })
 const allowAdmin: Authorizer = (request) =>
-  request.identity?.claims.role === "admin"
+  request.identity?.claims?.role === "admin"
     ? { allow: true }
     : { allow: false, reason: "forbidden" }
 
@@ -25,7 +34,7 @@ describe("RequireAuth", () => {
     const context = createSessionContext()
     const { RequireAuth } = createAuthGates(context)
     render(
-      <context.SessionProvider initialSnapshot={{ status: "authenticated", identity: admin }}>
+      <context.SessionProvider runtime={seeded({ status: "authenticated", identity: admin })}>
         <RequireAuth fallback={<p>Please sign in</p>}>
           <p>Secret</p>
         </RequireAuth>
@@ -39,7 +48,7 @@ describe("RequireAuth", () => {
     const context = createSessionContext()
     const { RequireAuth } = createAuthGates(context)
     render(
-      <context.SessionProvider>
+      <context.SessionProvider runtime={seeded()}>
         <RequireAuth fallback={<p>Please sign in</p>}>
           <p>Secret</p>
         </RequireAuth>
@@ -55,7 +64,7 @@ describe("Can", () => {
     const context = createSessionContext()
     const { Can } = createAuthGates(context)
     render(
-      <context.SessionProvider initialSnapshot={{ status: "authenticated", identity: admin }}>
+      <context.SessionProvider runtime={seeded({ status: "authenticated", identity: admin })}>
         <Can authorizer={allowAdmin} action="post:delete" fallback={<p>Not allowed</p>}>
           <button type="button">Delete post</button>
         </Can>
@@ -69,7 +78,7 @@ describe("Can", () => {
     const context = createSessionContext()
     const { Can } = createAuthGates(context)
     render(
-      <context.SessionProvider initialSnapshot={{ status: "authenticated", identity: admin }}>
+      <context.SessionProvider runtime={seeded({ status: "authenticated", identity: admin })}>
         <Can authorizer={denyAll} action="post:delete" fallback={<p>Not allowed</p>}>
           <button type="button">Delete post</button>
         </Can>
@@ -85,7 +94,7 @@ describe("Can", () => {
     const gate = deferred<Decision>()
     const pendingAllow: Authorizer = () => gate.promise
     render(
-      <context.SessionProvider initialSnapshot={{ status: "authenticated", identity: admin }}>
+      <context.SessionProvider runtime={seeded({ status: "authenticated", identity: admin })}>
         <Can authorizer={pendingAllow} action="post:delete" fallback={<p>Checking…</p>}>
           <button type="button">Delete post</button>
         </Can>
@@ -104,7 +113,7 @@ describe("Can", () => {
       throw new Error("policy boom")
     }
     render(
-      <context.SessionProvider initialSnapshot={{ status: "authenticated", identity: admin }}>
+      <context.SessionProvider runtime={seeded({ status: "authenticated", identity: admin })}>
         <Can authorizer={boom} action="post:delete" fallback={<p>Not allowed</p>}>
           <button type="button">Delete post</button>
         </Can>
@@ -126,10 +135,11 @@ describe("Can", () => {
       gates.push(gate)
       return gate.promise
     }
+    const runtime = seeded({ status: "authenticated", identity: admin })
     function Harness(): ReactNode {
       const [action, setAction] = useState("post:read")
       return (
-        <context.SessionProvider initialSnapshot={{ status: "authenticated", identity: admin }}>
+        <context.SessionProvider runtime={runtime}>
           <button type="button" onClick={() => setAction("post:delete")}>
             Downgrade
           </button>
@@ -140,7 +150,7 @@ describe("Can", () => {
       )
     }
     render(<Harness />)
-    await waitFor(() => expect(gates.length).toBeGreaterThan(0))
+    await waitFor(() => expect(gates).toHaveLength(1))
     gates[0]?.resolve({ allow: true })
     await waitFor(() => expect(screen.getByText("Allowed content")).toBeDefined())
     await userEvent.click(screen.getByRole("button", { name: "Downgrade" }))
@@ -154,7 +164,7 @@ describe("Can", () => {
     const { RequireAuth, Can } = createAuthGates(context)
     const { container } = render(
       <main>
-        <context.SessionProvider initialSnapshot={{ status: "authenticated", identity: admin }}>
+        <context.SessionProvider runtime={seeded({ status: "authenticated", identity: admin })}>
           <RequireAuth fallback={<p>Please sign in</p>}>
             <Can authorizer={allowAll} action="post:read" fallback={<p>Not allowed</p>}>
               <button type="button">Delete post</button>

@@ -1,10 +1,12 @@
 import { HYDRATION_SCRIPT_ID } from "@plainworks/app/hydration"
+import { createMemorySessionStore } from "@plainworks/auth/server"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import { createMockIdp } from "@plainworks/mocks/idp"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest"
 import { createShowcaseAuth, type ShowcaseAuth } from "../neutral/auth"
+import { showcaseSessionSchema } from "../neutral/auth/session"
 import { THEME_COOKIE } from "../neutral/constants"
 import { renderApp } from "./render"
 
@@ -76,6 +78,7 @@ bindMockServerLifecycle(handle.server, { hooks: { beforeAll, afterEach, afterAll
 beforeAll(async () => {
   idp = await createMockIdp()
   auth = createShowcaseAuth({
+    store: createMemorySessionStore({ schema: showcaseSessionSchema }),
     fetch: idp.fetch,
     issuer: idp.issuer,
     clientId: idp.clientId,

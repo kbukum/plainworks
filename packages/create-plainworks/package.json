@@ -39,6 +39,7 @@
     "sync-versions": "bun scripts/sync-versions.ts"
   },
   "devDependencies": {
+    "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",
     "@types/node": "catalog:",

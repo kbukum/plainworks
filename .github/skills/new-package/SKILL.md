@@ -1,15 +1,13 @@
 ---
 name: new-package
-description: >-
-    Scaffold a new @plainworks/* package the canonical way — drive the turbo gen golden generator
-    (never hand-roll files), pick the one-plain-word concern name, place it in the layer map, and
-    wire it into the boundaries layer map (layers.json) so it is enforced from birth. Use when adding a new
-    capability or package to plainworks, or when unsure where a package belongs.
+description: "plainworks: Add a package with the repository's generator/layout, dependency boundaries, and validation."
 ---
 
 # Adding a package to plainworks
 
 plainworks packages are **born from a golden generator**, never hand-written. The template creates the human-owned files, then `plainworks-shape sync` derives `package.json` exports, files, side effects, scripts, and preset dev dependencies from the typed `tsdown.config.ts` build description. Do not create package files by hand; drive the generator, then place the package in the layer map.
+
+**Classify first:** a core capability belongs in `packages/`. A technology integration never becomes a core subpath; follow [new-backend](../new-backend/SKILL.md) to choose its smallest owner. Create a package for it only when the kit ships it for reuse.
 
 ## Step 1 — Name it: one concern, one plain word
 
@@ -36,7 +34,7 @@ bun run gen package
 
 Or non-interactively (as CI does): `bun run gen package --args <name> "<description>" <true|false>`.
 
-Answer `hasClient: true` only when the package ships React bindings. The generated `./client` is DOM-free, so it also runs on React Native; put browser behavior on an adapter subpath (see [`new-backend`](../new-backend/SKILL.md)), or declare `dom: true` in `tsdown.config.ts` when the package's product is browser UI. A pure server-safe capability (such as `std`) is `false` — it ships only neutral entries. `hasClient: true` adds the `./client` export, a `"use client"` module, jsdom test env, and `react`/`react-dom` `catalog:` peers.
+Answer `hasClient: true` only when the package ships React bindings. The generated `./client` is DOM-free, so it also runs on React Native; thin standard-platform behavior may use a binding subpath, but SDK/database/framework integrations never live in core. Declare `dom: true` only when the package's product is browser UI. A pure server-safe capability (such as `std`) is `false`. `hasClient: true` adds the `./client` export, a `"use client"` module, jsdom test env, and `react`/`react-dom` `catalog:` peers.
 
 Then install so the workspace picks it up:
 
@@ -44,7 +42,7 @@ Then install so the workspace picks it up:
 bun install
 ```
 
-Every subpath uses the one entry vocabulary ([ADR 0007](../../../docs/adr/0007-entry-vocabulary.md)): neutral `.` and concern subpaths, `./client`, `./server`, adapter subpaths named after what they do, and `./testing`. If you add or rename a public subpath, edit `build.entry` in `tsdown.config.ts` and run `bun run sync-shape` ([ADR 0009](../../../docs/adr/0009-generated-workspace-shape.md)). Never hand-edit `exports`, `files`, `sideEffects`, or the standard `build` / `typecheck` / `test` / `check-packaging` scripts.
+Every core subpath uses the one entry vocabulary ([ADR 0007](../../../docs/adr/0007-entry-vocabulary.md)): neutral `.` and concern subpaths, `./client`, `./server`, thin platform bindings, and `./testing`. It does not permit packaging a technology backend inside core. If you add or rename a public subpath, edit `build.entry` in `tsdown.config.ts` and run `bun run sync-shape` ([ADR 0009](../../../docs/adr/0009-generated-workspace-shape.md)). Never hand-edit derived manifest fields.
 
 ## Step 4 — Wire it into the layer map
 
@@ -58,7 +56,7 @@ Follow the [`apply-step`](../apply-step/SKILL.md) discipline: failing vitest tes
 
 For a `hasClient` package, the server `.` graph holds the pure logic/types; the `"use client"` leaf holds only DOM/hook-bound code and never imports server-only auth. Interactive components are **accessible and responsive by default** — semantic roles, keyboard/focus, WCAG 2.2 AA, mobile-first/fluid layout with container-query adaptivity, `prefers-reduced-motion`/`-color-scheme` — and each component test queries by role (`@testing-library/user-event`, not `fireEvent`), mocks the network with MSW, and carries an axe assertion. See [`../../instructions/components.instructions.md`](../../instructions/components.instructions.md) and review pass [`08`](../review/references/08-ui-accessibility.md).
 
-A UI package composes atoms from `@plainworks/elements/<name>` — never copy one in or edit it. **Vendored atoms** (`src/shadcn/`) are **locked**; a needed deviation follows the **deviation ladder** (theme → call site → `ui` wrapper), and a new primitive we write goes in `elements/src/atoms/`. See the [Vendored atoms](../../copilot-instructions.md#vendored-atoms) baseline.
+A UI package composes atoms from `@plainworks/elements/<name>` — never copy one in or edit it. **Vendored atoms** (`src/shadcn/`) are **locked**; a needed deviation follows the **deviation ladder** (theme → call site → `ui` wrapper), and a new primitive we write goes in `elements/src/atoms/`. See the [Vendored atoms](../../engineering.md#vendored-atoms) baseline.
 
 ## Step 6 — Validate
 

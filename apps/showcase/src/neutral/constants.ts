@@ -108,14 +108,10 @@ export const PRODUCT_SALES_LIMIT = 5
 export const THEME_COOKIE = "theme"
 
 /**
- * Base name of the signed session cookie. `createServerSession` stores it with the `__Host-`
- * prefix, so the browser cookie is {@link SESSION_COOKIE}. Pinned here so the auth composition and
- * the server-side mutation authorizer agree on one name.
+ * The opaque session-id cookie as written to the browser — `__Host-`-prefixed, secure-by-default.
+ * Pinned here so the auth composition and the server-side mutation authorizer agree on one name.
  */
-export const SESSION_COOKIE_NAME = "session"
-
-/** The signed session cookie as written to the browser — `__Host-`-prefixed, secure-by-default. */
-export const SESSION_COOKIE = `__Host-${SESSION_COOKIE_NAME}`
+export const SESSION_COOKIE = "__Host-session"
 
 /**
  * Locale the display value components format numbers and dates with, fixed for SSR/client parity.
@@ -132,7 +128,7 @@ export const LOGIN_PATH = "/login"
 export const AUTH_CALLBACK_PATH = "/auth/callback"
 
 /** BFF route that clears the session cookie. */
-export const LOGOUT_PATH = "/logout"
+export const LOGOUT_PATH = "/auth/logout"
 
 /** Root element id the app mounts into. */
 export const ROOT_ELEMENT_ID = "root"

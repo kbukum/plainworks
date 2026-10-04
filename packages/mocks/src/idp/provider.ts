@@ -1,7 +1,13 @@
 import { base64urlEncode } from "@plainworks/std/encoding"
 import { type Clock, systemClock } from "@plainworks/std/time"
 import type { WebFetch, WebResponse } from "@plainworks/std/web"
-import { exportJWK, generateKeyPair, SignJWT } from "jose"
+import { exportJWK, generateKeyPair, importJWK, SignJWT } from "jose"
+import {
+  createMemoryMockIdpState,
+  type MockIdpData,
+  type MockIdpSigningKey,
+  type MockIdpState,
+} from "./state"
 
 /**
  * A signing algorithm the {@link MockIdp} mints tokens under. Both are asymmetric (a
@@ -12,6 +18,8 @@ export type MockIdpAlg = "RS256" | "ES256"
 
 /** How to build a {@link MockIdp}. Every field has a deterministic default so a test can omit it. */
 export interface MockIdpOptions {
+  /** Borrowed fixture custody. Omit for an isolated, provider-owned memory store. */
+  readonly state?: MockIdpState
   /** Issuer identifier (no trailing slash); defaults to `https://idp.test`. */
   readonly issuer?: string
   /** The audience the tokens are minted for — the relying-party client id; defaults to `test-client`. */
@@ -52,6 +60,8 @@ export interface MockAuthorizeResult {
  * endpoint. No MSW, no real sockets — build one with {@link createMockIdp}.
  */
 export interface MockIdp {
+  /** Release the provider; borrowed state remains owned by its caller. */
+  close(): void
   /** The issuer identifier this provider advertises. */
   readonly issuer: string
   /** The relying-party client id its tokens are minted for. */
@@ -108,13 +118,6 @@ function jsonResponse(body: unknown, status = 200): WebResponse {
   }) as unknown as WebResponse
 }
 
-interface PendingCode {
-  readonly codeChallenge: string
-  readonly nonce: string
-  readonly redirectUri: string
-  used: boolean
-}
-
 /**
  * Build a {@link MockIdp}. Generates a fresh signing keypair, so each provider is isolated and no
  * key material is shared across tests. Async because key generation is.
@@ -128,45 +131,90 @@ export async function createMockIdp(options: MockIdpOptions = {}): Promise<MockI
   const clock = options.clock ?? systemClock
   const extraClaims = options.claims ?? {}
 
-  const { publicKey, privateKey } = await generateKeyPair(alg, { extractable: true })
-  let currentKid = "mock-idp-key"
-  let currentPrivateKey = privateKey
-  const publicJwks = [{ ...(await exportJWK(publicKey)), alg, use: "sig", kid: currentKid }]
-
-  const codes = new Map<string, PendingCode>()
-  const refreshTokens = new Set<string>()
-  let failNext = false
-  let counter = 0
-  const mint = (prefix: string): string => {
-    counter += 1
-    return `${prefix}-${counter}-${clock.now()}`
+  const state = options.state ?? createMemoryMockIdpState()
+  let closed = false
+  const transact = <Value>(operation: (data: MockIdpData) => Value): Value => {
+    if (closed) throw new Error("mock IdP is closed")
+    return state.transact((data) => {
+      const now = clock.now()
+      data.codes = data.codes.filter((code) => code.expiresAt > now)
+      data.refresh = data.refresh.filter((token) => token.expiresAt > now)
+      data.keys = data.keys.filter(
+        (key, index) => index === data.keys.length - 1 || key.expiresAt > now,
+      )
+      return operation(data)
+    })
   }
+  const mint = (data: MockIdpData, prefix: string): string => {
+    data.counter += 1
+    return `${prefix}-${data.counter}-${clock.now()}`
+  }
+  const identity = JSON.stringify([issuer, clientId, subject, alg])
+  function currentKey(data: MockIdpData): MockIdpSigningKey {
+    const key = data.keys.at(-1)
+    if (!key) throw new Error("mock IdP signing identity missing")
+    return key
+  }
+  async function generateSigningKey(): Promise<Omit<MockIdpSigningKey, "kid">> {
+    const pair = await generateKeyPair(alg, { extractable: true })
+    return {
+      privateJwk: await exportJWK(pair.privateKey),
+      publicJwk: { ...(await exportJWK(pair.publicKey)), alg, use: "sig" },
+      expiresAt: clock.now() + accessTtl * 1000,
+    }
+  }
+  if (transact((data) => data.keys.length === 0)) {
+    const candidate = await generateSigningKey()
+    transact((data) => {
+      if (data.keys.length === 0) {
+        data.keys.push({ ...candidate, kid: mint(data, "key") })
+        data.identity = identity
+      }
+    })
+  }
+  transact((data) => {
+    if (data.identity !== identity)
+      throw new Error("mock IdP signing identity configuration mismatch")
+  })
 
   async function signToken(
     extra: Readonly<Record<string, unknown>>,
     ttlSeconds: number,
   ): Promise<string> {
     const nowSeconds = Math.floor(clock.now() / 1000)
+    const { key, jti } = transact((data) => {
+      const current = currentKey(data)
+      const key = { ...current, expiresAt: clock.now() + accessTtl * 1000 }
+      data.keys[data.keys.length - 1] = key
+      return { key, jti: mint(data, "jti") }
+    })
     return new SignJWT({ ...extraClaims, ...extra })
-      .setProtectedHeader({ alg, kid: currentKid })
-      .setJti(mint("jti"))
+      .setProtectedHeader({ alg, kid: key.kid })
+      .setJti(jti)
       .setIssuer(issuer)
       .setAudience(clientId)
       .setSubject(subject)
       .setIssuedAt(nowSeconds)
       .setExpirationTime(nowSeconds + ttlSeconds)
-      .sign(currentPrivateKey)
+      .sign(await importJWK(key.privateJwk, alg))
   }
 
-  async function issueTokens(nonce: string | undefined): Promise<Record<string, unknown>> {
+  async function issueTokens(
+    nonce: string | undefined,
+    expiresAt: number,
+  ): Promise<Record<string, unknown>> {
     const effectiveNonce = options.idTokenNonceOverride ?? nonce
     const idToken = await signToken(
       effectiveNonce === undefined ? {} : { nonce: effectiveNonce },
       accessTtl,
     )
     const accessToken = await signToken({ scope: "openid profile email" }, accessTtl)
-    const refreshToken = mint("refresh")
-    refreshTokens.add(refreshToken)
+    const refreshToken = transact((data) => {
+      if (data.refresh.length >= 128) throw new Error("mock IdP refresh capacity exhausted")
+      const token = mint(data, "refresh")
+      data.refresh.push({ token, expiresAt })
+      return token
+    })
     return {
       token_type: "bearer",
       access_token: accessToken,
@@ -189,36 +237,55 @@ export async function createMockIdp(options: MockIdpOptions = {}): Promise<MockI
   }
 
   async function handleToken(body: string): Promise<WebResponse> {
-    if (failNext) {
-      failNext = false
+    if (
+      transact((data) => {
+        const failed = data.failNext
+        data.failNext = false
+        return failed
+      })
+    ) {
       return jsonResponse({ error: "temporarily_unavailable" }, 503)
     }
     const params = new URLSearchParams(body)
     const grantType = params.get("grant_type")
     if (grantType === "refresh_token") {
       const token = params.get("refresh_token") ?? ""
-      if (!refreshTokens.has(token)) {
+      const grant = transact((data) => {
+        const index = data.refresh.findIndex((entry) => entry.token === token)
+        if (index < 0) return undefined
+        const [entry] = data.refresh.splice(index, 1)
+        return entry
+      })
+      if (grant === undefined) {
         return jsonResponse({ error: "invalid_grant" }, 400)
       }
-      refreshTokens.delete(token)
-      return jsonResponse(await issueTokens(undefined))
+      return jsonResponse(await issueTokens(undefined, grant.expiresAt))
     }
     if (grantType !== "authorization_code") {
       return jsonResponse({ error: "unsupported_grant_type" }, 400)
     }
     const code = params.get("code") ?? ""
-    const pending = codes.get(code)
-    if (pending === undefined || pending.used) {
+    const verifier = params.get("code_verifier") ?? ""
+    const challenge = await sha256Base64Url(verifier)
+    const pending = transact((data) => {
+      const index = data.codes.findIndex((entry) => entry.code === code)
+      const entry = data.codes[index]
+      if (
+        !entry ||
+        challenge !== entry.codeChallenge ||
+        (params.has("redirect_uri") && params.get("redirect_uri") !== entry.redirectUri) ||
+        (params.has("client_id") && params.get("client_id") !== clientId)
+      )
+        return undefined
+      data.codes.splice(index, 1)
+      return entry
+    })
+    if (pending === undefined) {
       // An unknown or already-redeemed code is a replay; reject it exactly as a real provider
       // would.
       return jsonResponse({ error: "invalid_grant" }, 400)
     }
-    const verifier = params.get("code_verifier") ?? ""
-    if ((await sha256Base64Url(verifier)) !== pending.codeChallenge) {
-      return jsonResponse({ error: "invalid_grant" }, 400)
-    }
-    pending.used = true
-    return jsonResponse(await issueTokens(pending.nonce))
+    return jsonResponse(await issueTokens(pending.nonce, clock.now() + 3_600_000))
   }
 
   const fetch: WebFetch = async (input, init) => {
@@ -228,7 +295,9 @@ export async function createMockIdp(options: MockIdpOptions = {}): Promise<MockI
       return jsonResponse(discovery)
     }
     if (method === "GET" && url === discovery.jwks_uri) {
-      return jsonResponse({ keys: publicJwks })
+      return jsonResponse({
+        keys: transact((data) => data.keys.map((key) => ({ ...key.publicJwk, kid: key.kid }))),
+      })
     }
     if (method === "POST" && url === discovery.token_endpoint) {
       return handleToken(String(init?.body ?? ""))
@@ -240,6 +309,10 @@ export async function createMockIdp(options: MockIdpOptions = {}): Promise<MockI
     issuer,
     clientId,
     fetch,
+    close() {
+      closed = true
+      if (options.state === undefined) state.close()
+    },
     authorize(authorizationUrl: string): MockAuthorizeResult {
       const url = new URL(authorizationUrl)
       const challenge = url.searchParams.get("code_challenge")
@@ -250,24 +323,36 @@ export async function createMockIdp(options: MockIdpOptions = {}): Promise<MockI
       if (challenge === null || challengeMethod !== "S256") {
         throw new Error("mock IdP authorize requires PKCE code_challenge with S256")
       }
-      const code = mint("code")
-      codes.set(code, { codeChallenge: challenge, nonce, redirectUri, used: false })
+      const code = transact((data) => {
+        if (data.codes.length >= 128) throw new Error("mock IdP code capacity exhausted")
+        const code = mint(data, "code")
+        data.codes.push({
+          code,
+          codeChallenge: challenge,
+          nonce,
+          redirectUri,
+          expiresAt: clock.now() + 300_000,
+        })
+        return code
+      })
       const callback = new URL(redirectUri)
       callback.searchParams.set("code", code)
       callback.searchParams.set("state", state)
       return { code, state, callbackUrl: callback.toString() }
     },
     failNextTokenExchange(): void {
-      failNext = true
+      transact((data) => {
+        data.failNext = true
+      })
     },
     async rotateSigningKey(): Promise<{ kid: string }> {
-      const newKid = `mock-idp-key-${publicJwks.length + 1}`
-      const newPair = await generateKeyPair(alg, { extractable: true })
-      const newJwk = { ...(await exportJWK(newPair.publicKey)), alg, use: "sig", kid: newKid }
-      publicJwks.push(newJwk)
-      currentPrivateKey = newPair.privateKey
-      currentKid = newKid
-      return { kid: newKid }
+      const candidate = await generateSigningKey()
+      return transact((data) => {
+        if (data.keys.length >= 8) throw new Error("mock IdP signing key capacity exhausted")
+        const kid = mint(data, "key")
+        data.keys.push({ ...candidate, kid })
+        return { kid }
+      })
     },
   }
 }

@@ -1,10 +1,6 @@
 ---
 name: commit
-description: >-
-    Commit staged (or explicitly named) changes with a single compact, developer-friendly commit
-    message that states what changed — no Co-authored-by trailer, no plan/batch/PR numbers, no tool
-    or review narration. Keep one commit per branch (amend). Use when asked to commit work in
-    plainworks.
+description: "plainworks: Commit the authorized staged change with a concise Conventional Commit message; only when asked."
 ---
 
 # Committing with a clean, developer-friendly message

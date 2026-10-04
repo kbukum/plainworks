@@ -7,9 +7,9 @@
 // one.
 //
 // Authentication runs through `@plainworks/auth`'s own `createServerSession` composition: the BFF
-// routes `/login`, `/auth/callback`, and `/logout` drive begin/complete/logout, and the SSR render
-// is session-gated. The identity provider is `@plainworks/mocks/idp`'s in-process mock IdP — this
-// is a dev harness, never bundled or published; run it with `bun run server.ts`.
+// routes `/login`, `/auth/callback`, and `/auth/logout` drive begin/complete/logout, and the SSR
+// render is session-gated. The identity provider is `@plainworks/mocks/idp`'s in-process mock
+// IdP — this is a dev harness, never bundled or published; run it with `bun run server.ts`.
 
 import { readFile } from "node:fs/promises"
 import {
@@ -20,12 +20,13 @@ import {
 import { isAuthErrorKind } from "@plainworks/auth"
 import { sanitizeReturnTo } from "@plainworks/auth/redirect"
 import {
+  authFailureResponse,
+  createMemorySessionStore,
   createRequestJar,
   isSameOriginRequest,
   readFormBody,
   redirectToPath,
   redirectToUrl,
-  resolveSigningKey,
 } from "@plainworks/auth/server"
 import { createMockApi } from "@plainworks/demo"
 import { createMockServerHandle } from "@plainworks/demo/server"
@@ -37,6 +38,7 @@ import { PayloadTooLargeError } from "@plainworks/std/web"
 import { createServer as createViteServer, type ViteDevServer } from "vite"
 import type { RenderApp } from "./src/entry-server"
 import { createShowcaseAuth } from "./src/neutral/auth"
+import { showcaseSessionSchema } from "./src/neutral/auth/session"
 import { AUTH_CALLBACK_PATH, LOGIN_PATH, LOGOUT_PATH } from "./src/neutral/constants"
 import { createNotificationMutationAuthorizer } from "./src/neutral/notifications"
 import { createOrderMutationAuthorizer } from "./src/neutral/orders"
@@ -60,12 +62,9 @@ const ORIGIN = `http://${HOST}:${PORT}`
 // host never has to be reachable.
 const SSR_ORIGIN = "http://showcase.local"
 
-// A configured `SESSION_SIGNING_KEY` must be at least 32 bytes. Without one this dev harness signs
-// with a random per-process key, so sessions end on restart but nobody can forge a cookie.
-const SIGNING_KEY = resolveSigningKey({
-  configured: process.env.SESSION_SIGNING_KEY,
-  allowEphemeral: true,
-})
+// Sessions live in this process's memory, so the transaction/CSRF signing key does too: a fresh
+// random key per process, never configured. The Next host shows durable custody.
+const SIGNING_KEY = crypto.getRandomValues(new Uint8Array(32))
 
 // The browser gate pins the demo backend's clock to the same instant it pins the browser's, so
 // every fixture date is identical on each run and on each machine.
@@ -115,6 +114,7 @@ async function main(): Promise<void> {
   // calls; its `authorize` helper stands in for the interactive provider login page.
   const idp = await createMockIdp({ claims: { name: "Ada" } })
   const auth = createShowcaseAuth({
+    store: createMemorySessionStore({ schema: showcaseSessionSchema }),
     fetch: idp.fetch,
     issuer: idp.issuer,
     clientId: idp.clientId,
@@ -169,6 +169,8 @@ async function main(): Promise<void> {
           renderLoginPage({
             returnTo,
             interrupted: url.searchParams.get(LOGIN_REASON_PARAM) === LOGIN_INTERRUPTED,
+            revocationUnconfirmed:
+              url.searchParams.get(LOGIN_REASON_PARAM) === "revocation-unconfirmed",
             cookieHeader: req.headers.cookie ?? "",
             stylesheets: [STYLESHEET_ENTRY],
           }),
@@ -213,15 +215,34 @@ async function main(): Promise<void> {
         methodNotAllowed(res, "POST")
         return
       }
-      const form = await readSameOriginForm()
-      if (form === undefined) return
-      const csrfToken = form.get("csrf") ?? request.headers.get("x-csrf-token") ?? ""
-      if (!(await auth.session.verifyCsrf(jar, csrfToken))) {
+      if (!isSameOriginRequest(request, ORIGIN)) {
+        sendStatus(res, 403, "Forbidden")
+        return
+      }
+      const csrfToken = request.headers.get("x-csrf-token") ?? ""
+      if (!(await auth.session.verifyLogoutCsrf(jar, csrfToken))) {
         sendStatus(res, 403, "Forbidden")
         return
       }
       await auth.session.logout(jar)
-      await redirect(res, "/", cookies)
+      res.setHeader("set-cookie", [...cookies])
+      res.statusCode = 204
+      res.end()
+      return
+    }
+    if (url.pathname === "/auth/session") {
+      if (req.method !== "GET") {
+        methodNotAllowed(res, "GET")
+        return
+      }
+      try {
+        const status = await auth.session.status(jar)
+        res.setHeader("cache-control", "no-store")
+        res.setHeader("content-type", "application/json")
+        res.end(JSON.stringify(status))
+      } catch (cause) {
+        await sendWebResponse(res, authFailureResponse(cause))
+      }
       return
     }
     sendStatus(res, 404, "Not Found")
@@ -261,57 +282,87 @@ async function main(): Promise<void> {
     const isAuthRoute =
       url.pathname === LOGIN_PATH ||
       url.pathname === AUTH_CALLBACK_PATH ||
+      url.pathname === "/auth/session" ||
       url.pathname === LOGOUT_PATH
     if (isAuthRoute) {
-      handleAuthRoute(req, res, url).catch(() => {
+      handleAuthRoute(req, res, url).catch((cause: unknown) => {
         process.stderr.write("showcase authentication request failed\n")
-        respondWithInternalError(res)
+        void sendWebResponse(res, authFailureResponse(cause)).catch(() =>
+          respondWithInternalError(res),
+        )
       })
       return
     }
-    vite.middlewares(req, res, async () => {
-      try {
-        const rawPath = req.url ?? "/"
-        const url = new URL(rawPath, ORIGIN)
-        const requestPath = `${url.pathname}${url.search}`
-        const { renderApp } = (await vite.ssrLoadModule(
-          "/src/entry-server.tsx",
-        )) as EntryServerModule
-        // The demo's error switch lives on the browser plane (`/mock/error`). The SSR plane follows
-        // it, so a server-prefetched section fails the same way. Latency stays browser-only, so a
-        // slowed section still paints its loading state instead of stalling the server render.
-        ssrMock.api.control.setError(browserMock.control.isErrorEnabled())
-        const httpClient = createHttpClient({ baseUrl: SSR_ORIGIN })
-        const { html, status, location } = await renderApp({
-          path: requestPath,
-          cookieHeader: req.headers.cookie ?? "",
-          httpClient,
-          stylesheets: [STYLESHEET_ENTRY],
-          clientEntry: CLIENT_ENTRY,
-          readSession: auth.read,
-        })
-        if (location !== undefined) {
-          await redirect(res, location)
-          return
+    const dispatch = (): void => {
+      vite.middlewares(req, res, async () => {
+        try {
+          const rawPath = req.url ?? "/"
+          const url = new URL(rawPath, ORIGIN)
+          const requestPath = `${url.pathname}${url.search}`
+          const { renderApp } = (await vite.ssrLoadModule(
+            "/src/entry-server.tsx",
+          )) as EntryServerModule
+          // The demo's error switch lives on the browser plane (`/mock/error`). The SSR plane
+          // follows it, so a server-prefetched section fails the same way. Latency stays
+          // browser-only, so a slowed section still paints its loading state instead of stalling
+          // the server render.
+          ssrMock.api.control.setError(browserMock.control.isErrorEnabled())
+          const httpClient = createHttpClient({ baseUrl: SSR_ORIGIN })
+          const { html, status, location } = await renderApp({
+            path: requestPath,
+            cookieHeader: req.headers.cookie ?? "",
+            httpClient,
+            stylesheets: [STYLESHEET_ENTRY],
+            clientEntry: CLIENT_ENTRY,
+            readSession: auth.read,
+          })
+          if (location !== undefined) {
+            await redirect(res, location)
+            return
+          }
+          const document = await vite.transformIndexHtml(rawPath, html)
+          res.statusCode = status
+          res.setHeader("content-type", "text/html")
+          res.end(document)
+        } catch (error) {
+          vite.ssrFixStacktrace(error instanceof Error ? error : new Error(String(error)))
+          process.stderr.write("showcase render request failed\n")
+          respondWithInternalError(res)
         }
-        const document = await vite.transformIndexHtml(rawPath, html)
-        res.statusCode = status
-        res.setHeader("content-type", "text/html")
-        res.end(document)
-      } catch (error) {
-        vite.ssrFixStacktrace(error instanceof Error ? error : new Error(String(error)))
-        process.stderr.write("showcase render request failed\n")
-        respondWithInternalError(res)
-      }
-    })
+      })
+    }
+    if (
+      url.pathname.startsWith("/api/") &&
+      req.method !== "GET" &&
+      req.method !== "HEAD" &&
+      req.method !== "OPTIONS"
+    ) {
+      const headers = new Headers({ cookie: req.headers.cookie ?? "" })
+      const token = req.headers["x-csrf-token"]
+      void Promise.resolve()
+        .then(() =>
+          auth.session.verifyCsrf(
+            createRequestJar({ headers }).jar,
+            typeof token === "string" ? token : "",
+          ),
+        )
+        .then(
+          (valid) => (valid ? dispatch() : sendStatus(res, 403, "Forbidden")),
+          (cause: unknown) => {
+            void sendWebResponse(res, authFailureResponse(cause)).catch(() =>
+              respondWithInternalError(res),
+            )
+          },
+        )
+    } else dispatch()
   })
 
   // Run Vite's HMR socket over this same HTTP server instead of its own standalone port. In
   // middleware mode Vite otherwise opens a separate WebSocket server that this harness never
   // closes, so a `^C` orphans it and the next start fails with `EADDRINUSE` on the HMR port.
   // The mock backend that serves the browser's `/api/*` calls is wired here (not in `vite.config`)
-  // so its order-write authorizer verifies cookies under the *same* `SIGNING_KEY` the session flow
-  // signs with — a config-time authorizer would resolve its own key and reject every real session.
+  // so its order-write authorizer reads the *same* in-memory session store the session flow
+  // writes — a config-time authorizer would own a separate store and reject every real session.
   // A custom app has no `index.html` for Vite to crawl, so it would find dependencies one page at a
   // time and re-bundle them mid-session. A page loaded across that re-bundle mixes two copies of
   // React. Naming every browser entry, including the E2E fixtures, pre-bundles them all at start.

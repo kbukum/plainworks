@@ -7,6 +7,7 @@ import { PlainError, type PlainErrorOptions } from "@plainworks/std"
  * where there is no per-request store to read from.
  */
 export class StateError extends PlainError<"state/missing-provider"> {
+  override readonly name: string = "StateError"
   constructor(message: string, options?: PlainErrorOptions) {
     super("state/missing-provider", message, options)
   }

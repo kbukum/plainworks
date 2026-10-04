@@ -13,6 +13,7 @@ export type Json =
 
 /** A value could not be serialized to JSON without losing or changing part of it. */
 export class JsonEncodeError extends PlainError<"std/json-encode"> {
+  override readonly name: string = "JsonEncodeError"
   constructor(message: string, options?: { cause?: unknown }) {
     super("std/json-encode", message, options)
   }
@@ -25,47 +26,90 @@ export class JsonEncodeError extends PlainError<"std/json-encode"> {
  * value. It never runs a getter; an accessor property fails the check, and a proxy trap that throws
  * yields `false`. Use it to refuse untrusted input rather than repair it.
  */
-export function isJson(value: unknown): value is Json {
+export interface JsonLimits {
+  /** Maximum nesting depth; the root is depth zero. Omit to leave depth unrestricted. */
+  readonly maxDepth?: number
+  /** Maximum visited values, including containers. Omit to leave the count unrestricted. */
+  readonly maxNodes?: number
+  /** Maximum encoded UTF-8 bytes. Omit to leave size unrestricted. */
+  readonly maxBytes?: number
+}
+
+export function isJson(value: unknown, limits: JsonLimits = {}): value is Json {
+  if (
+    (limits.maxDepth !== undefined && !isNonNegativeInteger(limits.maxDepth)) ||
+    (limits.maxNodes !== undefined && !isPositiveInteger(limits.maxNodes)) ||
+    (limits.maxBytes !== undefined && !isPositiveInteger(limits.maxBytes))
+  ) {
+    throw new RangeError("JSON limits must be finite integers with positive node and byte bounds")
+  }
   try {
-    return isJsonValue(value, new Set())
+    return isJsonValue(value, 0, {
+      path: new Set(),
+      depth: limits.maxDepth ?? Number.POSITIVE_INFINITY,
+      nodes: limits.maxNodes ?? Number.POSITIVE_INFINITY,
+      bytes: limits.maxBytes ?? Number.POSITIVE_INFINITY,
+    })
   } catch {
     return false
   }
 }
 
-function isJsonValue(value: unknown, path: Set<object>): boolean {
-  if (value === null || typeof value === "boolean" || typeof value === "string") {
-    return true
+interface JsonWalk {
+  readonly path: Set<object>
+  readonly depth: number
+  nodes: number
+  bytes: number
+}
+
+function jsonSpend(walk: JsonWalk, bytes: number): boolean {
+  walk.bytes -= bytes
+  return walk.bytes >= 0
+}
+
+function jsonString(value: string, walk: JsonWalk): boolean {
+  return value.length <= walk.bytes && jsonSpend(walk, utf8ByteLength(JSON.stringify(value)))
+}
+
+function isJsonValue(value: unknown, depth: number, walk: JsonWalk): boolean {
+  if (--walk.nodes < 0 || depth > walk.depth) return false
+  if (typeof value === "string") return jsonString(value, walk)
+  if (value === null || typeof value === "boolean" || typeof value === "number") {
+    return (
+      (typeof value !== "number" || Number.isFinite(value)) && jsonSpend(walk, String(value).length)
+    )
   }
-  if (typeof value === "number") {
-    return Number.isFinite(value)
-  }
-  if (typeof value !== "object" || path.has(value)) {
+  if (typeof value !== "object" || walk.path.has(value)) {
     return false
   }
   const isArray = Array.isArray(value)
   if (!isArray && !isPlainObject(value)) {
     return false
   }
-  const toJson = Object.getOwnPropertyDescriptor(value, "toJSON")
-  if (toJson !== undefined && toJson.enumerable !== true) {
-    return false
-  }
-  path.add(value)
+  if (!jsonSpend(walk, 2)) return false
+  const keys = Reflect.ownKeys(value)
+  if (isArray && (value.length > walk.nodes || keys.length !== value.length + 1)) return false
+  if (!isArray && keys.length > walk.nodes) return false
+  walk.path.add(value)
   try {
-    const keys = isArray ? Array.from({ length: value.length }, (_, index) => `${index}`) : null
-    for (const key of keys ?? Object.keys(value)) {
+    let count = 0
+    for (const key of keys) {
+      if (isArray && key === "length") continue
+      if (typeof key !== "string") return false
+      if (isArray && key !== String(count)) return false
       const descriptor = Object.getOwnPropertyDescriptor(value, key)
-      if (descriptor === undefined || !("value" in descriptor)) {
+      if (descriptor?.enumerable !== true || !("value" in descriptor)) {
         return false
       }
-      if (!isJsonValue(descriptor.value, path)) {
+      if (count++ > 0 && !jsonSpend(walk, 1)) return false
+      if (!isArray && (!jsonString(key, walk) || !jsonSpend(walk, 1))) return false
+      if (!isJsonValue(descriptor.value, depth + 1, walk)) {
         return false
       }
     }
     return true
   } finally {
-    path.delete(value)
+    walk.path.delete(value)
   }
 }
 

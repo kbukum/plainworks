@@ -1,10 +1,6 @@
 ---
 name: apply-plan
-description: >-
-    Execute an existing plan folder under tmp/ from its first unfinished step onward — read the
-    plan's README for order and dependencies, then apply each remaining step in turn (via the
-    apply-step workflow), validating after each. Resumable and idempotent. Use when asked to apply,
-    execute, continue, or resume a plainworks plan.
+description: "plainworks: Resume an existing plan in dependency order, validating each bounded work order."
 ---
 
 # Applying a plan from its remaining steps
@@ -13,7 +9,7 @@ description: >-
 
 ## Input
 
-A plan folder under `tmp/` — e.g. `tmp/channel-sse-reconnect/`. If the caller does not name one, list candidates and ask which to apply:
+A plan folder under `tmp/` — e.g. `tmp/channel-sse-reconnect/`. Honor an explicitly supplied existing path. If the caller does not name one, read the plan index and list candidates:
 
 ```bash
 ls -d tmp/*/
@@ -21,19 +17,23 @@ ls -d tmp/*/
 
 ## 1. Read the plan and compute the remaining steps
 
-- Read `tmp/<plan>/README.md` first: the goal, the ordered step index, the **dependency order**, and the cross-cutting baseline rules that bind every step.
+Read the existing handoff first. Verify current Git state and evidence freshness; then read the README, current step, and required dependency contracts only. Do not load all historical steps.
+
+- Read `tmp/<plan>/README.md` first: the goal, ordered step index, dependency order, and cross-cutting baseline. For a replan, also read decisions, current state and handoff; an explicit apply request is required to resume paused implementation.
 - List the step files and find each one's progress signal — the `**Status:**` field and the `- [ ]` / `- [x]` acceptance boxes.
 
 ```bash
-ls tmp/<plan>/NN-*.md 2>/dev/null || ls tmp/<plan>/*.md
-grep -n '\*\*Status:\*\*' tmp/<plan>/*.md
+ls tmp/<plan>/[0-9][0-9]-*.md
+grep -n '\*\*Status:\*\*' tmp/<plan>/[0-9][0-9]-*.md
 ```
 
 - **Remaining = every step not marked `done`.** The first remaining step in dependency order is the resume point. A step is eligible only when the steps it *Depends on* are already `done`; never start a step ahead of an unfinished dependency.
 
 ## 2. Apply each remaining step in order
 
-For each remaining step, in dependency order, run the **`apply-step` workflow** on that step file (read the README + all prior steps for context, apply the current step test-first, validate, mark it done). Do not skip ahead; do not batch several steps into one undifferentiated change — each stays a standalone, reviewable unit.
+Complete one bounded work order, checkpoint, and stop at the session boundary. Reuse the step's fresh validation evidence; repeat a command only if inputs changed or its result does not cover acceptance. Never skip a required gate.
+
+For each remaining step, in dependency order, run the **`apply-step` workflow** on that step file (read the README + required dependency contracts for context, apply the current step test-first, validate, mark it done). Do not skip ahead; do not batch several steps into one undifferentiated change — each stays a standalone, reviewable unit.
 
 Between steps:
 
@@ -42,8 +42,8 @@ Between steps:
 
 ## 3. Baseline and review
 
-Every step is executed against plainworks' baseline, not a looser plan-local standard. After a step (or a coherent group of steps) lands, run the [`review`](../review/SKILL.md) passes over the diff in a fresh, clean-context agent. Treat a green `validate` run as necessary but not sufficient.
+Every step is executed against plainworks' baseline, not a looser plan-local standard. After a step (or a coherent group of steps) lands, run the [`review`](../review/SKILL.md) passes over the diff in the current agent (delegate only when requested). Treat a green `validate` run as necessary but not sufficient.
 
 ## Repo workflow
 
-Do the work on a branch — cut it with [`create-branch`](../create-branch/SKILL.md) (off an up-to-date `main`, named by the change, not the plan or a step number). Apply steps and leave the edits **uncommitted**: the maintainer commits and pushes, and a PR is opened (in **draft**) only when explicitly asked. Applying a plan never commits, pushes, or opens a PR on its own.
+Use the plan's existing branch when resuming; do not replace its dirty worktree or index. For new work, follow [`create-branch`](../create-branch/SKILL.md). Apply steps and leave edits **uncommitted**: the maintainer commits and pushes, and a PR is opened in draft only when explicitly asked. Applying a plan never commits, restages preserved work, pushes, or opens a PR on its own.

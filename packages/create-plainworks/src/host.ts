@@ -80,7 +80,7 @@ bun run dev      # or npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-The app starts on the public overview (\`/\`). Signing in routes through the bundled in-process mock identity provider, which approves immediately without external dependencies, landing you authenticated on the gated pages (\`/tasks\`, \`/account\`).
+The app starts on the public overview (\`/\`). **Demo sign-in** routes through the bundled in-process mock identity provider, which approves immediately without external dependencies, landing you authenticated on the gated pages (\`/tasks\`, \`/account\`). First development use initializes private local SQLite custody automatically; ordinary restarts retain unexpired sessions.
 
 ## Scripts
 
@@ -93,14 +93,21 @@ The app starts on the public overview (\`/\`). Signing in routes through the bun
 | Variable | Purpose |
 |---|---|
 | \`APP_ORIGIN\` (or \`AUTH_REDIRECT_ORIGIN\`) | The absolute origin the app is served on. Backs the \`/api/*\` base URL and the OIDC redirect URI. Defaults to \`http://localhost:3000\`. |
-| \`SESSION_SIGNING_KEY\` | The HMAC key (32 bytes or more) for the identity-only session cookie. Unset, a random key is minted at startup. |
+| \`SESSION_ROOT_KEY\` | Canonical base64url encoding of exactly 32 random bytes. Required in production. Development creates a private local root key once if omitted. Encryption and transaction/CSRF keys are derived separately. |
+| \`PLAINWORKS_DATA_DIR\` | Private local state directory; defaults to \`.private/auth\`. Keep it on a writable local volume. |
+| \`PLAINWORKS_DEMO_AUTH\` | Set to \`1\` to explicitly enable bundled demo sign-in with \`next start\`. Not a production identity system. |
+
+The host owns its local custody in \`src/server/custody\`, built on the native \`better-sqlite3\` driver (Node 22.12+). Replace it with any \`OpaqueSessionStore\` and refresh store; \`@plainworks/auth/testing\` has the conformance cases to prove a replacement. The manifest explicitly trusts its install script for Bun. No Go runtime, custom Next server, or identity-provider service is needed. Keep \`.private/\`, its SQLite journals, and keys out of source, copied templates, and package artifacts. Directories use 0700 and files 0600. Missing or mismatched custody keys fail closed rather than silently creating another identity.
 
 ## Moving to production
 
-The mock backend (\`src/app/api/[...path]/route.ts\`) and mock identity provider (\`src/server/identity-provider.ts\`) are single-process dev adapters for local development and testing. For production:
+The mock backend (\`src/app/api/[...path]/route.ts\`) and mock identity provider (\`src/server/identity-provider.ts\`) are demo adapters. Authentication is request-local, with encrypted persistent session, refresh, and provider data. For production:
 1. Replace \`/api/[...path]\` route handlers with calls to your real backend origin.
 2. Point authentication to an external OIDC issuer.
-3. Configure \`SESSION_SIGNING_KEY\` with a secure random secret across instances.
+3. Configure \`SESSION_ROOT_KEY\` through your secret manager.
+4. For multiple machines, ephemeral serverless, or Edge, replace local SQLite with a suitable shared \`OpaqueSessionStore\` and provider refresh store. Local SQLite supports independent Node processes on one supported local volume, not distributed storage. Browser credentials remain random \`__Host-session\` HttpOnly cookies.
+
+\`GET /auth/session\` returns the published identity, expiry and CSRF proof without renewing cookies. \`POST /auth/logout\` takes \`X-CSRF-Token\` and returns \`204\` after confirmed family revocation. The browser has no token store or refresh protocol. A failed logout tears down local protected work and visibly reports unconfirmed server revocation.
 `
 }
 

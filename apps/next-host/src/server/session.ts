@@ -3,7 +3,7 @@ import "server-only"
 // The server-only request resolution for the running host: it reads the App Router request cookies
 // through `next/headers`, resolves the per-request AppSnapshot (theme + session) through the
 // composition kernel for hydration, and gates the protected routes. It carries the `server-only`
-// marker and reaches for `hostAuth` (the token-custody wiring), so it can never enter a
+// marker and reaches for `withHostAuth` (the token-custody wiring), so it can never enter a
 // `"use client"` graph — the session read stays entirely on the server, and only an identity slice
 // (never a token) crosses to the client via the snapshot.
 
@@ -15,7 +15,7 @@ import type { AuthSnapshot } from "@plainworks/auth/session"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { LOGIN_PATH, THEME_COOKIE } from "../neutral/constants"
-import { hostAuth } from "./identity-provider"
+import { withHostAuth } from "./identity-provider"
 import { appOrigin } from "./origin"
 
 /** Reassemble the request `Cookie` header from the App Router cookie store. */
@@ -51,22 +51,22 @@ export interface ResolvedDocument {
  * module-level singleton, SSR-safe.
  */
 export async function resolveDocument(): Promise<ResolvedDocument> {
-  const { auth } = await hostAuth()
-  const app = createApp({
-    capabilities: [
-      createThemeResolver({ cookie: THEME_COOKIE }),
-      createAuthResolver({ read: auth.read }),
-    ],
+  return withHostAuth(async ({ auth }) => {
+    const app = createApp({
+      capabilities: [
+        createThemeResolver({ cookie: THEME_COOKIE }),
+        createAuthResolver({ read: auth.read }),
+      ],
+    })
+    const cookieHeader = await requestCookieHeader()
+    const snapshot = await app.resolve({ headers: new Headers({ cookie: cookieHeader }) })
+    return { snapshot, htmlClass: app.htmlClass(snapshot) }
   })
-  const cookieHeader = await requestCookieHeader()
-  const snapshot = await app.resolve({ headers: new Headers({ cookie: cookieHeader }) })
-  return { snapshot, htmlClass: app.htmlClass(snapshot) }
 }
 
 /** Resolve the client-safe auth slice from the request cookies. */
 export async function readAuth(): Promise<AuthSnapshot> {
-  const { auth } = await hostAuth()
-  return auth.read(await requestCookieHeader())
+  return withHostAuth(async ({ auth }) => auth.read(await requestCookieHeader()))
 }
 
 /**

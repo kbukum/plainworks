@@ -6,6 +6,7 @@ import { createQueryCapability } from "@plainworks/app/capabilities/query"
 import { type AppScopes, createScopesCapability } from "@plainworks/app/capabilities/state"
 import { createThemeCapability } from "@plainworks/app/capabilities/theme"
 import type { ClientCapability } from "@plainworks/app/client"
+import type { AuthStore } from "@plainworks/auth/session"
 import type { HttpClient } from "@plainworks/http"
 import { memoryScope } from "@plainworks/state"
 import { cookieScope } from "@plainworks/state/cookie"
@@ -16,6 +17,8 @@ import { session } from "../auth"
 
 /** The pieces the client capability registry is built from. */
 export interface ClientCapabilityInput {
+  /** The root-owned session runtime the auth capability borrows. */
+  readonly authRuntime: AuthStore
   /** The browser query client. */
   readonly queryClient: QueryClient
   /** The HTTP client the routes read through. */
@@ -36,7 +39,7 @@ export function buildClientCapabilities(input: ClientCapabilityInput): ClientCap
     createQueryCapability({ client: input.queryClient }),
     createHttpCapability({ client: input.httpClient }),
     createThemeCapability({ source: input.themeSource }),
-    createAuthCapability({ session }),
+    createAuthCapability({ session, runtime: input.authRuntime }),
     scopesCapability,
   ]
 }

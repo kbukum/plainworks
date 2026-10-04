@@ -7,6 +7,7 @@ import { PlainError, type PlainErrorOptions } from "@plainworks/std"
  * to read from.
  */
 export class ThemeError extends PlainError<"theme/missing-provider"> {
+  override readonly name: string = "ThemeError"
   constructor(message: string, options?: PlainErrorOptions) {
     super("theme/missing-provider", message, options)
   }

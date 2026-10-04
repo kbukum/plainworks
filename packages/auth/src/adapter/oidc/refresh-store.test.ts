@@ -22,15 +22,32 @@ describe("createRefreshTokenStore custody", () => {
     expect(store.current("sess-1")).toBeUndefined()
   })
 
-  it("bounds session capacity, evicting the oldest handle", () => {
+  it("rejects capacity exhaustion without evicting live custody", () => {
     const clock = manualClock(1_000_000)
     const store = createRefreshTokenStore({ maxEntries: 2, ttlSeconds: 100, clock })
     store.issue("sess-1", "rt-1")
     store.issue("sess-2", "rt-2")
-    store.issue("sess-3", "rt-3")
-    expect(store.current("sess-1")).toBeUndefined()
+    expect(() => store.issue("sess-3", "rt-3")).toThrowError(AuthError)
+    expect(store.current("sess-1")).toBe("rt-1")
     expect(store.current("sess-2")).toBe("rt-2")
-    expect(store.current("sess-3")).toBe("rt-3")
+    expect(store.current("sess-3")).toBeUndefined()
+  })
+
+  it("retains revocation so late admission cannot revive the same handle", () => {
+    const store = createRefreshTokenStore()
+    store.revoke("pending")
+    expect(() => store.issue("pending", "late")).toThrowError(AuthError)
+    expect(store.current("pending")).toBeUndefined()
+  })
+
+  it("rotation does not extend absolute custody expiry", () => {
+    const clock = manualClock(0)
+    const store = createRefreshTokenStore({ ttlSeconds: 1, clock })
+    store.issue("session", "first")
+    clock.set(900)
+    store.rotate("session", "first", "second")
+    clock.set(1000)
+    expect(store.current("session")).toBeUndefined()
   })
 
   it("purges expired handles before evicting a live one on a capacity breach", () => {

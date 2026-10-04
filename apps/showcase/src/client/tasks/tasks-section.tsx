@@ -15,7 +15,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { type ReactElement, useMemo, useState } from "react"
 import { TASK_LIST_PARAMS } from "../../neutral/constants"
 import { taskList } from "../../neutral/lists"
-import { Can, canManageTasks, hasName, useIdentity } from "../auth"
+import { Can, canManageTasks, hasName, useIdentity, useSessionRuntime } from "../auth"
 import { createDemoTaskStream } from "./demo-task-stream"
 import { LiveTaskChannelProvider, LiveTaskFold, LiveToggle } from "./live-tasks"
 import { taskColumns } from "./task-columns"
@@ -53,6 +53,7 @@ export interface TasksSectionProps {
  */
 export function TasksSection({ streamFactory }: TasksSectionProps): ReactElement {
   const httpClient = useHttpClient()
+  const runtime = useSessionRuntime()
   const stream = useMemo(
     () => streamFactory ?? createDemoTaskStream(httpClient),
     [streamFactory, httpClient],
@@ -83,7 +84,7 @@ export function TasksSection({ streamFactory }: TasksSectionProps): ReactElement
   // The same rule the `canManageTasks` policy enforces, read synchronously through the shared
   // `hasName` predicate so the per-row edit action is gated alongside the create control.
   const identity = useIdentity()
-  const canManage = hasName(identity?.claims.name)
+  const canManage = hasName(identity?.claims?.name)
 
   const rows = query.data?.data ?? []
   const total = query.data?.pagination.total ?? 0
@@ -101,7 +102,9 @@ export function TasksSection({ streamFactory }: TasksSectionProps): ReactElement
   }
 
   return (
-    <LiveTaskChannelProvider options={{ transport: stream }}>
+    <LiveTaskChannelProvider
+      options={{ transport: stream, protectedSession: runtime.protectedSession }}
+    >
       <section aria-label="Task board" className="grid gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <LiveToggle enabled={liveEnabled} onToggle={() => setLiveEnabled((prev) => !prev)} />

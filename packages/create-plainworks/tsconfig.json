@@ -4,7 +4,9 @@
     // A Node CLI, not a host-independent library: it runs on Node and uses `node:*` builtins, so it
     // opts back into the Node ambient types the base config withholds from package source. This
     // never leaks upward — nothing imports this package; it ships a `bin`, not an importable surface.
-    "types": ["node"]
+    "types": ["node"],
+    // The smoke uses the browser gate's public entry; its tooling graph includes browser checks.
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
   },
   // `examples/` is generated (gitignored) eject payload — the source apps under `apps/*` are the
   // single source of truth. It is rebuilt from them by `bun run build` and shipped verbatim via

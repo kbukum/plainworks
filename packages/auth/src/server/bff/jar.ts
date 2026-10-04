@@ -1,4 +1,5 @@
 import { parseCookieHeader, type WebRequest } from "@plainworks/std/web"
+import { AuthError } from "../../errors"
 import type { ServerSessionJar } from "../server-session"
 
 /** A cookie jar over one request, plus the `Set-Cookie` values the auth flow minted into it. */
@@ -15,7 +16,18 @@ export interface RequestJar {
  * Cookie names, values, and attributes stay owned by `createServerSession`.
  */
 export function createRequestJar(request: Pick<WebRequest, "headers">): RequestJar {
-  const inbound = parseCookieHeader(request.headers.get("cookie") ?? "")
+  const header = request.headers.get("cookie") ?? ""
+  const presented = header
+    .split(";")
+    .filter((part) => part.slice(0, part.indexOf("=")).trim() === "__Host-session")
+  if (
+    presented.length > 1 ||
+    request.headers.has("authorization") ||
+    request.headers.has("x-api-key")
+  ) {
+    throw new AuthError("auth/session-invalid", "ambiguous or unsupported browser credentials")
+  }
+  const inbound = parseCookieHeader(header)
   const cookies: string[] = []
   return {
     jar: {

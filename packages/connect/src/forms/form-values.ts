@@ -12,6 +12,7 @@ import { isRecord, PlainError } from "@plainworks/std"
 
 /** Invalid control input, distinct from a validator compilation/evaluation failure. */
 export class FormValueError extends PlainError<"connect/form-value"> {
+  override readonly name: string = "FormValueError"
   constructor(
     readonly field: string,
     options?: { cause?: unknown },

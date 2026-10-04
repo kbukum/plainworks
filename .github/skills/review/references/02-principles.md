@@ -2,7 +2,7 @@
 
 Each item here is a hard principle from [`../../../copilot-instructions.md`](../../../copilot-instructions.md), not a preference. This is where fast AI-assisted coding drifts most — especially around resilience, async teardown, and composition.
 
-> **Run in a separate, clean-context agent** with a high-capability model. A plan/spec may be passed in as a scope checklist only; it never excuses a baseline violation.
+Use the [review skill](../SKILL.md) for scope, execution, and finding format. This checklist does not require a separate agent.
 
 **Scope note.** *Changes mode:* grep the touched packages and reason about each runtime path. *Project mode:* the typed-API/async/composition invariants below hold across the whole surface — sweep all of `packages/`.
 

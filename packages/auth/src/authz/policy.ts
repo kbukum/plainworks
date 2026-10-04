@@ -63,6 +63,6 @@ export function createAllowListPolicy(config: AllowListPolicyConfig): Authorizer
 export function requireClaim(key: string, matches: (value: unknown) => boolean): AllowRule {
   return (request) => {
     const identity: Identity | null = request.identity
-    return identity !== null && matches(identity.claims[key])
+    return identity !== null && matches(identity.claims?.[key])
   }
 }

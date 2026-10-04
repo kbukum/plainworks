@@ -1,26 +1,21 @@
 "use client"
 
 import { AuthError } from "../errors"
-import { sanitizeReturnTo } from "../redirect"
+import { sanitizeReturnTo } from "../redirect/sanitize"
 
 /**
- * The host seam login and logout drive: a full-page navigation, a full-page form POST, and the two
- * reads they need from the host. `./client` stays DOM-free, so the browser implementation ships on
- * the `@plainworks/auth/form-post` adapter subpath, and a React Native/Expo host supplies its own.
+ * The host seam login and logout drive: a full-page navigation and the current location. `./client`
+ * stays DOM-free, so the browser implementation ships on the `@plainworks/auth/form-post` adapter
+ * subpath, and a React Native/Expo host supplies its own.
  */
 export interface AuthNavigator {
   /** Navigate the whole page to a same-origin BFF route. */
   navigate(url: string): void
-  /** Submit a full-page POST of `fields` to a same-origin BFF route. */
-  submit(url: string, fields: Readonly<Record<string, string>>): void
   /** The current location as path, search, and hash — the default return target after login. */
   currentPath(): string
-  /** The session-bound CSRF token the server issued, or `undefined` when none is readable. */
-  csrfToken(): string | undefined
 }
 
 const DEFAULT_LOGIN_PATH = "/login"
-const DEFAULT_LOGOUT_PATH = "/logout"
 const DEFAULT_RETURN_TO_PARAM = "returnTo"
 
 function requireNavigator(navigator: AuthNavigator | undefined, action: string): AuthNavigator {
@@ -58,27 +53,4 @@ export function login(options: LoginOptions): void {
   const url = new URL(loginPath, "http://localhost")
   url.searchParams.set(options.returnToParam ?? DEFAULT_RETURN_TO_PARAM, returnTo)
   navigator.navigate(`${url.pathname}${url.search}${url.hash}`)
-}
-
-/** Options for {@link logout}. */
-export interface LogoutOptions {
-  /** The host navigation seam. */
-  readonly navigator: AuthNavigator
-  /** The BFF logout route. Defaults to `/logout`. Sanitized to same-origin. */
-  readonly logoutPath?: string
-  /** The session-bound CSRF token to present. Defaults to the navigator's `csrfToken()`. */
-  readonly csrfToken?: string
-}
-
-/**
- * Log out by POSTing to the BFF logout route with the session-bound CSRF token, so a cross-site
- * navigation cannot trigger an unintended logout. With no token known it still submits, and the
- * server rejects the request.
- *
- * @throws {AuthError} `auth/config` when no `navigator` is supplied.
- */
-export function logout(options: LogoutOptions): void {
-  const navigator = requireNavigator(options.navigator, "logout")
-  const target = sanitizeReturnTo(options.logoutPath, DEFAULT_LOGOUT_PATH)
-  navigator.submit(target, { csrf: options.csrfToken ?? navigator.csrfToken() ?? "" })
 }

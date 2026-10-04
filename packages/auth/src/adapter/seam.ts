@@ -2,7 +2,6 @@ import type { AuthHeaders, Identity } from "@plainworks/std/seam"
 import type { Clock } from "@plainworks/std/time"
 import type { WebAbortSignal } from "@plainworks/std/web"
 import type { AuthCrypto } from "../crypto"
-import type { TokenSet } from "../session"
 import type { ApiKeyAdapterConfig } from "./apikey/config"
 import type { JwtAdapterConfig } from "./jwt/config"
 import type { OidcAdapterConfig } from "./oidc/config"
@@ -55,8 +54,13 @@ export interface CompleteLoginRequest {
   /** The transaction persisted by {@link LoginRedirect}. */
   readonly transaction: string
   readonly signal?: WebAbortSignal
-  /** Optional session handle to custody tokens under. */
-  readonly sessionHandle?: string
+}
+
+/** A server-side operation on one provider custody slot, named by its explicit handle. */
+export interface ProviderSessionRequest {
+  /** The handle {@link AuthSession.sessionHandle} returned at login. Never inferred. */
+  readonly sessionHandle: string
+  readonly signal?: WebAbortSignal
 }
 
 /**
@@ -64,9 +68,16 @@ export interface CompleteLoginRequest {
  */
 export interface AuthSession {
   readonly identity: Identity
-  readonly tokens: TokenSet
+  readonly tokens: ProviderTokens
   /** Opaque session handle identifying the server-side token custody slot. */
   readonly sessionHandle?: string
+}
+
+/** Server-only provider credentials; never a browser session response. */
+export interface ProviderTokens {
+  readonly accessToken: string
+  readonly expiresAt: number
+  readonly identity?: Identity | null
 }
 
 /**
@@ -80,8 +91,8 @@ export interface InteractiveAuthAdapter extends AuthAdapter {
   init(deps: AuthAdapterDeps): void | Promise<void>
   beginLogin(request: BeginLoginRequest): Promise<LoginRedirect>
   completeLogin(request: CompleteLoginRequest): Promise<AuthSession>
-  refresh(signal?: WebAbortSignal, sessionHandle?: string): Promise<TokenSet>
-  logout(signal?: WebAbortSignal, sessionHandle?: string): Promise<void>
+  refresh(request: ProviderSessionRequest): Promise<ProviderTokens>
+  logout(request: ProviderSessionRequest): Promise<void>
 }
 
 /**
@@ -103,9 +114,9 @@ export interface AuthAdapter {
   /** Complete an interactive login from the provider callback. */
   completeLogin?(request: CompleteLoginRequest): Promise<AuthSession>
   /** Obtain a fresh token set (refresh-token rotation lives in the adapter). */
-  refresh?(signal?: WebAbortSignal, sessionHandle?: string): Promise<TokenSet>
+  refresh?(request: ProviderSessionRequest): Promise<ProviderTokens>
   /** Tear down provider/RP session state on logout, where the mechanism supports it. */
-  logout?(signal?: WebAbortSignal, sessionHandle?: string): Promise<void>
+  logout?(request: ProviderSessionRequest): Promise<void>
 }
 
 /**

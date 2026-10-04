@@ -15,14 +15,16 @@ export interface PlainErrorOptions {
  * `PlainError<"http" | "parse">`) for exhaustive handling at the call site.
  */
 export class PlainError<Kind extends string = string> extends Error {
+  /**
+   * Stable error name for stack traces and logs. Each subclass declares its own literal, because a
+   * bundler may rename the class binding (`HttpError2`) and must not change what callers see.
+   */
+  override readonly name: string = "PlainError"
   /** Stable, machine-readable discriminant for programmatic handling. */
   readonly kind: Kind
 
   constructor(kind: Kind, message: string, options?: PlainErrorOptions) {
     super(message, options?.cause === undefined ? undefined : { cause: options.cause })
-    // `new.target` is the concrete constructor invoked, so a subclass reports its own name in stack
-    // traces and logs instead of inheriting the literal "PlainError".
-    this.name = new.target.name
     this.kind = kind
   }
 }

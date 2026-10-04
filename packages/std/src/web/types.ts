@@ -66,6 +66,9 @@ export interface WebRequestInit {
   headers?: WebHeadersInit
   body?: WebBodyInit | null
   signal?: WebAbortSignal | null
+  credentials?: "omit" | "same-origin" | "include"
+  redirect?: "error" | "follow" | "manual"
+  cache?: "no-store"
 }
 
 /**

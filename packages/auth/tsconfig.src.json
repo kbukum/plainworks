@@ -4,6 +4,6 @@
   // universal-web shim. The React bindings live in `tsconfig.client.json`, the browser navigator in
   // `tsconfig.adapters.json`, and their DOM-backed tests in `tsconfig.test.json`. The neutral tests
   // stay here, DOM-free.
-  "exclude": ["src/client.ts", "src/client", "src/adapters"],
+  "exclude": ["src/client.ts", "src/client", "src/adapters", "src/testing"],
   "include": ["src", "../../types/universal-web.d.ts"]
 }

@@ -21,8 +21,10 @@ describe("PlainError", () => {
     expect(error.cause).toBeUndefined()
   })
 
-  test("a subclass reports its own constructor name, not the base name", () => {
-    class HttpError extends PlainError<"http"> {
+  test("a subclass reports its declared name even when a bundler renames the class", () => {
+    // Bundlers emit `var HttpError = class HttpError2 …`; the reported name must not follow that.
+    const HttpError = class HttpError2 extends PlainError<"http"> {
+      override readonly name: string = "HttpError"
       constructor(message: string) {
         super("http", message)
       }
@@ -30,6 +32,11 @@ describe("PlainError", () => {
     const error = new HttpError("bad status")
     expect(error.name).toBe("HttpError")
     expect(error.kind).toBe("http")
+  })
+
+  test("a subclass that declares no name reports the base name, never its class binding", () => {
+    const Renamed = class Renamed2 extends PlainError {}
+    expect(new Renamed("std/test", "x").name).toBe("PlainError")
   })
 })
 

@@ -31,6 +31,7 @@ export interface LoginPageInput {
   readonly stylesheets: readonly string[]
   /** The previous sign-in could not finish, so the page explains why it is back. */
   readonly interrupted?: boolean
+  readonly revocationUnconfirmed?: boolean
 }
 
 function LoginDocument({
@@ -38,6 +39,7 @@ function LoginDocument({
   cookieHeader,
   stylesheets,
   interrupted = false,
+  revocationUnconfirmed = false,
 }: LoginPageInput): ReactElement {
   const { htmlClass } = resolveTheme(parseThemeCookie(cookieHeader, THEME_COOKIE, DEFAULT_THEME))
   return (
@@ -57,7 +59,11 @@ function LoginDocument({
               <CardTitle>
                 <h1 className="text-title">Sign in to plainworks</h1>
               </CardTitle>
-              <CardDescription>You are signed out. Sign in to open the showcase.</CardDescription>
+              <CardDescription>
+                {revocationUnconfirmed
+                  ? "Signed out locally. Server sign-out could not be confirmed."
+                  : "You are signed out. Sign in to open the showcase."}
+              </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4">
               {interrupted ? (

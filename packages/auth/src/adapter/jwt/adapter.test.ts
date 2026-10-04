@@ -48,7 +48,7 @@ describe("jwtAdapter.authenticate", () => {
     )
     const identity = await adapter.authenticate({ headers: bearer(token) })
     expect(identity?.subject).toBe("user-42")
-    expect(identity?.claims.role).toBe("admin")
+    expect(identity?.claims?.role).toBe("admin")
   })
 
   test("returns null when no credential header is present", async () => {

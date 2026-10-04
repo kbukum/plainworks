@@ -26,6 +26,7 @@ import {
 
 /** A source registered twice under the same identity — a programming error, surfaced typed. */
 export class DuplicateSourceError extends PlainError<"devtools/duplicate-source"> {
+  override readonly name: string = "DuplicateSourceError"
   constructor(id: SourceId) {
     super("devtools/duplicate-source", `A source is already registered for ${sourceKey(id)}.`)
   }

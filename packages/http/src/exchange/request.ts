@@ -12,6 +12,8 @@ export interface HttpRequest {
   readonly headers: WebHeaders
   readonly body?: WebBodyInit
   readonly signal?: WebAbortSignal
+  /** Header names injected by credential/session middleware, retained through rewrites. */
+  readonly credentialHeaders?: readonly string[]
 }
 
 /** Project an {@link HttpRequest} onto the `fetch` `RequestInit` shape. */

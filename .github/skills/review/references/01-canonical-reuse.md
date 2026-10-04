@@ -2,7 +2,7 @@
 
 plainworks *is* the foundation, so the duplication risk is internal: **did the change reimplement something `@plainworks/std` (or the platform) already owns?** Fast AI-assisted code often reaches for a fresh local helper instead of the owner — assume duplication until proven otherwise. Treat findings here as a blocker class.
 
-> **Run in a separate, clean-context agent** with a high-capability model. A plan/spec may be passed in as a scope checklist only; it never excuses a baseline violation.
+Use the [review skill](../SKILL.md) for scope, execution, and finding format. This checklist does not require a separate agent.
 
 **Scope note.** *Changes mode:* for each new type/helper in the diff, name the concern and find its owner. *Project mode:* sweep `packages/` for the patterns below and reconcile each against the owning package — long-lived internal forks are what this pass exists to surface.
 

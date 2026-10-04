@@ -13,6 +13,7 @@ import { RemoteFailure } from "../failure"
  * programmer fault and stays fatal.
  */
 export class NetworkError extends PlainError<"std/network"> {
+  override readonly name: string = "NetworkError"
   constructor(message = "Network request failed", options?: { cause?: unknown }) {
     super("std/network", message, options)
   }
@@ -20,6 +21,7 @@ export class NetworkError extends PlainError<"std/network"> {
 
 /** An HTTP-style status failure: carries the response status so the shared classifier can decide retryability from it via {@link classifyStatus}. */
 export class StatusError extends PlainError<"std/status"> {
+  override readonly name: string = "StatusError"
   /** The HTTP status code that failed the request. */
   readonly status: number
 

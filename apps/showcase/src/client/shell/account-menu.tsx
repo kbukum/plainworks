@@ -1,6 +1,5 @@
 "use client"
 
-import { logout } from "@plainworks/auth/client"
 import { formPostNavigator } from "@plainworks/auth/form-post"
 import {
   AccountMenuItem,
@@ -8,7 +7,7 @@ import {
   AccountMenu as KitAccountMenu,
 } from "@plainworks/ui/shell/account-menu"
 import type { ReactElement } from "react"
-import { Can, canManageAccount, useIdentity } from "../auth"
+import { Can, canManageAccount, useIdentity, useSessionRuntime } from "../auth"
 import { useRouter } from "../router"
 
 /**
@@ -17,9 +16,10 @@ import { useRouter } from "../router"
  */
 export function AccountMenu(): ReactElement {
   const identity = useIdentity()
+  const runtime = useSessionRuntime()
   const { navigate } = useRouter()
   const name =
-    (typeof identity?.claims.name === "string" ? identity.claims.name : undefined) ??
+    (typeof identity?.claims?.name === "string" ? identity.claims.name : undefined) ??
     identity?.subject ??
     "Guest"
 
@@ -29,7 +29,14 @@ export function AccountMenu(): ReactElement {
         <AccountMenuItem onSelect={() => navigate("/settings")}>Account settings</AccountMenuItem>
         <AccountMenuSeparator />
       </Can>
-      <AccountMenuItem onSelect={() => logout({ navigator: formPostNavigator })}>
+      <AccountMenuItem
+        onSelect={() => {
+          void runtime.logout().then(
+            () => formPostNavigator.navigate("/"),
+            () => formPostNavigator.navigate("/login?reason=revocation-unconfirmed"),
+          )
+        }}
+      >
         Log out
       </AccountMenuItem>
     </KitAccountMenu>

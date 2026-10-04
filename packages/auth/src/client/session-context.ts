@@ -1,60 +1,67 @@
 "use client"
 
-import { createStoreContext, type StoreContext } from "@plainworks/state/client"
 import type { Identity } from "@plainworks/std/seam"
-import { createElement, type ReactNode } from "react"
-import type { SessionSnapshot } from "../session"
+import {
+  createContext,
+  createElement,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useSyncExternalStore,
+} from "react"
+import type { AuthStore, SessionSnapshot } from "../session"
 
-/** Props for the {@link SessionContext.SessionProvider}. */
 export interface SessionProviderProps {
-  /**
-   * The session snapshot the server resolved for this request, embedded in the initial HTML so the
-   * first client render matches the server — the hydration path. Omit for a client-only mount,
-   * which starts unauthenticated.
-   */
-  readonly initialSnapshot?: SessionSnapshot
+  /** The root-owned lifecycle this subtree and its protected transports borrow. */
+  readonly runtime: AuthStore
   readonly children: ReactNode
 }
 
-/** A session React binding: a Provider plus the read-only session hooks. */
 export interface SessionContext {
-  /** Provides the hydrated session to the subtree; build it per request/render. */
   readonly SessionProvider: (props: SessionProviderProps) => ReactNode
-  /** The whole client-safe snapshot (status + identity), re-rendering on session change. */
   readonly useSession: () => SessionSnapshot
-  /** Just the resolved caller, or `null` when unauthenticated. */
   readonly useIdentity: () => Identity | null
-  /** A boolean convenience over `status === "authenticated"`. */
   readonly useIsAuthenticated: () => boolean
+  /** Live lifecycle used by transport composition and login/logout controls. */
+  readonly useSessionRuntime: () => AuthStore
 }
 
 /**
- * Create a session React binding — a `SessionProvider` that hydrates the server-resolved snapshot
- * plus the `useSession`/`useIdentity`/`useIsAuthenticated` hooks that read it. The client is handed
- * only identity and status; the access and refresh tokens never leave the server, so there is
- * nothing here to leak. DOM-free (React only), so it runs under React Native/Expo as well as the
- * browser.
- *
- * A factory, not a module-level singleton: the store is built per mount (SSR/RSC-safe), so two
- * concurrent renders never share session state.
+ * The browser root's single owner of a session lifecycle: the authoritative status check once
+ * mounted, and `close` on teardown. `close` is not terminal, so React's development effect replay
+ * simply checks again. Call it once where the runtime is created; providers only borrow.
  */
-export function createSessionContext(): SessionContext {
-  const context: StoreContext<SessionSnapshot> = createStoreContext<SessionSnapshot>(() => ({
-    status: "unauthenticated",
-    identity: null,
-  }))
+export function useSessionOwner(runtime: AuthStore): void {
+  useEffect(() => {
+    void runtime.confirm().catch(() => {})
+    return () => runtime.close()
+  }, [runtime])
+}
 
-  function SessionProvider({ initialSnapshot, children }: SessionProviderProps): ReactNode {
-    return createElement(
-      context.Provider,
-      initialSnapshot === undefined ? { children } : { initialState: initialSnapshot, children },
-    )
+/** A typed context whose provider exposes a borrowed runtime; it never creates or closes one. */
+export function createSessionContext(): SessionContext {
+  const context = createContext<AuthStore | null>(null)
+
+  function SessionProvider({ runtime, children }: SessionProviderProps): ReactNode {
+    return createElement(context.Provider, { value: runtime, children })
+  }
+
+  function useSessionRuntime(): AuthStore {
+    const runtime = useContext(context)
+    if (runtime === null) throw new Error("SessionProvider is required")
+    return runtime
+  }
+
+  function useSession(): SessionSnapshot {
+    const runtime = useSessionRuntime()
+    return useSyncExternalStore(runtime.subscribe, runtime.getSnapshot, runtime.getSnapshot)
   }
 
   return {
     SessionProvider,
-    useSession: () => context.useStore(),
-    useIdentity: () => context.useStore((snapshot) => snapshot.identity),
-    useIsAuthenticated: () => context.useStore((snapshot) => snapshot.status === "authenticated"),
+    useSession,
+    useSessionRuntime,
+    useIdentity: () => useSession().identity,
+    useIsAuthenticated: () => useSession().status === "authenticated",
   }
 }

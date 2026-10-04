@@ -16,6 +16,7 @@ import { PlainError, type PlainErrorOptions } from "@plainworks/std"
  * case.
  */
 export class AppConfigError extends PlainError<"app/invalid-config"> {
+  override readonly name: string = "AppConfigError"
   constructor(message: string, options?: PlainErrorOptions) {
     super("app/invalid-config", message, options)
   }

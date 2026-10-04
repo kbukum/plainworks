@@ -1,0 +1,6 @@
+export { type OwnedCommandResult, runOwnedCommand } from "./command"
+export type { BrowserGateHost, GateHostRuntime, RunningGateHost, SpawnedHost } from "./config"
+export { HostShutdownError, HostStartupError } from "./errors"
+export { startGateHost } from "./lifecycle"
+export { nodeGateHostRuntime } from "./node-runtime"
+export { gateHostOrigin, probeGateHost } from "./readiness"

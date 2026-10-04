@@ -22,7 +22,9 @@ export type RequestErrorKind =
   | "devtools/session-disposed"
 
 /** A typed reason a client request settled without a value; the source error is kept as `cause`. */
-export class RequestError extends PlainError<RequestErrorKind> {}
+export class RequestError extends PlainError<RequestErrorKind> {
+  override readonly name: string = "RequestError"
+}
 
 /** A point-in-time replay of session state, used to hydrate a newly connected client. */
 export interface DevtoolsSnapshot {

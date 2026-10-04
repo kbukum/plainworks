@@ -10,6 +10,7 @@ export type ListResponse<T, Pagination> = {
 
 /** Missing or malformed list metadata is an upstream decode failure, not an empty page. */
 export class ListDecodeError extends RemoteFailure<"list/decode"> {
+  override readonly name: string = "ListDecodeError"
   constructor() {
     super("list/decode", {
       code: "EXTERNAL_SERVICE_ERROR",

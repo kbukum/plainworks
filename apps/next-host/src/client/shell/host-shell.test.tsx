@@ -47,7 +47,7 @@ function renderShell(
 ): RenderResult {
   return render(
     <ThemeProvider source={themeSource} initialTheme={DEFAULT_THEME}>
-      <SessionProvider initialSnapshot={session}>
+      <SessionProvider runtime={createSessionFixture(session)}>
         <HostShell liveSource={createLiveTasksSource(createQueryClient())}>
           <p>Page content</p>
         </HostShell>
@@ -149,3 +149,5 @@ describe("host shell", () => {
     await expectNoAxeViolations(document.body)
   })
 })
+
+import { createSessionFixture } from "@plainworks/auth/testing"

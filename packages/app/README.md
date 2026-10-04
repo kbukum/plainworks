@@ -69,20 +69,31 @@ import { createHttpCapability } from "@plainworks/app/capabilities/http"
 import { createQueryCapability } from "@plainworks/app/capabilities/query"
 import { createThemeCapability } from "@plainworks/app/capabilities/theme"
 import { readHydration } from "@plainworks/app/hydration"
+import { useSessionOwner } from "@plainworks/auth/client"
+import { createAuthStore, sessionSnapshotOf } from "@plainworks/auth/session"
 
 const { snapshot, query } = readHydration(document)
+// The browser root owns one session runtime; the capability and protected transports borrow it.
+const runtime = createAuthStore({
+  initialSnapshot: sessionSnapshotOf(snapshot.capabilities.auth),
+})
 const capabilities = [
   createQueryCapability({ client: queryClient }),
   createHttpCapability({ client: httpClient }),
   createThemeCapability({ source: themeSource }),
-  createAuthCapability({ session }),
+  createAuthCapability({ session, runtime }),
 ]
 
-hydrateRoot(root, (
-  <AppProvider capabilities={capabilities} snapshot={snapshot}>
-    <Routes />
-  </AppProvider>
-))
+function Root() {
+  useSessionOwner(runtime)
+  return (
+    <AppProvider capabilities={capabilities} snapshot={snapshot}>
+      <Routes />
+    </AppProvider>
+  )
+}
+
+hydrateRoot(root, <Root />)
 ```
 
 `readHydration` validates what it reads and throws an `AppConfigError` on a missing or malformed block. With React Server Components you can skip the script entirely: pass `snapshot` from the server layout to the client `AppProvider` as a prop.

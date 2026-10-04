@@ -13,7 +13,7 @@ import { AUTH_CAPABILITY_ID, createAuthResolver } from "@plainworks/app/capabili
 import { createThemeResolver } from "@plainworks/app/capabilities/theme"
 import { renderHydrationScript } from "@plainworks/app/hydration"
 import { unauthenticatedRedirect } from "@plainworks/auth/redirect"
-import { authSnapshotOf } from "@plainworks/auth/session"
+import { authSnapshotOf, createAuthStore, sessionSnapshotOf } from "@plainworks/auth/session"
 import type { HttpClient } from "@plainworks/http"
 import { createQueryClient } from "@plainworks/query"
 import { dehydrateClient } from "@plainworks/query/hydration"
@@ -97,7 +97,8 @@ export async function renderApp(input: RenderInput): Promise<RenderResult> {
 
   // Session gate: the dashboard is protected, so an unauthenticated request is bounced to the login
   // route with a sanitized return target rather than rendered.
-  const auth = authSnapshotOf(snapshotFor(snapshot, AUTH_CAPABILITY_ID))
+  const authSlice = snapshotFor(snapshot, AUTH_CAPABILITY_ID)
+  const auth = authSnapshotOf(authSlice)
   if (!auth.authenticated) {
     return {
       html: "",
@@ -111,7 +112,14 @@ export async function renderApp(input: RenderInput): Promise<RenderResult> {
   await prefetchSection(sectionForPath(pathname).id, queryClient, input.httpClient)
   const dehydratedState = dehydrateClient(queryClient, { shouldDehydrateQuery: () => true })
 
-  const capabilities = buildClientCapabilities({ queryClient, httpClient: input.httpClient })
+  // A render-only runtime seeded from this request's slice. Construction starts no work and SSR
+  // runs no effects, so it needs no owner and is dropped with the request.
+  const authRuntime = createAuthStore({ initialSnapshot: sessionSnapshotOf(authSlice) })
+  const capabilities = buildClientCapabilities({
+    queryClient,
+    httpClient: input.httpClient,
+    authRuntime,
+  })
 
   const appHtml = await renderAppHtml(
     <Showcase

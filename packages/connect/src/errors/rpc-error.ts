@@ -60,6 +60,7 @@ export interface RpcErrorInit {
  * Malformed known details become operational failures, never form violations.
  */
 export class RpcError extends RemoteFailure<`connect/${RpcErrorCode}`> {
+  override readonly name: string = "RpcError"
   override readonly fieldPathFormat = "protobuf"
   readonly rpcCode: RpcErrorCode
   /** Original numeric Connect code, preserved for interop. */

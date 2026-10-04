@@ -9,7 +9,7 @@
 // entry, keeping the neutral `.` and token-bearing `./server` entries clean.
 export type { AuthGates, CanProps, RequireAuthProps } from "./client/gates"
 export { createAuthGates } from "./client/gates"
-export type { AuthNavigator, LoginOptions, LogoutOptions } from "./client/navigation"
-export { login, logout } from "./client/navigation"
+export type { AuthNavigator, LoginOptions } from "./client/navigation"
+export { login } from "./client/navigation"
 export type { SessionContext, SessionProviderProps } from "./client/session-context"
-export { createSessionContext } from "./client/session-context"
+export { createSessionContext, useSessionOwner } from "./client/session-context"

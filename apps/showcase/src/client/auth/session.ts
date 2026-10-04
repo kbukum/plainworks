@@ -7,12 +7,13 @@ import { hasName } from "../../neutral/auth"
 // Re-exported so client components gate on the same named-identity rule the server authorizer uses.
 export { hasName }
 
-// One shared session React context for the app: the auth client capability seeds its `Provider`
-// with the server-resolved snapshot (zero-flash, matching the SSR gate), and the account bar reads
-// it. Module-level like any React context — the session store itself is still built per mount
-// inside the Provider, so concurrent SSR requests stay isolated.
+// One shared session React context for the app: the auth client capability mounts its `Provider`
+// over the root-owned runtime (seeded with the server-resolved snapshot, so no flash), and the
+// account bar reads it. Module-level like any React context — the runtime itself is built per
+// request on the server and once by the browser root, so concurrent SSR requests stay isolated.
 export const session = createSessionContext()
-export const { SessionProvider, useSession, useIdentity, useIsAuthenticated } = session
+export const { SessionProvider, useSession, useIdentity, useIsAuthenticated, useSessionRuntime } =
+  session
 
 // The client authorization gates bound to the shared session — `RequireAuth` for a whole subtree,
 // `Can` for a single decision. UX affordances only; the server session gate is the real boundary.

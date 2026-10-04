@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import { createSessionContext } from "@plainworks/auth/client"
-import { type AuthSnapshot, sessionSnapshotOf } from "@plainworks/auth/session"
+import { type AuthSnapshot, createAuthStore, sessionSnapshotOf } from "@plainworks/auth/session"
 import { createQueryClient } from "@plainworks/query"
 import { QueryProvider } from "@plainworks/query/client"
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { useQueryClient } from "@tanstack/react-query"
 import { cleanup, render, screen } from "@testing-library/react"
 import { createContext, createElement, type ReactNode, useContext } from "react"
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { defineProvider } from "../client/capability"
 import { AppProvider } from "../client/provider"
 import { orderCapabilities } from "../kernel/ordering"
@@ -35,7 +35,11 @@ describe("full recipe assembly", () => {
     const { container } = render(
       <AppProvider
         capabilities={[
-          createAuthCapability({ session, dependsOn: ["query"] }),
+          createAuthCapability({
+            session,
+            runtime: createAuthStore({ fetch: vi.fn(), initialSnapshot: sessionSnapshotOf(ada) }),
+            dependsOn: ["query"],
+          }),
           createQueryCapability({ client }),
         ]}
         snapshot={{ capabilities: { [AUTH_CAPABILITY_ID]: ada } }}
@@ -66,7 +70,9 @@ describe("freedom to opt out (no `app`)", () => {
     }
     render(
       <QueryProvider client={client}>
-        <session.SessionProvider initialSnapshot={sessionSnapshotOf(ada)}>
+        <session.SessionProvider
+          runtime={createAuthStore({ fetch: vi.fn(), initialSnapshot: sessionSnapshotOf(ada) })}
+        >
           <Screen />
         </session.SessionProvider>
       </QueryProvider>,

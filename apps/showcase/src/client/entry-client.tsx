@@ -2,14 +2,27 @@
 
 import "./styles.css"
 
+import { snapshotFor } from "@plainworks/app"
 import { readHydration } from "@plainworks/app/hydration"
+import { useSessionOwner } from "@plainworks/auth/client"
+import { type AuthStore, createAuthStore, sessionSnapshotOf } from "@plainworks/auth/session"
 import { type DevtoolsLauncher, launchDevtools } from "@plainworks/devtools/launch"
 import { createHttpClient } from "@plainworks/http"
 import { createQueryClient } from "@plainworks/query"
+import type { ReactElement, ReactNode } from "react"
 import { hydrateRoot } from "react-dom/client"
 import { ROOT_ELEMENT_ID } from "../neutral/constants"
 import { buildClientCapabilities, Showcase } from "./bootstrap"
 import { devtoolsEnabled } from "./dev-tools/enabled"
+
+/** The browser root is the session runtime's only owner; everything below borrows it. */
+function SessionRoot(props: {
+  readonly runtime: AuthStore
+  readonly children: ReactNode
+}): ReactElement {
+  useSessionOwner(props.runtime)
+  return <>{props.children}</>
+}
 
 function hydrate(): void {
   const root = document.getElementById(ROOT_ELEMENT_ID)
@@ -39,22 +52,32 @@ function hydrate(): void {
   // module-level singleton), mirroring the per-request build on the server. The HTTP client reads
   // the app's own origin, so every `/api/*` read lands on the backend the SSR prefetch used.
   const queryClient = createQueryClient()
+  const authRuntime = createAuthStore({
+    baseUrl: `${window.location.origin}/auth`,
+    initialSnapshot: sessionSnapshotOf(snapshotFor(snapshot, "auth")),
+  })
   const devtoolsHttp = devtools?.http
   const httpClient = createHttpClient(
     devtoolsHttp
-      ? { baseUrl: window.location.origin, interceptors: [devtoolsHttp.interceptor] }
-      : { baseUrl: window.location.origin },
+      ? {
+          baseUrl: window.location.origin,
+          protectedSession: authRuntime.protectedSession,
+          interceptors: [devtoolsHttp.interceptor],
+        }
+      : { baseUrl: window.location.origin, protectedSession: authRuntime.protectedSession },
   )
-  const capabilities = buildClientCapabilities({ queryClient, httpClient })
+  const capabilities = buildClientCapabilities({ queryClient, httpClient, authRuntime })
 
   hydrateRoot(
     root,
-    <Showcase
-      capabilities={capabilities}
-      snapshot={snapshot}
-      dehydratedState={query}
-      initialPath={window.location.pathname}
-    />,
+    <SessionRoot runtime={authRuntime}>
+      <Showcase
+        capabilities={capabilities}
+        snapshot={snapshot}
+        dehydratedState={query}
+        initialPath={window.location.pathname}
+      />
+    </SessionRoot>,
   )
 
   if (import.meta.env.DEV && devtools !== undefined) {

@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+
+import { createSessionFixture } from "@plainworks/auth/testing"
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
@@ -23,10 +25,10 @@ describe("showcase account authorization", () => {
   it("shows the account action for the authenticated named identity", async () => {
     const { container } = render(
       <SessionProvider
-        initialSnapshot={{
+        runtime={createSessionFixture({
           status: "authenticated",
           identity: { subject: "user-123", claims: { name: "Ada" } },
-        }}
+        })}
       >
         <AccountAction />
       </SessionProvider>,
@@ -39,7 +41,7 @@ describe("showcase account authorization", () => {
 
   it("denies the account action for a guest by default", async () => {
     render(
-      <SessionProvider>
+      <SessionProvider runtime={createSessionFixture()}>
         <AccountAction />
       </SessionProvider>,
     )

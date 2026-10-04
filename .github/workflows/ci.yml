@@ -133,9 +133,12 @@ jobs:
           APP_ORIGIN: "http://127.0.0.1:3000"
           AUTH_REDIRECT_ORIGIN: "http://127.0.0.1:3000"
         run: |
-          # A production boot needs a configured signing key; the host never mints one there.
-          SESSION_SIGNING_KEY="$(openssl rand -base64 32)"
-          export SESSION_SIGNING_KEY
+          # The production-mode demo needs the explicit opt-in and a configured root key; the host
+          # never mints one there. See apps/next-host/README.md for the launch contract.
+          PLAINWORKS_DEMO_AUTH=1
+          SESSION_ROOT_KEY="$(openssl rand 32 | basenc --base64url | tr -d '=\n')"
+          PLAINWORKS_DATA_DIR="$(mktemp -d)"
+          export PLAINWORKS_DEMO_AUTH SESSION_ROOT_KEY PLAINWORKS_DATA_DIR
           (cd apps/next-host && bunx next start -p 3000) &
           pid=$!
           trap 'kill "$pid" 2>/dev/null || true' EXIT
@@ -246,6 +249,30 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+  # The gate's own ownership proof: drives `createBrowserGate` through the real Playwright runner and
+  # checks every worker's host is released after success, failure, timeout, and cancellation.
+  testkit-gate:
+    name: testkit browser gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Install Chromium
+        working-directory: packages/testkit
+        run: bunx playwright install --with-deps chromium
+
+      - name: Build the testkit's package dependencies
+        run: bunx turbo run build --filter=@plainworks/testkit^...
+
+      - name: Run the gate self-test
+        working-directory: packages/testkit
+        run: bun run e2e
+
   # Single aggregate check for branch protection. The verify matrix and generator smoke
   # each surface their own contexts, but protection targets this one stable name so adding
   # or renaming a matrix leg never requires touching the branch rule.
@@ -253,12 +280,12 @@ jobs:
     name: CI Status
     if: always()
     timeout-minutes: 5
-    needs: [verify, generator, hosts-smoke, create-smoke, browser-e2e]
+    needs: [verify, generator, hosts-smoke, create-smoke, browser-e2e, testkit-gate]
     runs-on: ubuntu-latest
     steps:
       - name: Evaluate results
         run: |
-          results=("${{ needs.verify.result }}" "${{ needs.generator.result }}" "${{ needs.hosts-smoke.result }}" "${{ needs.create-smoke.result }}" "${{ needs.browser-e2e.result }}")
+          results=("${{ needs.verify.result }}" "${{ needs.generator.result }}" "${{ needs.hosts-smoke.result }}" "${{ needs.create-smoke.result }}" "${{ needs.browser-e2e.result }}" "${{ needs.testkit-gate.result }}")
           for r in "${results[@]}"; do
             if [[ "$r" != "success" ]]; then
               echo "::error::CI failed — one or more jobs did not succeed."

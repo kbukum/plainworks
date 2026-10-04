@@ -1,11 +1,6 @@
 ---
 name: fix-reviews
-description: >-
-    Evaluate a pull request's review comments as signals of an underlying pattern, not one-off spot
-    fixes — judge each comment against plainworks' engineering baseline, then apply the pattern
-    across the whole change set (e.g. one typo comment → sweep every changed file for typos),
-    validate, commit the fixes, and resolve the threads. Use when asked to go over, address, or act
-    on PR reviews in plainworks.
+description: "plainworks: Evaluate PR review comments and fix valid patterns across the affected change; only when asked."
 ---
 
 # Fixing PR reviews by pattern
@@ -78,6 +73,8 @@ bun run check-boundaries && bun run check-versions
 Docs/prose-only sweeps need no build/test gates. Never resolve a thread whose fix hasn't been validated.
 
 ## 5. Commit, push, and resolve
+
+This phase requires explicit authorization for Git mutations. A request to fix reviews alone does not authorize commit/amend/push. Resolve a thread only after the remote contains its validated fix; never post replies on the maintainer's behalf.
 
 Commit the fixes using the [`commit`](../commit/SKILL.md) skill — one compact Conventional-Commit message, **no `Co-authored-by` trailer**, no review/plan narration. Keep the branch at **one commit** (amend) unless told otherwise; update the Changeset if the change grew. Then push and resolve the threads you genuinely addressed — no reply comments under the maintainer's name:
 

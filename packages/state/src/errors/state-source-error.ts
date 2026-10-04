@@ -31,6 +31,7 @@ export interface StateSourceErrorOptions extends PlainErrorOptions {
  * swallowed and a partial write never masquerades as a success.
  */
 export class StateSourceError extends PlainError<"state/source"> {
+  override readonly name: string = "StateSourceError"
   /** The per-field failures when this error aggregates a multi-field patch; `undefined` otherwise. */
   readonly failures?: readonly StateFieldFailure[]
   constructor(message: string, options?: StateSourceErrorOptions) {

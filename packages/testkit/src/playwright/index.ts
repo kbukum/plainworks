@@ -152,7 +152,6 @@ export {
 export type {
   BrowserGateFixtures,
   BrowserGateOptions,
-  BrowserGateStorageState,
   BrowserGateTest,
   BrowserGateWorkerFixtures,
 } from "./gate"
@@ -163,7 +162,15 @@ export {
   FIXED_NOW_ENV,
   GATE_ORIGIN_ENV,
 } from "./gate"
-export type { BrowserGateHost } from "./host"
+export type { BrowserGateHost, GateHostRuntime, RunningGateHost, SpawnedHost } from "./host"
+export {
+  gateHostOrigin,
+  HostShutdownError,
+  HostStartupError,
+  type OwnedCommandResult,
+  runOwnedCommand,
+  startGateHost,
+} from "./host"
 export type {
   AriaDiff,
   AriaDiffOptions,

@@ -14,6 +14,53 @@ import { describe, expect, test } from "vitest"
 import { ChannelError } from "../errors"
 import { createSseTransport } from "./sse"
 
+test("SSE never automatically redirects credential-bearing requests", async () => {
+  await createSseTransport({
+    url: "https://events.test",
+    fetch: async (_url, init) => {
+      expect(init?.redirect).toBe("error")
+      return sseResponse([])
+    },
+  })().open({
+    signal: new AbortController().signal,
+    headers: { "X-Custom-Proof": "proof" },
+    onOpen() {},
+    onFrame() {},
+  })
+})
+
+test("a network failure while reading an open body remains retryable", async () => {
+  const failure = new TypeError("connection reset")
+  let released = false
+  const body: WebReadableStream<Uint8Array> = {
+    cancel: async () => {},
+    getReader: () => ({
+      read: async () => {
+        throw failure
+      },
+      cancel: async () => {},
+      releaseLock: () => {
+        released = true
+      },
+    }),
+  }
+  const running = createSseTransport({
+    url: "https://events.test",
+    fetch: async () => ({ ...controlledBody().response(), body }),
+  })().open({
+    signal: new AbortController().signal,
+    headers: {},
+    onOpen() {},
+    onFrame() {},
+  })
+  await expect(running).rejects.toMatchObject({
+    kind: "channel/connect",
+    retryable: true,
+    cause: failure,
+  })
+  expect(released).toBe(true)
+})
+
 test.each(["abort", "overflow"])(
   "%s releases an SSE reader despite stalled cleanup",
   async (kind) => {

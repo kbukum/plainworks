@@ -141,4 +141,11 @@ import { createMockIdp } from "@plainworks/mocks/idp"
 const idp = await createMockIdp({ claims: { email: "user@idp.test" } })
 // Configure the adapter's `fetch` seam with `idp.fetch`, then, after building the authorization URL:
 const { callbackUrl } = idp.authorize(authorizationUrl) // redirect-back URL with code + state
+idp.close()
 ```
+
+Inject `createMemoryMockIdpState()` to share fixture data across independently created providers. Each provider borrows that state; `idp.close()` closes only the provider, while the caller closes shared custody. Authorization remains synchronous. Code consumption is atomic after PKCE verification, including concurrent requests.
+
+For state that survives restart, implement `MockIdpState` in your host. `decodeMockIdpData` validates a persisted document and `emptyMockIdpData` creates the initial one, so any storage can hold it. Mutations must be synchronous and atomic. Run `createMockIdpStateCases()` from your own test runner against your state to prove handles share signing identity, one-time codes, PKCE, refresh rotation and failure controls, and that failed transactions roll back. The Next reference host shows one example with encrypted local SQLite in `apps/next-host/src/server/custody`. This is fixture custody, never a production identity system.
+
+State is bounded to 128 pending codes (five minutes), 128 refresh grants (one-hour absolute lifetime), eight retained signing keys, and a 64KiB serialized document. Admission fails instead of evicting live grants. `state.reset()` clears grants and failure controls, fences pending token publication, and retains the signing identity and monotonic identifiers. Reset only the explicitly owned worker's state before sign-in; normal restart is not reset.

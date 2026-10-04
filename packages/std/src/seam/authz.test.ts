@@ -10,7 +10,7 @@ import type { RedirectSignal } from "./redirect"
 describe("identity seam", () => {
   test("an identity carries a subject and app-owned claims narrowed by a predicate", () => {
     const identity: Identity = { subject: "user-1", claims: { role: "admin" } }
-    const role = typeof identity.claims.role === "string" ? identity.claims.role : undefined
+    const role = typeof identity.claims?.role === "string" ? identity.claims.role : undefined
     expect(identity.subject).toBe("user-1")
     expect(role).toBe("admin")
   })
@@ -22,7 +22,7 @@ describe("authorization seam", () => {
     (role: string): Authorizer =>
     (request: AuthorizationRequest): Decision => {
       if (request.identity === null) return { allow: false, reason: "unauthenticated" }
-      return request.identity.claims.role === role
+      return request.identity.claims?.role === role
         ? { allow: true }
         : { allow: false, reason: "forbidden" }
     }

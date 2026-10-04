@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+
+import { createSessionFixture } from "@plainworks/auth/testing"
 import { expectNoAxeViolations } from "@plainworks/testkit/client"
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
 import type { ReactNode } from "react"
@@ -24,10 +26,10 @@ describe("account authorization", () => {
   it("shows the account action for the authenticated named identity", async () => {
     render(
       <SessionProvider
-        initialSnapshot={{
+        runtime={createSessionFixture({
           status: "authenticated",
           identity: { subject: "user-123", claims: { name: "Ada" } },
-        }}
+        })}
       >
         <AccountAction />
       </SessionProvider>,
@@ -39,7 +41,7 @@ describe("account authorization", () => {
 
   it("denies the account action for a guest by default", async () => {
     render(
-      <SessionProvider>
+      <SessionProvider runtime={createSessionFixture()}>
         <AccountAction />
       </SessionProvider>,
     )
@@ -50,10 +52,10 @@ describe("account authorization", () => {
   it("renders the account panel for the named identity with no accessibility violations", async () => {
     const { container } = render(
       <SessionProvider
-        initialSnapshot={{
+        runtime={createSessionFixture({
           status: "authenticated",
           identity: { subject: "user-123", claims: { name: "Ada" } },
-        }}
+        })}
       >
         <AccountPanel />
       </SessionProvider>,
@@ -67,7 +69,10 @@ describe("account authorization", () => {
   it("explains the denial to a signed-in identity the policy rejects", async () => {
     render(
       <SessionProvider
-        initialSnapshot={{ status: "authenticated", identity: { subject: "u-9", claims: {} } }}
+        runtime={createSessionFixture({
+          status: "authenticated",
+          identity: { subject: "u-9", claims: {} },
+        })}
       >
         <AccountPanel />
       </SessionProvider>,

@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { createSessionFixture } from "@plainworks/auth/testing"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import { HttpClientProvider } from "@plainworks/http/client"
@@ -54,7 +55,7 @@ async function renderNotifications(options: { authed?: boolean; prefetch?: boole
   }
   const ui = render(
     <TestQueryClientProvider client={queryClient}>
-      <SessionProvider {...(authed ? { initialSnapshot: AUTHED } : {})}>
+      <SessionProvider runtime={createSessionFixture(authed ? AUTHED : undefined)}>
         <HttpClientProvider client={httpClient}>
           <ThemeProvider source={fakeStateSource()}>
             <ToastProvider>

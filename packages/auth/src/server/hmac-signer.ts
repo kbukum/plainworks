@@ -8,9 +8,8 @@ import type { SessionSigner } from "../signer/seam"
 export interface HmacSignerConfig {
   /**
    * The ordered keyset backing the signer. The **first** key is the active signing key (newest);
-   * every key in the set is accepted at verification, so rotating a fresh key in at the front keeps
-   * sessions signed under any still-accepted key valid. Retire a key by dropping it from the set —
-   * a cookie signed under a removed key then fails to verify.
+   * every key in the set is accepted at verification, so existing transaction and CSRF proofs stay
+   * valid while their key remains in the set. Dropping a key rejects proofs signed with it.
    *
    * Each key is a server secret that must never reach a client bundle (which the
    * `@plainworks/auth/server` import boundary enforces), and must be at least 32 bytes so the
@@ -31,11 +30,9 @@ const encoder = new TextEncoder()
  * `@plainworks/auth/server` and must never be imported into a `"use client"` module.
  *
  * Signing uses the active (first) key. Verification recomputes the tag under **every** accepted key
- * and folds the results without an early return, so a session minted under the previous active key
- * still verifies after a new key is rotated to the front, while a key dropped from the set no
- * longer verifies — key rotation never invalidates a live session, and no timing side channel
- * reveals which key matched. A malformed `base64url` signature yields `false` rather than throwing,
- * so a tampered cookie is uniformly unauthenticated.
+ * and folds the results without an early return. Rotation preserves proofs under retained keys
+ * without revealing which key matched. A malformed `base64url` signature yields `false` rather
+ * than throwing. This signer protects transaction and CSRF proofs, not opaque browser sessions.
  *
  * @throws {AuthError} `auth/config` when the keyset is empty or any key is shorter than 32 bytes.
  */

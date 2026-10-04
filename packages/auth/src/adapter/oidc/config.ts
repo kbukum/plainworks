@@ -57,8 +57,8 @@ export interface OidcAdapterConfig {
   readonly tokenStore?: RefreshTokenStore
   /**
    * Called with the session handle when the token store detects a refresh-token reuse (a replayed,
-   * retired token — a compromise signal). Wire it to a {@link RevocationRegistry}'s `revoke` so the
-   * session's cookie is rejected at its next read, propagating the revocation beyond this request.
+   * retired token — a compromise signal). Use it to notify the host's session authority.
+   * `createServerSession.refreshProvider` revokes the affected opaque session family on reuse.
    */
   readonly onReuseDetected?: (handle: string) => void | Promise<void>
   /**

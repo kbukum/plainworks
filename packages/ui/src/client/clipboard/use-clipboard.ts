@@ -11,7 +11,9 @@ export type ClipboardErrorKind = "clipboard/unavailable" | "clipboard/denied" | 
  * reliably distinguish between an unavailable Clipboard API, denied permissions, and general write
  * failures while preserving the underlying `cause`.
  */
-export class ClipboardError extends PlainError<ClipboardErrorKind> {}
+export class ClipboardError extends PlainError<ClipboardErrorKind> {
+  override readonly name: string = "ClipboardError"
+}
 
 /** Options for {@link useClipboard}. */
 export interface UseClipboardOptions {

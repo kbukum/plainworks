@@ -16,5 +16,22 @@ export interface Identity {
   /** Stable, unique principal identifier (the token `sub`, a user id, a service name). */
   readonly subject: string
   /** Verified claims about the principal — app-owned vocabulary, narrowed by consumer predicates. */
-  readonly claims: Readonly<Record<string, unknown>>
+  readonly claims?: Readonly<Record<string, unknown>>
+  readonly kind?: "user" | "service"
+  readonly restrictions?: CredentialRestrictions
+}
+
+/** A credential ceiling, intersected with application-owned authorization. */
+export type CredentialRestrictions =
+  | { readonly mode: "unrestricted" }
+  | {
+      readonly mode: "restricted"
+      readonly resources: readonly string[]
+      readonly scopes: readonly string[]
+    }
+
+/** The identity published by the opaque-session HTTP contract. */
+export interface SessionIdentity extends Identity {
+  readonly kind: "user" | "service"
+  readonly restrictions: CredentialRestrictions
 }

@@ -32,6 +32,7 @@ export interface LiveQueryOptions {
 
 /** A visible failure to converge; cached data stays stale rather than claiming success. */
 export class SnapshotStaleError extends RemoteFailure<"query/stale"> {
+  override readonly name: string = "SnapshotStaleError"
   constructor(options?: { cause?: unknown }) {
     super(
       "query/stale",

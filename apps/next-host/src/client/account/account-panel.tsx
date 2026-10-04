@@ -9,7 +9,7 @@ import { Can, canManageAccount, useIdentity } from "../auth"
 /** The signed-in identity as a short description list. */
 function Profile(): ReactElement {
   const identity = useIdentity()
-  const name = typeof identity?.claims.name === "string" ? identity.claims.name : undefined
+  const name = typeof identity?.claims?.name === "string" ? identity.claims.name : undefined
   return (
     <Section title="Profile" description="The identity this session is signed in with.">
       <DescriptionList>

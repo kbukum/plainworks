@@ -1,7 +1,8 @@
+import { createMemorySessionStore, createRefreshTokenStore } from "@plainworks/auth/server"
 import { createMockIdp } from "@plainworks/mocks/idp"
 import { beforeAll, describe, expect, it } from "vitest"
 import { SIGN_IN_INTERRUPTED_PATH } from "../neutral/constants"
-import { createNextAuth, type NextAuth } from "./auth"
+import { createNextAuth, type NextAuth, nextSessionSchema } from "./auth"
 import { completeCallback } from "./auth-callback"
 
 // The host authenticates through `@plainworks/auth`'s own `createServerSession`, never a
@@ -57,6 +58,8 @@ async function login(): Promise<Map<string, string>> {
 beforeAll(async () => {
   idp = await createMockIdp({ claims: { name: "Ada Lovelace" } })
   auth = createNextAuth({
+    tokenStore: createRefreshTokenStore(),
+    store: createMemorySessionStore({ schema: nextSessionSchema }),
     fetch: idp.fetch,
     issuer: idp.issuer,
     clientId: idp.clientId,
@@ -68,7 +71,7 @@ beforeAll(async () => {
 describe("session read", () => {
   it("resolves the named identity from a minted session cookie", async () => {
     const snapshot = await auth.read(cookieHeader(await login()))
-    expect(snapshot).toEqual({
+    expect(snapshot).toMatchObject({
       authenticated: true,
       subject: expect.any(String),
       name: "Ada Lovelace",

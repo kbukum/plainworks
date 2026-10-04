@@ -151,6 +151,18 @@ test("a neutral auth module importing OIDC adapter custody trips the ownership r
   expect(tripped).toBeDefined()
 })
 
+test("auth testing can exercise custody without exposing it to a client graph", async () => {
+  const violations = await cruiseFixtures()
+  expect(violations.filter((v) => v.from.endsWith("auth/src/testing/custody.ts"))).toEqual([])
+  expect(
+    violations.some(
+      (v) =>
+        v.from.endsWith("auth/src/client/testing-leak.ts") &&
+        v.rule.name === "no-production-testing-import",
+    ),
+  ).toBe(true)
+})
+
 test("the neutral auth barrel importing OIDC config.ts is allowed", async () => {
   const violations = await cruiseFixtures()
   const tripped = violations.find(

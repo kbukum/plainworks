@@ -11,6 +11,7 @@
     { "path": "./tsconfig.src.json" },
     { "path": "./tsconfig.client.json" },
     { "path": "./tsconfig.adapters.json" },
-    { "path": "./tsconfig.test.json" }
+    { "path": "./tsconfig.test.json" },
+    { "path": "./tsconfig.testing.json" }
   ]
 }

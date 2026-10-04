@@ -1,9 +1,10 @@
-import { Code, createClient } from "@connectrpc/connect"
+import { Code, createClient, type Interceptor } from "@connectrpc/connect"
+import type { ProtectedSession } from "@plainworks/std/seam"
 import type { WebResponse } from "@plainworks/std/web"
 import { manualDelay } from "@plainworks/testkit"
 import { EchoService } from "@plainworks/testkit/connect"
 import { fakeAuthHeaderProvider, fakeFetch } from "@plainworks/testkit/fakes"
-import { describe, expect, test } from "vitest"
+import { describe, expect, test, vi } from "vitest"
 import { RpcError } from "../errors"
 import { createConnectRpcTransport } from "./rpc"
 
@@ -29,6 +30,7 @@ describe("createConnectRpcTransport", () => {
     const response = await createClient(EchoService, transport).echo({ message: "ping" })
 
     expect(response.message).toBe("pong")
+    expect(network.calls[0]?.init?.redirect).toBe("error")
     const header = new Headers(network.calls[0]?.init?.headers)
     expect(header.get("authorization")).toBe("Bearer test-token")
   })
@@ -93,4 +95,52 @@ describe("createConnectRpcTransport", () => {
     const error = await promise
     expect(error).toBeInstanceOf(RpcError)
   })
+
+  test.each([
+    ["unary", "X-CSRF-Token"],
+    ["unary", "X-Custom-Proof"],
+    ["server stream", "X-Custom-Proof"],
+  ] as const)(
+    "a %s call refuses to send injected %s after an origin rewrite",
+    async (shape, name) => {
+      const fetch = vi.fn(async () => jsonResponse({ message: "leaked" }))
+      const release = vi.fn()
+      const session: ProtectedSession = {
+        acquire: async () => ({
+          signal: new AbortController().signal,
+          headers: { [name]: "proof" },
+          release,
+        }),
+        revalidate: async () => {},
+        invalidate() {},
+      }
+      const rewrite: Interceptor = (next) => (request) =>
+        next({ ...request, url: request.url.replace(BASE_URL, "https://other.test") })
+      const client = createClient(
+        EchoService,
+        createConnectRpcTransport({
+          baseUrl: BASE_URL,
+          protectedSession: session,
+          interceptors: [rewrite],
+          fetch,
+        }),
+      )
+
+      const call =
+        shape === "unary"
+          ? client.echo({ message: "ping" })
+          : (async () => {
+              for await (const _ of client.count({})) {
+                /* drain */
+              }
+            })()
+
+      await expect(call).rejects.toMatchObject({
+        code: "FORBIDDEN",
+        rawCode: Code.PermissionDenied,
+      })
+      expect(fetch).not.toHaveBeenCalled()
+      expect(release).toHaveBeenCalledOnce()
+    },
+  )
 })

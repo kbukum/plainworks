@@ -60,11 +60,12 @@ flowchart TD
 *Arrows show the only allowed `@plainworks/*` import direction.*
 <!-- /layer-map:diagram -->
 
-This structure keeps neutral code free from React, DOM, Node, and framework assumptions. Hosts inject capabilities that vary, including `fetch`, streaming transports, cryptography, and token storage. See [Architecture](./docs/architecture.md) for package placement, runtime rules, and enforced invariants.
+This structure keeps neutral code free from React, DOM, Node, and framework assumptions. Hosts inject capabilities that vary, including `fetch`, streaming transports, cryptography, and server credential custody. See [Architecture](./docs/architecture.md) for package placement, runtime rules, and enforced invariants.
 
 ## Design rules
 
-- **Keep defaults replaceable.** Ship each capability behind a typed seam so a host can supply its own adapter.
+- **Consumers bring adapters.** Core owns typed contracts and lean defaults. Technology integrations stay out of core subpaths and optional driver declarations; the consumer selects them.
+- **Demos are consumers too.** A reference host's framework, database, or identity provider is not a requirement for using the kit. See [core, integrations, and consumers](./docs/architecture.md#core-integrations-and-consumers).
 - **Assume no host.** Use universal web value types directly and inject host-varying behavior.
 - **Name one concern.** Use one plain word consistently. Keep `@plainworks/std` as the zero-dependency base.
 - **Import downward.** Define cross-layer seams low and implement them higher.

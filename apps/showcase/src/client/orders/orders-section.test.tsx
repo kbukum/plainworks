@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { createSessionFixture } from "@plainworks/auth/testing"
 import type { Order } from "@plainworks/demo"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
@@ -49,7 +50,7 @@ async function renderOrders(options: { authed?: boolean; prefetch?: boolean } = 
   }
   const ui = render(
     <TestQueryClientProvider client={queryClient}>
-      <SessionProvider {...(authed ? { initialSnapshot: AUTHED } : {})}>
+      <SessionProvider runtime={createSessionFixture(authed ? AUTHED : undefined)}>
         <HttpClientProvider client={httpClient}>
           <OrdersSection />
         </HttpClientProvider>

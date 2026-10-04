@@ -5,8 +5,8 @@ import { defineConfig, devices } from "@playwright/test"
 // specs, over the dev SSR host with a fixed clock, locale, time zone, and motion. It complements
 // the jsdom axe floor every client component carries in its unit tests. See `docs/browser-gate.md`.
 //
-// Each worker starts its own host on its own port and signs in once (`e2e/support/gate.ts`), so
-// workers never share a backend and the suite runs in parallel.
+// Each worker starts its own host on its own port; tests reset then sign in
+// (`e2e/support/gate.ts`), so workers never share a backend and the suite runs in parallel.
 const CI = Boolean(process.env.CI)
 
 export default defineConfig({

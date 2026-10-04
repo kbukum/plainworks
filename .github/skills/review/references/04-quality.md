@@ -2,7 +2,7 @@
 
 Catch debt and drift that compiles cleanly but should not land. None of this is style nitpicking — it maps to plainworks' pre-stable, redesign-first stance.
 
-> **Run in a separate, clean-context agent** with a high-capability model. A plan/spec may be passed in as a scope checklist only; it never excuses a baseline violation.
+Use the [review skill](../SKILL.md) for scope, execution, and finding format. This checklist does not require a separate agent.
 
 **Scope note.** *Changes mode:* judge the diff against simpler alternatives and check the packaging/style gates on touched public items. *Project mode:* hunt for dead code, lingering compatibility shims, and outdated patterns across the package(s).
 

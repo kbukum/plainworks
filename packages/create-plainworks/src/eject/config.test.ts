@@ -5,6 +5,11 @@ import { EXAMPLE_SOURCE_APPS, isSkippedEntry, STANDALONE_TSCONFIG } from "./conf
 // tsconfig that replaces the base-extending workspace one.
 
 describe("isSkippedEntry", () => {
+  it("never copies private custody or nested runtime secrets", () => {
+    for (const path of [".private", ".private/root.key", "nested/.private/fixture.sqlite-wal"]) {
+      expect(isSkippedEntry(path)).toBe(true)
+    }
+  })
   it("skips dependency and build output", () => {
     for (const name of [
       "node_modules",

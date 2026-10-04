@@ -18,7 +18,7 @@ describe("apiKeyAdapter.authenticate", () => {
     const adapter = apiKeyAdapter({ kind: "apikey", verify: lookup }, deps)
     const identity = await adapter.authenticate({ headers: { "X-API-Key": "secret-key" } })
     expect(identity?.subject).toBe("svc-1")
-    expect(identity?.claims.plan).toBe("pro")
+    expect(identity?.claims?.plan).toBe("pro")
   })
 
   test("returns null for an unknown key or a missing header", async () => {

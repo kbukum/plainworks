@@ -1,253 +1,411 @@
+import { createJsonCodec, decodeResponseFailure, HttpError } from "@plainworks/http"
 import { createStore, type Store } from "@plainworks/state"
-import { type Delay, raceAbort, withTimeout } from "@plainworks/std/resilience"
-import type { AuthContext, AuthHeaders, Identity } from "@plainworks/std/seam"
+import { FailureDecodeError, RemoteFailure } from "@plainworks/std/failure"
+import {
+  AbortError,
+  type Delay,
+  raceAbort,
+  systemDelay,
+  withTimeout,
+} from "@plainworks/std/resilience"
+import type { AuthContext, AuthHeaders, Identity, ProtectedSession } from "@plainworks/std/seam"
 import { type Clock, systemClock } from "@plainworks/std/time"
-import type { WebAbortController, WebAbortSignal } from "@plainworks/std/web"
+import {
+  resolveFetch,
+  type WebAbortController,
+  type WebAbortSignal,
+  type WebFetch,
+  type WebRequestInit,
+} from "@plainworks/std/web"
+import { AuthError } from "../errors"
+import { decodeSessionResponse, type SessionResponse } from "./response"
 
-/**
- * The credential material a login or refresh yields. The access token is held **in memory only**
- * (the Token-Mediating-Backend fallback) — never written to `localStorage`/`sessionStorage` — and
- * `expiresAt` drives lazy refresh. `identity` is optional so a pure token refresh (identity
- * unchanged) can omit it and avoid a spurious session-change notification.
- */
-export interface TokenSet {
-  /** The bearer access token, held only in memory. */
-  readonly accessToken: string
-  /** Absolute expiry as epoch milliseconds, compared against the injected {@link Clock}. */
-  readonly expiresAt: number
-  /** The resolved caller, when this token set also (re)establishes identity. */
-  readonly identity?: Identity | null
-}
-
-/**
- * Obtain a fresh {@link TokenSet}. Bound to `signal` so a request-scoped cancellation, a logout, or
- * the refresh deadline aborts the in-flight work — a well-behaved implementation passes `signal` to
- * its own `fetch`/awaits.
- */
-export type RefreshFn = (signal: WebAbortSignal) => Promise<TokenSet>
-
-/** The client-safe view of the session — identity and status only, never the token. */
+/** Client-safe state. The HttpOnly credential is never represented here. */
 export interface SessionSnapshot {
-  /** `authenticated` once an identity is resolved; `unauthenticated` otherwise. */
   readonly status: "authenticated" | "unauthenticated"
-  /** The resolved caller, or `null` when unauthenticated. */
   readonly identity: Identity | null
+  readonly expiresAt?: string
+  readonly error?: Error
+  readonly revocation?: "confirmed" | "unconfirmed"
 }
 
-/** Construction options for {@link createAuthStore}. Every time/randomness input is injected. */
+export interface SessionLogin {
+  readonly username: string
+  readonly password: string
+}
+
 export interface AuthStoreConfig {
-  /** How to obtain a fresh token when the current one is missing or (near-)expired. */
-  readonly refresh?: RefreshFn
-  /** Time source for all expiry math; defaults to the system clock. */
+  readonly fetch?: WebFetch
+  /** Same-origin auth route prefix; defaults to `/auth`. */
+  readonly baseUrl?: string
   readonly clock?: Clock
-  /** Upper bound on a single refresh, after which it is abandoned so single-flight cannot wedge. */
-  readonly refreshTimeoutMs?: number
-  /** Refresh this many milliseconds *before* absolute expiry (lazy, on the next header read). */
-  readonly expiryLeewayMs?: number
-  /** Header name to carry the credential; defaults to `Authorization`. */
-  readonly headerName?: string
-  /** Auth scheme prefix; defaults to `Bearer`. */
-  readonly scheme?: string
-  /** Injectable delay backing the refresh deadline — deterministic under test. */
   readonly delay?: Delay
-}
-
-/**
- * The in-memory session core: it custodies the access token, tracks expiry against an injected
- * clock, de-duplicates concurrent refreshes (single-flight), and satisfies the `AuthHeaderProvider`
- * seam via {@link AuthStore.getAuthHeader}. The client-safe snapshot (identity + status) is
- * published through a `@plainworks/state` store so the same immutable-snapshot model backs the
- * React binding.
- */
-export interface AuthStore {
-  /** The underlying snapshot store — fed to `toExternalStore` for the React binding (client step). */
-  readonly store: Store<SessionSnapshot>
-  /** Read the current client-safe snapshot. */
-  getSnapshot(): SessionSnapshot
-  /** Observe session changes; returns an unsubscribe function. */
-  subscribe(listener: (snapshot: SessionSnapshot) => void): () => void
   /**
-   * Resolve the current credential as headers, refreshing lazily when the token is missing or near
-   * expiry. Degrades to `undefined` (never throws) so a transport owns the 401 decision;
-   * header-only. A `context.signal` abort ends only this call's wait on a shared refresh — it never
-   * cancels that refresh for other callers.
+   * The server-rendered state, for hydration only; it never certifies a protected operation. A
+   * signed-out seed is the server's answer, so {@link AuthStore.confirm} does not ask again.
    */
-  getAuthHeader(context?: AuthContext): Promise<AuthHeaders | undefined>
-  /** Establish a session from a login result — supersedes any in-flight refresh. */
-  setSession(tokens: TokenSet): void
-  /** Clear the session and abort any in-flight refresh so a late result cannot resurrect it. */
-  logout(): void
+  readonly initialSnapshot?: SessionSnapshot
 }
 
-const DEFAULT_REFRESH_TIMEOUT_MS = 10_000
-const DEFAULT_EXPIRY_LEEWAY_MS = 5_000
+export interface AuthStore {
+  readonly store: Store<SessionSnapshot>
+  readonly protectedSession: ProtectedSession
+  getSnapshot(): SessionSnapshot
+  subscribe(listener: (snapshot: SessionSnapshot) => void): () => void
+  /** CSRF only, never Authorization or browser-readable credentials. */
+  getAuthHeader(context?: AuthContext): Promise<AuthHeaders>
+  login(input: SessionLogin, signal?: WebAbortSignal): Promise<void>
+  revalidate(context?: AuthContext): Promise<void>
+  /**
+   * The root owner's mount check: revalidate a signed-in or missing seed, and resolve at once for a
+   * signed-out seed. Signing in replaces it through a server render or `login`.
+   */
+  confirm(): Promise<void>
+  /** Local teardown is immediate; rejection means server revocation is unconfirmed. */
+  logout(signal?: WebAbortSignal): Promise<void>
+  /**
+   * Stop owned work: status and queued or in-flight mutations, the expiry timer, and protected
+   * lifetimes. The displayed snapshot stays. Not terminal: a later `revalidate` or `login` starts
+   * again, so a root owner can close on every effect cleanup.
+   */
+  close(): void
+}
+
+/** A decoded session plus the server's time when it answered. */
+interface Received {
+  readonly session: SessionResponse
+  readonly serverNow: number
+}
 
 /**
- * Build an {@link AuthStore}. A factory, never a module-level singleton, so each request/tab gets
- * its own custody (SSR/RSC-safe).
- *
- * The session-lifetime invariants it upholds:
- *
- * - **Logout beats a late refresh.** Every mutation bumps a generation; a refresh adopts its result
- *   only while the generation is unchanged. `logout`/`setSession` bump the generation **and abort**
- *   the in-flight refresh, so a refresh that resolves after logout is dropped — the session stays
- *   cleared and no session-change fires.
- * - **A hung refresh is bounded.** The refresh runs under {@link withTimeout}; even one that
- *   ignores its signal is abandoned at the deadline, single-flight is released, and the next call
- *   retries.
- * - **A caller's cancellation is private.** The shared refresh is owned by the store, so a
- *   per-request `AuthContext.signal` only stops *that* caller awaiting it — it never aborts the
- *   refresh for the other in-flight callers, nor clears the session.
+ * Opaque same-origin cookie session lifecycle; mutations serialize without retry. One root owner
+ * calls `confirm` once mounted and `close` on teardown; providers and transports only borrow it.
  */
 export function createAuthStore(config: AuthStoreConfig = {}): AuthStore {
   const clock = config.clock ?? systemClock
-  const refreshTimeoutMs = config.refreshTimeoutMs ?? DEFAULT_REFRESH_TIMEOUT_MS
-  const expiryLeewayMs = config.expiryLeewayMs ?? DEFAULT_EXPIRY_LEEWAY_MS
-  const headerName = config.headerName ?? "Authorization"
-  const scheme = config.scheme ?? "Bearer"
-  const refreshFn = config.refresh
-  const delay = config.delay
-
-  let accessToken: string | undefined
-  let expiresAt: number | undefined
-  let identity: Identity | null = null
-  // The epoch every mutation bumps; a refresh result older than the current epoch is stale.
+  const delay = config.delay ?? systemDelay
+  const fetch = resolveFetch(config.fetch, () => new AuthError("auth/config", "fetch is required"))
+  const baseUrl = (config.baseUrl ?? "/auth").replace(/\/$/, "")
+  const codec = createJsonCodec({ maxBytes: 16 * 1024 })
+  const store = createStore<SessionSnapshot>(
+    () => config.initialSnapshot ?? { status: "unauthenticated", identity: null },
+  )
   let generation = 0
-  // Single-flight: concurrent header reads share one refresh.
-  let inflight: Promise<void> | undefined
-  // Teardown handle for the in-flight refresh, aborted on logout/setSession (real cancellation).
-  let inflightController: WebAbortController | undefined
+  let blocked = false
+  let owner = new AbortController()
+  let credential: SessionResponse | undefined
+  let csrfForLogout: string | undefined
+  let lifetime = new AbortController()
+  let expiry: WebAbortController | undefined
+  let statusController: WebAbortController | undefined
+  let statusFlight: Promise<void> | undefined
+  let mutations: Promise<void> = Promise.resolve()
+  let pendingMutations = 0
 
-  const store = createStore<SessionSnapshot>(() => ({ status: "unauthenticated", identity: null }))
-
-  function publish(): void {
-    store.setState({ status: identity !== null ? "authenticated" : "unauthenticated", identity })
-  }
-
-  function isFresh(): boolean {
-    return (
-      accessToken !== undefined &&
-      expiresAt !== undefined &&
-      clock.now() < expiresAt - expiryLeewayMs
+  function clear(error?: unknown, revocation?: "confirmed" | "unconfirmed"): void {
+    credential = undefined
+    lifetime.abort(error)
+    expiry?.abort()
+    expiry = undefined
+    store.setState(
+      {
+        status: "unauthenticated",
+        identity: null,
+        ...(error === undefined
+          ? {}
+          : {
+              error:
+                error instanceof Error
+                  ? error
+                  : new AuthError("auth/adapter", "session operation failed", { cause: error }),
+            }),
+        ...(revocation === undefined ? {} : { revocation }),
+      },
+      true,
     )
   }
 
-  function headerFor(token: string | undefined): AuthHeaders | undefined {
-    return token === undefined ? undefined : { [headerName]: `${scheme} ${token}` }
+  function fence(revocation?: "confirmed" | "unconfirmed"): number {
+    generation++
+    statusController?.abort()
+    statusFlight = undefined
+    clear(undefined, revocation)
+    return generation
   }
 
-  function abortInflight(): void {
-    inflightController?.abort()
-    inflight = undefined
-    inflightController = undefined
+  async function request(
+    route: string,
+    budget: number,
+    init: WebRequestInit,
+    signal: WebAbortSignal,
+  ): Promise<Received | undefined> {
+    return withTimeout(
+      async (bounded) => {
+        const response = await fetch(`${baseUrl}/${route}`, {
+          ...init,
+          credentials: "same-origin",
+          redirect: "error",
+          cache: "no-store",
+          signal: bounded,
+        })
+        if (!response.ok) throw await decodeResponseFailure(response, bounded, clock.now())
+        if (route === "logout") {
+          if (response.status !== 204) throw new FailureDecodeError()
+          return undefined
+        }
+        if (response.status !== 200) throw new FailureDecodeError()
+        const serverNow = Date.parse(response.headers.get("date") ?? "")
+        return {
+          session: decodeSessionResponse(await codec.decode(response, bounded)),
+          serverNow: Number.isNaN(serverNow) ? clock.now() : serverNow,
+        }
+      },
+      budget,
+      { signal, delay },
+    )
   }
 
-  function runRefresh(refresh: RefreshFn): Promise<void> {
-    if (inflight !== undefined) {
-      // Await the shared refresh; swallow its rejection (the primary caller records the failure).
-      return inflight.then(
-        () => undefined,
-        () => undefined,
+  // The server's clock is authoritative: lifetime is measured against its `Date`, so a skewed
+  // browser clock neither ends a valid session nor extends an expired one. `Date` has one-second
+  // resolution, hence the tolerance on the upper bound.
+  function adopt({ session: value, serverNow }: Received): void {
+    const remaining = Date.parse(value.expiresAt) - serverNow
+    if (remaining <= 0 || remaining > 3_601_000) {
+      throw new AuthError("auth/session-expired", "session expiry is outside its one-hour lifetime")
+    }
+    expiry?.abort()
+    if (lifetime.signal.aborted) lifetime = new AbortController()
+    credential = value
+    blocked = false
+    csrfForLogout = value.csrfToken
+    // Arm the expiry timer before publishing authenticated state. A subscriber that tears the
+    // session down during this synchronous publication aborts this exact timer through `close()`,
+    // so no orphaned expiry timer outlives a session that closed mid-publication.
+    const timer = new AbortController()
+    expiry = timer
+    delay(remaining, timer.signal).then(
+      () => {
+        if (expiry !== timer) return
+        generation++
+        blocked = true
+        statusController?.abort()
+        clear(new AuthError("auth/session-expired", "session expired"))
+      },
+      (cause: unknown) => {
+        if (expiry !== timer || timer.signal.aborted) return
+        generation++
+        blocked = true
+        statusController?.abort()
+        clear(cause)
+      },
+    )
+    store.setState(
+      {
+        status: "authenticated",
+        identity: value.identity,
+        expiresAt: value.expiresAt,
+      },
+      true,
+    )
+  }
+
+  function revalidate(context?: AuthContext): Promise<void> {
+    if (blocked) {
+      const cause = store.getState().error
+      if (cause instanceof RemoteFailure && !cause.retryable) return Promise.reject(cause)
+      return Promise.reject(
+        new RemoteFailure(
+          "auth/session-ended",
+          {
+            code:
+              cause === undefined || cause instanceof AuthError
+                ? "UNAUTHORIZED"
+                : "SERVICE_UNAVAILABLE",
+            message: cause === undefined ? "Sign in to continue." : cause.message,
+            reason:
+              cause === undefined || cause instanceof AuthError
+                ? "SESSION_INVALID"
+                : "AUTH_STORE_UNAVAILABLE",
+            retryable: false,
+            violations: [],
+          },
+          cause === undefined ? {} : { cause },
+        ),
       )
     }
-    const generationAtStart = generation
-    const controller: WebAbortController = new AbortController()
-    inflightController = controller
-    // The refresh is bound only to the store-owned controller (aborted on logout/setSession) and
-    // its own timeout — never to a caller's per-request signal, so one cancelled request cannot
-    // tear the shared refresh down for the others.
-    const attempt = withTimeout((signal) => refresh(signal), refreshTimeoutMs, {
-      signal: controller.signal,
-      ...(delay === undefined ? {} : { delay }),
-    })
-    const settled = attempt.then(
-      (tokens) => {
-        // A result from a superseded session (logout/new login intervened) is dropped.
-        if (generationAtStart === generation) {
-          applyTokens(tokens)
+    if (statusFlight === undefined) {
+      const epoch = generation
+      const controller = new AbortController()
+      statusController = controller
+      const flight = withTimeout(
+        async (bounded) => {
+          await raceAbort(mutations, bounded)
+          if (epoch !== generation) throw new AbortError()
+          const value = await request("session", 1000, { method: "GET" }, bounded)
+          if (epoch !== generation) throw new AbortError()
+          if (value === undefined) throw new FailureDecodeError()
+          adopt(value)
+        },
+        1000,
+        { signal: controller.signal, delay },
+      ).catch((cause: unknown) => {
+        if (epoch === generation) {
+          blocked = true
+          clear(cause)
         }
-      },
-      () => {
-        // A refresh aborted by logout/setSession bumped the generation and is dropped; a genuine
-        // failure or timeout of the still-current session fails closed.
-        if (generationAtStart === generation) {
-          clearSession()
-        }
-      },
-    )
-    inflight = settled
-    return settled.finally(() => {
-      if (inflight === settled) {
-        inflight = undefined
-        inflightController = undefined
-      }
-    })
-  }
-
-  function applyTokens(tokens: TokenSet): void {
-    accessToken = tokens.accessToken
-    expiresAt = tokens.expiresAt
-    if (tokens.identity !== undefined && tokens.identity !== identity) {
-      identity = tokens.identity
-      publish()
+        throw cause
+      })
+      statusFlight = flight
+      void flight
+        .finally(() => {
+          if (statusFlight === flight) {
+            statusFlight = undefined
+            statusController = undefined
+          }
+        })
+        .catch(() => {})
     }
+    return raceAbort(statusFlight, context?.signal)
   }
 
-  function clearSession(): void {
-    accessToken = undefined
-    expiresAt = undefined
-    if (identity !== null) {
-      identity = null
-      publish()
+  function enqueue(
+    operation: (epoch: number, signal: WebAbortSignal) => Promise<void>,
+    revocation?: "unconfirmed",
+  ): Promise<void> {
+    if (pendingMutations >= 16) {
+      if (revocation !== undefined) fence(revocation)
+      return Promise.reject(new AuthError("auth/config", "session mutation queue is full"))
     }
+    const epoch = fence(revocation)
+    const signal = owner.signal
+    pendingMutations++
+    const result = mutations
+      .then(() => {
+        signal.throwIfAborted()
+        return operation(epoch, signal)
+      })
+      .finally(() => {
+        pendingMutations--
+      })
+    mutations = result.catch(() => {})
+    return result
   }
 
-  async function getAuthHeader(context?: AuthContext): Promise<AuthHeaders | undefined> {
-    if (isFresh()) {
-      return headerFor(accessToken)
+  async function getAuthHeader(context?: AuthContext): Promise<AuthHeaders> {
+    if (credential === undefined || Date.parse(credential.expiresAt) <= clock.now()) {
+      await revalidate(context)
     }
-    if (refreshFn !== undefined) {
-      // Await the shared refresh, but let this caller's own signal end its wait early without
-      // disturbing the store-owned refresh or the session. `raceAbort` rejects with `AbortError` on
-      // that abort; the shared refresh never rejects, so nothing else reaches the catch.
-      try {
-        await raceAbort(runRefresh(refreshFn), context?.signal)
-      } catch {
-        // This caller stopped awaiting; fall through and report no credential for it.
-      }
-      if (isFresh()) {
-        return headerFor(accessToken)
-      }
-    }
-    // No usable credential: degrade to undefined so the transport owns the 401.
-    return undefined
+    context?.signal?.throwIfAborted()
+    if (credential === undefined) throw new AuthError("auth/unauthenticated", "no active session")
+    return { "X-CSRF-Token": credential.csrfToken }
   }
 
-  function setSession(tokens: TokenSet): void {
-    generation += 1
-    abortInflight()
-    accessToken = tokens.accessToken
-    expiresAt = tokens.expiresAt
-    // An explicit `null` identity clears the caller; only an omitted (`undefined`) one is retained.
-    identity = tokens.identity !== undefined ? tokens.identity : identity
-    publish()
-  }
-
-  function logout(): void {
-    generation += 1
-    abortInflight()
-    accessToken = undefined
-    expiresAt = undefined
-    identity = null
-    publish()
+  const protectedSession: ProtectedSession = {
+    async acquire(context) {
+      const epoch = generation
+      const headers = await getAuthHeader(context)
+      if (epoch !== generation) throw new AbortError()
+      return { signal: lifetime.signal, headers, release: () => {} }
+    },
+    revalidate,
+    invalidate(cause) {
+      generation++
+      blocked = true
+      statusController?.abort()
+      statusFlight = undefined
+      clear(cause)
+    },
   }
 
   return {
     store,
+    protectedSession,
     getSnapshot: () => store.getState(),
     subscribe: (listener) => store.subscribe((state) => listener(state)),
     getAuthHeader,
-    setSession,
-    logout,
+    revalidate,
+    confirm() {
+      return config.initialSnapshot?.status === "unauthenticated" ? Promise.resolve() : revalidate()
+    },
+    login(input, signal) {
+      if (signal?.aborted) return Promise.reject(new AbortError())
+      const lifetimeOwner = owner.signal
+      const mutation = enqueue(async (epoch, owned) => {
+        const value = await request(
+          "login",
+          5000,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(input),
+          },
+          owned,
+        )
+        if (value === undefined) throw new FailureDecodeError()
+        // Even a superseded login may have committed a cookie. The queued logout needs its CSRF.
+        csrfForLogout = value.session.csrfToken
+        if (epoch === generation) adopt(value)
+      }).catch((cause: unknown) => {
+        if (!lifetimeOwner.aborted && pendingMutations === 0) clear(cause)
+        throw cause
+      })
+      return raceAbort(mutation, signal)
+    },
+    logout(signal) {
+      blocked = true
+      const mutation = enqueue(async (epoch, owned) => {
+        try {
+          await withTimeout(
+            async (bounded) => {
+              const prepare = async (): Promise<string> => {
+                const value = await request("session", 1000, { method: "GET" }, bounded)
+                if (value === undefined) throw new AuthError("auth/csrf", "no logout CSRF token")
+                return value.session.csrfToken
+              }
+              const send = (proof: string) =>
+                request(
+                  "logout",
+                  2000,
+                  { method: "POST", headers: { "X-CSRF-Token": proof } },
+                  bounded,
+                )
+              // A proof is spent once. Another tab may have rotated the shared cookie, so a cached
+              // proof the server rejects is replaced once with the current session's proof.
+              const cached = csrfForLogout
+              csrfForLogout = undefined
+              if (cached === undefined) {
+                await send(await prepare())
+                return
+              }
+              try {
+                await send(cached)
+              } catch (cause) {
+                if (!(cause instanceof HttpError && cause.status === 403)) throw cause
+                await send(await prepare())
+              }
+            },
+            2000,
+            { signal: owned, delay },
+          )
+          if (epoch === generation) clear(undefined, "confirmed")
+        } catch (cause) {
+          if (epoch === generation) clear(cause, "unconfirmed")
+          throw cause
+        }
+      }, "unconfirmed")
+      return raceAbort(mutation, signal)
+    },
+    close() {
+      const closing = owner
+      owner = new AbortController()
+      closing.abort(new AbortError())
+      generation++
+      statusController?.abort()
+      statusFlight = undefined
+      credential = undefined
+      lifetime.abort()
+      expiry?.abort()
+      expiry = undefined
+    },
   }
 }

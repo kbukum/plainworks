@@ -29,20 +29,22 @@ export type AuthErrorCode =
    */
   | "auth/token-invalid"
   /**
-   * A persisted session cookie failed integrity/signature/shape verification at read — treat as
+   * An opaque credential or persisted session failed shape/integrity verification — treat as
    * unauthenticated, never fabricate a session.
    */
   | "auth/session-invalid"
   /**
-   * A validly-signed session cookie is past its absolute lifetime — the caller must
+   * An opaque session is past its absolute lifetime — the caller must
    * re-authenticate.
    */
   | "auth/session-expired"
   /**
-   * A validly-signed, unexpired session was explicitly revoked (server-side invalidation) — treat
+   * An unexpired session family was explicitly revoked (server-side invalidation) — treat
    * as unauthenticated.
    */
   | "auth/session-revoked"
+  /** Authoritative session persistence failed; never an anonymous success. */
+  | "auth/store-unavailable"
   /** An anti-CSRF token was missing, malformed, or did not match on a state-changing request. */
   | "auth/csrf"
 
@@ -51,7 +53,9 @@ export type AuthErrorCode =
  * shares one shape — a machine-readable `kind` discriminant and a preserved `cause`. Never throw a
  * string; throw (or reject with) an `AuthError`.
  */
-export class AuthError extends PlainError<AuthErrorCode> {}
+export class AuthError extends PlainError<AuthErrorCode> {
+  override readonly name: string = "AuthError"
+}
 
 /**
  * Whether `error` is an auth error of `kind`. It checks the `kind` discriminant rather than the

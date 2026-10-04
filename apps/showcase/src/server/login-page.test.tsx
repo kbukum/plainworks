@@ -59,6 +59,20 @@ describe("renderLoginPage", () => {
     expect(doc.querySelector('[role="alert"]')).toBeNull()
   })
 
+  it("does not claim server revocation when only local teardown was confirmed", () => {
+    const doc = parse(
+      renderLoginPage({
+        returnTo: "/",
+        cookieHeader: "",
+        stylesheets: STYLES,
+        revocationUnconfirmed: true,
+      }),
+    )
+    expect(doc.body.textContent).toContain("Server sign-out could not be confirmed")
+    expect(doc.querySelectorAll("script")).toHaveLength(0)
+    expect(doc.querySelector('button[type="submit"]')?.textContent).toBe("Sign in")
+  })
+
   it("has no detectable accessibility violations, notice included", async () => {
     const doc = parse(
       renderLoginPage({ returnTo: "/", cookieHeader: "", stylesheets: STYLES, interrupted: true }),

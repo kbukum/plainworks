@@ -1,4 +1,4 @@
-import type { WebHeaders, WebHeadersInit } from "@plainworks/std/web"
+import { createHeaders, type WebHeaders, type WebHeadersInit } from "@plainworks/std/web"
 import type { HttpMethod } from "./http-method"
 
 /** Methods that are idempotent by definition — safe to retry because repeating them has no extra effect. */
@@ -31,7 +31,7 @@ export const IDEMPOTENCY_KEY_HEADER = "idempotency-key"
  * `idempotencyKey()` from `@plainworks/std` and reuse it across every retry.
  */
 export function withIdempotencyKey(headers: WebHeadersInit | undefined, key: string): WebHeaders {
-  const merged = new Headers(headers)
+  const merged = createHeaders(headers)
   merged.set(IDEMPOTENCY_KEY_HEADER, key)
   return merged
 }

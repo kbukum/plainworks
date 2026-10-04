@@ -1,10 +1,6 @@
 ---
 name: release
-description: >-
-    Cut a release of the plainworks monorepo with Changesets — verify pending changesets, run the
-    full pre-release gates, version the affected packages, and publish the @plainworks/* packages to
-    npm in dependency order. Use when preparing or publishing a plainworks release or checking
-    release readiness.
+description: "plainworks: Prepare or publish a release through the repository's version, validation, and supply-chain gates."
 ---
 
 # Releasing plainworks
@@ -46,7 +42,7 @@ bun run verify                # every Definition-of-Done gate, in order (`--list
 
 The smoke packs every package the way it will publish, scaffolds a starter against those tarballs, and runs the starter's typecheck, build, boot, and e2e. A red smoke means a published package or the starter breaks outside the monorepo.
 
-Also run the [`review`](../review/SKILL.md) project audit in a fresh agent before a release. Treat green gates as necessary but not sufficient. The packaging gate already lints each built tarball's `exports`/`types` resolution; still sanity-check the artifacts before publishing:
+Also run the [`review`](../review/SKILL.md) project audit directly (use an independent agent only when requested) before a release. Treat green gates as necessary but not sufficient. The packaging gate already lints each built tarball's `exports`/`types` resolution; still sanity-check the artifacts before publishing:
 
 ```bash
 plainworks-release pack packages/<name>   # inspect the npm-shaped tarball

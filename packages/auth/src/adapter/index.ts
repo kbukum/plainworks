@@ -32,4 +32,5 @@ export type {
   CustomAdapterConfig,
   InteractiveAuthAdapter,
   LoginRedirect,
+  ProviderSessionRequest,
 } from "./seam"

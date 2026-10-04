@@ -1,7 +1,7 @@
-// The server-side authorization boundary for settings requests. Both reads and writes verify the
-// signed session cookie and bind the requested `userId` to its subject. Writes additionally require
-// a named identity and a non-simple request header, preventing a cross-origin form POST from riding
-// the session cookie into the endpoint.
+// The server-side authorization boundary for settings requests. Both reads and writes resolve the
+// opaque session cookie against the server session store and bind the requested `userId` to its
+// subject. Writes additionally require a named identity and a non-simple request header,
+// preventing a cross-origin form POST from riding the session cookie into the endpoint.
 
 import type { SettingsRequestAuthorizer } from "@plainworks/demo"
 import type { ReadShowcaseSession } from "../auth"
@@ -9,12 +9,9 @@ import { hasName } from "../auth"
 import { SETTINGS_MUTATION_HEADER, SETTINGS_MUTATION_HEADER_VALUE } from "../constants"
 
 /**
- * Build the settings-write authorizer over a verified session reader. A write is allowed only when
- * the request carries the non-simple mutation header, a session cookie that verifies under the
- * signing key whose identity satisfies the manage policy (a named identity), *and* a `userId`
- * addressing that same identity — so the boundary both authenticates the caller and scopes the
- * write to their own settings. A guest, a forged/tampered/expired cookie, a missing header, or a
- * request for another user's record is denied.
+ * Whether the request's live session owns the addressed settings record, optionally requiring a
+ * named identity. A guest or an unknown, revoked, or expired session owns nothing; a store outage
+ * rejects.
  */
 async function ownsSettingsRecord(
   request: Request,
@@ -33,6 +30,11 @@ export function createSettingsReadAuthorizer(read: ReadShowcaseSession): Setting
   return (request) => ownsSettingsRecord(request, read, false)
 }
 
+/**
+ * Authorize a write only with the non-simple mutation header, a named identity, *and* a `userId`
+ * addressing that same identity — so the boundary both authenticates the caller and scopes the
+ * write to their own settings.
+ */
 export function createSettingsMutationAuthorizer(
   read: ReadShowcaseSession,
 ): SettingsRequestAuthorizer {

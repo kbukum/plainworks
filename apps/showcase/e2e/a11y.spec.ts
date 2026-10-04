@@ -50,7 +50,7 @@ test("authentication routes reject unsupported methods", async ({ request }) => 
   const cases = [
     { path: "/login", allow: "GET, HEAD, POST" },
     { path: "/auth/callback", allow: "GET" },
-    { path: "/logout", allow: "POST" },
+    { path: "/auth/logout", allow: "POST" },
   ] as const
 
   for (const route of cases) {

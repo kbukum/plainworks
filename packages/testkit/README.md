@@ -116,7 +116,7 @@ The proto is the source of truth; regenerate the checked-in `*_pb.ts` with `bun 
 
 ## Playwright gate — `@plainworks/testkit/playwright`
 
-The shared Playwright harness the reference hosts run, and the **flow engine** on top of it. Every test starts from a fixed "now", locale, and time zone, signs in once per worker, and fails on any runtime error, hydration error, or off-origin request. A flow then replays a journey and checks axe, reflow, overlays, focus, and layout at each checkpoint — no committed screenshots. `@playwright/test` and `@axe-core/playwright` are **optional peers**, loaded only by this subpath.
+The shared Playwright harness the reference hosts run, and the **flow engine** on top of it. Each worker owns a host. Each test gets a fresh browser context, resets the backend, and only then signs in when configured. A fixed "now", locale, and time zone keep runs deterministic; runtime errors, hydration errors, and off-origin requests fail the test. Flows check axe, reflow, overlays, focus, and layout at each checkpoint, without committed screenshots. `@playwright/test` and `@axe-core/playwright` are **optional peers**, loaded only by this subpath.
 
 ```ts
 // playwright.config.ts: a fixed locale, time zone, and motion.
@@ -129,7 +129,7 @@ export default defineConfig({
 ```
 
 ```ts
-// A gated test: each worker starts its own host and signs in once, then resets the host per test.
+// A public suite needs no sign-in. Each worker owns a host; each test resets its backend.
 import { BROWSER_GATE_NOW, createBrowserGate, FIXED_NOW_ENV } from "@plainworks/testkit/playwright"
 
 const test = createBrowserGate({
@@ -139,24 +139,33 @@ const test = createBrowserGate({
     readyPath: "/health",
     env: () => ({ [FIXED_NOW_ENV]: BROWSER_GATE_NOW, TZ: "UTC" }),
   },
-  signIn: async (page) => {
-    await page.goto("/login")
-  },
   resetHost: async (request) => {
-    await request.post("/mock/reset")
+    const response = await request.post("/mock/reset", { timeout: 5_000 })
+    if (!response.ok()) throw new Error("Host reset failed")
   },
 })
 ```
 
 | Export | What it gives you |
 |---|---|
-| `createBrowserGate` | The gated `test`: starts one host per worker (on `basePort + n`) and signs in once, then resets the host, pins `Date`, and fails on runtime errors. `runtimeErrors.allow(pattern)` accepts a failure the test provokes. |
+| `createBrowserGate` | The gated `test`: owns one host per worker (`basePort + n`), resets before per-test sign-in, pins `Date`, and watches runtime errors. `gateHost` exposes the owned lifecycle; `gateSignIn: false` selects a signed-out test. |
+| `startGateHost` / `RunningGateHost` | Strict readiness and owned `stop()` / same-origin `restart()`, also usable outside a fixture. |
+| `gateHostOrigin` | Resolves the same configured HTTP/HTTPS origin for startup, capture, and warm reuse. |
+| `HostShutdownError` | Graceful shutdown failed. `released` distinguishes completed forced termination from cleanup still owned by the caller. Repeated stop preserves the failure without signalling a released process. |
+| `HostStartupError` | Startup failed. `retained` says the process group is still alive and `host.stop()` is the retry owner; otherwise forced cleanup already released it. |
+| `runOwnedCommand` | Runs one command in its own process group under a signal and always releases the group, keeping both the cancellation and any forced-cleanup failure. |
 | `browserGateUse` | The context defaults for the Playwright config: fixed locale, time zone, and reduced motion. |
 | `VisualCapture` | Frames a checkpoint's screenshot: the `viewport`, or the `full-page` with the `position: fixed` chrome it names hidden, since Chromium would paint it mid-image. |
 | `pressWithKeyboard` | Opens a control from the keyboard, so the overlay it opens shows focus as a keyboard user sees it. |
 | `focusWithKeyboard` | Focuses a control as keyboard focus arrives, so it shows its focus indicator even after a click. |
 
 The host reads `PLAINWORKS_FIXED_NOW` to pin its own clock, so server-rendered and browser-rendered dates agree.
+
+**Readiness and ownership.** Readiness requires exactly `readyStatus` (200 by default), never a redirect. Add `ready(response)` to validate the host's protocol and run/build identity. Startup, probes, and graceful stop default to 30 s, 1 s, and 10 s; forced settling gets 2 s and is reported as failure. Output retains at most 64 KiB per stream. Any occupied port is rejected, even if its listener returns 404. Commands run directly, without a shell, in a POSIX process group; they must keep descendants in that group rather than daemonize. Cleanup waits for both the root's output handles and its process group. `command` may be an argv factory receiving the same `{ port, origin }` as `env`, for hosts configured through flags.
+
+**Sessions and reset.** Supply `signIn(page)` to complete a real UI login after reset. The gate rejects supplied `storageState` for session suites: a cookie saved before reset is not a valid session afterwards. `test.use({ gateSignIn: false })` starts signed out. `PLAINWORKS_GATE_ORIGIN` selects an explicitly external host and requires one worker; that fixture does not claim stop/restart ownership. `bun run e2e` drives the gate itself through the real Playwright runner and checks every worker's host is released after success, sign-in failure, assertion failure, timeout, and cancellation.
+
+**Trusted HTTPS.** Set `origin: (port) => \`https://localhost:${port}\`` and install a test CA only in runner-owned trust stores. Set `NODE_EXTRA_CA_CERTS` before starting Node, and configure browser trust for the same CA. Keep keys and private fixture state outside reports. Never disable TLS checks. See the [browser gate guide](../../docs/browser-gate.md#real-system-hosts) for the disposable-container proof.
 
 ### Flows
 
@@ -260,7 +269,9 @@ Frames land in the run's `flows/` folder, and `sheets/` holds one contact sheet 
 
 Exit codes: **0** when every flow captured, **1** when a flow broke (it errored, raised a runtime error, or never hydrated), **2** when the harness could not run (a usage error, a base that could not be captured, or a run that never finished).
 
-**Warm host.** `ui:capture serve` starts the app once on `warmPort` and keeps it signed in, so later captures skip startup. Stop it with Ctrl-C. It also writes a [Playwright MCP](https://github.com/microsoft/playwright-mcp) config for exploring the same seeded, fixed-clock, signed-in app, and prints the command to start it. Don't explore while a capture runs: the gate resets the demo data before each flow.
+**Warm captures.** `ui:capture serve` owns a host on `warmPort`, so later single-worker captures skip startup. Every captured test still resets before signing in. Warm reuse uses the same strict readiness and configured HTTPS origin as owned startup. Stop it with Ctrl-C. A flow that stops/restarts its host needs its own fixture, not an external warm host.
+
+**Isolated exploration.** `ui:capture serve --explore` owns a separate host on `explorePort` (`warmPort + 2` by default), never reused by captures. It writes a signed-out [Playwright MCP](https://github.com/microsoft/playwright-mcp) config and prints its command. Sign in interactively; no cookie or credential-bearing browser state is saved or passed to MCP. The host's state/fixture paths must also be isolated by port. Stop it with Ctrl-C.
 
 ## Streaming transport double — `fakeStreamTransport`
 

@@ -12,6 +12,7 @@ export type OverflowPolicy = "drop-new" | "drop-oldest" | "reject"
 
 /** Raised by `push` at capacity under the `reject` overflow policy. */
 export class QueueFullError extends PlainError<"std/queue-full"> {
+  override readonly name: string = "QueueFullError"
   constructor(limit: number) {
     super("std/queue-full", `Queue is full (limit ${limit})`)
   }
@@ -19,6 +20,7 @@ export class QueueFullError extends PlainError<"std/queue-full"> {
 
 /** Raised by `pop` when the pending-consumer bound (`maxWaiters`) is reached — consumer-waiter saturation, distinct from producer-capacity backpressure. */
 export class QueueWaitersFullError extends PlainError<"std/queue-waiters-full"> {
+  override readonly name: string = "QueueWaitersFullError"
   constructor(limit: number) {
     super("std/queue-waiters-full", `Queue has too many pending consumers (limit ${limit})`)
   }
@@ -26,6 +28,7 @@ export class QueueWaitersFullError extends PlainError<"std/queue-waiters-full"> 
 
 /** Raised when awaiting `pop` on a closed, drained queue. */
 export class QueueClosedError extends PlainError<"std/queue-closed"> {
+  override readonly name: string = "QueueClosedError"
   constructor() {
     super("std/queue-closed", "Queue is closed")
   }

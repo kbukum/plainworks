@@ -2,7 +2,7 @@
 
 The client-binding pass. It runs **only when the change touches interactive UI** — a `"use client"` module, a `./client` entry, a `.tsx` component, or its styles/tests. plainworks ships client bindings that consuming apps render directly, so an inaccessible or non-responsive component propagates to every app that adopts it. Accessibility and responsiveness are **acceptance criteria, not follow-ups** — treat a gap here as a blocker on a UI change, not a nit.
 
-> **Run in a separate, clean-context agent** with a high-capability model. A plan/spec may be passed in as a scope checklist only; it never excuses a baseline violation. Skip this pass with an explicit note when no UI/client code is in scope.
+Use the [review skill](../SKILL.md) for scope, execution, and finding format. This checklist does not require a separate agent.
 
 **Scope note.** *Changes mode:* audit each touched component and its test for the checks below. *Project mode:* sweep every `./client` entry / `.tsx` component in the package(s) for the same invariants.
 

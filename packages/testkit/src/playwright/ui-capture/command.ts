@@ -15,6 +15,7 @@ import { describeChangeTotals } from "../flow/report/markdown"
 import type { ChangeReview, FlowReport, FlowSelection, ReviewBase } from "../flow/report/schema"
 import { FLOW_SUITE_ENV, planFlowSuite } from "../flow/suite"
 import { GATE_ORIGIN_ENV } from "../gate"
+import { gateHostOrigin } from "../host"
 import { reviewChanges } from "../review/compare"
 import { type SheetRenderer, writeContactSheets } from "../review/sheets"
 import { selectAffectedFlows } from "./affected"
@@ -69,8 +70,8 @@ export interface UiCaptureRuntime {
   readonly runSuite: (invocation: SuiteInvocation) => Promise<number>
   /** Capture the flows against a base commit's host. Throws a `base` {@link UiCaptureError}. */
   readonly captureBase: (capture: BaseCapture) => Promise<void>
-  /** Keep a signed-in warm host running until the process is stopped. */
-  readonly serve: () => Promise<void>
+  /** Keep one owned host for captures or a separate host for exploration. */
+  readonly serve: (mode: "capture" | "explore") => Promise<void>
   /** Renders contact sheets to PNG. Without one, sheets stay HTML. */
   readonly renderSheet?: SheetRenderer
   readonly clock: Clock
@@ -99,7 +100,7 @@ export async function runUiCapture(
       return UI_CAPTURE_EXIT.pass
     }
     if (args.command === "serve") {
-      await runtime.serve()
+      await runtime.serve(args.explore ? "explore" : "capture")
       return UI_CAPTURE_EXIT.pass
     }
     return await capture(args, config, runtime)
@@ -148,7 +149,7 @@ async function capture(
     ...(config.axes === undefined ? {} : { axes: config.axes }),
     env: suiteEnv,
   }).runs.length
-  const warm = `http://127.0.0.1:${config.warmPort}`
+  const warm = gateHostOrigin(config.host, config.warmPort)
   const reuse = await runtime.serving(`${warm}${config.host.readyPath}`)
   if (reuse) runtime.print(`Reusing the warm host at ${warm}.`)
   const exitCode = await runtime.runSuite({

@@ -1,11 +1,17 @@
 // Re-export-only barrel for the seam concern: the contracts a host, adapter, or transport
 // implements so a higher layer can depend on the shape instead of an implementation. No logic here.
-export type { AuthContext, AuthHeaderProvider, AuthHeaders } from "./auth"
+export type {
+  AuthContext,
+  AuthHeaderProvider,
+  AuthHeaders,
+  ProtectedSession,
+  ProtectedSessionLease,
+} from "./auth"
 export type { AuthorizationRequest, Authorizer, Decision } from "./authorization"
 export type { CacheInvalidateOptions, CacheInvalidator, CacheKey, CacheTarget } from "./cache"
 export type { EventSink, Listener, PlainEvent, Subscription } from "./events"
 export type { FormSchema } from "./form"
-export type { Identity } from "./identity"
+export type { CredentialRestrictions, Identity, SessionIdentity } from "./identity"
 export type { RedirectSignal } from "./redirect"
 export type {
   InferSchemaOutput,

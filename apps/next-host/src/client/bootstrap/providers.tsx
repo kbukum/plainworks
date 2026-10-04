@@ -1,7 +1,9 @@
 "use client"
 
-import type { AppSnapshot } from "@plainworks/app"
+import { type AppSnapshot, snapshotFor } from "@plainworks/app"
 import { AppProvider } from "@plainworks/app/client"
+import { useSessionOwner } from "@plainworks/auth/client"
+import { createAuthStore, sessionSnapshotOf } from "@plainworks/auth/session"
 import type { ChannelOptions } from "@plainworks/channel"
 import { type DevtoolsLauncher, launchDevtools } from "@plainworks/devtools/launch"
 import { createHttpClient } from "@plainworks/http"
@@ -46,7 +48,9 @@ export interface ProvidersProps {
  * `AppProvider`, and the live channel folding the demo stream into
  * state + query — then wraps the route content in the app chrome. Every store/client/source is
  * built once here via `useState` (never a module-level singleton), so a client navigation reuses
- * one stable graph.
+ * one stable graph. This root is the session runtime's only owner; the auth capability borrows it.
+ * Every operation this host's browser runs is public (task reads and the local live demo), so its
+ * HTTP client and channel never borrow the session and keep working across sign-in and sign-out.
  *
  * In development it also launches the embedded inspector behind a `process.env.NODE_ENV` gate the
  * production bundler eliminates. The launcher's seams wrap the HTTP client and channel before
@@ -55,6 +59,13 @@ export interface ProvidersProps {
  * optional: a failure is reported and the app runs uninstrumented.
  */
 export function Providers({ snapshot, origin, children }: ProvidersProps): ReactElement {
+  const [authRuntime] = useState(() =>
+    createAuthStore({
+      baseUrl: `${origin}/auth`,
+      initialSnapshot: sessionSnapshotOf(snapshotFor(snapshot, "auth")),
+    }),
+  )
+  useSessionOwner(authRuntime)
   const [devtools] = useState((): DevtoolsLauncher | undefined =>
     process.env.NODE_ENV === "production"
       ? undefined
@@ -76,7 +87,7 @@ export function Providers({ snapshot, origin, children }: ProvidersProps): React
   const [liveSource] = useState(() => createLiveTasksSource(queryClient))
   const [backend] = useState(() => createDemoTasks())
   const [capabilities] = useState(() =>
-    buildClientCapabilities({ queryClient, httpClient, themeSource }),
+    buildClientCapabilities({ queryClient, httpClient, themeSource, authRuntime }),
   )
   const [channelOptions] = useState<ChannelOptions>(() => {
     const base: ChannelOptions = { transport: backend.transport }

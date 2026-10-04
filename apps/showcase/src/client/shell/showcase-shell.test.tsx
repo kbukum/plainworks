@@ -2,6 +2,8 @@
 
 import type { AppSnapshot } from "@plainworks/app"
 import { AUTH_CAPABILITY_ID } from "@plainworks/app/capabilities/auth"
+import { sessionSnapshotOf } from "@plainworks/auth/session"
+import { createSessionFixture } from "@plainworks/auth/testing"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
@@ -68,7 +70,12 @@ async function renderShell(
   const httpClient = createHttpClient({ baseUrl: "http://showcase.test" })
   const queryClient = createTestQueryClient(createQueryClient)
   await prefetchQuery(queryClient, taskList.options(httpClient, TASK_LIST_PARAMS))
-  const capabilities = buildClientCapabilities({ queryClient, httpClient, themeSource })
+  const capabilities = buildClientCapabilities({
+    queryClient,
+    httpClient,
+    themeSource,
+    authRuntime: createSessionFixture(sessionSnapshotOf(snapshot.capabilities[AUTH_CAPABILITY_ID])),
+  })
   return render(
     <Showcase
       capabilities={capabilities}

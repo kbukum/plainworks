@@ -2,14 +2,12 @@
 // `node` environment exactly as they would on React Native.
 import { describe, expect, test, vi } from "vitest"
 import { AuthError } from "../errors"
-import { type AuthNavigator, login, logout } from "./navigation"
+import { type AuthNavigator, login } from "./navigation"
 
 function fakeNavigator(overrides: Partial<AuthNavigator> = {}): AuthNavigator {
   return {
     navigate: vi.fn(),
-    submit: vi.fn(),
     currentPath: () => "/",
-    csrfToken: () => undefined,
     ...overrides,
   }
 }
@@ -62,30 +60,9 @@ describe("login", () => {
   })
 })
 
-describe("logout", () => {
-  test("submits to the default logout route carrying the navigator's CSRF token", () => {
-    const navigator = fakeNavigator({ csrfToken: () => "csrf-token-123" })
-    logout({ navigator })
-    expect(navigator.submit).toHaveBeenCalledWith("/logout", { csrf: "csrf-token-123" })
-  })
-
-  test("an explicit csrfToken and custom path win over the navigator", () => {
-    const navigator = fakeNavigator({ csrfToken: () => "cookie-token" })
-    logout({ navigator, logoutPath: "/sign-out", csrfToken: "explicit-token" })
-    expect(navigator.submit).toHaveBeenCalledWith("/sign-out", { csrf: "explicit-token" })
-  })
-
-  test("submits an empty token when none is known, leaving the server to reject it", () => {
-    const navigator = fakeNavigator()
-    logout({ navigator })
-    expect(navigator.submit).toHaveBeenCalledWith("/logout", { csrf: "" })
-  })
-})
-
 describe("a missing navigator", () => {
-  test("login and logout fail with a typed config error", () => {
+  test("login fails with a typed config error", () => {
     const untyped = {} as { navigator: AuthNavigator }
     expect(() => login(untyped)).toThrow(AuthError)
-    expect(() => logout(untyped)).toThrow(expect.objectContaining({ kind: "auth/config" }))
   })
 })

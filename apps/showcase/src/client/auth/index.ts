@@ -13,4 +13,5 @@ export {
   SessionProvider,
   session,
   useIdentity,
+  useSessionRuntime,
 } from "./session"

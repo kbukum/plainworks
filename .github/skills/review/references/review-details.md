@@ -1,14 +1,8 @@
-# TypeScript Review — Plan, Clarify, Apply
+# Review, clarify, and fix
 
-An alternative orchestrator to [`review-changes.md`](./review-changes.md) / [`review-project.md`](./review-project.md): instead of sequencing the 00–08 passes, it splits the review into **parallel subagent passes by TypeScript concern**, then plans and applies fixes. Use it when you want one driver to take a change from review through to merged fixes.
+Use only when fixes are requested. Follow [the review skill](../SKILL.md) for scope, severity, and execution. Review directly; an independent agent requires the user's request, not one agent per pass. Preserve the current worktree and index.
 
-Run each pass as a **separate subagent with clean context**. The orchestrator (this file) sequences them and collects findings. Do not concatenate passes into one prompt.
-
-Mode is either **changes** (a diff: branch, commit range, `HEAD~1`) or **project** (whole tree, no diff). State the mode up front.
-
-> The focused 00–08 files hold the canonical, plainworks-specific checks (placement, canonical reuse, principles, security/privacy, quality, tests, supply chain, comments, and — for UI — accessibility/responsive/performance). This file is the *driver*; when a pass below needs the full rule, defer to the matching focused file rather than duplicating it.
-
----
+Select changes or project mode. Read only the triggered pass sections below; the numbered checklists own detailed rules. Confirm the proposed fix scope before edits.
 
 ## Phase 1 — Scope
 
@@ -20,9 +14,7 @@ The reviewer judges code as written, against the rules below and the baseline in
 
 ## Phase 2 — Passes
 
-Run **A first** (cheap, gates the rest). Then **B–F in parallel** where independent, plus **H** when the change touches interactive UI. Then **G last** (cross-references everything).
-
-Each subagent receives: its scope, the pass spec below, and nothing else. Each returns findings in the shared format. Scope the gates to the touched package(s) with `turbo run <task> --filter=@plainworks/<name>`; the unscoped workspace run is for sign-off/CI.
+Run the applicable mechanical checks first, then triggered concern passes, then tests/docs synthesis. Batch independent commands, not agents. Use the validate skill for current selectors; reuse fresh evidence and report gaps.
 
 ### Pass A — Mechanical (always runs)
 
@@ -64,6 +56,8 @@ Skip if: no async, timer, stream, or effect code in scope.
 Check: registries and policies are **explicitly injected**, selection is config-driven; **no import-time side effects and no module-level singletons** — no network/file/env access at module load, no shared mutable module state, no top-level client/store instance (a module-level singleton or init-on-import is a **blocker**); per-request / per-caller **factories** instead; adapters register via explicit `register()` / `createX({...})`, never an `init()`-style import hook; a package facade only re-exports — behavior added directly to the barrel is misplaced; the lean default (in-memory / local) stays in core, backends are opt-in. *(Placement: pass [`00`](./00-structure-placement.md); principles: pass [`02`](./02-principles.md).)*
 
 Skip if: no composition/lifecycle/registry code in scope.
+
+Package ownership is part of this pass: database/vendor/framework backends and their drivers never live in core; they belong with the selecting consumer or in their own package. Optional peers or subpaths inside core do not satisfy the boundary. Check that hosts select integrations and that core-only consumers need none. Resources may be process-, request-, or browser-root-owned; request-local handlers must not recreate authoritative state.
 
 ### Pass E — Security, config & boundaries
 
@@ -117,7 +111,7 @@ Group findings by pass, order by severity. For each group write a one-line fix p
 
 After confirmation:
 
-1. Apply fixes in plan order, one pass per commit where reasonable (Conventional Commits: `feat`/`fix`/`docs`/`refactor`/`test`/`chore`). Keep one commit per branch (amend) unless told otherwise.
+1. Apply authorized fixes in plan order, test-first for behavior. Commit/amend/push only when separately authorized; no implicit commit per pass.
 2. Re-run the matching pass's validation after each fix, scoped to the touched package(s). Stop and report if anything fails.
 3. Final step: re-run Pass A across the in-scope packages, and add a changeset if a publishable package changed.
 

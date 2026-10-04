@@ -14,6 +14,27 @@ function cyclic(): Record<string, unknown> {
 }
 
 describe("isJson", () => {
+  test("enforces depth, node and encoded byte bounds without coercion", () => {
+    expect(isJson({ a: [1] }, { maxDepth: 2, maxNodes: 3, maxBytes: 9 })).toBe(true)
+    expect(isJson({ a: [1] }, { maxDepth: 1 })).toBe(false)
+    expect(isJson({ a: [1] }, { maxNodes: 2 })).toBe(false)
+    expect(isJson({ a: [1] }, { maxBytes: 8 })).toBe(false)
+    expect(isJson("é", { maxBytes: 4 })).toBe(true)
+    expect(isJson("é", { maxBytes: 3 })).toBe(false)
+    expect(isJson("\n", { maxBytes: 3 })).toBe(false)
+    expect(() => isJson(null, { maxNodes: 0 })).toThrow(RangeError)
+  })
+
+  test("rejects properties JSON would silently discard", () => {
+    expect(isJson({ [Symbol("hidden")]: true })).toBe(false)
+    const hidden = { visible: true }
+    Object.defineProperty(hidden, "secret", { value: true })
+    expect(isJson(hidden)).toBe(false)
+    const list = [1]
+    Object.defineProperty(list, "extra", { value: true, enumerable: true })
+    expect(isJson(list)).toBe(false)
+  })
+
   test.each([
     null,
     true,

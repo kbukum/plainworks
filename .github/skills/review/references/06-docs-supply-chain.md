@@ -2,7 +2,7 @@
 
 Docs that match the code, and a release path that stays reproducible and honest. AI-authored changes drift docs from behavior and skip the changeset — this pass closes that.
 
-> **Run in a separate, clean-context agent** with a high-capability model. A plan/spec may be passed in as a scope checklist only; it never excuses a baseline violation.
+Use the [review skill](../SKILL.md) for scope, execution, and finding format. This checklist does not require a separate agent.
 
 **Scope note.** *Changes mode:* every doc/example the diff touched (or should have touched) matches the new behavior, and a changeset is present when a package changed. *Project mode:* audit the package READMEs, the architecture/layer docs, and the release wiring for drift.
 

@@ -4,8 +4,6 @@ import { BROWSER_GATE_NOW, browserGateUse } from "../gate"
 export interface PlaywrightMcpOptions {
   /** The warm host's origin. The browser may reach no other. */
   readonly origin: string
-  /** The signed-in state the warm host saved. */
-  readonly storageState: string
   /** The page script {@link playwrightMcpInitPage} renders. */
   readonly initPage: string
   /** Where MCP writes screenshots and snapshots. */
@@ -24,7 +22,6 @@ export interface PlaywrightMcpConfig {
     readonly contextOptions: typeof browserGateUse & {
       readonly baseURL: string
       readonly viewport: { readonly width: number; readonly height: number }
-      readonly storageState: string
     }
     readonly initPage: readonly string[]
   }
@@ -34,7 +31,7 @@ export interface PlaywrightMcpConfig {
 
 /**
  * Configure Playwright MCP to explore the warm host the way a capture sees it: a fresh, isolated,
- * signed-in context with the gate's locale, time zone, reduced motion, and blocked service
+ * context with the gate's locale, time zone, reduced motion, and blocked service
  * workers, a fixed clock, and no origin but the host's.
  */
 export function playwrightMcpConfig(options: PlaywrightMcpOptions): PlaywrightMcpConfig {
@@ -50,7 +47,6 @@ export function playwrightMcpConfig(options: PlaywrightMcpOptions): PlaywrightMc
         baseURL: options.origin,
         ...browserGateUse,
         viewport: options.viewport ?? { width: 1280, height: 800 },
-        storageState: options.storageState,
       },
       initPage: [options.initPage],
     },

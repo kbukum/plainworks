@@ -38,7 +38,7 @@ export const AUTH_CALLBACK_PATH = "/auth/callback"
 export const SIGN_IN_INTERRUPTED_PATH = "/auth/interrupted"
 
 /** BFF route that clears the session cookie. */
-export const LOGOUT_PATH = "/logout"
+export const LOGOUT_PATH = "/auth/logout"
 
 /** Base path the mock backend route handler serves the demo domain under. */
 export const API_BASE_PATH = "/api"

@@ -42,6 +42,7 @@ const SKIP_AT_ROOT = new Set([
 /** Whether an entry (by its path relative to the app root) is dropped from the ejected output. */
 export function isSkippedEntry(relativePath: string): boolean {
   const segments = relativePath.split(/[/\\]/)
+  if (segments.includes(".private")) return true
   const name = segments.at(-1) ?? relativePath
   if (SKIP_ANY_DEPTH.has(name)) return true
   if (segments.length === 1 && SKIP_AT_ROOT.has(name)) return true

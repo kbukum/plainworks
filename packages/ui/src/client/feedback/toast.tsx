@@ -27,6 +27,7 @@ import {
 
 /** Typed error raised when {@link useToast} runs outside a {@link ToastProvider}. */
 export class ToastError extends PlainError<"toast/missing-provider"> {
+  override readonly name: string = "ToastError"
   constructor(message: string, options?: PlainErrorOptions) {
     super("toast/missing-provider", message, options)
   }

@@ -1,12 +1,14 @@
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { describe, expect, it } from "vitest"
 import type { BrowserGateHost, GateHostRuntime, SpawnedHost } from "./host"
-import { startGateHost } from "./host"
+import { HostStartupError, startGateHost } from "./host"
 
 const HOST: BrowserGateHost = {
   command: ["bun", "run", "server.ts"],
   env: ({ origin }) => ({ APP_ORIGIN: origin }),
   basePort: 5200,
   readyPath: "/ready",
+  readyStatus: 200,
   warmPaths: ["/", "/tasks"],
   startTimeoutMs: 1_000,
 }
@@ -27,30 +29,44 @@ function fakeHost(script: {
   exitOnStart?: number
   exitOnSignal?: "SIGTERM" | "SIGKILL"
   failWarm?: boolean
+  readyStatus?: number
+  readyBody?: string
 }): FakeHost {
   let clock = 0
   let probes = 0
   let started = false
   let resolveExit: (code: number | null) => void = () => {}
+  let resolveRelease: () => void = () => {}
   const exited = new Promise<number | null>((resolve) => {
     resolveExit = resolve
+  })
+  const released = new Promise<void>((resolve) => {
+    resolveRelease = resolve
   })
   const requests: string[] = []
   const signals: string[] = []
   const spawned: FakeHost["spawned"] = []
   const child: SpawnedHost = {
     exited,
+    waitForRelease: () => released,
     output: () => "host log tail",
     kill: (signal) => {
       signals.push(signal)
-      if (signal === (script.exitOnSignal ?? "SIGTERM")) resolveExit(null)
+      if (signal === (script.exitOnSignal ?? "SIGTERM")) {
+        resolveExit(null)
+        resolveRelease()
+      }
     },
   }
   const runtime: GateHostRuntime = {
+    available: async () => script.alreadyServing !== true,
     spawn: (command, args, options) => {
       started = true
       spawned.push({ command, args, env: { ...options.env } })
-      if (script.exitOnStart !== undefined) resolveExit(script.exitOnStart)
+      if (script.exitOnStart !== undefined) {
+        resolveExit(script.exitOnStart)
+        resolveRelease()
+      }
       return child
     },
     fetch: async (url) => {
@@ -63,7 +79,7 @@ function fakeHost(script: {
         }
         probes += 1
         if (probes <= (script.readyAfter ?? 0)) throw new TypeError("connection refused")
-        return new Response("ok")
+        return new Response(script.readyBody ?? "ok", { status: script.readyStatus ?? 200 })
       }
       if (script.failWarm === true) throw new TypeError("socket hang up")
       return new Response(null, { status: 302 })
@@ -73,10 +89,59 @@ function fakeHost(script: {
     },
     clock: { now: () => clock },
   }
-  return { runtime, requests, signals, spawned, exit: resolveExit }
+  return {
+    runtime,
+    requests,
+    signals,
+    spawned,
+    exit: (code) => {
+      resolveExit(code)
+      resolveRelease()
+    },
+  }
 }
 
 describe("startGateHost", () => {
+  it("retains a retryable cleanup owner when failed startup cannot release its child", async () => {
+    const fake = fakeHost({ readyAfter: 1000 })
+    const spawn = fake.runtime.spawn
+    const runtime: GateHostRuntime = {
+      ...fake.runtime,
+      spawn: (...args) => ({ ...spawn(...args), kill: () => {} }),
+    }
+    const error = await startGateHost({ ...HOST, stopTimeoutMs: 10 }, 5200, runtime).catch(
+      (cause: unknown) => cause,
+    )
+    expect(error).toBeInstanceOf(HostStartupError)
+    if (!(error instanceof HostStartupError)) throw error
+    expect(error.retained).toBe(true)
+    fake.exit(null)
+    await error.host.stop()
+  })
+
+  it("reports forced startup cleanup as released, never as a retryable or graceful stop", async () => {
+    const fake = fakeHost({ readyAfter: 1000, exitOnSignal: "SIGKILL" })
+    const error = await startGateHost(HOST, 5200, fake.runtime).catch((cause: unknown) => cause)
+    expect(error).toMatchObject({ kind: "testkit/host-startup", retained: false })
+    if (!(error instanceof HostStartupError)) throw error
+    expect(fake.signals).toEqual(["SIGTERM", "SIGKILL"])
+    await expect(error.host.stop()).rejects.toThrow(/forced/i)
+    expect(fake.signals).toEqual(["SIGTERM", "SIGKILL"])
+  })
+
+  it.each([0, -1, 1.5, 2_147_483_648])(
+    "rejects invalid timer budget %s before spawning",
+    async (budget) => {
+      for (const option of ["startTimeoutMs", "probeTimeoutMs", "stopTimeoutMs"] as const) {
+        const fake = fakeHost({})
+        await expect(
+          startGateHost({ ...HOST, [option]: budget }, 5200, fake.runtime),
+        ).rejects.toThrow()
+        expect(fake.spawned).toHaveLength(0)
+      }
+    },
+  )
+
   it("starts the host on its port, waits for it, and warms each path once", async () => {
     const fake = fakeHost({ readyAfter: 2 })
     const host = await startGateHost(HOST, 5203, fake.runtime)
@@ -119,10 +184,103 @@ describe("startGateHost", () => {
     expect(fake.signals).toEqual(["SIGTERM"])
   })
 
+  it.each(["responding", "stalled"] as const)(
+    "rejects startup and aborts %s warming when the child exits",
+    async (mode) => {
+      const fake = fakeHost({})
+      let warmSignal: WebAbortSignal | undefined
+      const runtime: GateHostRuntime = {
+        ...fake.runtime,
+        fetch: async (url, init) => {
+          if (new URL(url).pathname === "/ready") return fake.runtime.fetch(url, init)
+          warmSignal = init?.signal
+          fake.exit(1)
+          return mode === "responding" ? new Response(null, { status: 200 }) : new Promise(() => {})
+        },
+      }
+      await expect(startGateHost(HOST, 5200, runtime)).rejects.toMatchObject({
+        cause: { cause: { message: expect.stringMatching(/exited with 1/) } },
+      })
+      expect(warmSignal?.aborted).toBe(true)
+      expect(fake.signals).toEqual(["SIGTERM"])
+    },
+  )
+
   it("escalates to SIGKILL when the host ignores SIGTERM", async () => {
     const fake = fakeHost({ exitOnSignal: "SIGKILL" })
     const host = await startGateHost(HOST, 5200, fake.runtime)
-    await host.stop()
+    await expect(host.stop()).rejects.toThrow(/forced/i)
     expect(fake.signals).toEqual(["SIGTERM", "SIGKILL"])
+    await expect(host.stop()).rejects.toThrow(/forced/i)
+    expect(fake.signals).toEqual(["SIGTERM", "SIGKILL"])
+  })
+
+  it.each([404, 302, 503])(
+    "rejects readiness status %s and releases the process",
+    async (status) => {
+      const fake = fakeHost({ readyStatus: status })
+      await expect(startGateHost(HOST, 5200, fake.runtime)).rejects.toThrow(/ready|answer/i)
+      expect(fake.signals).toEqual(["SIGTERM"])
+    },
+  )
+
+  it("rejects wrong readiness content even with the expected status", async () => {
+    const fake = fakeHost({ readyBody: "unrelated listener" })
+    await expect(
+      startGateHost(
+        { ...HOST, ready: async (response) => (await response.text()) === "ready" },
+        5200,
+        fake.runtime,
+      ),
+    ).rejects.toThrow(/ready|answer/i)
+    expect(fake.signals).toEqual(["SIGTERM"])
+  })
+
+  it("uses the configured HTTPS origin in probes, warming, and the child environment", async () => {
+    const fake = fakeHost({})
+    const host = await startGateHost(
+      { ...HOST, origin: (port) => `https://localhost:${port}` },
+      5203,
+      fake.runtime,
+    )
+    try {
+      expect(host.origin).toBe("https://localhost:5203")
+      expect(fake.spawned[0]?.env.APP_ORIGIN).toBe(host.origin)
+      expect(fake.requests.every((url) => url.startsWith(host.origin))).toBe(true)
+    } finally {
+      await host.stop()
+    }
+  })
+
+  it("cleans up after cancellation and preserves the cancellation failure", async () => {
+    const fake = fakeHost({ readyAfter: Number.POSITIVE_INFINITY })
+    const controller = new AbortController()
+    controller.abort(new Error("test cancelled"))
+    await expect(startGateHost(HOST, 5200, fake.runtime, controller.signal)).rejects.toThrow(
+      /cancelled/,
+    )
+    expect(fake.spawned).toEqual([])
+  })
+
+  it("stops idempotently without signalling an already released process", async () => {
+    const fake = fakeHost({})
+    const host = await startGateHost(HOST, 5200, fake.runtime)
+    await host.stop()
+    await host.stop()
+    expect(fake.signals).toEqual(["SIGTERM"])
+  })
+
+  it("builds direct argv from the same worker origin as its probes", async () => {
+    const fake = fakeHost({})
+    const host = await startGateHost(
+      { ...HOST, command: ({ origin }) => ["auth-host", "-origin", origin] },
+      5203,
+      fake.runtime,
+    )
+    try {
+      expect(fake.spawned[0]?.args).toEqual(["-origin", host.origin])
+    } finally {
+      await host.stop()
+    }
   })
 })

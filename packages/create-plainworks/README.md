@@ -23,6 +23,8 @@ npm run dev
 
 The generated app boots **with data** on first run — a seeded mock backend serves its domain over real HTTP, so the client, RSC prefetch, and live stream all read one set of fixtures with no external service to stand up.
 
+Bundled **demo sign-in** also works without another service. Ordinary `next dev`, `next build`, and `next start` use request-local auth over opt-in SQLite persistence, with the native `better-sqlite3` dependency explicitly trusted for Bun installation. Development safely initializes a private local key once; production-mode demo use requires `PLAINWORKS_DEMO_AUTH=1` and a configured `SESSION_ROOT_KEY`. Sessions survive ordinary restart. No Go runtime or custom Next server is required.
+
 ## What you get
 
 A minimal but fully wired host: the composition kernel, `theme`, `query`, `channel`, `state`, `ui`, and `auth` (BFF `__Host-` cookie by default) over the generic `mocks` primitives, with a small starter domain. It follows the kit's rules by construction — per-request factories (no module-level singletons), the neutral/client/server three-bucket split, and server-only token custody kept out of the client graph. The config is plain and fully yours to edit; there is no black-box runtime.
@@ -44,3 +46,5 @@ The generated `package.json` resolves workspace protocol ranges so the scaffolde
 ## Ejectable app shape
 
 The starter is built from the app profile used in this repo. Inside the monorepo its `tsconfig` extends `../../tsconfig.app.json`; eject writes a standalone equivalent so the app can live outside the workspace. Eject also drops repo-only gates and private tooling (`test`, `check-production`, the unit-test toolchain, `@plainworks/bundle-exclusion`, and `@plainworks/vitest-config`). `@plainworks/testkit` stays because the starter ships Playwright flows.
+
+Eject excludes `.private/` at any depth, including SQLite databases, journals and root keys. Generated projects keep that directory gitignored. Local SQLite needs a writable local volume; multi-machine, ephemeral serverless and Edge deployments must supply shared persistence and an external identity provider.

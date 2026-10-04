@@ -25,6 +25,7 @@ export class RemoteFailure<Kind extends string = string>
   extends PlainError<Kind>
   implements Failure
 {
+  override readonly name: string = "RemoteFailure"
   readonly fieldPathFormat: "protobuf" | "json" = "json"
   readonly code: FailureCode
   readonly reason: string | undefined
@@ -55,6 +56,7 @@ export class RemoteFailure<Kind extends string = string>
 
 /** A malformed upstream contract is operational, never a user's field error. */
 export class FailureDecodeError extends RemoteFailure<"failure/decode"> {
+  override readonly name: string = "FailureDecodeError"
   constructor(options?: PlainErrorOptions) {
     super(
       "failure/decode",

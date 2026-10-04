@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
 
+import { AUTH_CAPABILITY_ID } from "@plainworks/app/capabilities/auth"
 import { readHydration } from "@plainworks/app/hydration"
+import { sessionSnapshotOf } from "@plainworks/auth/session"
+import { createSessionFixture } from "@plainworks/auth/testing"
 import { createMockServerHandle } from "@plainworks/demo/server"
 import { createHttpClient } from "@plainworks/http"
 import { bindMockServerLifecycle } from "@plainworks/mocks/lifecycle"
@@ -70,6 +73,9 @@ describe("hydration", () => {
     })
 
     const capabilities = buildClientCapabilities({
+      authRuntime: createSessionFixture(
+        sessionSnapshotOf(snapshot.capabilities[AUTH_CAPABILITY_ID]),
+      ),
       queryClient: createTestQueryClient(createQueryClient),
       httpClient: createHttpClient({ baseUrl: "http://showcase.test" }),
     })

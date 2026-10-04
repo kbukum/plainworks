@@ -8,7 +8,65 @@ Use this reference to decide **where code belongs**, **which hosts can run it**,
 2. Keep the package in its assigned layer.
 3. Import only from a strictly lower layer.
 4. Define a shared seam in the lowest consuming layer and implement it higher.
-5. Keep `.` neutral. Put React bindings behind `./client` and browser behavior on a named adapter subpath.
+5. Separate the contract from a technology integration: the integration stays with the consumer that selects it (or its own package when the kit ships it for reuse), never a core subpath.
+6. Keep core `.` neutral. Put React bindings behind `./client`; thin standard-platform bindings may use named subpaths.
+
+## Core, integrations, and consumers
+
+**Plainworks does not choose an application's infrastructure.** Consumers provide their own adapters or explicitly install integrations we supply. An existing backend can own authentication without a second session server or database in the frontend host.
+
+Core packages own focused behavior and typed contracts. Technology-specific integrations own their SDKs, drivers, runtime restrictions, and resource lifecycle. Place each with the smallest owner the need justifies: the consumer that selects it, or a separate package when the kit genuinely ships it for reuse. Core has no dependency, optional peer, re-export, or bundled source for those integrations.
+
+```mermaid
+flowchart LR
+  Host["Consumer / composition root"] --> Core["Core capability and contracts"]
+  Host --> Adapter["Consumer-owned or packaged integration"]
+  Adapter --> Core
+  Adapter --> Driver["Technology driver / SDK"]
+```
+
+Arrows are imports. The consumer may supply its own implementation instead of using one we ship.
+
+An import subpath separates entry points within one published package; it does not separate package or dependency ownership. SQLite session storage therefore does not live in `auth`, and SQLite demo-provider state does not live in `mocks`. The reference Next host owns its SQLite custody in `apps/next-host/src/server/custody/` and proves it with auth's public conformance cases.
+
+This is not a zero-dependency rule. A library implementing a package's declared capability is different from selecting a consumer's backend. React bindings, standard-platform value types, and thin Web API bindings do not justify embedding a database, vendor SDK, or framework integration. Keep such bindings narrowly scoped and explicit; review capability-specific dependencies on their merits.
+
+### Dependency classification
+
+Classify what the dependency does, not whether it is marked optional. Existing declarations are evidence to review, not automatic exemptions.
+
+| Existing area | Classification and disposition |
+|---|---|
+| React bindings | **Align:** React is part of the promised kit; isolate bindings from neutral entries. |
+| `connect` / `query` protocol and TanStack/Connect libraries | **Align:** these packages explicitly provide those capabilities. Keep required implementation libraries with that concern; do not make them dependencies of unrelated core packages. |
+| `app` / `devtools` optional Query/Connect bridges | **Align:** composition/inspection of existing kit capabilities may use isolated integration subpaths and optional peers. Keep neutral paths independent; a new backend/vendor choice does not qualify as such a bridge. |
+| `testkit/playwright` and axe runner peers | **Align:** the published testing capability explicitly targets that runner. Isolate the runner entry; ordinary core and other testkit entries must not load it. |
+| Database custody in auth or mocks | **Drop from core:** driver and implementation live with the host that selects them. No optional-peer exemption. |
+
+Do not sweep unrelated capability libraries into a storage refactor.
+
+**A packaged integration uses the existing workspace.** Generate it with the existing tooling and register it in the layer map above every contract it imports. Core-to-integration edges remain forbidden regardless of numeric layer.
+
+## Concern owners
+
+Find the owner before adding behavior. Consume its implementation where dependency direction allows; implement its contract when supplying behavior from a higher layer. If a shared capability is missing, enhance the proper owner generically before consuming it.
+
+| Concern | Owner | Does not own |
+|---|---|---|
+| Errors, failures, JSON bounds, schema seams, clocks, cancellation | `std` concern modules | Database drivers, application policy, host startup |
+| Reactive state | `state` | An application's storage backend |
+| Request encoding, destination checks, HTTP failure decoding | `http` | Authentication policy or an identity provider |
+| Connect RPC and streaming lifecycle | `connect`, `channel`, through lower seams | A second auth store or duplicate retry owner |
+| Query/cache integration | `query` | Backend authorization |
+| Auth protocols, session behavior, and custody contracts | `auth`, with shared transport contracts in `std` | SQLite, deployment configuration, demo-provider persistence |
+| Database/vendor/framework implementations | The selecting consumer, or a separate package the kit ships | Core ownership or automatic selection for consumers |
+| Telemetry | `observability` and lower reporting seams | Mandatory exporter/backend selection |
+| UI and design substrate | `theme`, `elements`, `ui` | Server secrets or app route trees |
+| Application composition | `app` plus the consuming host | A mandatory host, database, or identity service |
+| Test doubles and owned host/capture harness | `testkit` | Application auth policy |
+| Mock services and demo-provider state contracts | `mocks` | Production identity service or bundled database driver |
+
+These boundaries apply to shared helper code too. Do not export generic filesystem or encryption utilities from auth merely so a fixture can reuse them. Find a suitable lower owner; do not duplicate them in apps or create a general framework without a real shared need.
 
 <!-- layer-map:diagram -->
 ```mermaid
@@ -45,13 +103,13 @@ The workspace has three roots and four generated profiles. `bun run check-shape`
 | **tool** | dev-only `internal/*` tools | Source lives under `src/`, tests are colocated, optional `src/cli.ts` exposes `plainworks-<dirname>` and runs Bun with the `@plainworks/source` condition (so a tool imports `@plainworks/*` from source with no build), and `tsconfig.json` extends `../../tsconfig.tool.json`. |
 | **app** | `apps/*` and `internal/integration` | `tsconfig.json` extends `../../tsconfig.app.json`, tests use `appTestConfig`, and tasks resolve built package surfaces. |
 
-Published packages ship ESM, expose a server-safe `.`, and add other [entries](#choose-an-entry-point) only when needed. Their manifests are generated from the typed `PackageBuild` description exported by `tsdown.config.ts`, and React dependencies stay catalog-managed peers.
+Published packages ship ESM and add [entries](#choose-an-entry-point) only when needed. Core exposes a host-neutral `.`. A separate technology integration declares its narrower runtime explicitly; it must not be advertised as a neutral core. Manifests are generated from the typed `PackageBuild` description exported by `tsdown.config.ts`, and React dependencies stay catalog-managed peers.
 
 The root tsconfigs mirror those profiles: `tsconfig.base.json` typechecks host-neutral packages, `tsconfig.tool.json` typechecks source-run internal tools with Node types, and `tsconfig.app.json` typechecks apps and integration suites against built package surfaces.
 
 ## Choose an entry point
 
-plainworks separates code by runtime requirement rather than framework. Every package uses the same small set of entry kinds, so an import path tells you where the code can run.
+Within core packages, entry points separate runtime requirements. Choose the package owner first: this vocabulary does not permit technology integrations inside core.
 
 | Entry | What it holds | Where it runs | Example |
 |---|---|---|---|
@@ -59,23 +117,24 @@ plainworks separates code by runtime requirement rather than framework. Every pa
 | **Concern subpath** | One concern of a package that holds several, named after its folder. | Same as `.`. | `@plainworks/std/time`, `@plainworks/http/list` |
 | **`./client`** | React bindings. DOM-free unless the package declares `dom`. | React hosts, including React Native for DOM-free clients. | `@plainworks/state/client` |
 | **`./server`** | Server-only code, such as token custody. It never enters a `"use client"` graph. | BFFs and server runtimes. | `@plainworks/auth/server` |
-| **Adapter subpath** | One host-specific implementation of a seam, named after what it does. | Hosts that have that primitive. | `@plainworks/state/web-storage`, `@plainworks/auth/form-post` |
+| **Platform-binding subpath** | A thin binding to a standard host primitive, without a backend SDK or database driver. | Hosts that have that primitive. | `@plainworks/state/web-storage` |
 | **Component subpath** | One UI component or hook. | Browsers. | `@plainworks/ui/forms/text-field` |
 | **Integration subpath** | Wiring to another plainworks package. | Wherever both packages run. | `@plainworks/app/capabilities/query`, `@plainworks/devtools/query` |
 | **Asset** | A stylesheet or other file. | Bundlers. | `@plainworks/theme/styles.css` |
 | **`./testing`** | Test-only helpers. Only tests may import them. | Test runners. | `@plainworks/app/testing` |
 
-A few rules keep the vocabulary honest, and the gates enforce each one.
+A few rules keep the vocabulary honest. Existing gates cover entry shape and portability; integration dependency isolation also needs explicit enforcement and clean-consumer proof.
 
 - **Named exports only.** A barrel lists every name it re-exports; `export *` fails lint. Each name has exactly one import path.
 - **Everyday names in `.`, concerns on subpaths.** A package that spans several concerns keeps `.` for its prelude and puts each concern on its own subpath. Shared typed errors live in `src/errors/`; an error that belongs to one concern stays with it.
 - **DOM is opt-in.** A package declares `dom: true` in `tsdown.config.ts` only when its product is browser UI (`theme`, `elements`, `ui`, `devtools`, `testkit`). Everywhere else the DOM lib is allowed only in adapter, test, and tooling projects.
-- **Adapters say what they do.** An entry is never named after a host (`dom`, `browser`, `node`). The real-browser test harness is `testkit/playwright`, named after its required runner.
+- **Bindings say what they do.** A core entry is never named after a host (`dom`, `browser`, `node`). A technology integration is a separate package, not another binding entry. The real-browser test harness is `testkit/playwright`, named after the runner its testing capability promises; that is not permission to bundle unrelated infrastructure.
+- **Binding placement and compile profile.** Existing thin platform bindings live in `src/adapters/<concern>.ts`, compile with their required libs in `tsconfig.adapters.json`, and ship on a concern-named subpath. This internal folder name does not permit SDK/backend code there.
 - **Test helpers stay out of shipped code.** `./testing` compiles in its own `tsconfig.testing.json` project, and a boundary rule stops production modules from importing it.
 
 React Native imports `./client` from `state`, `http`, `query`, `channel`, `auth`, `connect`, and `app`. Those clients typecheck without the DOM lib, and fixtures in `@plainworks/boundaries` prove the gate rejects a DOM leak. DOM UI and browser adapters stay out of its graph.
 
-Workers inject SSE because they do not provide `EventSource`. Electron renderers use the browser entries but must keep BFF-managed tokens in memory rather than browser storage. React Native hosts inject missing cryptography, storage, or streaming primitives.
+Workers inject SSE because they do not provide `EventSource`. Electron renderers use browser session entries with opaque HttpOnly cookies; provider credentials stay server-side, never in renderer memory or browser storage. React Native hosts inject missing cryptography, storage, or streaming primitives.
 
 ### Runtime primitives
 
@@ -84,7 +143,7 @@ Use standardized value primitives directly. Inject behavior that varies by host 
 | Kind | Rule | Examples |
 |---|---|---|
 | **Universal value** | Use directly. | `AbortController`, `AbortSignal`, `Headers`, `URL`, `URLSearchParams`, `Response`, `TextDecoder` |
-| **Host-varying behavior** | Accept through an injected seam with a platform default. | `fetch`, SSE, `WebSocket`, `crypto.subtle`, token storage |
+| **Host-varying behavior** | Accept through an injected seam with a platform default. | `fetch`, SSE, `WebSocket`, `crypto.subtle`, server credential custody |
 
 The shared ES2023 compile configuration includes no DOM or Node libraries. `types/universal-web.d.ts` declares the supported universal surface, and `@plainworks/std` provides the structural `Web*` public types. A neutral module that names `document`, `window`, `localStorage`, `navigator`, `EventSource`, or a Node builtin fails typecheck. Fixtures in `@plainworks/boundaries` prove this gate.
 
@@ -193,7 +252,7 @@ React components are not neutral data seams. Pass component-valued extensions, s
 
 ### Keep construction explicit
 
-Imports must not read environment state, open handles, or dial a network. Create stores, clients, sessions, and registries per request through factories. Register adapters explicitly through an injected registry or `createX({...})`; do not use global mutable registries or string service locators.
+Imports must not read environment state, open handles, or dial a network. Factories create explicitly owned process-, request-, or browser-root resources as appropriate. Borrowers do not dispose their owner's resources. Request-local handling may use shared authoritative persistence; do not recreate that data for each request. Register adapters explicitly through an injected registry or `createX({...})`; do not use global mutable registries or string service locators.
 
 ## Security and UI invariants
 

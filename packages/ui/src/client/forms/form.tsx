@@ -47,14 +47,18 @@ export interface SchemaFormProps<Output> extends FormBaseProps {
    * Called with the validated value once submission passes validation. May be async; the form stays
    * `pending` (disabling fields and the submit button) until it settles.
    */
-  readonly onSubmit: (value: Output) => void | RemoteFailure | Promise<void | RemoteFailure>
+  readonly onSubmit: (
+    value: Output,
+  ) => void | RemoteFailure | Promise<void> | Promise<RemoteFailure | undefined>
 }
 
 /** {@link Form} props when no schema is given — `onSubmit` receives the raw {@link FormValues}. */
 export interface SchemalessFormProps extends FormBaseProps {
   readonly schema?: undefined
   /** Called with the raw decoded values; the form performs no validation. May be async. */
-  readonly onSubmit: (value: FormValues) => void | RemoteFailure | Promise<void | RemoteFailure>
+  readonly onSubmit: (
+    value: FormValues,
+  ) => void | RemoteFailure | Promise<void> | Promise<RemoteFailure | undefined>
 }
 
 /**
@@ -107,7 +111,7 @@ export function Form<Output = FormValues>(props: FormProps<Output>): ReactElemen
     startTransition(async () => {
       try {
         const values = formDataToObject(formData)
-        let submitted: void | RemoteFailure
+        let submitted: Awaited<ReturnType<typeof props.onSubmit>>
         if (props.schema === undefined) {
           submitted = await props.onSubmit(values)
         } else {

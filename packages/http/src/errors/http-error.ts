@@ -28,6 +28,7 @@ interface HttpErrorFields {
  * re-instanceof-ing every transport error type.
  */
 export class HttpError extends RemoteFailure<HttpErrorKind> {
+  override readonly name: string = "HttpError"
   /** HTTP status of a response failure; `undefined` for a network, URL, or decode failure. */
   readonly status: number | undefined
   /** Coarse failure family shared with the `std` classifier (network / timeout / auth / …). */

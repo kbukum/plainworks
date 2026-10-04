@@ -20,13 +20,13 @@ export type UiCaptureArgs =
       /** Compare with this snapshot name, or else this git ref. Without it, nothing is compared. */
       readonly base?: string
     }
-  | { readonly command: "serve" }
+  | { readonly command: "serve"; readonly explore: boolean }
   | { readonly command: "help" }
 
 /** The usage text `ui:capture --help` prints. */
 export const UI_CAPTURE_USAGE: string = `Usage: ui:capture [--flow <a,b> | --affected] [--preset <name>] [--save-as <name>] [--base <snapshot|ref>]
        ui:capture --docs
-       ui:capture serve
+       ui:capture serve [--explore]
 
 Captures a frame and an ARIA snapshot at every flow checkpoint, for you to look at. It runs no
 checks; the e2e suite does that.
@@ -40,7 +40,8 @@ checks; the e2e suite does that.
   --docs             Refresh the app's docs images: capture the flows that mark them and copy
                      each marked desktop frame, light and dark, into the docs folder, removing
                      images no checkpoint names. Takes no other flag. A broken flow writes nothing.
-  serve              Keep a signed-in host running for fast captures and Playwright MCP.
+  serve              Keep an owned host running for captures.
+  serve --explore    Start a separate, isolated host for Playwright MCP, never reused by captures.
 
 Exit codes: 0 captured, 1 a flow broke (an error, a runtime error, no hydration), 2 a harness or usage error.`
 
@@ -62,9 +63,12 @@ export function parseUiCaptureArgs(argv: readonly string[]): UiCaptureArgs {
   if (values.help === true) return { command: "help" }
   const [command, ...rest] = positionals
   if (command === "serve") {
-    if (rest.length > 0 || Object.keys(values).length > 0) usage("serve takes no flags")
-    return { command: "serve" }
+    if (rest.length > 0 || Object.keys(values).some((key) => key !== "explore")) {
+      usage("serve takes no flags except --explore")
+    }
+    return { command: "serve", explore: values.explore === true }
   }
+  if (values.explore !== undefined) usage("--explore is only valid with serve")
   if (command !== undefined) usage(`Unexpected argument "${command}"`)
   if (values.docs === true) {
     if (Object.keys(values).length > 1) usage("--docs takes no other flag")
@@ -97,6 +101,7 @@ const parse = (argv: readonly string[]) =>
     strict: true,
     options: {
       affected: { type: "boolean" },
+      explore: { type: "boolean" },
       docs: { type: "boolean" },
       flow: { type: "string" },
       preset: { type: "string" },

@@ -22,6 +22,7 @@ export type ChannelErrorKind = "config" | "connect" | "protocol" | "closed"
  * looping — see the fatal-vs-retryable classification in `std`).
  */
 export class ChannelError extends RemoteFailure<`channel/${ChannelErrorKind}`> {
+  override readonly name: string = "ChannelError"
   /** HTTP-style status when the failure came from a status response; otherwise `undefined`. */
   readonly status: number | undefined
 

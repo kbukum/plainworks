@@ -46,6 +46,7 @@ export interface RetryDeps {
 
 /** Raised when every attempt failed. Preserves the final failure as `cause` and the attempt count. */
 export class RetryError extends PlainError<"std/retry-exhausted"> {
+  override readonly name: string = "RetryError"
   /** Number of attempts made before giving up. */
   readonly attempts: number
 

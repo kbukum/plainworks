@@ -2,7 +2,7 @@
 
 Behavioral, deterministic tests written **test-first**. Fast AI-assisted code tends to add tests after the fact (or not at all) and to lean on real timers/network — this pass catches that.
 
-> **Run in a separate, clean-context agent** with a high-capability model. A plan/spec may be passed in as a scope checklist only; it never excuses a baseline violation.
+Use the [review skill](../SKILL.md) for scope, execution, and finding format. This checklist does not require a separate agent.
 
 **Scope note.** *Changes mode:* every behavioral change in the diff must have a test that would fail without it. *Project mode:* verify coverage floors per package and sweep for non-deterministic or hand-rolled-fake patterns.
 

@@ -15,11 +15,14 @@ import {
   StatusError,
   systemDelay,
   TimeoutError,
+  withTimeout,
 } from "@plainworks/std/resilience"
 import type {
   AuthHeaderProvider,
   AuthHeaders,
   Listener,
+  ProtectedSession,
+  ProtectedSessionLease,
   StreamFrame,
   StreamTransportFactory,
   Subscription,
@@ -42,6 +45,8 @@ export interface ChannelOptions {
   readonly transport: StreamTransportFactory
   /** Header-only credential seam; its headers are attached to every (re)connection attempt. */
   readonly authProvider?: AuthHeaderProvider
+  /** An injected protected lifetime; revalidate within one second of a drop, before backoff. */
+  readonly protectedSession?: ProtectedSession
   /** Static non-secret headers merged into every attempt (auth headers win on conflict). */
   readonly headers?: AuthHeaders
   /** Seed the `Last-Event-ID` for header-only resume of a known stream; explicit `undefined` starts (or restarts) with no cursor. */
@@ -141,6 +146,7 @@ export function createChannel(options: ChannelOptions): Channel {
   const {
     transport: transportFactory,
     authProvider,
+    protectedSession,
     headers: staticHeaders,
     reconnect = true,
     backoff = defaultBackoff,
@@ -326,11 +332,18 @@ export function createChannel(options: ChannelOptions): Channel {
       let openedAt = 0
       let cancelConnect = (): void => {}
       let cancelIdle = (): void => {}
+      let lease: ProtectedSessionLease | undefined
+      const onSessionAbort = (): void => {
+        const cause = lease?.signal.reason
+        finish(() => reject(cause instanceof RemoteFailure ? cause : new AbortError({ cause })))
+      }
 
       const cleanup = (): void => {
         cancelConnect()
         cancelIdle()
         attemptSignal.removeEventListener("abort", onCallerAbort)
+        lease?.signal.removeEventListener("abort", onSessionAbort)
+        lease?.release()
         // Release the transport on every settle; a normal end also aborts an inert, already-settled
         // op.
         timeoutController.abort()
@@ -350,6 +363,18 @@ export function createChannel(options: ChannelOptions): Channel {
       // flap, or a failure before stabilizing) escalate backoff within the retry session.
       // A fatal failure always propagates to stop the loop.
       const endWithFailure = (error: unknown): void => {
+        if (
+          error instanceof RemoteFailure &&
+          (error.authentication !== undefined || error.reason === "AUTH_STORE_UNAVAILABLE")
+        ) {
+          // Fence invalidation behind this attempt settling: a late auth rejection from an
+          // already-closed or superseded attempt must not tear down a newer session.
+          finish(() => {
+            reject(error)
+            protectedSession?.invalidate(error)
+          })
+          return
+        }
         if (isRetryableFailure(error)) {
           if (isStable() && !(error instanceof RemoteFailure)) {
             // A stable connection dropped: end the session so a fresh one resets backoff (S3).
@@ -445,7 +470,23 @@ export function createChannel(options: ChannelOptions): Channel {
       }
       attemptSignal.addEventListener("abort", onCallerAbort, { once: true })
 
-      buildHeaders(opSignal)
+      const admit = async (): Promise<AuthHeaders> => {
+        if (protectedSession === undefined) return buildHeaders(opSignal)
+        const borrowed = await protectedSession.acquire({ signal: opSignal })
+        if (settled) {
+          borrowed.release()
+          throw new AbortError()
+        }
+        lease = borrowed
+        if (lease.signal.aborted) {
+          onSessionAbort()
+          throw new AbortError()
+        }
+        lease.signal.addEventListener("abort", onSessionAbort, { once: true })
+        return { ...(await buildHeaders(opSignal)), ...lease.headers }
+      }
+      const admission = protectedSession === undefined ? buildHeaders(opSignal) : admit()
+      admission
         .then((headers) => {
           if (settled) {
             return
@@ -512,6 +553,25 @@ export function createChannel(options: ChannelOptions): Channel {
       if (!reconnect || session.closed) {
         break
       }
+      setStatus("reconnecting")
+      if (protectedSession !== undefined) {
+        try {
+          await withTimeout(
+            (signal) => protectedSession.revalidate({ signal }),
+            Math.min(
+              1_000,
+              retryBudgetMs - (failureStartedAt === undefined ? 0 : clock.now() - failureStartedAt),
+            ),
+            { signal: channelSignal, delay },
+          )
+        } catch (error) {
+          if (!session.closed) {
+            protectedSession.invalidate(error)
+            terminalError = toTerminalError(error)
+          }
+          break
+        }
+      }
       const minimum = Math.max(
         serverRetryMs ?? 0,
         failure instanceof RemoteFailure ? (failure.retryAfterMs ?? 0) : 0,
@@ -525,7 +585,6 @@ export function createChannel(options: ChannelOptions): Channel {
       }
       previousMs = waitMs
       serverRetryMs = undefined
-      setStatus("reconnecting")
       try {
         await delay(waitMs, channelSignal)
       } catch (error) {

@@ -6,7 +6,6 @@ describe("playwrightMcpConfig", () => {
   it("points an isolated browser at the warm host with the gate's deterministic context", () => {
     const config = playwrightMcpConfig({
       origin: "http://127.0.0.1:5190",
-      storageState: "/app/.ui-artifacts/mcp/storage-state.json",
       initPage: "/app/.ui-artifacts/mcp/init-page.ts",
       outputDir: "/app/.ui-artifacts/mcp/output",
       executablePath: "/cache/chromium",
@@ -24,7 +23,6 @@ describe("playwrightMcpConfig", () => {
           reducedMotion: "reduce",
           serviceWorkers: "block",
           viewport: { width: 1280, height: 800 },
-          storageState: "/app/.ui-artifacts/mcp/storage-state.json",
         },
         initPage: ["/app/.ui-artifacts/mcp/init-page.ts"],
       },
@@ -36,11 +34,11 @@ describe("playwrightMcpConfig", () => {
   it("leaves the browser to MCP when no executable is given", () => {
     const config = playwrightMcpConfig({
       origin: "http://127.0.0.1:5190",
-      storageState: "s.json",
       initPage: "i.ts",
       outputDir: "out",
     })
     expect(config.browser.launchOptions).toEqual({ headless: true })
+    expect(config.browser.contextOptions).not.toHaveProperty("storageState")
   })
 })
 

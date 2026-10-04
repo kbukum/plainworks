@@ -8,6 +8,7 @@ import { PlainError, type PlainErrorOptions } from "@plainworks/std"
  * bring-your-own-store Provider is rendered without its required `store`.
  */
 export class StateConfigError extends PlainError<"state/invalid-config"> {
+  override readonly name: string = "StateConfigError"
   constructor(message: string, options?: PlainErrorOptions) {
     super("state/invalid-config", message, options)
   }

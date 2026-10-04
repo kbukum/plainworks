@@ -209,6 +209,37 @@ describe("runFlowOnDevice", () => {
     ])
   })
 
+  it("settles intended entrance motion before taking the layout-shift baseline", async () => {
+    let settled = false
+    const { session } = fakeSession({
+      applyVariant: async () => {
+        settled = false
+      },
+      settle: async () => {
+        settled = true
+      },
+      measureLayout: async () => ({
+        ...EMPTY_FACTS,
+        tracked: [
+          {
+            key: "drawer",
+            name: "Order details",
+            box: { x: settled ? 0 : 40, y: 0, width: 100, height: 100 },
+          },
+        ],
+      }),
+    })
+    const flow = defineFlow({ name: "drawer", checkpoints: [checkpoint("open")] })
+    const report = await runFlowOnDevice({
+      flow,
+      plan: desktop,
+      session,
+      run: memoryRun().run,
+      mode: "assert",
+    })
+    expect(report.status).toBe("pass")
+  })
+
   it("keeps a finding the checkpoint allows, with its reason, out of the failures", async () => {
     const { session } = fakeSession({ scanAxe: async () => ["region: 1 node"] })
     const { run } = memoryRun()

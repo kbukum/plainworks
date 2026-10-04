@@ -1,8 +1,10 @@
 import { base64urlEncode } from "@plainworks/std/encoding"
 import { fixedClock } from "@plainworks/std/time"
 import { importJWK, type JWK, jwtVerify } from "jose"
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, test } from "vitest"
+import { createMockIdpStateCases } from "./conformance"
 import { createMockIdp, type MockIdpOptions } from "./provider"
+import { createMemoryMockIdpState, type MockIdpState } from "./state"
 
 // A stable millisecond clock so token `iat`/`exp` and minted identifiers are deterministic.
 const FIXED_NOW = 1_700_000_000_000
@@ -50,6 +52,36 @@ async function build(options: MockIdpOptions = {}) {
 async function readJson(response: { json(): Promise<unknown> }): Promise<Record<string, unknown>> {
   return (await response.json()) as Record<string, unknown>
 }
+
+// Memory custody is one store; each handle borrows it and closes only itself.
+function memorySubject() {
+  const shared = createMemoryMockIdpState()
+  return {
+    open(): MockIdpState {
+      let closed = false
+      return {
+        transact: (operation) => {
+          if (closed) throw new Error("mock IdP state handle is closed")
+          return shared.transact(operation)
+        },
+        close() {
+          closed = true
+        },
+      }
+    },
+    dispose: () => shared.close(),
+  }
+}
+
+describe("memory MockIdpState", () => {
+  for (const c of createMockIdpStateCases()) test(c.name, () => c.run(memorySubject))
+
+  it("rejects transactions once closed", () => {
+    const state = createMemoryMockIdpState()
+    state.close()
+    expect(() => state.transact((data) => data.counter)).toThrow(/closed/)
+  })
+})
 
 describe("createMockIdp", () => {
   it("advertises discovery metadata the adapter needs", async () => {

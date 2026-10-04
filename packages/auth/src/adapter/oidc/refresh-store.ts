@@ -1,5 +1,6 @@
 import { isPositiveInteger } from "@plainworks/std"
 import { type Clock, systemClock } from "@plainworks/std/time"
+import type { WebAbortSignal } from "@plainworks/std/web"
 import { constantTimeEqual } from "../../crypto/constant-time"
 import { AuthError } from "../../errors"
 
@@ -21,9 +22,9 @@ export type RefreshRotation = { readonly status: "rotated" } | { readonly status
  */
 export interface RefreshTokenStore {
   /** Custody the initial refresh token minted at login. */
-  issue(handle: string, token: string): void | Promise<void>
+  issue(handle: string, token: string, signal?: WebAbortSignal): void | Promise<void>
   /** The live refresh token to present to the provider, or `undefined` when none is held. */
-  current(handle: string): string | undefined | Promise<string | undefined>
+  current(handle: string, signal?: WebAbortSignal): string | undefined | Promise<string | undefined>
   /**
    * Rotate the token: the caller presents the token it just used and the provider's replacement.
    * Returns `rotated` when the presented token was the live one, or `reuse-detected` when it was
@@ -33,27 +34,28 @@ export interface RefreshTokenStore {
     handle: string,
     presented: string,
     next: string,
+    signal?: WebAbortSignal,
   ): RefreshRotation | Promise<RefreshRotation>
   /** Drop all custody for a handle — a logout, or the family purge after a detected reuse. */
-  revoke(handle: string): void | Promise<void>
+  revoke(handle: string, signal?: WebAbortSignal): void | Promise<void>
 }
 
 /** Options for {@link createRefreshTokenStore}. */
 export interface RefreshTokenStoreOptions {
-  /** Lifetime of a stored refresh token in seconds; defaults to 86_400 (24 hours). */
+  /** Absolute lifetime of refresh custody in seconds; defaults to 3600 (one hour). */
   readonly ttlSeconds?: number
-  /** Maximum number of sessions held before evicting the oldest; defaults to 10_000. */
+  /** Maximum physical entries, including revoked handles; defaults to 10_000. Never evicts live state. */
   readonly maxEntries?: number
   /** Injected clock for deterministic testing; defaults to {@link systemClock}. */
   readonly clock?: Clock
 }
 
-const DEFAULT_TTL_SECONDS = 86_400
+const DEFAULT_TTL_SECONDS = 3600
 const DEFAULT_MAX_ENTRIES = 10_000
 const encoder = new TextEncoder()
 
 interface TokenEntry {
-  current: string
+  current: string | undefined
   expiresAt: number
 }
 
@@ -63,6 +65,18 @@ function requirePositiveInt(value: number, field: string): void {
       "auth/config",
       `refresh token store ${field} must be a positive integer, got ${value}`,
     )
+  }
+}
+
+export function validateRefreshHandle(handle: string): void {
+  if (handle.length === 0 || handle.length > 128) {
+    throw new AuthError("auth/refresh-failed", "invalid provider custody handle")
+  }
+}
+
+export function validateRefreshToken(token: string): void {
+  if (token.length === 0 || token.length > 16_384) {
+    throw new AuthError("auth/refresh-failed", "invalid provider refresh credential")
   }
 }
 
@@ -102,27 +116,39 @@ export function createRefreshTokenStore(options: RefreshTokenStoreOptions = {}):
   }
 
   return {
-    issue(handle: string, token: string): void {
+    issue(handle: string, token: string, signal?: WebAbortSignal): void {
+      signal?.throwIfAborted()
+      validateRefreshHandle(handle)
+      validateRefreshToken(token)
       const now = clock.now()
+      purgeExpired(now)
+      if (entries.has(handle)) {
+        throw new AuthError("auth/session-revoked", "provider custody handle is already used")
+      }
       if (entries.size >= maxEntries && !entries.has(handle)) {
         purgeExpired(now)
       }
       if (entries.size >= maxEntries && !entries.has(handle)) {
-        const oldest = entries.keys().next().value
-        if (oldest !== undefined) {
-          entries.delete(oldest)
-        }
+        throw new AuthError("auth/store-unavailable", "provider custody capacity exhausted")
       }
       entries.set(handle, { current: token, expiresAt: now + ttlSeconds * 1000 })
     },
 
-    current(handle: string): string | undefined {
+    current(handle: string, signal?: WebAbortSignal): string | undefined {
+      signal?.throwIfAborted()
       return liveEntry(handle)?.current
     },
 
-    rotate(handle: string, presented: string, next: string): RefreshRotation {
+    rotate(
+      handle: string,
+      presented: string,
+      next: string,
+      signal?: WebAbortSignal,
+    ): RefreshRotation {
+      signal?.throwIfAborted()
+      validateRefreshToken(next)
       const entry = liveEntry(handle)
-      if (entry === undefined) {
+      if (entry?.current === undefined) {
         // No live custody: nothing legitimate to rotate, so treat the attempt as a replay.
         return { status: "reuse-detected" }
       }
@@ -130,16 +156,26 @@ export function createRefreshTokenStore(options: RefreshTokenStoreOptions = {}):
       // already rotated past, or an unknown one — is a replay: purge the whole family so no token
       // in it can be used again.
       if (!constantTimeEqual(encoder.encode(presented), encoder.encode(entry.current))) {
-        entries.delete(handle)
+        entry.current = undefined
         return { status: "reuse-detected" }
       }
       entry.current = next
-      entry.expiresAt = clock.now() + ttlSeconds * 1000
       return { status: "rotated" }
     },
 
-    revoke(handle: string): void {
-      entries.delete(handle)
+    revoke(handle: string, signal?: WebAbortSignal): void {
+      signal?.throwIfAborted()
+      validateRefreshHandle(handle)
+      purgeExpired(clock.now())
+      const entry = entries.get(handle)
+      if (entry !== undefined) {
+        entry.current = undefined
+      } else {
+        if (entries.size >= maxEntries) {
+          throw new AuthError("auth/store-unavailable", "provider custody capacity exhausted")
+        }
+        entries.set(handle, { current: undefined, expiresAt: clock.now() + ttlSeconds * 1000 })
+      }
     },
   }
 }

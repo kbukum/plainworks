@@ -28,6 +28,7 @@ export type FlowErrorKind = (typeof FLOW_ERROR_KINDS)[number]
 
 /** A typed flow failure that keeps its underlying cause. */
 export class FlowError extends PlainError<`flow/${FlowErrorKind}`> {
+  override readonly name: string = "FlowError"
   /** The same kind without the `flow/` prefix, as the report records it. */
   readonly reason: FlowErrorKind
 

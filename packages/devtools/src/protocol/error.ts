@@ -16,4 +16,6 @@ export type ProtocolErrorKind =
  * command input. The offending value is preserved as `cause` for diagnosis, never logged by the
  * protocol.
  */
-export class ProtocolError extends PlainError<ProtocolErrorKind> {}
+export class ProtocolError extends PlainError<ProtocolErrorKind> {
+  override readonly name: string = "ProtocolError"
+}

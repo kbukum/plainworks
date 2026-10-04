@@ -12,6 +12,7 @@ export {
   serializeCookieAttributes,
 } from "./cookie"
 export { resolveFetch } from "./fetch"
+export { createHeaders } from "./headers"
 export type {
   WebAbortController,
   WebAbortSignal,

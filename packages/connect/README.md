@@ -73,7 +73,7 @@ flowchart LR
   R[resilience<br/>timeout + retry] --> C[caller interceptors] --> A[auth header] --> G[origin guard] --> W[(wire)]
 ```
 
-Resilience is outermost so the retry loop **re-runs the whole chain** — auth injection included — on every attempt: a refreshed credential is re-applied on a retry, and the attempt's abort signal is handed to the auth provider so an abandoned token refresh is cancelled with the request. Auth is **header-only** — a token never lands in a URL.
+Resilience is outermost so the retry loop **re-runs the whole chain** — header injection included — on every attempt. The attempt's signal bounds header acquisition; it does not authorize browser token refresh. For opaque sessions, inject `protectedSession` from `@plainworks/auth/session`: unary calls and streaming iteration borrow its cancellable lifetime and terminal authentication/store failures end protected work. Credentials never enter URLs; the browser sends its HttpOnly cookie and receives only CSRF headers.
 
 The per-attempt timeout uses `std` `withTimeout`, **not** Connect's `defaultTimeoutMs` (which is created once and shared across a retry loop, so a retry would inherit an already-elapsed budget).
 

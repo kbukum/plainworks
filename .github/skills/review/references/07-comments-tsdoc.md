@@ -2,7 +2,7 @@
 
 Comments that explain *why*, and public API docs that match the signature. AI tends to over-comment the obvious and let doc comments drift from the code — this pass trims and re-aligns.
 
-> **Run in a separate, clean-context agent** with a high-capability model. A plan/spec may be passed in as a scope checklist only; it never excuses a baseline violation.
+Use the [review skill](../SKILL.md) for scope, execution, and finding format. This checklist does not require a separate agent.
 
 **Scope note.** *Changes mode:* the comments/TSDoc in the diff are accurate and earn their place. *Project mode:* sweep a package for stale doc comments and comment noise.
 

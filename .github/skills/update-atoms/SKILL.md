@@ -1,16 +1,11 @@
 ---
 name: update-atoms
-description: >-
-    Refresh plainworks' vendored shadcn atoms the canonical way — bump the shadcn CLI in the
-    catalog, rerun registry:update for every locked atom, reconcile any upstream change through the
-    deviation ladder (theme tokens → call sites → @plainworks/ui wrappers) instead of editing the
-    atom, and rerun the gallery browser gate. Use when bumping the shadcn CLI, pulling upstream atom
-    fixes, adding an atom, or when registry:validate reports a lock mismatch.
+description: "plainworks: Update locked shadcn atoms through registry tooling and validate theme/UI behavior."
 ---
 
 # Updating the vendored shadcn atoms
 
-The atoms in `packages/elements/src/shadcn/` are **vendored** shadcn CLI output, **locked** by `shadcn.lock.json` (CLI version, style, per-atom hash). They are never hand-edited. This skill is the one way to change them. The model is in [`packages/elements/README.md`](../../../packages/elements/README.md) and the [Vendored atoms](../../copilot-instructions.md#vendored-atoms) baseline.
+The atoms in `packages/elements/src/shadcn/` are **vendored** shadcn CLI output, **locked** by `shadcn.lock.json` (CLI version, style, per-atom hash). They are never hand-edited. This skill is the one way to change them. The model is in [`packages/elements/README.md`](../../../packages/elements/README.md) and the [Vendored atoms](../../engineering.md#vendored-atoms) baseline.
 
 ## Quick path
 

@@ -35,7 +35,8 @@ describe("parseUiCaptureArgs", () => {
   })
 
   it("reads the serve and help commands", () => {
-    expect(parseUiCaptureArgs(["serve"])).toEqual({ command: "serve" })
+    expect(parseUiCaptureArgs(["serve"])).toEqual({ command: "serve", explore: false })
+    expect(parseUiCaptureArgs(["serve", "--explore"])).toEqual({ command: "serve", explore: true })
     expect(parseUiCaptureArgs(["--help"])).toEqual({ command: "help" })
     expect(parseUiCaptureArgs(["-h"])).toEqual({ command: "help" })
   })
@@ -56,6 +57,7 @@ describe("parseUiCaptureArgs", () => {
     [["--save-as", "../x"], /--save-as needs a lowercase slug/],
     [["--no-diff"], /--no-diff/],
     [["serve", "--affected"], /serve takes no flags/],
+    [["--explore"], /--explore is only valid with serve/],
     [["extra"], /Unexpected argument "extra"/],
     [["--docs", "--flow", "a"], /--docs takes no other flag/],
     [["--docs", "--affected"], /--docs takes no other flag/],

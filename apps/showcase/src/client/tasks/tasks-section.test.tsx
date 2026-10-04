@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { createSessionFixture } from "@plainworks/auth/testing"
 import { ChannelError } from "@plainworks/channel"
 import type { Task } from "@plainworks/demo"
 import { TaskChangedSchema } from "@plainworks/demo/events"
@@ -60,21 +61,23 @@ async function renderTasks(
   }
   const ui = render(
     <TestQueryClientProvider client={queryClient}>
-      <SessionProvider {...(authed ? { initialSnapshot: AUTHED } : {})}>
+      <SessionProvider runtime={createSessionFixture(authed ? AUTHED : undefined)}>
         <HttpClientProvider client={httpClient}>
           <TasksSection streamFactory={stream.factory} />
         </HttpClientProvider>
       </SessionProvider>
     </TestQueryClientProvider>,
   )
-  await waitFor(() => expect(stream.current).toBeDefined())
-  act(() => {
-    stream.current?.open()
-    stream.current?.frame({
-      type: "connected",
-      data: '{"epoch":"00000000000000000000000000000001","cursor":"00000000000000000000000000000001:0"}',
+  if (authed) {
+    await waitFor(() => expect(stream.current).toBeDefined())
+    act(() => {
+      stream.current?.open()
+      stream.current?.frame({
+        type: "connected",
+        data: '{"epoch":"00000000000000000000000000000001","cursor":"00000000000000000000000000000001:0"}',
+      })
     })
-  })
+  }
   return { httpClient, queryClient, ...ui }
 }
 

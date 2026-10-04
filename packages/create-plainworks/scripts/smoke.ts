@@ -5,9 +5,9 @@
 // HTTP, and its Playwright browser suite. It proves the generated project works on its own, outside
 // the monorepo, against the real published surfaces, without needing anything on npm. The CI
 // `create-smoke` job runs this (after installing Chromium); it also runs locally. Everything
-// happens in temp dirs; nothing in the repo is mutated.
+// happens in ignored package-local build output; no source or index is mutated.
 
-import { execFileSync, spawn } from "node:child_process"
+import { execFileSync } from "node:child_process"
 import { randomBytes } from "node:crypto"
 import {
   existsSync,
@@ -18,9 +18,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs"
-import { tmpdir } from "node:os"
 import { dirname, join, resolve } from "node:path"
-import { setTimeout as delay } from "node:timers/promises"
 import { fileURLToPath } from "node:url"
 
 const scriptDir = dirname(fileURLToPath(import.meta.url))
@@ -31,7 +29,7 @@ const packagesDir = join(repoRoot, "packages")
 /** Run a command, inheriting stdio so failures surface in the CI log, and throw on a non-zero exit. */
 function run(command: string, args: readonly string[], cwd: string): void {
   process.stdout.write(`$ ${command} ${args.join(" ")}  (cwd: ${cwd})\n`)
-  execFileSync(command, args, { cwd, stdio: "inherit" })
+  execFileSync(command, args, { cwd, stdio: "inherit", timeout: 600_000 })
 }
 
 /**
@@ -75,22 +73,6 @@ function publishablePackages(): PackageEntry[] {
     entries.push({ name: manifest.name, dir: join(packagesDir, name) })
   }
   return entries
-}
-
-/** Poll `url` until it answers, failing after the timeout so a wedged boot does not hang CI. */
-async function waitForOk(url: string, timeoutMs: number): Promise<void> {
-  const deadline = Date.now() + timeoutMs
-  while (Date.now() < deadline) {
-    const remaining = Math.max(1, deadline - Date.now())
-    try {
-      const response = await fetch(url, { signal: AbortSignal.timeout(Math.min(5000, remaining)) })
-      if (response.ok) return
-    } catch {
-      // Server not up yet — keep polling until the deadline.
-    }
-    await delay(1000)
-  }
-  throw new Error(`generated app did not answer at ${url} within ${timeoutMs}ms`)
 }
 
 /** Assert a `GET url` succeeds and its body contains `expected`. */
@@ -144,26 +126,46 @@ async function fetchWithCookies(
  * Proves the scaffolded app runs end to end — including its auth seam — not just builds.
  */
 async function bootAndProbe(appDir: string): Promise<void> {
+  // The smoke builds the workspace before loading its shared host supervisor.
+  const { HostStartupError, startGateHost } = await import("@plainworks/testkit/playwright")
   const port = 3111
   const origin = `http://127.0.0.1:${port}`
-  const server = spawn("bunx", ["next", "start", "-p", String(port)], {
-    cwd: appDir,
-    stdio: "inherit",
-    env: {
-      ...process.env,
-      APP_ORIGIN: origin,
-      AUTH_REDIRECT_ORIGIN: origin,
-      // A production boot needs a configured signing key; the app never mints one there.
-      SESSION_SIGNING_KEY: randomBytes(32).toString("base64url"),
-      NEXT_TELEMETRY_DISABLED: "1",
+  const server = await startGateHost(
+    {
+      command: ["bunx", "next", "start", "-p", String(port)],
+      basePort: port,
+      readyPath: "/",
+      cwd: appDir,
+      env: () => ({
+        APP_ORIGIN: origin,
+        AUTH_REDIRECT_ORIGIN: origin,
+        // Production-mode smoke explicitly selects the bundled demo and configures stable custody.
+        PLAINWORKS_DEMO_AUTH: "1",
+        PLAINWORKS_DATA_DIR: join(appDir, ".private", "smoke"),
+        SESSION_ROOT_KEY: randomBytes(32).toString("base64url"),
+        NEXT_TELEMETRY_DISABLED: "1",
+      }),
     },
+    port,
+  ).catch(async (cause: unknown) => {
+    if (cause instanceof HostStartupError && cause.retained) {
+      try {
+        await cause.host.stop()
+      } catch (cleanup) {
+        throw new AggregateError([cause, cleanup], "Generated host startup cleanup failed.")
+      }
+    }
+    throw cause
   })
+  const failures: unknown[] = []
   try {
-    await waitForOk(`${origin}/`, 60_000)
     await expectBody(`${origin}/`, "Overview")
     await expectBody(`${origin}/api/tasks?limit=1`, '"data"')
 
-    const gated = await fetch(`${origin}/tasks`, { redirect: "manual" })
+    const gated = await fetch(`${origin}/tasks`, {
+      redirect: "manual",
+      signal: AbortSignal.timeout(10_000),
+    })
     if (gated.status !== 302 && gated.status !== 307) {
       throw new Error(`expected /tasks to redirect an unauthenticated request, got ${gated.status}`)
     }
@@ -174,12 +176,20 @@ async function bootAndProbe(appDir: string): Promise<void> {
     if (!body.includes("Tasks, highest priority first")) {
       throw new Error("authenticated Tasks page did not render the gated content")
     }
-  } finally {
-    server.kill("SIGTERM")
+  } catch (cause) {
+    failures.push(cause)
   }
+  try {
+    await server.stop()
+  } catch (cleanup) {
+    failures.push(cleanup)
+  }
+  if (failures.length > 0) throw new AggregateError(failures, "Generated host smoke failed.")
 }
 
-const workspace = mkdtempSync(join(tmpdir(), "create-plainworks-smoke-"))
+const output = join(packageDir, ".turbo")
+mkdirSync(output, { recursive: true })
+const workspace = mkdtempSync(join(output, "create-smoke-"))
 try {
   const packs = join(workspace, "packs")
   const projects = join(workspace, "projects")

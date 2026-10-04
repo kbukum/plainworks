@@ -1,8 +1,5 @@
 import { expect, type Page } from "@playwright/test"
 
-/** Browser state with no session, for tests of the signed-out experience. */
-export const SIGNED_OUT_STATE: { cookies: []; origins: [] } = { cookies: [], origins: [] }
-
 /**
  * Sign in through the real mock IdP flow and land on the overview. It is a no-op for a page that is
  * already signed in, so a test can call it after changing the session.

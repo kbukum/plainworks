@@ -90,6 +90,8 @@ Auth is **header-only** — a token never lands in a URL. Pass any `Telemetry` f
 
 ### Codec seam
 
+For opaque browser sessions, inject `protectedSession` from `@plainworks/auth/session` into the client options. It bounds authoritative admission, sends CSRF headers only, and cancels the whole request through body decoding when the session ends. Terminal authentication and session-store failures invalidate the shared lifetime. Keep public clients separate; this downward `std` seam never makes HTTP import auth.
+
 Bodies pass through a `BodyCodec`. `jsonCodec` is the default; supply your own — or `createJsonCodec({ maxBytes })` to tune the ceiling — to speak another wire format without touching the client.
 
 - **Encoding** a non-serializable value (cyclic, `BigInt`, a bare function or symbol) raises a typed `http/encode` error, not a raw `TypeError`.

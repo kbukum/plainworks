@@ -48,6 +48,8 @@ channel.close()
 
 ### Lifecycle
 
+Opaque sessions inject `protectedSession` from `@plainworks/auth/session`. Every protected attempt borrows a cancellable lifetime and releases it on settlement. After a drop, one authoritative status check runs before reconnect backoff, with a one-second deadline. A server retry hint cannot delay recognition of revocation. Expiry, logout, terminal authentication and operational session-store failure stop protected streams rather than launching a browser refresh loop. Existing retry and burst budgets still bound reconnect.
+
 A channel moves through `idle → connecting → open → reconnecting → closing → closed`. The reconnect loop is bounded and self-healing:
 
 - **Header-only auth.** The `authProvider` credential is attached as a header on every attempt. A token never lands in a URL. Expired or revoked sessions stop the stream and require login; the channel never runs a token-refresh loop.

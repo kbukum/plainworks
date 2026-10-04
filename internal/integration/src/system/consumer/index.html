@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>plainworks session consumer</title>
+    <style nonce="{nonce}">
+      body {
+        color-scheme: light dark;
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        background: Canvas;
+        color: CanvasText;
+      }
+      main {
+        margin-inline: auto;
+        padding: clamp(1rem, 4vw, 2rem);
+        max-width: 48rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+        gap: 1rem;
+      }
+      h1,
+      #app-ready {
+        grid-column: 1 / -1;
+        margin: 0;
+      }
+      fieldset {
+        min-width: 0;
+        margin: 0;
+        border: 1px solid;
+        border-radius: 0.25rem;
+      }
+      label {
+        display: block;
+        margin-block: 0.25rem;
+      }
+      output {
+        display: block;
+        margin-block: 0.25rem;
+        font-family: ui-monospace, monospace;
+        overflow-wrap: anywhere;
+      }
+      button,
+      input {
+        font: inherit;
+        min-height: 2.75rem;
+        box-sizing: border-box;
+        margin-block: 0.25rem;
+      }
+      input {
+        display: block;
+        width: 100%;
+      }
+      :focus-visible {
+        outline: 3px solid #185abc;
+        outline-offset: 3px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :focus-visible {
+          outline-color: #9dc1ff;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+    <h1>Session consumer</h1>
+    <output id="app-ready" aria-label="app-ready">loading</output>
+
+    <fieldset>
+      <legend>Sign in</legend>
+      <label>Username <input id="username" name="username" autocomplete="off" /></label>
+      <label>Password <input id="password" name="password" type="password" autocomplete="off" /></label>
+      <button id="sign-in" type="button">Sign in</button>
+      <output id="login-state" aria-label="login-state">idle</output>
+    </fieldset>
+
+    <fieldset>
+      <legend>Session</legend>
+      <output id="auth-state" aria-label="auth-state">unauthenticated</output>
+      <button id="check-status" type="button">Check status</button>
+      <output id="status-result" aria-label="status-result">idle</output>
+    </fieldset>
+
+    <fieldset>
+      <legend>Protected Connect</legend>
+      <button id="who-am-i" type="button">Who am I</button>
+      <output id="whoami-result" aria-label="whoami-result">idle</output>
+    </fieldset>
+
+    <fieldset>
+      <legend>Protected events</legend>
+      <button id="open-events" type="button">Open events</button>
+      <button id="close-events" type="button">Close events</button>
+      <output id="events-state" aria-label="events-state">idle</output>
+    </fieldset>
+
+    <fieldset>
+      <legend>Sign out</legend>
+      <button id="sign-out" type="button">Sign out</button>
+      <output id="logout-state" aria-label="logout-state">idle</output>
+    </fieldset>
+    </main>
+
+    <script type="module" nonce="{nonce}" src="/main.js"></script>
+  </body>
+</html>

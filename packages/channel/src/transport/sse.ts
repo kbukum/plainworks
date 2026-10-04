@@ -74,7 +74,12 @@ export function createSseTransport(options: SseTransportOptions): StreamTranspor
 
       let response: WebResponse
       try {
-        response = await fetchImpl(endpoint, { method: "GET", headers, signal: context.signal })
+        response = await fetchImpl(endpoint, {
+          method: "GET",
+          headers,
+          signal: context.signal,
+          redirect: "error",
+        })
       } catch (cause) {
         if (context.signal.aborted) {
           // The core aborted the attempt (connect/idle timeout or close); it owns the settled
@@ -165,7 +170,10 @@ async function readEventStream(
         cancelReadable(reader, signal.reason)
         throw new AbortError({ cause: signal.reason })
       }
-      const result = await reader.read()
+      const result = await reader.read().catch((cause: unknown) => {
+        if (signal.aborted) throw new AbortError({ cause: signal.reason })
+        throw ChannelError.connect("channel stream read failed", { cause })
+      })
       if (signal.aborted) {
         throw new AbortError({ cause: signal.reason })
       }

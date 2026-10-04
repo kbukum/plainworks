@@ -1,8 +1,8 @@
-import type { Page } from "@playwright/test"
 import type { Flow } from "../flow/definition"
 import type { ThemeAxes } from "../flow/matrix/axes"
 import type { RetentionPolicy } from "../flow/report/retention"
 import type { BrowserGateHost } from "../host"
+import { UiCaptureError } from "./errors"
 
 /** One app's `ui:capture`: its flows, its host, and where its artifacts go. */
 export interface UiCaptureConfig {
@@ -20,6 +20,8 @@ export interface UiCaptureConfig {
   readonly docsDir?: string
   /** The Playwright spec that runs the flows, relative to the app directory. */
   readonly spec: string
+  /** A non-default Playwright config, relative to the app directory. */
+  readonly playwrightConfig?: string
   readonly flows: readonly Flow[]
   /** The host's theme vocabulary. Defaults to light and dark only. */
   readonly axes?: ThemeAxes
@@ -27,8 +29,8 @@ export interface UiCaptureConfig {
   readonly host: BrowserGateHost
   /** The port a warm host (`ui:capture serve`) listens on. A capture reuses a host found there. */
   readonly warmPort: number
-  /** Signs a page in, so a warm host hands Playwright MCP a signed-in state. */
-  readonly signIn?: (page: Page) => Promise<void>
+  /** A separate exploration host; defaults to `warmPort + 2`, never reused by captures. */
+  readonly explorePort?: number
   /** Globs of changed files that cannot change what a page shows, such as docs and unit tests. */
   readonly ignore?: readonly string[]
   /** The ref `--affected` counts changes from, by merge-base. Defaults to `origin/main`. */
@@ -36,4 +38,23 @@ export interface UiCaptureConfig {
   readonly retention?: RetentionPolicy
   /** How many captured git bases to keep. Defaults to 3. */
   readonly keepBases?: number
+}
+
+/** Reserve distinct capture, comparison, and exploration origins. */
+export function uiCaptureHostPort(
+  config: Pick<UiCaptureConfig, "warmPort" | "explorePort">,
+  mode: "capture" | "explore",
+): number {
+  const valid = (port: number): boolean => Number.isInteger(port) && port > 0 && port <= 65_535
+  const port = mode === "capture" ? config.warmPort : (config.explorePort ?? config.warmPort + 2)
+  if (!valid(config.warmPort) || !valid(port)) {
+    throw new UiCaptureError("usage", "Capture and exploration ports must be between 1 and 65535.")
+  }
+  if (mode === "explore" && (port === config.warmPort || port === config.warmPort + 1)) {
+    throw new UiCaptureError(
+      "usage",
+      "Exploration cannot share the capture or base-comparison port.",
+    )
+  }
+  return port
 }

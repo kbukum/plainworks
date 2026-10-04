@@ -14,6 +14,7 @@ export interface BoundedReadOptions {
 
 /** A body passed its byte cap. A server maps this to `413 Payload Too Large`. */
 export class PayloadTooLargeError extends PlainError<"std/payload-too-large"> {
+  override readonly name: string = "PayloadTooLargeError"
   /** The cap the body exceeded. */
   readonly maxBytes: number
 

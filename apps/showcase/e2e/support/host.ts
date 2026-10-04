@@ -18,6 +18,7 @@ export const SHOWCASE_HOST: BrowserGateHost = {
   // Every app route redirects an unauthenticated request into the login chain, so readiness pings
   // the Vite dev server's own always-200 client-runtime endpoint instead.
   readyPath: "/@vite/client",
+  startTimeoutMs: 180_000,
   // Render one page, so the first test does not pay for the server graph's cold transform.
   warmPaths: ["/"],
   env: ({ port }) => ({

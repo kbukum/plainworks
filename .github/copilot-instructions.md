@@ -15,7 +15,7 @@ Host-independent React/TypeScript capabilities. Consumers choose hosts/backends.
 
 ## Work and validation
 
-Preserve worktree/index changes. Commit/amend/push/publish/open draft PRs only when authorized. Load only the matching [skill](skills/README.md) and required sections. Keep multi-step state in `tmp/plans/<task>/handoff.md`, not session transcripts.
+Preserve worktree/index changes. Commit/amend/push/publish/open draft PRs only when authorized. Load only the matching [skill](skills/README.md) and required sections. Keep plans in `tmp/<plan>/`, reusing existing folders. Apply each selected step fully; record progress in the step, not routine handoffs.
 
 `bun run verify --filter=@plainworks/<name>` scopes package gates; `bun run verify --list` lists them; unscoped `verify` is full acceptance. Use [validate](skills/validate/SKILL.md) for integration/UI/generator requirements. Prose-only edits need documentation checks. Markdown is not hard-wrapped; TS comments wrap at 100 columns.
 

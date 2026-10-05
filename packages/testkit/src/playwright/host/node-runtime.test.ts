@@ -110,7 +110,12 @@ describe.skipIf(process.platform === "win32")("real process groups", () => {
 
   it("force-kills a host that ignores SIGTERM and never reports it as graceful", async () => {
     const { runtime, pid: readPid } = observedRuntime()
-    const running = await startGateHost(host(IGNORES_SIGTERM), await freePort(), runtime)
+    // This host must really start, so give it a startup budget that survives a loaded CI runner.
+    const running = await startGateHost(
+      host(IGNORES_SIGTERM, { startTimeoutMs: 5_000 }),
+      await freePort(),
+      runtime,
+    )
     const pid = readPid()
     const failure = await running.stop().catch((cause: unknown) => cause)
     expect(failure).toBeInstanceOf(HostShutdownError)

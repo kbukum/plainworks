@@ -12,6 +12,7 @@ Host-independent React/TypeScript capabilities. Consumers choose hosts/backends.
 - Bound calls/retries/buffers and own cancellation/cleanup. Cancellation fences late effects; cleanup preserves the initiating failure and a retryable owner.
 - Test-first, deterministic behavior/failures; use testkit and mocks. Unit proof is not integration proof. WCAG 2.2 AA and responsive UI are defaults; UI acceptance requires passing flows and opened/judged captures.
 - Never hand-edit vendored shadcn atoms/locks. Use registry commands; deviations go theme -> call site -> UI wrapper. Never weaken the TS compiler boundary or generated manifest/layer gates.
+- Docs and agent instructions are concise, task-first, and organized for the reader. Explain capabilities at a high level; retain detail for correct use, contracts, safety, and verification. Changelogs summarize outcomes; skills link canonical procedures instead of repeating them.
 
 ## Work and validation
 

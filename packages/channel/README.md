@@ -12,7 +12,7 @@ bun add @plainworks/channel
 
 ## Runtime primitives
 
-`channel` is a **neutral (`.`)** package. The core references no host global — it drives the wire only through an **injected transport factory**, so the non-universal primitives (`fetch` + `ReadableStream` for SSE, the `WebSocket` constructor for WS) enter through a seam with a platform default. A worker with no `EventSource`, React Native needing a polyfill, or a custom host each supplies its own transport without forking the core. Timers and RNG are injected `std` seams (`delay`, `clock`, `random`) that default to the host, so timing is deterministic under test. The React hooks live at the separate **`./client`** entry and are **DOM-free** (React-without-DOM), so they run in the browser, a Next client tree, and React Native alike. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives) for the primitive contract.
+The neutral core uses an injected transport factory with platform defaults. Hosts can supply SSE/WebSocket implementations without forking it. Injected `std` delay, clock, and random seams support deterministic timing. React hooks on `./client` are DOM-free and support React Native. See [runtime primitives](../../docs/architecture.md#runtime-primitives).
 
 ## Entries
 

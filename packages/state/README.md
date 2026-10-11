@@ -12,7 +12,7 @@ bun add @plainworks/state
 
 ## Runtime primitives
 
-The neutral `.` core (`createStore` and the facade) touches **no** host primitives at all — it is pure state, so it runs on every target runtime (server, edge, workers, RSC, browser, React Native). The `./client` bindings are the **React-without-DOM** bucket: the scoped-state hooks use React (`useSyncExternalStore`) only and reference no `document` / `window` / `localStorage`, so they run in a browser and under React Native / Expo alike. The host-backed **scope backends** that *do* touch the DOM (`persistentScope`, `sessionScope`, `cookieScope`, `urlScope`) live on their own DOM adapter subpaths (`@plainworks/state/web-storage`, `@plainworks/state/cookie`, `@plainworks/state/url`), so importing the hooks never drags a browser global into a native bundle. See [`docs/architecture.md › Runtime primitives`](../../docs/architecture.md#runtime-primitives) for the three entry buckets.
+The neutral core uses no host primitives. React bindings on `./client` are DOM-free and support React Native. Browser-backed scopes live on `web-storage`, `cookie`, and `url` subpaths, keeping browser globals out of neutral and native imports. See [runtime primitives](../../docs/architecture.md#runtime-primitives).
 
 ## Server-safe core (`.`)
 
@@ -122,7 +122,9 @@ The only difference from Zustand's `create` is `useTheme.Provider` — the per-r
 | `useStore.getState()`                      | `useTheme.useApi()` *(a hook — the instance is per-request)* |
 | *(module singleton)*                       | `<useTheme.Provider>` *(per-request boundary)*      |
 
-The Provider renders the seed first — matching the server, so **no hydration mismatch** — then reconciles against the backend in an effect on mount and stays in sync with external changes (another tab's write, a navigation, a remote push). The seed is the server/initial value, so the first client paint matches the server markup; a synchronous backend (Web Storage, cookie, URL) then reconciles immediately after mount, and an async/remote backend updates when it resolves. Reconciliation is **latest-wins and removal-aware**: an out-of-order read can't regress a newer value, and an external clear restores the initial. `set` is optimistic: the mirror updates immediately and a rejected persist is routed to `onError`, never swallowed. Pass an optional `actions: ({ set, get }) => ({...})` factory (the same shape as `defineStore`) to hang named actions on `useApi()`.
+The Provider renders the server/initial seed, then reconciles after mount and follows external changes. Async reads cannot overwrite newer values; an external clear restores the initial value.
+
+`set` updates optimistically and reports persistence failures through `onError`. An optional `actions: ({ set, get }) => ({...})` factory adds named actions to `useApi()`.
 
 ### One object, a scope per field
 
@@ -198,4 +200,3 @@ flowchart LR
 ```
 
 Each host-backed scope takes an **injected host seam** with a platform default — `createWebStorageScope({ storage })`, `createCookieScope({ jar })`, `createUrlScope({ host })` — so a scope is tested without a browser, exactly as `http` injects `fetch`. Build a custom `StateSource` (or use `@plainworks/testkit`'s `fakeStateSource` / `asyncStateSource`) and wrap it in a `Scope` to back the same surface with anything.
-

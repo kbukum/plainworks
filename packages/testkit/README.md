@@ -161,7 +161,15 @@ const test = createBrowserGate({
 
 The host reads `PLAINWORKS_FIXED_NOW` to pin its own clock, so server-rendered and browser-rendered dates agree.
 
-**Readiness and ownership.** Readiness requires exactly `readyStatus` (200 by default), never a redirect. Add `ready(response)` to validate the host's protocol and run/build identity. Startup, probes, and graceful stop default to 30 s, 1 s, and 10 s; forced settling gets 2 s and is reported as failure. Output retains at most 64 KiB per stream. Any occupied port is rejected, even if its listener returns 404. Commands run directly, without a shell, in a POSIX process group; they must keep descendants in that group rather than daemonize. Cleanup waits for both the root's output handles and its process group. `command` may be an argv factory receiving the same `{ port, origin }` as `env`, for hosts configured through flags.
+**Readiness and ownership.** Require exactly `readyStatus` (default 200), never redirects; `ready(response)` can validate protocol and run/build identity. Any occupied port is rejected.
+
+| Resource | Default bound |
+|---|---|
+| Startup / probe / graceful stop | 30 s / 1 s / 10 s |
+| Forced settling | 2 s; reported as failure |
+| Retained output | 64 KiB per stream |
+
+Commands run argv-only in a POSIX process group; descendants must not daemonize out of it. Cleanup waits for root output handles and the group. A `command` factory receives the same `{ port, origin }` as `env`.
 
 **Sessions and reset.** Supply `signIn(page)` to complete a real UI login after reset. The gate rejects supplied `storageState` for session suites: a cookie saved before reset is not a valid session afterwards. `test.use({ gateSignIn: false })` starts signed out. `PLAINWORKS_GATE_ORIGIN` selects an explicitly external host and requires one worker; that fixture does not claim stop/restart ownership. `bun run e2e` drives the gate itself through the real Playwright runner and checks every worker's host is released after success, sign-in failure, assertion failure, timeout, and cancellation.
 

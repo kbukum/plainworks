@@ -109,7 +109,9 @@ live.close()
 
 Use one live owner per query key and disabled Query observers for the UI. Remote state sources already use disabled observers; they subscribe but do not fetch. The live owner explicitly fetches those same cache entries, so a remote-only subscriber converges too.
 
-Recovery defaults to **two snapshot attempts in 30 seconds**, with jittered waits. A new event or reconnect cancels an in-flight snapshot and invalidates its generation; a late response cannot roll the cache back even if its fetch ignores cancellation. Repeated invalidations coalesce without resetting the recovery budget. Exhaustion exposes `status: "stale"` and `SnapshotStaleError`, retaining the last known data until explicit `refresh()`. Render that state and a refresh action rather than presenting stale data as current. Keep terminal channel errors separate: teardown sets the owner to `closed`, where `refresh()` cannot restart it.
+Recovery allows **two snapshot attempts in 30 seconds**, with jittered waits. Events/reconnects cancel and generation-fence in-flight snapshots; late replies cannot overwrite newer state. Invalidations coalesce without resetting the budget.
+
+Exhaustion retains data with `status: "stale"` and `SnapshotStaleError` until explicit `refresh()`. Show stale status and a refresh action. Terminal teardown sets `closed`, which refresh cannot restart.
 
 Query retries are disabled for owned snapshots. A transport failure stops recovery, leaving the transport as the sole retry owner; a server minimum is never bypassed by another Query retry loop. Closing cancels the fetch and waits, removes the invalidation subscription, and releases status listeners.
 

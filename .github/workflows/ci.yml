@@ -172,8 +172,8 @@ jobs:
   # typechecks, and builds against the real (packed) `@plainworks/*` surfaces — the scaffolder's
   # equivalent of the generator smoke. The script packs every publishable package (resolving
   # `workspace:`/`catalog:` exactly as a release would), ejects the `next` example, redirects the
-  # pinned deps to those local tarballs, and runs `install → typecheck → build → boot`. All in temp
-  # dirs.
+  # pinned deps to those local tarballs, installs Chromium with the generated app's Playwright,
+  # and runs `typecheck → build → boot → e2e`. All in temp dirs.
   create-smoke:
     name: create-plainworks smoke
     runs-on: ubuntu-latest
@@ -186,10 +186,6 @@ jobs:
         uses: ./.github/actions/setup
         with:
           node-version: "24"
-
-      - name: Install Chromium
-        working-directory: apps/next-host
-        run: bunx playwright install --with-deps chromium
 
       - name: Scaffold a generated app and run its own gates
         run: bun run --filter create-plainworks smoke

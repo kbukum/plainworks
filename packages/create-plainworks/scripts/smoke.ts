@@ -4,8 +4,9 @@
 // tarballs, then install it and run the starter's own gates — typecheck, build, a boot probed over
 // HTTP, and its Playwright browser suite. It proves the generated project works on its own, outside
 // the monorepo, against the real published surfaces, without needing anything on npm. The CI
-// `create-smoke` job runs this (after installing Chromium); it also runs locally. Everything
-// happens in ignored package-local build output; no source or index is mutated.
+// `create-smoke` job runs this; it also runs locally. Chromium is installed through the generated
+// app's Playwright. Project output stays in ignored package-local build output; no source or index
+// is mutated.
 
 import { execFileSync } from "node:child_process"
 import { randomBytes } from "node:crypto"
@@ -226,6 +227,12 @@ try {
   writeFileSync(manifestPath, `${JSON.stringify({ ...manifest, overrides }, null, 2)}\n`)
 
   run("bun", ["install"], appDir)
+  // A fresh install can resolve a newer Playwright than the workspace lockfile's browser revision.
+  run(
+    join(appDir, "node_modules", ".bin", "playwright"),
+    ["install", "--with-deps", "chromium"],
+    appDir,
+  )
   run("bun", ["run", "typecheck"], appDir)
   run("bun", ["run", "build"], appDir)
   await bootAndProbe(appDir)

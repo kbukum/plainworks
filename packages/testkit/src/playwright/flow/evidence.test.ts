@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest"
-import { createEvidenceLog, snapshotDom, withoutQuery } from "./evidence"
+import {
+  createEvidenceLog,
+  privateValues,
+  redactPrivate,
+  snapshotDom,
+  withoutQuery,
+} from "./evidence"
 
 describe("createEvidenceLog", () => {
   it("keeps only the most recent entries", () => {
@@ -45,6 +51,24 @@ describe("snapshotDom", () => {
     const html = snapshotDom(1_000_000)
     expect(html).not.toContain("hunter2")
     expect(html).not.toContain("csrf")
+  })
+
+  it("redacts marked private content from DOM and textual evidence without changing the live page", () => {
+    page('<code data-ui-private title="private-value">one-time-secret</code>')
+    const values = privateValues()
+    expect(values).toContain("one-time-secret")
+    expect(values).toContain("private-value")
+    expect(snapshotDom(1_000_000)).not.toContain("one-time-secret")
+    expect(snapshotDom(1_000_000)).not.toContain("private-value")
+    expect(redactPrivate("- code: one-time-secret", values)).toBe("- code: [redacted]")
+    expect(document.querySelector("code")?.textContent).toBe("one-time-secret")
+  })
+
+  it("never treats blank private text as a value, so ordinary whitespace survives redaction", () => {
+    page("<div data-ui-private>\n  <code> one-time-secret </code>\n</div>")
+    const values = privateValues()
+    expect(values).toEqual(["one-time-secret"])
+    expect(redactPrivate("- code: one-time-secret", values)).toBe("- code: [redacted]")
   })
 
   it("leaves the live page untouched", () => {

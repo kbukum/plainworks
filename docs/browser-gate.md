@@ -52,6 +52,8 @@ Both modes wait for finite motion to settle before measuring a checkpoint. Asser
 
 A checkpoint that provokes a finding on purpose lists it in `allow`, with a reason.
 
+Mark one-time secrets and other sensitive regions with `data-ui-private`. Captures mask them, and DOM, ARIA and text evidence redact their current values. Keep secrets out of URLs and console output; marking a region cannot redact a value after the app has removed it from the page.
+
 ## How it runs in parallel
 
 Each Playwright worker starts **its own host** on its own port. Each test gets a fresh context, **resets first, then signs in** when configured. No saved cookie is reused against reset state. Workers never reset another worker's backend. CI runs one job per app.

@@ -313,6 +313,19 @@ test("raceAbort rejects immediately for an already-aborted signal", async () => 
   )
 })
 
+test("raceAbort observes a pending rejection even when the signal was already aborted", async () => {
+  const controller = new AbortController()
+  controller.abort()
+  const pending = Promise.reject(new Error("cancelled wire request"))
+  const then = vi.spyOn(pending, "then")
+  try {
+    await expect(raceAbort(pending, controller.signal)).rejects.toBeInstanceOf(AbortError)
+    expect(then).toHaveBeenCalledWith(expect.any(Function), expect.any(Function))
+  } finally {
+    await pending.catch(() => {})
+  }
+})
+
 test("raceAbort returns the promise unchanged when no signal is supplied", async () => {
   const promise = Promise.resolve("passthrough")
   expect(raceAbort(promise)).toBe(promise)

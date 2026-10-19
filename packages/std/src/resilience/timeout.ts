@@ -117,12 +117,10 @@ export function raceAbort<T>(promise: Promise<T>, signal?: WebAbortSignal): Prom
   if (signal === undefined) {
     return promise
   }
-  if (signal.aborted) {
-    return Promise.reject(toAbortError(signal))
-  }
   return new Promise<T>((resolve, reject) => {
     const onAbort = (): void => reject(toAbortError(signal))
-    signal.addEventListener("abort", onAbort, { once: true })
+    if (signal.aborted) onAbort()
+    else signal.addEventListener("abort", onAbort, { once: true })
     promise.then(
       (value) => {
         signal.removeEventListener("abort", onAbort)

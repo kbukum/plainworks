@@ -26,6 +26,32 @@ export function withoutQuery(url: string): string {
   }
 }
 
+/** Values inside marked private regions, used only in memory to redact textual evidence. */
+export function privateValues(): string[] {
+  const values: string[] = []
+  // Evidence text is usually trimmed (ARIA, console), so padded values would never match it.
+  const add = (value: string | null) => {
+    const trimmed = value?.trim()
+    if (trimmed) values.push(trimmed)
+  }
+  for (const root of document.querySelectorAll("[data-ui-private]")) {
+    for (const node of [root, ...root.querySelectorAll("*")]) {
+      add(node.textContent)
+      for (const attr of node.attributes) {
+        if (["title", "value", "aria-label"].includes(attr.name)) add(attr.value)
+      }
+    }
+  }
+  return [...new Set(values)].sort((a, b) => b.length - a.length)
+}
+
+/** Remove private page values before any text reaches retained artifacts. */
+export function redactPrivate(text: string, values: readonly string[]): string {
+  let redacted = text
+  for (const value of values) redacted = redacted.replaceAll(value, "[redacted]")
+  return redacted
+}
+
 /**
  * Snapshot the page's DOM as an inert file for a failure's evidence. It drops every script, every
  * `http-equiv` directive (so a refresh cannot navigate), and hidden and password field values,
@@ -39,6 +65,10 @@ export function snapshotDom(maxChars: number): string {
   for (const element of clone.querySelectorAll("script, meta[http-equiv]")) element.remove()
   for (const input of clone.querySelectorAll('input[type="hidden"], input[type="password"]')) {
     input.removeAttribute("value")
+  }
+  for (const element of clone.querySelectorAll("[data-ui-private]")) {
+    for (const attr of [...element.attributes]) element.removeAttribute(attr.name)
+    element.textContent = "[redacted]"
   }
   const policy = document.createElement("meta")
   policy.setAttribute("http-equiv", "Content-Security-Policy")

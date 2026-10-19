@@ -9,7 +9,13 @@ import { boundMessage } from "../checks/message"
 import type { RuntimeErrorWatch } from "../checks/runtime-errors"
 import { browserGateUse } from "../gate"
 import type { FlowCheckpoint } from "./definition"
-import { createEvidenceLog, snapshotDom, withoutQuery } from "./evidence"
+import {
+  createEvidenceLog,
+  privateValues,
+  redactPrivate,
+  snapshotDom,
+  withoutQuery,
+} from "./evidence"
 import { captureOptions, withCaptureFrame } from "./frame"
 import { FLOW_MODES, type PageVariant, PREFERENCES, type ThemeAxes } from "./matrix/axes"
 import type { EvidenceSnapshot, FlowSession } from "./session"
@@ -101,7 +107,7 @@ export function createPageFlowSession(options: PageFlowSessionOptions): PageFlow
         animations: "disabled",
         caret: "hide",
         scale: "css",
-        mask: checkpoint.mask?.(page) ?? [],
+        mask: [page.locator("[data-ui-private]"), ...(checkpoint.mask?.(page) ?? [])],
         signal,
       }),
     )
@@ -160,7 +166,10 @@ export function createPageFlowSession(options: PageFlowSessionOptions): PageFlow
     settle: () => settleAnimations(page),
     measureLayout: () => measureLayoutFacts(page),
     screenshot: shoot,
-    ariaSnapshot: (signal) => page.ariaSnapshot({ signal }),
+    async ariaSnapshot(signal) {
+      const values = await page.evaluate(privateValues)
+      return redactPrivate(await page.ariaSnapshot({ signal }), values)
+    },
     async scanAxe(axeOptions) {
       const violations = await scanBrowserAxe(page, axeOptions)
       return violations.map((violation) => formatAxeViolations([violation]))
@@ -171,10 +180,11 @@ export function createPageFlowSession(options: PageFlowSessionOptions): PageFlow
     drainRuntimeErrors: () => runtimeErrors.drain(),
     async evidence(): Promise<EvidenceSnapshot> {
       const dom = await page.evaluate(snapshotDom, MAX_DOM_CHARS)
+      const values = await page.evaluate(privateValues)
       return {
         dom,
-        console: `${JSON.stringify(consoleLog.entries, null, 2)}\n`,
-        network: `${JSON.stringify(networkLog.entries, null, 2)}\n`,
+        console: redactPrivate(`${JSON.stringify(consoleLog.entries, null, 2)}\n`, values),
+        network: redactPrivate(`${JSON.stringify(networkLog.entries, null, 2)}\n`, values),
       }
     },
     dispose() {

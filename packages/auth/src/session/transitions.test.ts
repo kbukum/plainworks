@@ -45,7 +45,7 @@ describe("per-operation protection with clients that already exist", () => {
       async () => new Response(null, { status: 401 }),
     )
     await expect(protectedClient.get("/api/private")).rejects.toMatchObject({
-      code: "UNAUTHORIZED",
+      code: "unauthenticated",
     })
     await expect(publicClient.get("/api/public")).resolves.toEqual({ ok: true })
     await runtime.login({ username: "ada", password: "secret" })

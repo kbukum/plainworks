@@ -5,6 +5,7 @@
 
 import { decodeResponseFailure } from "@plainworks/http"
 import { isPositiveInteger } from "@plainworks/std"
+import type { ProblemDecoder } from "@plainworks/std/failure"
 import { AbortError } from "@plainworks/std/resilience"
 import type {
   StreamTransport,
@@ -38,6 +39,11 @@ export interface SseTransportOptions {
    * vector). Exceeding it ends the connection with a protocol error. Default 1,048,576 characters.
    */
   readonly maxBufferChars?: number
+  /**
+   * Reads an `application/problem+json` rejection of the stream request. Defaults to RFC 9457
+   * (`decodeProblem`); pass one that knows the server's extension members.
+   */
+  readonly failures?: ProblemDecoder
 }
 
 /**
@@ -94,6 +100,7 @@ export function createSseTransport(options: SseTransportOptions): StreamTranspor
           response,
           context.signal,
           (options.clock ?? systemClock).now(),
+          options.failures,
         )
         throw ChannelError.failure(failure, { status: response.status, cause: failure })
       }
@@ -102,8 +109,15 @@ export function createSseTransport(options: SseTransportOptions): StreamTranspor
       const contentType = response.headers.get("content-type") ?? ""
       const essence = contentType.split(";").at(0)?.trim().toLowerCase() ?? ""
       if (essence !== "text/event-stream") {
+        // The body is never read, so cancel it to release the connection. The protocol error stays
+        // the failure; a cancel that fails is kept as its cause.
+        const cancelFailure = await response.body?.cancel().then(
+          () => undefined,
+          (cause: unknown) => cause ?? new Error("cancelling the response body failed"),
+        )
         throw ChannelError.protocol(`unexpected content-type "${contentType}"`, {
           status: response.status,
+          ...(cancelFailure === undefined ? {} : { cause: cancelFailure }),
         })
       }
       if (response.body === null) {

@@ -7,7 +7,8 @@ import {
 import { createQueryClient } from "@plainworks/query"
 import { createQueryEventSink } from "@plainworks/query/cache"
 import type { PlainEvent } from "@plainworks/std/seam"
-import { flushMicrotasks, manualClock, manualDelay, seededRandom } from "@plainworks/testkit"
+import { manualClock } from "@plainworks/std/time"
+import { flushMicrotasks, manualDelay, seededRandom } from "@plainworks/testkit"
 import { fakeStateSource, fakeStreamTransport } from "@plainworks/testkit/fakes"
 import { describe, expect, it } from "vitest"
 

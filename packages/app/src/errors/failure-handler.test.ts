@@ -6,13 +6,13 @@ test("dispatches once by code, localizes by reason, and exposes terminal authent
   const onFailure = vi.fn()
   const onUnauthenticated = vi.fn()
   const handle = createFailureHandler({
-    messages: { NOT_FOUND: "Not found" },
+    messages: { not_found: "Not found" },
     reasons: { USER_GONE: "This user is gone" },
     onFailure,
     onUnauthenticated,
   })
   const missing = new RemoteFailure("test", {
-    code: "NOT_FOUND",
+    code: "not_found",
     reason: "USER_GONE",
     message: "fallback",
     retryable: false,
@@ -20,7 +20,7 @@ test("dispatches once by code, localizes by reason, and exposes terminal authent
   })
   expect(handle(missing)).toMatchObject({ kind: "failure", message: "This user is gone" })
   const auth = new RemoteFailure("test", {
-    code: "UNAUTHORIZED",
+    code: "unauthenticated",
     message: "Sign in",
     retryable: true,
     violations: [],

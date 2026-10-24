@@ -1,18 +1,27 @@
 import { describe, expect, it } from "vitest"
 import { GATES } from "./gates"
-import { type CommandRunner, parseVerifyArgs, runVerify } from "./run"
+import { type OutputTarget, parseVerifyArgs, runVerify, tailLines, type VerifyIo } from "./run"
 
-function recorder(failOn?: string) {
+function recorder(failOn?: string, log = "") {
   const ran: string[] = []
+  const targets: OutputTarget[] = []
   let out = ""
-  const runner: CommandRunner = (command) => {
-    ran.push(command.join(" "))
-    return command.join(" ") === failOn ? 1 : 0
+  let clock = 0
+  const io: VerifyIo = {
+    run: (command, output) => {
+      ran.push(command.join(" "))
+      targets.push(output)
+      clock += 500
+      return command.join(" ") === failOn ? 1 : 0
+    },
+    read: () => log,
+    logPath: (gate) => `/logs/${gate}.log`,
+    now: () => clock,
+    write: (text) => {
+      out += text
+    },
   }
-  const write = (text: string) => {
-    out += text
-  }
-  return { ran, runner, write, output: () => out }
+  return { ran, targets, io, output: () => out }
 }
 
 describe("GATES", () => {
@@ -35,11 +44,35 @@ describe("GATES", () => {
   })
 })
 
+describe("tailLines", () => {
+  it("keeps the last lines, counts the rest, and ends with one newline", () => {
+    expect(tailLines("a\nb\nc\n", 2)).toEqual({ text: "b\nc\n", dropped: 1 })
+    expect(tailLines("a\nb\nc", 5)).toEqual({ text: "a\nb\nc\n", dropped: 0 })
+  })
+
+  it("keeps blank lines inside the output", () => {
+    expect(tailLines("a\n\nb\n", 3)).toEqual({ text: "a\n\nb\n", dropped: 0 })
+  })
+
+  it("returns nothing for an empty log", () => {
+    expect(tailLines("", 10)).toEqual({ text: "", dropped: 0 })
+  })
+})
+
 describe("parseVerifyArgs", () => {
   it("collects both --filter forms", () => {
     expect(parseVerifyArgs(["--filter=@plainworks/std", "--filter", "...[origin/main]"])).toEqual({
       kind: "run",
       filters: ["@plainworks/std", "...[origin/main]"],
+      verbose: false,
+    })
+  })
+
+  it("reads --verbose alongside filters", () => {
+    expect(parseVerifyArgs(["--verbose", "--filter=x"])).toEqual({
+      kind: "run",
+      filters: ["x"],
+      verbose: true,
     })
   })
 
@@ -55,7 +88,7 @@ describe("parseVerifyArgs", () => {
 describe("runVerify", () => {
   it("runs every gate in order and forwards filters only to package gates", () => {
     const rec = recorder()
-    expect(runVerify(["--filter=@plainworks/std"], rec.runner, rec.write)).toBe(0)
+    expect(runVerify(["--filter=@plainworks/std"], rec.io)).toBe(0)
     expect(rec.ran).toEqual([
       "bun run check-versions",
       "bun run lint",
@@ -75,9 +108,41 @@ describe("runVerify", () => {
     expect(rec.output()).toContain("verify: all 13 gates passed")
   })
 
+  it("prints one line per passing gate and sends output to the gate's log", () => {
+    const rec = recorder()
+    expect(runVerify([], rec.io)).toBe(0)
+    expect(rec.output()).toContain("▶ lint … ok (0.5s)\n")
+    expect(rec.output()).toContain("▶ typecheck … ok (1.0s)\n")
+    expect(rec.targets[1]).toEqual({ kind: "log", path: "/logs/lint.log" })
+  })
+
+  it("prints a failing gate's log tail and path", () => {
+    const lines = Array.from({ length: 205 }, (_, index) => `line ${index + 1}`).join("\n")
+    const rec = recorder("turbo run build", lines)
+    expect(runVerify([], rec.io)).toBe(1)
+    const out = rec.output()
+    expect(out).toContain("▶ build … failed (0.5s)\n… 5 earlier lines are in the log\nline 6\n")
+    expect(out).toContain("line 205\nlog: /logs/build.log\n")
+    expect(out).not.toContain("line 5\n")
+  })
+
+  it("prints only the log path when a failing gate left no output", () => {
+    const rec = recorder("turbo run build")
+    expect(runVerify([], rec.io)).toBe(1)
+    expect(rec.output()).toContain("▶ build … failed (0.5s)\nlog: /logs/build.log\n")
+  })
+
+  it("streams to the terminal with --verbose", () => {
+    const rec = recorder()
+    expect(runVerify(["--verbose"], rec.io)).toBe(0)
+    expect(rec.targets.every((target) => target.kind === "inherit")).toBe(true)
+    expect(rec.output()).toContain("\n▶ lint\n")
+    expect(rec.output()).not.toContain("… ok")
+  })
+
   it("stops at the first failing gate and names it", () => {
     const rec = recorder("turbo run build")
-    expect(runVerify([], rec.runner, rec.write)).toBe(1)
+    expect(runVerify([], rec.io)).toBe(1)
     expect(rec.ran.at(-1)).toBe("turbo run build")
     expect(rec.ran).not.toContain("turbo run test")
     expect(rec.output()).toContain("verify: build failed")
@@ -85,7 +150,7 @@ describe("runVerify", () => {
 
   it("lists the gates without running them", () => {
     const rec = recorder()
-    expect(runVerify(["--list"], rec.runner, rec.write)).toBe(0)
+    expect(runVerify(["--list"], rec.io)).toBe(0)
     expect(rec.ran).toEqual([])
     expect(rec.output()).toContain(" 1. check-versions")
     expect(rec.output()).toContain("13. check-production")
@@ -93,7 +158,7 @@ describe("runVerify", () => {
 
   it("prints usage for unknown arguments", () => {
     const rec = recorder()
-    expect(runVerify(["--nope"], rec.runner, rec.write)).toBe(2)
+    expect(runVerify(["--nope"], rec.io)).toBe(2)
     expect(rec.output()).toContain("Usage:")
   })
 })

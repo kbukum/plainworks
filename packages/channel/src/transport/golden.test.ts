@@ -1,14 +1,14 @@
 import { MethodSchema } from "@bufbuild/protobuf/wkt"
-import { wireFailures } from "@plainworks/mocks/failure"
+import { problemFrame, problemJson } from "@plainworks/mocks/failure"
 import { protocolFixture } from "@plainworks/mocks/stream"
 import type { StreamFrame } from "@plainworks/std/seam"
 import { fakeFetch } from "@plainworks/testkit/fakes"
 import { describe, expect, it } from "vitest"
-import { protobufDecoder } from "../events"
+import { decodeFailureFrame, protobufDecoder } from "../events"
 import { validateControl } from "../events/control"
 import { createSseTransport } from "./sse"
 
-describe("published gokit event wire", () => {
+describe("channel event wire", () => {
   it.each(protocolFixture.cases.filter((fixture) => fixture.status === 200))(
     "decodes $name",
     async (fixture) => {
@@ -30,14 +30,17 @@ describe("published gokit event wire", () => {
       if (frame.type === MethodSchema.typeName) {
         expect(protobufDecoder(MethodSchema)(frame)?.data).toMatchObject({ name: "visible" })
       } else {
-        expect(() => validateControl(frame)).not.toThrow()
+        expect(() => validateControl(frame, decodeFailureFrame)).not.toThrow()
       }
     },
   )
 
-  it.each(wireFailures)("decodes the complete $file in-stream failure", async ({ wire }) => {
+  it.each([
+    { status: 401, code: "unauthenticated", retryable: false },
+    { status: 503, code: "unavailable", retryable: true },
+  ])("decodes a complete $status in-stream failure", async ({ status, code, retryable }) => {
     const fake = fakeFetch([
-      new Response(wire.sseFrame, {
+      new Response(problemFrame(status, { detail: "Stream failed." }), {
         headers: { "content-type": "text/event-stream" },
       }),
     ])
@@ -48,29 +51,29 @@ describe("published gokit event wire", () => {
       onOpen() {},
       onFrame: (frame) => {
         try {
-          validateControl(frame)
+          validateControl(frame, decodeFailureFrame)
         } catch (error) {
           failure = error
         }
       },
     })
-    expect(failure).toMatchObject({
-      code: wire.vocabulary.code,
-      message: wire.vocabulary.message,
-      retryable: wire.vocabulary.retryable,
-    })
-    if ("retryAfterMs" in wire.vocabulary && wire.vocabulary.retryable) {
-      expect(failure).toHaveProperty("retryAfterMs", wire.vocabulary.retryAfterMs)
-    }
+    expect(failure).toMatchObject({ code, message: "Stream failed.", retryable })
   })
+
+  it.each([{}, { status: 200 }, { status: "401" }])(
+    "rejects a failure frame without an error status: %j",
+    (data) => {
+      expect(() =>
+        validateControl({ type: "failure", data: JSON.stringify(data) }, decodeFailureFrame),
+      ).toThrow(expect.objectContaining({ kind: "channel/protocol" }))
+    },
+  )
 
   it.each(protocolFixture.cases.filter((fixture) => fixture.status === 422))(
     "surfaces pre-stream $name as a typed HTTP failure",
     async (fixture) => {
-      const invalid = wireFailures.find(({ wire }) => wire.vocabulary.code === "INVALID_INPUT")
-      if (invalid === undefined) throw new Error("Missing invalid-input fixture")
       const fake = fakeFetch([
-        new Response(JSON.stringify(invalid.wire.problemJson), {
+        new Response(JSON.stringify(problemJson(422, { detail: "Invalid cursor." })), {
           status: fixture.status,
           headers: { "content-type": "application/problem+json" },
         }),
@@ -85,7 +88,12 @@ describe("published gokit event wire", () => {
           },
           onFrame() {},
         }),
-      ).rejects.toMatchObject({ code: "INVALID_INPUT", status: 422, retryable: false })
+      ).rejects.toMatchObject({
+        code: "invalid_argument",
+        message: "Invalid cursor.",
+        status: 422,
+        retryable: false,
+      })
     },
   )
 })

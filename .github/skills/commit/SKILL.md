@@ -3,7 +3,7 @@ name: commit
 description: "plainworks: Commit the authorized staged change with a concise Conventional Commit message; only when asked."
 ---
 
-# Committing with a clean, developer-friendly message
+# Commit
 
 A commit message tells the next developer *what changed and why*, in as few words as it takes. This skill keeps plainworks' history tidy: one focused change per branch, a message that reads like a maintainer wrote it, and **nothing extra** — no trailers, no attributions, no process log.
 
@@ -19,12 +19,12 @@ git diff --cached           # the exact change going in
 
 ## 2. Write the message
 
-plainworks uses **Conventional Commits** (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`). A single compact subject line, imperative mood, describing the change **as it now stands**:
+plainworks uses **Conventional Commits** (`feat`, `fix`, `docs`, `refactor`, `test`, `chore`, `ci`). A single compact subject line, imperative mood, describing the change **as it now stands**:
 
 ```
 feat(channel): add SSE reconnect with jittered backoff
 fix(auth): reject token supplied via query string
-refactor(state): per-request zustand store factory
+refactor(state): host-owned store factory
 docs: sync architecture layer map with the boundaries config
 ```
 
@@ -50,4 +50,4 @@ The convention is **one commit per branch**: for follow-up edits on the same bra
 git commit --amend --no-edit        # fold new staged edits into the single commit
 ```
 
-Use a message file for a subject + body: `git commit -F <path>`. Do **not** amend or rewrite already-pushed history unless explicitly asked, and do **not** run destructive git commands on uncommitted work. Push only when asked (or when the task — e.g. resolving PR reviews — requires the commit to be on the branch).
+Use a message file for a subject + body: `git commit -F <path>`. Do **not** amend or rewrite already-pushed history unless explicitly asked, and do **not** run destructive git commands on uncommitted work. Push only when the user authorizes it.

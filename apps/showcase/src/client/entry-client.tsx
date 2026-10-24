@@ -7,12 +7,11 @@ import { readHydration } from "@plainworks/app/hydration"
 import { useSessionOwner } from "@plainworks/auth/client"
 import { type AuthStore, createAuthStore, sessionSnapshotOf } from "@plainworks/auth/session"
 import { type DevtoolsLauncher, launchDevtools } from "@plainworks/devtools/launch"
-import { createHttpClient } from "@plainworks/http"
 import { createQueryClient } from "@plainworks/query"
 import type { ReactElement, ReactNode } from "react"
 import { hydrateRoot } from "react-dom/client"
 import { ROOT_ELEMENT_ID } from "../neutral/constants"
-import { buildClientCapabilities, Showcase } from "./bootstrap"
+import { buildClientCapabilities, createBrowserHttpClient, Showcase } from "./bootstrap"
 import { devtoolsEnabled } from "./dev-tools/enabled"
 
 /** The browser root is the session runtime's only owner; everything below borrows it. */
@@ -57,15 +56,11 @@ function hydrate(): void {
     initialSnapshot: sessionSnapshotOf(snapshotFor(snapshot, "auth")),
   })
   const devtoolsHttp = devtools?.http
-  const httpClient = createHttpClient(
-    devtoolsHttp
-      ? {
-          baseUrl: window.location.origin,
-          protectedSession: authRuntime.protectedSession,
-          interceptors: [devtoolsHttp.interceptor],
-        }
-      : { baseUrl: window.location.origin, protectedSession: authRuntime.protectedSession },
-  )
+  const httpClient = createBrowserHttpClient({
+    origin: window.location.origin,
+    protectedSession: authRuntime.protectedSession,
+    ...(devtoolsHttp ? { interceptors: [devtoolsHttp.interceptor] } : {}),
+  })
   const capabilities = buildClientCapabilities({ queryClient, httpClient, authRuntime })
 
   hydrateRoot(

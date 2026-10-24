@@ -1,6 +1,5 @@
 import {
   createBoundedQueue,
-  isRetryable,
   type OverflowPolicy,
   QueueFullError,
   raceAbort,
@@ -13,7 +12,6 @@ import {
 } from "@plainworks/std/seam"
 import { ChannelError } from "../errors"
 import type { Channel } from "../lifecycle"
-import { validateControl } from "./control"
 import type { EventDecoder } from "./event"
 import type { EventSink } from "./sink"
 
@@ -136,21 +134,9 @@ export function createEventRouter<TEvent extends PlainEvent>(
       reset()
       return
     }
-    if (frame.type === "failure") {
-      try {
-        validateControl(frame)
-      } catch (error) {
-        if (!isRetryable(error)) {
-          reportError(
-            error instanceof ChannelError
-              ? error
-              : ChannelError.protocol("Invalid event control.", { cause: error }),
-          )
-          close()
-        }
-      }
-      return
-    }
+    // The channel decodes a failure frame and owns its outcome: a retryable one reconnects and a
+    // terminal one closes the channel, which reaches the lifecycle subscription below.
+    if (frame.type === "failure") return
     if (frame.id !== undefined && pendingIds.has(frame.id)) return
     let event: TEvent | undefined
     try {
@@ -172,9 +158,9 @@ export function createEventRouter<TEvent extends PlainEvent>(
       reportDrop(delivery)
     }
   })
-  // A dead channel may never send an in-stream `failure` frame (a pre-stream HTTP failure or
-  // reconnect exhaustion). Own that terminal outcome: report it once and tear the sinks down so the
-  // snapshot owner stops reporting fresh, rather than depending on a wire frame that never arrives.
+  // The channel owns every terminal outcome, including an in-stream `failure` frame. Report a
+  // closed channel's error once and tear the sinks down so the snapshot owner stops reporting
+  // fresh.
   const lifecycle = channel.onError((error) => {
     if (channel.status !== "closed") return
     reportError(error)

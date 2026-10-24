@@ -81,7 +81,8 @@ function lightning(
 
 /**
  * Resolve a stylesheet `@import` the way a CSS-aware bundler does: relative paths from `base`,
- * bare specifiers through the package's `exports`, preferring the `style` condition.
+ * bare specifiers through the package's `exports`, preferring the `style` condition over `default`.
+ * The build never takes the `@plainworks/source` condition: it ships the published stylesheets.
  */
 export function resolveStylesheet(id: string, base: string): string {
   if (id.startsWith(".") || id.startsWith("/")) return resolve(base, id)
@@ -110,7 +111,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function pickExport(manifest: unknown, subpath: string): string | undefined {
   if (!isRecord(manifest)) return undefined
   const entry = isRecord(manifest.exports) ? manifest.exports[subpath] : undefined
-  const target = typeof entry === "string" ? entry : isRecord(entry) ? entry.style : undefined
+  const target =
+    typeof entry === "string" ? entry : isRecord(entry) ? (entry.style ?? entry.default) : undefined
   if (typeof target === "string") return target
   return subpath === "." && typeof manifest.style === "string" ? manifest.style : undefined
 }

@@ -1,78 +1,64 @@
 import { createHttpClient } from "@plainworks/http"
-import { wireFailures } from "@plainworks/mocks/failure"
+import { problemJson } from "@plainworks/mocks/failure"
 import { fakeFetch } from "@plainworks/testkit/fakes"
 import { expect, test } from "vitest"
 
-for (const { wire } of wireFailures) {
-  test(`decodes problem JSON: ${wire.name}`, async () => {
-    const { fetch } = fakeFetch([
-      new Response(JSON.stringify(wire.problemJson), {
-        status: wire.httpStatus,
-        headers: { "content-type": "application/problem+json; charset=utf-8" },
-      }),
-    ])
-    const client = createHttpClient({ baseUrl: "https://api.test", fetch })
-    await expect(client.get("/")).rejects.toMatchObject({
-      ...wire.vocabulary,
-      status: wire.httpStatus,
-    })
-  })
+const failureOf = (body: unknown, status: number, headers: Record<string, string> = {}) => {
+  const { fetch } = fakeFetch([
+    new Response(typeof body === "string" ? body : JSON.stringify(body), {
+      status,
+      headers: { "content-type": "application/problem+json; charset=utf-8", ...headers },
+    }),
+  ])
+  return createHttpClient({ baseUrl: "https://api.test", fetch }).get("/")
 }
 
-test("malformed problem details remain an operational failure with no field prompts", async () => {
-  const { fetch } = fakeFetch([
-    new Response(
-      '{"type":"https://gokit.dev/errors/invalid-input","code":"INVALID_INPUT","retryable":"false"}',
-      {
-        status: 422,
-        headers: { "content-type": "application/problem+json" },
-      },
-    ),
-  ])
+test.each([
+  { status: 400, code: "invalid_argument", retryable: false },
+  { status: 403, code: "permission_denied", retryable: false },
+  { status: 404, code: "not_found", retryable: false },
+  { status: 409, code: "aborted", retryable: false },
+  { status: 429, code: "resource_exhausted", retryable: true },
+  { status: 503, code: "unavailable", retryable: true },
+])("decodes an RFC 9457 problem: $status", async ({ status, code, retryable }) => {
   await expect(
-    createHttpClient({ baseUrl: "https://api.test", fetch }).get("/"),
-  ).rejects.toMatchObject({ code: "EXTERNAL_SERVICE_ERROR", retryable: false, violations: [] })
+    failureOf(
+      problemJson(status, {
+        type: "https://example.test/problem",
+        detail: "Explained.",
+        extensions: { resource: "user" },
+      }),
+      status,
+    ),
+  ).rejects.toMatchObject({
+    status,
+    code,
+    retryable,
+    message: "Explained.",
+    reason: "https://example.test/problem",
+    metadata: { resource: "user" },
+  })
 })
 
-test.each([
-  { type: "https://other.example/errors/invalid-input", code: "INVALID_INPUT" },
-  { type: "https://gokit.dev/errors/future-code", code: "FUTURE_CODE" },
-])("foreign/unknown problem identity preserves HTTP status: $type", async (identity) => {
-  const { fetch } = fakeFetch([
-    new Response(
-      JSON.stringify({
-        ...identity,
-        status: 403,
-        detail: "Denied",
-        retryable: true,
-      }),
-      { status: 403, headers: { "content-type": "application/problem+json" } },
-    ),
-  ])
-  await expect(
-    createHttpClient({ baseUrl: "https://api.test", fetch }).get("/"),
-  ).rejects.toMatchObject({ status: 403, code: "FORBIDDEN", retryable: false, violations: [] })
+test("a malformed problem is an operational failure with no field prompts", async () => {
+  await expect(failureOf('{"type":42,"status":422}', 422)).rejects.toMatchObject({
+    kind: "http/decode",
+    code: "internal",
+    retryable: false,
+    violations: [],
+  })
 })
 
 test("terminal HTTP authentication cannot be made retryable by the body", async () => {
-  const { fetch } = fakeFetch([
-    new Response(
-      JSON.stringify({
-        type: "https://gokit.dev/errors/unauthorized",
-        code: "UNAUTHORIZED",
-        status: 401,
-        detail: "Sign in",
-        retryable: true,
-        retryAfter: 1,
-      }),
-      { status: 401, headers: { "content-type": "application/problem+json" } },
-    ),
-  ])
   await expect(
-    createHttpClient({ baseUrl: "https://api.test", fetch }).get("/"),
+    failureOf(
+      problemJson(401, { detail: "Sign in", extensions: { retryable: true, retryAfter: 1 } }),
+      401,
+      { "retry-after": "1" },
+    ),
   ).rejects.toMatchObject({
     status: 401,
-    code: "UNAUTHORIZED",
+    code: "unauthenticated",
     retryable: false,
     retryAfterMs: undefined,
     authentication: "unauthenticated",

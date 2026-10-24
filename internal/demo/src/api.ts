@@ -24,30 +24,28 @@ import {
 import type { MutationAuthorizer } from "@plainworks/mocks/handlers"
 import { type Clock, systemClock } from "@plainworks/std/time"
 import type { HttpHandler } from "msw"
-import { createContentFactory } from "./data/content"
-import { createNotificationFactory } from "./data/notifications"
-import { createOrderFactory } from "./data/orders"
-import { createProductFactory } from "./data/products"
-import { createSettingsStore, type SettingsStore } from "./data/settings"
-import { createTaskFactory } from "./data/tasks"
-import { createUserFactory } from "./data/users"
-import { createContentHandlers } from "./handlers/content"
-import { createDashboardHandlers } from "./handlers/dashboard"
-import { createNotificationHandlers } from "./handlers/notifications"
-import { createOrderHandlers } from "./handlers/orders"
-import { createProductHandlers } from "./handlers/products"
-import { createSettingsHandlers } from "./handlers/settings"
-import { createTaskHandlers } from "./handlers/tasks"
-import { createUserHandlers } from "./handlers/users"
-import type {
-  ContentPage,
-  Notification,
-  Order,
-  Product,
-  SettingsRequestAuthorizer,
-  Task,
-  User,
-} from "./types"
+import { createContentFactory } from "./content/data"
+import { createContentHandlers } from "./content/handlers"
+import type { ContentPage } from "./content/types"
+import { createDashboardHandlers } from "./dashboard/handlers"
+import { createNotificationFactory } from "./notifications/data"
+import { createNotificationHandlers } from "./notifications/handlers"
+import type { Notification } from "./notifications/types"
+import { createOrderFactory } from "./orders/data"
+import { createOrderHandlers } from "./orders/handlers"
+import type { Order } from "./orders/types"
+import { createProductFactory } from "./products/data"
+import { createProductHandlers } from "./products/handlers"
+import type { Product } from "./products/types"
+import { createSettingsStore, type SettingsStore } from "./settings/data"
+import { createSettingsHandlers } from "./settings/handlers"
+import type { SettingsRequestAuthorizer } from "./settings/types"
+import { createTaskFactory } from "./tasks/data"
+import { createTaskHandlers } from "./tasks/handlers"
+import type { Task } from "./tasks/types"
+import { createUserFactory } from "./users/data"
+import { createUserHandlers } from "./users/handlers"
+import type { User } from "./users/types"
 
 /** Options for {@link createMockApi}. */
 export interface MockApiOptions {

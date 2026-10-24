@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import { formatSource } from "./format"
+import { formatSource } from "@plainworks/workspace"
 import { isRecord, readJson } from "./json"
 import { atomSources, shadcnPath } from "./sources"
 

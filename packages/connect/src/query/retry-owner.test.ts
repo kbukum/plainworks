@@ -12,10 +12,10 @@ test("query defaults cannot retry a permanent RPC failure; reset is a fresh call
   const client = new QueryClient({ defaultOptions: { queries: { retry: 3, retryDelay: 0 } } })
   const options = createQueryOptions(method, {}, { transport: fake.transport })
   try {
-    await expect(client.fetchQuery(options)).rejects.toMatchObject({ code: "NOT_FOUND" })
+    await expect(client.fetchQuery(options)).rejects.toMatchObject({ code: "not_found" })
     expect(fake.calls).toHaveLength(1)
     await client.resetQueries({ queryKey: options.queryKey })
-    await expect(client.fetchQuery(options)).rejects.toMatchObject({ code: "NOT_FOUND" })
+    await expect(client.fetchQuery(options)).rejects.toMatchObject({ code: "not_found" })
     expect(fake.calls).toHaveLength(2)
   } finally {
     client.clear()
@@ -39,7 +39,7 @@ test("infinite query defaults cannot add a second retry loop", async () => {
         getNextPageParam: () => undefined,
       },
     )
-    await expect(client.fetchInfiniteQuery(options)).rejects.toMatchObject({ code: "NOT_FOUND" })
+    await expect(client.fetchInfiniteQuery(options)).rejects.toMatchObject({ code: "not_found" })
     expect(fake.calls).toHaveLength(1)
   } finally {
     client.clear()

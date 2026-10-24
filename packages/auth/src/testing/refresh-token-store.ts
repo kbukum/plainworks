@@ -1,6 +1,6 @@
-import type { Clock } from "@plainworks/std/time"
+import { type Clock, manualClock } from "@plainworks/std/time"
 import type { RefreshTokenStore } from "../adapter/oidc/refresh-store"
-import { abortedSignal, equal, rejects, steppedClock } from "./check"
+import { abortedSignal, equal, rejects } from "./check"
 import type { ConformanceCase, StoreSubject } from "./opaque-session-store"
 
 /** Options a conformance case passes to the implementation under test. */
@@ -36,7 +36,7 @@ export function createRefreshTokenStoreCases(): readonly Case[] {
     {
       name: "issues, reads, and revokes by handle",
       run: (factory) =>
-        using(factory, { clock: steppedClock() }, async (store) => {
+        using(factory, { clock: manualClock() }, async (store) => {
           await store.issue("one", "rt-1")
           equal(await store.current("one"), "rt-1", "issued")
           equal(await store.current("two"), undefined, "unknown")
@@ -47,7 +47,7 @@ export function createRefreshTokenStoreCases(): readonly Case[] {
     {
       name: "rotates only the live token and purges the family on reuse",
       run: (factory) =>
-        using(factory, { clock: steppedClock() }, async (store) => {
+        using(factory, { clock: manualClock() }, async (store) => {
           await store.issue("one", "rt-1")
           equal(await store.rotate("one", "rt-1", "rt-2"), { status: "rotated" }, "first")
           equal(await store.rotate("one", "rt-2", "rt-3"), { status: "rotated" }, "second")
@@ -60,7 +60,7 @@ export function createRefreshTokenStoreCases(): readonly Case[] {
     {
       name: "concurrent rotation has one winner",
       run: (factory) =>
-        using(factory, { clock: steppedClock() }, async (store) => {
+        using(factory, { clock: manualClock() }, async (store) => {
           await store.issue("one", "rt-1")
           const results = await Promise.all([
             store.rotate("one", "rt-1", "rt-a"),
@@ -73,7 +73,7 @@ export function createRefreshTokenStoreCases(): readonly Case[] {
     {
       name: "revocation is retained so late admission cannot revive a handle",
       run: (factory) =>
-        using(factory, { clock: steppedClock() }, async (store) => {
+        using(factory, { clock: manualClock() }, async (store) => {
           await store.revoke("pending")
           await rejects(() => store.issue("pending", "late"), "auth/session-revoked", "late")
           equal(await store.current("pending"), undefined, "still revoked")
@@ -84,7 +84,7 @@ export function createRefreshTokenStoreCases(): readonly Case[] {
     {
       name: "capacity is bounded without evicting live custody",
       run: (factory) =>
-        using(factory, { clock: steppedClock(), maxEntries: 2 }, async (store) => {
+        using(factory, { clock: manualClock(), maxEntries: 2 }, async (store) => {
           await store.issue("one", "rt-1")
           await store.issue("two", "rt-2")
           await rejects(() => store.issue("three", "rt-3"), "auth/store-unavailable", "capacity")
@@ -95,7 +95,7 @@ export function createRefreshTokenStoreCases(): readonly Case[] {
     {
       name: "expiry is absolute and rotation does not extend it",
       run: (factory) => {
-        const clock = steppedClock()
+        const clock = manualClock()
         return using(factory, { clock, ttlSeconds: 1, maxEntries: 2 }, async (store) => {
           await store.issue("one", "first")
           clock.set(900)
@@ -111,7 +111,7 @@ export function createRefreshTokenStoreCases(): readonly Case[] {
     {
       name: "rejects invalid handles and tokens",
       run: (factory) =>
-        using(factory, { clock: steppedClock() }, async (store) => {
+        using(factory, { clock: manualClock() }, async (store) => {
           await rejects(() => store.issue("", "rt"), "auth/refresh-failed", "empty handle")
           await rejects(() => store.issue("h", ""), "auth/refresh-failed", "empty token")
           await rejects(
@@ -124,7 +124,7 @@ export function createRefreshTokenStoreCases(): readonly Case[] {
     {
       name: "an aborted signal rejects before any work",
       run: (factory) =>
-        using(factory, { clock: steppedClock() }, async (store) => {
+        using(factory, { clock: manualClock() }, async (store) => {
           await rejects(() => store.issue("one", "rt", abortedSignal()), undefined, "issue")
           equal(await store.current("one"), undefined, "no partial issue")
         }),

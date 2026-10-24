@@ -1,12 +1,13 @@
 import { AuthError } from "@plainworks/auth"
-import { constantTimeEqual } from "@plainworks/auth/crypto"
 import {
+  decideRefreshRotation,
   type RefreshTokenStore,
   type RefreshTokenStoreOptions,
+  refreshStoreLimits,
   validateRefreshHandle,
   validateRefreshToken,
 } from "@plainworks/auth/server"
-import { isPositiveInteger, isRecord } from "@plainworks/std"
+import { isRecord } from "@plainworks/std"
 import { systemClock } from "@plainworks/std/time"
 import type { WebAbortSignal } from "@plainworks/std/web"
 import { type CustodyDatabaseOptions, custodyFailure, openCustodyDatabase } from "./database"
@@ -41,15 +42,10 @@ export function createSqliteRefreshTokenStore(
   options: SqliteRefreshTokenStoreOptions,
 ): SqliteRefreshTokenStore {
   const clock = options.clock ?? systemClock
-  const ttl = options.ttlSeconds ?? 3600
-  const capacity = options.maxEntries ?? 10_000
-  if (!isPositiveInteger(ttl) || !isPositiveInteger(capacity)) {
-    throw new AuthError("auth/config", "invalid provider custody lifetime or capacity")
-  }
+  const limits = refreshStoreLimits(options)
   const custody = openCustodyDatabase(options)
   const db = custody.database
   const { cipher } = custody
-  const encoder = new TextEncoder()
   try {
     db.exec(
       "CREATE TABLE IF NOT EXISTS auth_refresh (handle TEXT PRIMARY KEY, payload TEXT, expires INTEGER NOT NULL)",
@@ -79,7 +75,7 @@ export function createSqliteRefreshTokenStore(
   }
   function admit(): void {
     const count: unknown = db.prepare("SELECT COUNT(*) FROM auth_refresh").pluck().get()
-    if (typeof count !== "number" || count >= capacity) {
+    if (typeof count !== "number" || count >= limits.maxEntries) {
       throw new AuthError("auth/store-unavailable", "provider custody capacity exhausted")
     }
   }
@@ -97,7 +93,7 @@ export function createSqliteRefreshTokenStore(
         db.prepare("INSERT INTO auth_refresh (handle, payload, expires) VALUES (?, ?, ?)").run(
           handle,
           cipher.seal(`refresh:${handle}`, token),
-          clock.now() + ttl * 1000,
+          clock.now() + limits.ttlMs,
         )
       })
     },
@@ -112,17 +108,16 @@ export function createSqliteRefreshTokenStore(
       return run(signal, () => {
         cleanup()
         const found = row(handle)
-        if (found?.payload == null) return { status: "reuse-detected" }
-        const current = cipher.open(`refresh:${handle}`, found.payload)
-        if (!constantTimeEqual(encoder.encode(presented), encoder.encode(current))) {
-          db.prepare("UPDATE auth_refresh SET payload = NULL WHERE handle = ?").run(handle)
-          return { status: "reuse-detected" }
+        const current =
+          found?.payload == null ? undefined : cipher.open(`refresh:${handle}`, found.payload)
+        const decision = decideRefreshRotation(current, presented)
+        if (found !== undefined) {
+          db.prepare("UPDATE auth_refresh SET payload = ? WHERE handle = ?").run(
+            decision.status === "rotated" ? cipher.seal(`refresh:${handle}`, next) : null,
+            handle,
+          )
         }
-        db.prepare("UPDATE auth_refresh SET payload = ? WHERE handle = ?").run(
-          cipher.seal(`refresh:${handle}`, next),
-          handle,
-        )
-        return { status: "rotated" }
+        return decision
       })
     },
     revoke(handle, signal) {
@@ -135,7 +130,7 @@ export function createSqliteRefreshTokenStore(
           admit()
           db.prepare("INSERT INTO auth_refresh (handle, payload, expires) VALUES (?, NULL, ?)").run(
             handle,
-            clock.now() + ttl * 1000,
+            clock.now() + limits.ttlMs,
           )
         }
       })

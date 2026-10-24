@@ -35,6 +35,7 @@ export {
   type FlowSelection,
   type FlowStatus,
   type FrameChange,
+  type JourneyReport,
   type ReportedError,
   type ReviewBase,
   type SelectedFlow,

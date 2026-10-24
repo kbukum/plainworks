@@ -27,7 +27,10 @@ function declaredPackages() {
 describe("published stylesheet contract", () => {
   it("exports the stylesheet from the build output the packaging gate covers", () => {
     expect(pkg.files).toContain("dist")
-    expect(pkg.exports["./styles.css"]).toBe("./dist/styles.css")
+    expect(pkg.exports["./styles.css"]).toEqual({
+      "@plainworks/source": "./src/styles.css",
+      default: "./dist/styles.css",
+    })
   })
 
   it("declares every package its stylesheet imports", () => {

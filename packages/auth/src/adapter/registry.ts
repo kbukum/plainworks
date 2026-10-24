@@ -16,8 +16,8 @@ export type AuthAdapterFactory = (config: unknown, deps: AuthAdapterDeps) => Aut
  */
 export interface AuthRegistry {
   /**
-   * Register `factory` under `kind`. The **first** registration becomes the default (parity with
-   * gokit `auth`), so a single-mechanism setup needs no explicit selection.
+   * Register `factory` under `kind`. The **first** registration becomes the default, so a
+   * single-mechanism setup needs no explicit selection.
    *
    * @throws {AuthError} `auth/config` when `kind` is already registered — silent last-wins override
    *   is a footgun on a security-load-bearing seam.

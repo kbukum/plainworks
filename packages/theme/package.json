@@ -53,8 +53,14 @@
       "types": "./dist/client.d.ts",
       "default": "./dist/client.js"
     },
-    "./styles.css": "./dist/styles.css",
-    "./tokens.css": "./dist/tokens.css"
+    "./styles.css": {
+      "@plainworks/source": "./src/styles.css",
+      "default": "./dist/styles.css"
+    },
+    "./tokens.css": {
+      "@plainworks/source": "./src/tokens.css",
+      "default": "./dist/tokens.css"
+    }
   },
   "scripts": {
     "build": "tsdown",

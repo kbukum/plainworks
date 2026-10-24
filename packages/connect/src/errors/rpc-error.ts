@@ -1,30 +1,14 @@
 import { Code, ConnectError } from "@connectrpc/connect"
-import { type Failure, FailureDecodeError, RemoteFailure } from "@plainworks/std/failure"
+import {
+  type Failure,
+  type FailureCode,
+  FailureDecodeError,
+  RemoteFailure,
+} from "@plainworks/std/failure"
 import type { WebHeaders } from "@plainworks/std/web"
-import { decodeRpcFailure } from "./rpc-details"
+import { decodeRpcFailure, type RpcFailureDecoder } from "./rpc-details"
 
-/**
- * Protocol status, separate from the shared application failure code.
- */
-export type RpcErrorCode =
-  | "canceled"
-  | "unknown"
-  | "invalid_argument"
-  | "deadline_exceeded"
-  | "not_found"
-  | "already_exists"
-  | "permission_denied"
-  | "resource_exhausted"
-  | "failed_precondition"
-  | "aborted"
-  | "out_of_range"
-  | "unimplemented"
-  | "internal"
-  | "unavailable"
-  | "data_loss"
-  | "unauthenticated"
-
-const CODE_TO_RPC_CODE: Record<Code, RpcErrorCode> = {
+const CODES: Record<Code, FailureCode> = {
   [Code.Canceled]: "canceled",
   [Code.Unknown]: "unknown",
   [Code.InvalidArgument]: "invalid_argument",
@@ -49,33 +33,37 @@ export interface RpcErrorInit {
   readonly rawCode: Code
   /** Original details, including unknown extensions, preserved for diagnostics. */
   readonly details?: Readonly<ConnectError["details"]>
-  /** Trailing/response metadata (headers) attached to the error. */
-  readonly metadata?: WebHeaders
+  /** Response headers and trailers attached to the error (Connect's `metadata`). */
+  readonly headers?: WebHeaders
   /** Underlying cause — typically the originating `ConnectError` — preserved so nothing is swallowed. */
   readonly cause?: unknown
+  /** Reads the details into the shared failure. Defaults to {@link decodeRpcFailure}. */
+  readonly decode?: RpcFailureDecoder
 }
 
 /**
- * Shared remote failure with independently preserved Connect protocol identity.
- * Malformed known details become operational failures, never form violations.
+ * Shared remote failure with independently preserved Connect protocol identity. `rpcCode` is the
+ * status on the wire; `code` is what the decoder concluded. Malformed known details become
+ * operational failures, never form violations.
  */
-export class RpcError extends RemoteFailure<`connect/${RpcErrorCode}`> {
+export class RpcError extends RemoteFailure<`connect/${FailureCode}`> {
   override readonly name: string = "RpcError"
   override readonly fieldPathFormat = "protobuf"
-  readonly rpcCode: RpcErrorCode
+  readonly rpcCode: FailureCode
   /** Original numeric Connect code, preserved for interop. */
   readonly rawCode: Code
   /** Original server details, retained alongside the decoded shared fields. */
   readonly details: Readonly<ConnectError["details"]>
-  /** Trailing/response metadata attached to the error. */
-  readonly metadata: WebHeaders
+  /** Response headers and trailers attached to the error (Connect's `metadata`). */
+  readonly headers: WebHeaders
 
   constructor(message: string, init: RpcErrorInit) {
-    const code = CODE_TO_RPC_CODE[init.rawCode] ?? "unknown"
+    const code = CODES[init.rawCode] ?? "unknown"
+    const decode = init.decode ?? decodeRpcFailure
     let failure: Failure
     let cause = init.cause
     try {
-      failure = decodeRpcFailure(init.rawCode, message, init.details ?? [])
+      failure = decode({ code, message, details: init.details ?? [] })
     } catch (error) {
       if (!(error instanceof FailureDecodeError)) throw error
       failure = error
@@ -85,7 +73,7 @@ export class RpcError extends RemoteFailure<`connect/${RpcErrorCode}`> {
     this.rpcCode = code
     this.rawCode = init.rawCode
     this.details = init.details ?? []
-    this.metadata = init.metadata ?? new Headers()
+    this.headers = init.headers ?? new Headers()
   }
 }
 
@@ -95,16 +83,18 @@ export class RpcError extends RemoteFailure<`connect/${RpcErrorCode}`> {
  * the original cause.
  *
  * The transport and Query adapters call it outside interceptor normalization. Consumers already
- * receive RpcError; custom transport integrations may use this boundary explicitly.
+ * receive RpcError; custom transport integrations may use this boundary explicitly. `decode`
+ * defaults to {@link decodeRpcFailure}.
  */
-export function mapConnectError(reason: unknown): RpcError {
+export function mapConnectError(reason: unknown, decode?: RpcFailureDecoder): RpcError {
   if (reason instanceof RpcError) return reason
   const connectError = ConnectError.from(reason)
   return new RpcError(connectError.rawMessage, {
     rawCode: connectError.code,
     details: connectError.details,
-    metadata: connectError.metadata,
+    headers: connectError.metadata,
     cause: connectError,
+    ...(decode === undefined ? {} : { decode }),
   })
 }
 

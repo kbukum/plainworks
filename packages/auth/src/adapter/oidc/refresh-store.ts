@@ -68,6 +68,43 @@ function requirePositiveInt(value: number, field: string): void {
   }
 }
 
+/** A refresh store's custody lifetime and capacity, after defaults. */
+export interface RefreshStoreLimits {
+  readonly ttlMs: number
+  readonly maxEntries: number
+}
+
+/**
+ * Read a refresh store's options with their defaults (one hour, 10_000 entries). Every
+ * {@link RefreshTokenStore} uses this, so all backends apply the same limits.
+ *
+ * @throws {AuthError} `auth/config` when either value is not a positive integer.
+ */
+export function refreshStoreLimits(
+  options: Pick<RefreshTokenStoreOptions, "ttlSeconds" | "maxEntries">,
+): RefreshStoreLimits {
+  const ttlSeconds = options.ttlSeconds ?? DEFAULT_TTL_SECONDS
+  const maxEntries = options.maxEntries ?? DEFAULT_MAX_ENTRIES
+  requirePositiveInt(ttlSeconds, "ttlSeconds")
+  requirePositiveInt(maxEntries, "maxEntries")
+  return { ttlMs: ttlSeconds * 1000, maxEntries }
+}
+
+/**
+ * Decide a rotation from the live token a store holds (`undefined` when custody is gone). Only the
+ * live token rotates; anything else is a replay, and the store must then drop the live token so no
+ * token in the family works again. Compared in constant time.
+ */
+export function decideRefreshRotation(
+  current: string | undefined,
+  presented: string,
+): RefreshRotation {
+  if (current === undefined) return { status: "reuse-detected" }
+  return constantTimeEqual(encoder.encode(presented), encoder.encode(current))
+    ? { status: "rotated" }
+    : { status: "reuse-detected" }
+}
+
 export function validateRefreshHandle(handle: string): void {
   if (handle.length === 0 || handle.length > 128) {
     throw new AuthError("auth/refresh-failed", "invalid provider custody handle")
@@ -86,12 +123,8 @@ export function validateRefreshToken(token: string): void {
  * never shared across requests by accident.
  */
 export function createRefreshTokenStore(options: RefreshTokenStoreOptions = {}): RefreshTokenStore {
-  const ttlSeconds = options.ttlSeconds ?? DEFAULT_TTL_SECONDS
-  const maxEntries = options.maxEntries ?? DEFAULT_MAX_ENTRIES
+  const { ttlMs, maxEntries } = refreshStoreLimits(options)
   const clock = options.clock ?? systemClock
-
-  requirePositiveInt(ttlSeconds, "ttlSeconds")
-  requirePositiveInt(maxEntries, "maxEntries")
 
   const entries = new Map<string, TokenEntry>()
 
@@ -131,7 +164,7 @@ export function createRefreshTokenStore(options: RefreshTokenStoreOptions = {}):
       if (entries.size >= maxEntries && !entries.has(handle)) {
         throw new AuthError("auth/store-unavailable", "provider custody capacity exhausted")
       }
-      entries.set(handle, { current: token, expiresAt: now + ttlSeconds * 1000 })
+      entries.set(handle, { current: token, expiresAt: now + ttlMs })
     },
 
     current(handle: string, signal?: WebAbortSignal): string | undefined {
@@ -148,19 +181,11 @@ export function createRefreshTokenStore(options: RefreshTokenStoreOptions = {}):
       signal?.throwIfAborted()
       validateRefreshToken(next)
       const entry = liveEntry(handle)
-      if (entry?.current === undefined) {
-        // No live custody: nothing legitimate to rotate, so treat the attempt as a replay.
-        return { status: "reuse-detected" }
+      const decision = decideRefreshRotation(entry?.current, presented)
+      if (entry !== undefined) {
+        entry.current = decision.status === "rotated" ? next : undefined
       }
-      // Only the one live token rotates. Any other token — a superseded one the legitimate client
-      // already rotated past, or an unknown one — is a replay: purge the whole family so no token
-      // in it can be used again.
-      if (!constantTimeEqual(encoder.encode(presented), encoder.encode(entry.current))) {
-        entry.current = undefined
-        return { status: "reuse-detected" }
-      }
-      entry.current = next
-      return { status: "rotated" }
+      return decision
     },
 
     revoke(handle: string, signal?: WebAbortSignal): void {
@@ -174,7 +199,7 @@ export function createRefreshTokenStore(options: RefreshTokenStoreOptions = {}):
         if (entries.size >= maxEntries) {
           throw new AuthError("auth/store-unavailable", "provider custody capacity exhausted")
         }
-        entries.set(handle, { current: undefined, expiresAt: clock.now() + ttlSeconds * 1000 })
+        entries.set(handle, { current: undefined, expiresAt: clock.now() + ttlMs })
       }
     },
   }

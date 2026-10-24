@@ -12,31 +12,38 @@ bun add @plainworks/mocks
 
 ## What's here
 
-The root exports the latency prelude. Each larger concern has one named subpath: `./data`, `./handlers`, `./fixture`, `./query`, `./filter`, `./control`, `./dispatch`, `./lifecycle`, `./stream`, and `./idp`. The `./vite-plugin` entry serves any MSW handler set over real HTTP.
+The root exports the latency prelude. Each larger concern has one named subpath: `./connect`, `./data`, `./handlers`, `./fixture`, `./query`, `./filter`, `./control`, `./dispatch`, `./lifecycle`, `./stream`, and `./idp`. The `./vite-plugin` entry serves any MSW handler set over real HTTP.
 
 Want a worked example rather than building from scratch? The kit's dev-only `@plainworks/demo` fixtures package wires these primitives into a full commerce/SaaS mock graph (`createMockApi()`), and is what the showcase and integration tests run against.
 
 ## Usage
 
-### Wire failure fixtures
+### Standard failures
 
-`@plainworks/mocks/failure` exports `wireFailures` and `failureSource`. The corpus pins an immutable `kbukum/gokit` revision and a SHA-256 digest per source file. It includes problem JSON, serialized protobuf status, and Connect JSON; optional debug JSON is not a decoder input.
+`@plainworks/mocks/failure` builds RFC 9457 problems: `problemJson(status, init)` for an `application/problem+json` body and `problemFrame(status, init)` for an SSE `failure` event. Both are plain data, so any runtime can serve them. `init` sets `type`, `title`, `detail`, `instance` and extension members. Client-only adversarial Connect cases live in `@plainworks/connect/testing`.
 
-```sh
-bun run --filter @plainworks/mocks fixtures:check --source=/path/to/gokit
-bun run --filter @plainworks/mocks fixtures:sync --source=/path/to/gokit
+### Connect unary mocks
+
+`@plainworks/mocks/connect` mocks Connect unary methods over the JSON codec. It needs the optional peer `@bufbuild/protobuf`.
+
+```ts
+import { connectFailure, connectUnary } from "@plainworks/mocks/connect"
+
+const handler = connectUnary(
+  UserService.method.getUser,
+  ({ id }) => users.get(id) ?? connectFailure("not_found"),
+  { validate: (schema, message) => validator.check(schema, message) },
+)
 ```
 
-To update the corpus, change the pinned revision in `scripts/sync-failures.ts`, sync, and run the HTTP/RPC contract tests. The importer reads committed Git objects, never dirty working files. Client-only adversarial cases live in `@plainworks/connect/testing`.
+- `connectUnary` decodes the input, runs the handler, and encodes the output. It answers malformed JSON with `invalid_argument` and a body over `maxBodyBytes` (1 MiB by default) with `resource_exhausted`.
+- `validate` checks the input and the output. Invalid input gets `invalid_argument` with the violation in the message. Invalid output is a fixture drift and gets an `internal` error that names the method, so a stale fixture never reaches the client silently.
+- `gate` answers before the body is read, for denied or unavailable endpoints.
+- `connectFailure(code, options)` sends a Connect error for a canonical code with its HTTP status. Options add the standard `google.rpc` details: one `errorInfo` (reason, domain, metadata), BadRequest `violations`, and a RetryInfo `retryAfterMs`. `connectUnary` refuses a `maxBodyBytes` that is not a positive safe integer.
 
 ### Live convergence fixtures
 
-`@plainworks/mocks/stream` exports `protocolFixture`, `convergenceFixture`, `listsFixture`, and `liveSource`. These pin the published SSE frames, acknowledgement/snapshot operation sequences, and list shapes from gokit, with their immutable revision and SHA-256 digests. The failure corpus also includes `sseFrame`; channel tests consume it through the SSE transport.
-
-```sh
-bun run --filter @plainworks/mocks fixtures:live:check --source=/path/to/gokit
-bun run --filter @plainworks/mocks fixtures:live:sync --source=/path/to/gokit
-```
+`@plainworks/mocks/stream` exports `protocolFixture`, `convergenceFixture` and `listsFixture`: the channel protocol's SSE frames, acknowledgement and snapshot operation sequences, and list shapes. They are the channel's own contract; any server that implements it must produce them.
 
 ### Entity mocks
 

@@ -66,7 +66,7 @@ A channel moves through `idle → connecting → open → reconnecting → closi
 
 Application event names are full protobuf message names. `protobufDecoder(schema)` uses the generated descriptor, validates proto JSON, and requires `<32 lowercase hex epoch>:<uint64 decimal sequence>`. Sequence comparisons use bigint; gaps from authorization filtering are valid.
 
-`connected` carries `{epoch,cursor}`. `reset` carries `{reason,cursor}`, where reason is `epochChanged`, `replayExpired`, or `overflow`. Neither control acknowledges an application event, including when the SSE parser inherits an earlier ID. Reset forgets the old resume cursor. A `failure` control uses the shared failure vocabulary and settles the connection before EOF; pre-stream problem responses use the same typed decoder. `ChannelError` exposes `code`, `retryable`, `retryAfterMs`, and `authentication` alongside its transport kind and cause.
+`connected` carries `{epoch,cursor}`. `reset` carries `{reason,cursor}`, where reason is `epochChanged`, `replayExpired`, or `overflow`. Neither control acknowledges an application event, including when the SSE parser inherits an earlier ID. Reset forgets the old resume cursor. A `failure` control is an RFC 9457 problem with a required `status` member (`decodeFailureFrame`) and settles the connection before EOF; pre-stream problem responses use the HTTP problem decoder. Pass `failures` to `createChannel` (frames) and `createSseTransport` (problems) when the server uses other conventions. `ChannelError` exposes `code`, `retryable`, `retryAfterMs`, and `authentication` alongside its transport kind and cause.
 
 ## Transports
 

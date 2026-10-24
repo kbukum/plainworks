@@ -9,6 +9,7 @@ export type {
 } from "./auth"
 export type { AuthorizationRequest, Authorizer, Decision } from "./authorization"
 export type { CacheInvalidateOptions, CacheInvalidator, CacheKey, CacheTarget } from "./cache"
+export { isSameCacheKey, matchesCacheTarget } from "./cache"
 export type { EventSink, Listener, PlainEvent, Subscription } from "./events"
 export type { FormSchema } from "./form"
 export type { CredentialRestrictions, Identity, SessionIdentity } from "./identity"

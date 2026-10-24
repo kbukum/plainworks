@@ -130,9 +130,7 @@ export function Form<Output = FormValues>(props: FormProps<Output>): ReactElemen
         focusOwed.current = form
         let reported = failure
         try {
-          const fieldFailure = ["INVALID_INPUT", "MISSING_FIELD", "INVALID_FORMAT"].includes(
-            failure.code,
-          )
+          const fieldFailure = failure.code === "invalid_argument"
           const issues = fieldFailure
             ? failure.violations.map((violation) => {
                 const field =

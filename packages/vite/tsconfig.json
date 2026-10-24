@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // A Vite plugin, not a host-independent library: it runs in Node inside Vite and Vitest and reads
+  // the linked checkout with `node:*` builtins, so it opts back into Node's ambient types.
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src"]
+}

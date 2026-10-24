@@ -21,6 +21,7 @@ import {
   withTimeout,
 } from "@plainworks/std/resilience"
 import type { WebAbortController, WebAbortSignal } from "@plainworks/std/web"
+import type { RpcFailureDecoder } from "../errors"
 import { connectRetryAfter, isConnectRetryable } from "./retry-classification"
 
 /**
@@ -44,6 +45,8 @@ export interface ConnectResilienceOptions {
   readonly delay?: Delay
   /** Injectable jitter source for deterministic retry tests; defaults to the system RNG. */
   readonly random?: RandomSource
+  /** Reads Connect error details for the retry verdict. Defaults to the standard model. */
+  readonly failures?: RpcFailureDecoder
 }
 
 /**
@@ -61,7 +64,7 @@ export interface ConnectResilienceOptions {
  * the outer transport boundary can expose the shared RpcError contract.
  */
 export function resilienceInterceptor(options: ConnectResilienceOptions): Interceptor {
-  const { timeoutMs, retry, delay, random } = options
+  const { timeoutMs, retry, delay, random, failures } = options
   return (next) => async (request) => {
     const callerSignal: WebAbortSignal | undefined = request.signal
 
@@ -88,9 +91,10 @@ export function resilienceInterceptor(options: ConnectResilienceOptions): Interc
       const policy: RetryPolicy = {
         ...retry,
         idempotent: isMethodIdempotent(request),
-        isRetryable: (error) => isConnectRetryable(error) && (retry.isRetryable?.(error) ?? true),
+        isRetryable: (error) =>
+          isConnectRetryable(error, failures) && (retry.isRetryable?.(error) ?? true),
         retryAfter: (error) => {
-          const minimum = connectRetryAfter(error)
+          const minimum = connectRetryAfter(error, failures)
           const custom = retry.retryAfter?.(error)
           return minimum === undefined
             ? custom

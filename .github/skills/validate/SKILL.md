@@ -3,92 +3,70 @@ name: validate
 description: "plainworks: Run the repository's build, test, lint, and documentation gates scoped to the change."
 ---
 
-# Validating plainworks changes with bun run / turbo
+# Validate
 
-plainworks is a bun-workspace monorepo (`packages/*`, `apps/*`, `internal/*`) driven by **Turborepo**. **`bun run verify` is the Definition of Done**: it runs every gate in order and stops at the first failure. The gate list lives only there (`internal/verify`); CI and the release workflow call the same command, so a local green means the same thing as a CI green.
+`bun run verify` is the gate runner. It runs every gate in order and stops at the first failure; `internal/verify` owns the list, and CI and release call the same command. What "done" means is the [Definition of Done](../../engineering.md#definition-of-done); this skill is how to prove it.
 
 ## Run the gates
 
 ```bash
-bun run verify --list                          # the gates, in order, and what each enforces
-bun run verify --filter=@plainworks/<name>     # one package (+ what it needs)
-bun run verify --filter='...[origin/main]'     # only packages affected by the diff
-bun run verify                                 # everything — CI sign-off, audits, releases
+bun run verify --list                          # each gate, in order, and what it enforces
+bun run verify --filter=@plainworks/<name>     # one package and what it needs
+bun run verify --filter='...[origin/main]'     # packages affected by the diff
+bun run verify                                 # everything: acceptance, audits, releases
 ```
 
-`--filter` takes any turbo filter and is repeatable. It scopes the package gates (typecheck, build, test, packaging, production); the repo-wide gates (versions, lint, comments, layer map, atom lock, workspace shape, boundaries) are cheap and always run over the whole graph.
+`--filter` takes any turbo filter and repeats. It scopes the package gates; repo-wide gates are cheap and always run over the whole graph.
 
-Plus a **Changeset** (`bun run changeset`) and the architecture invariants (no import-time side effects, no module-level singletons, header-only auth, typed errors, no `any` in public APIs).
+While iterating, run one gate directly: `turbo run test --filter=@plainworks/<name>`, or a root script such as `bun run lint` (`bun run format` fixes) or `bun run check-shape`. Finish with `verify`.
 
-## Iterate on one gate
+Prose-only edits need documentation checks only: links, anchors, real commands, `bun run lint`, and `bun run check-layer-map` when a generated block is nearby.
 
-While you work, run a single gate directly. Every gate is a root script or a turbo task:
+## Add the checks the change needs
+
+| Change touches | Also run |
+|---|---|
+| `internal/boundaries/layers.json` or `.dependency-cruiser.cjs` | `turbo run test --filter=@plainworks/boundaries`, then `bun run sync-layer-map` |
+| `packages/elements` | `bun run check-registry` and `turbo run test --filter=@plainworks/elements` |
+| `packages/theme` | `turbo run test --filter=@plainworks/elements` (theme-variables contract) |
+| `turbo/generators/**` | [Generator smoke](#generator-smoke) |
+| `apps/next-host`, the eject, or a starter dependency | `cd packages/create-plainworks && bun run smoke` |
+| An integration or package boundary | [Clean consumers](#clean-consumers) |
+| Something an app user can see | [App proof](#app-proof) |
+
+A registry lock failure means a file under `src/shadcn/` changed outside the pipeline. Never relock by hand: restore it or rerun `registry:update <atom>`, and move the change down the [deviation ladder](../../engineering.md#vendored-atoms).
+
+## Generator smoke
+
+Mirror the CI smoke job. First confirm `packages/smoke-server`, `packages/smoke-client`, and `internal/smoke-tool` do not exist; if any does, stop, because it is not yours.
 
 ```bash
-turbo run test --filter=@plainworks/<name>    # one task for one package
-bun run lint                                   # one repo-wide gate (`bun run format` fixes)
-bun run check-shape                            # generated workspace manifests
-cd packages/<name> && bun run test             # a package's own script
+bun run gen package --args smoke-server "CI smoke: server-only" false
+bun run gen package --args smoke-client "CI smoke: client entry" true
+bun run gen tool --args smoke-tool "CI smoke: internal tool"
+bun run verify --filter=@plainworks/smoke-server --filter=@plainworks/smoke-client --filter=@plainworks/smoke-tool
 ```
 
-Finish with `verify` before you hand work off.
+Then check what CI asserts: `smoke-client/dist/client.js` starts with `"use client"` and `dist/index.js` does not, and `smoke-server` has no client source, config, export, or build. Finally remove exactly those three folders and run `bun install`.
 
-## Boundary and layer-map changes
+## Clean consumers
 
-`check-boundaries` has a fixture-backed test proving the gate rejects an upward import. If you touch `internal/boundaries/layers.json` or `.dependency-cruiser.cjs`, run `turbo run test --filter=@plainworks/boundaries` too, and `bun run sync-layer-map` to regenerate the layer-map docs (`verify` fails until you do).
+A workspace build cannot prove dependency isolation. Install packed tarballs into clean projects and prove three consumers: core alone with no integration or driver, a consumer adapter built only on public contracts, and the selected integration with its driver. Inspect manifests, installed dependency graphs, browser graphs, and shipped sources. A new integration package also proves its generated shape, packaging, and negative layer rules.
 
-## Atom and theme changes
+Native loading, filesystem contention, process cleanup, and TLS need real integration tests on the declared runtimes; unit doubles cannot certify them. This proof is manual today; see [Known gaps](../../engineering.md#known-gaps).
 
-If you touched `packages/elements` or `packages/theme`, also check the vendored atoms and the theme contract they read:
+## App proof
+
+For a change an app user can see, `verify` is not enough. In the app:
 
 ```bash
-bun run check-registry                       # atoms match shadcn.lock.json (part of verify)
-turbo run test --filter=@plainworks/elements # lock test + theme-variables contract
+bun run e2e -- e2e/flows.spec.ts --grep "<flow>"   # touched flows; failures leave .ui-artifacts/latest/report.md
+bun run ui:capture --flow <flow>                   # then open and judge the frames
+bun run ui:capture serve                           # optional warm host for faster captures
 ```
 
-A lock failure means a file under `src/shadcn/` changed outside the pipeline. Don't relock by hand: restore the file, or rerun `registry:update <atom>` and move your change down the deviation ladder (see the [Vendored atoms](../../engineering.md#vendored-atoms) baseline and the [`update-atoms`](../update-atoms/SKILL.md) skill).
+Exit code 1 means a flow broke; exit code 2 means the harness could not run, so fix the setup instead of retrying. Use `serve --explore` for a separate signed-out MCP host. Session tests reset before a fresh sign-in and never reuse credential-bearing storage. Outage and restart flows need their own host. Real HTTPS proof trusts an isolated CA in Node and the browser; never bypass TLS validation. The [browser gate](../../../docs/browser-gate.md) explains the suite.
 
-## Generator changes
+## Report
 
-If you touched `turbo/generators/**`, prove the golden template still yields a gate-passing package (both variants), then remove the throwaway:
-
-```bash
-bun run gen package --args scratch "scratch" false && bun install
-bun run check-shape
-turbo run typecheck build test check-packaging --filter=@plainworks/scratch
-rm -rf packages/scratch && bun install
-```
-
-## Starter changes
-
-`apps/next-host` is the source of the `create-plainworks` starter. If you touched it, the eject, or a package the starter depends on, prove a fresh starter still works outside the monorepo:
-
-```bash
-cd packages/create-plainworks && bun run smoke
-```
-
-The smoke packs the kit, scaffolds a starter, installs it, and runs the starter's own gates: typecheck, build, boot, and e2e. CI runs the same script in the `create-smoke` job.
-
-## Core/integration dependency isolation
-
-For an integration or package-boundary change, a workspace build is not enough. Use clean installed tarballs to prove three consumers: core without integrations/drivers, a consumer-supplied adapter using only public contracts, and the explicitly selected integration with its driver (through its package, or through the clean generated host that owns it). Inspect manifests, installed dependency graphs, browser graphs, and shipped sources. An optional peer declaration in core or a core forwarding export is still a boundary violation.
-
-When an integration is a new package, prove its generated shape, packaging, and negative layer rules. Native loading, filesystem contention, process cleanup, and TLS need real integration tests on the declared runtimes; unit doubles cannot certify them.
-
-Documentation-only work needs link and consistency checks, not execution of the unfinished implementation's acceptance suite. Distinguish policy requirements from gates that already exist.
-
-## Production exclusion
-
-`check-production` builds each host with source maps and fails when a forbidden source (the development inspector) reaches the production bundle, or when the scan can't see the app's expected sources. Each app declares its rule in `devtools-exclusion.json`. Paths starting with `./` are app paths, other entries are package paths resolved like imports, and `allowUnmapped` lists output files without a source map, as globs or `manifest.json#field`.
-
-## Before you hand work off
-
-The minimum passing standard for a self-contained change is `bun run verify` green over the affected set (`--filter='...[origin/main]'`), Vitest race/shuffle safe, the `elements` tests green when `theme` changed, and a Changeset. Run the unscoped `bun run verify` for an audit or release.
-
-Treat a green run as **necessary but not sufficient**: it does not catch unbounded streams/buffers, missing timeouts/cancellation, module-level singletons, import-time side effects, or a token leaking into a URL. Those are on the reviewer.
-
-For a client/UI package, accessibility and responsiveness are part of the acceptance bar (review pass [`08`](../review/references/08-ui-accessibility.md)): each component test runs `expectNoAxeViolations` in-band with the scoped `turbo run test`. `bun run check-axe-coverage` is the repo-wide gate that fails any render test file that never awaits that assertion or importing `axe-core` directly.
-
-For a change an app user can see, `verify` is not enough: also meet the [UI Definition of Done](../../engineering.md#build-test-and-lint) in the app. Run the touched flows in the app's e2e suite (`bun run e2e -- e2e/flows.spec.ts --grep "<flow>"`); a failed check leaves its evidence in `.ui-artifacts/latest/report.md`. Then `bun run ui:capture --flow <flow>` and look at the frames. Exit code 1 means a flow broke; exit code 2 means the harness could not run: fix the setup, don't retry blindly. Start `bun run ui:capture serve` to keep captures fast; use `serve --explore` for a separate signed-out MCP host. Session tests reset before fresh sign-in and never reuse credential-bearing storage state. Owned outage/restart flows cannot use an external warm host. Real HTTPS proof must trust an isolated CA in Node and the browser, never bypass TLS validation.
-
-Per repo workflow, **make edits only** — the maintainer commits and pushes.
+State which gates ran, scoped or full, and what they did not prove. Green gates do not catch unbounded buffers, missing cancellation, singletons, import-time I/O, or credentials in URLs; those belong to [review](../review/SKILL.md). Validation never commits, pushes, or publishes.

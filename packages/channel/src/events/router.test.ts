@@ -189,8 +189,8 @@ describe("createEventRouter", () => {
 
   test.each([
     {
-      data: JSON.stringify({ code: "TOKEN_EXPIRED", message: "Sign in.", retryable: true }),
-      error: { code: "TOKEN_EXPIRED", authentication: "unauthenticated" },
+      data: JSON.stringify({ status: 401, title: "Sign in." }),
+      error: { code: "unauthenticated", authentication: "unauthenticated" },
     },
     { data: "not json", error: { kind: "channel/protocol" } },
   ])("reports terminal in-stream failures before closing sinks: $data", async ({ data, error }) => {

@@ -9,12 +9,12 @@ plainworks is a bun-workspace monorepo of independently-versioned `@plainworks/*
 
 ## Alpha stage — pre-release line
 
-plainworks is **pre-stable**, shipping on the `0.1.0-alpha.x` line (matching gokit/rskit's `v0.1.0-alpha.1`). New packages are born at `0.1.0-alpha.1` (the golden generator seeds this).
+plainworks is **pre-stable**, shipping on the `0.1.0-alpha.x` line. New packages are born at `0.1.0-alpha.1` (the golden generator seeds this).
 
 - **Pre mode is on.** `.changeset/pre.json` is committed with the `alpha` tag, so `changeset version` emits `0.1.0-alpha.N` and Changesets owns the counter. Never hand-edit `pre.json`.
 - **The release line is guarded.** `bun run check-versions` (part of `verify`) runs `plainworks-release check-line`. It fails when pre mode is on and a package is off the `-alpha.N` line, or when pre mode is off while a version still carries a prerelease suffix — the case where the next bump would publish a stable version by accident.
 - **Publish under the `alpha` dist-tag**, never `latest`, so `npm install @plainworks/<name>` does not pull a prerelease by default. The workflow refuses to publish a prerelease under `latest`.
-- **Graduating to stable `0.1.0`** is a deliberate step: run `bun x changeset pre exit`, commit the `exit` state, and version as usual. The guard allows prerelease versions in `exit` mode, and the graduating `changeset version` removes `pre.json`. Publish that release under `latest`.
+- **Graduating to stable `0.1.0`** is a deliberate step. It first needs the written stability and deprecation policy from [Public API and stability](../../engineering.md#public-api-and-stability); without it, refuse. Then run `bun x changeset pre exit`, commit the `exit` state, and version as usual. The guard allows prerelease versions in `exit` mode, and the graduating `changeset version` removes `pre.json`. Publish that release under `latest`.
 
 ## Prerequisites
 
@@ -29,7 +29,7 @@ ls .changeset/*.md            # pending changesets (excluding README.md/config.j
 bun run changeset status      # what would be versioned, and at what bump
 ```
 
-If there are no pending changesets, **refuse to release** — nothing to ship. Every merged change should have arrived with a changeset (the `create-pr` / `validate` gates require one); if one is missing, add it now with `bun run changeset` before versioning — written in the plain, benefit-first release-note voice (what a consumer gains, not internal mechanics; see the Documentation baseline in `copilot-instructions.md`).
+If there are no pending changesets, **refuse to release** — nothing to ship. Every merged change should have arrived with a changeset (the `create-pr` / `validate` gates require one); if one is missing, add it now with `bun run changeset` before versioning — written in the plain, benefit-first release-note voice (what a consumer gains, not internal mechanics; see [release notes](../../engineering.md#documentation-and-consumer-experience)).
 
 ## Step 2 — Full pre-release gate
 

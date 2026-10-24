@@ -94,7 +94,7 @@ describe("tasks section", () => {
         else
           stream.current?.frame({
             type: "failure",
-            data: JSON.stringify({ code: "TOKEN_EXPIRED", message: "Sign in.", retryable: false }),
+            data: JSON.stringify({ status: 401, title: "Sign in." }),
           })
       })
       expect((await screen.findByRole("alert")).textContent).toContain("Sign in.")

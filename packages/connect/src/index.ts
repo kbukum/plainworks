@@ -3,14 +3,18 @@
 // React hooks on `./client`. Re-export-only barrel. No React or DOM imports, so the `.` entry runs
 // anywhere (Node, edge, workers, RSC).
 export {
+  decodeRpcFailure,
   isRpcError,
   mapConnectError,
   RpcError,
-  type RpcErrorCode,
   type RpcErrorInit,
+  type RpcFailureDecoder,
+  type RpcFailureInput,
 } from "./errors"
 export {
   type ConnectProtocol,
   type CreateConnectTransportOptions,
   createConnectRpcTransport,
+  type FailureTransportOptions,
+  failureTransport,
 } from "./transport"

@@ -1,4 +1,4 @@
-import { manualClock } from "@plainworks/testkit"
+import { manualClock } from "@plainworks/std/time"
 import { describe, expect, test } from "vitest"
 import { createLogger, type LogRecord } from "./logger"
 

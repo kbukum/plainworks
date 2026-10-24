@@ -33,6 +33,7 @@ import { assertDurationMs } from "../duration"
 import { ChannelError } from "../errors"
 import { validateControl } from "../events/control"
 import { parseEventCursor } from "../events/cursor"
+import { decodeFailureFrame, type FailureFrameDecoder } from "../events/failure"
 import type { ChannelStatus } from "./status"
 
 const DEFAULT_CONNECT_TIMEOUT_MS = 30_000
@@ -90,6 +91,8 @@ export interface ChannelOptions {
   readonly random?: RandomSource
   /** Injected delay for deterministic backoff/timeout timing; defaults to the host timer. */
   readonly delay?: Delay
+  /** Reads an in-stream `failure` frame. Defaults to {@link decodeFailureFrame} (RFC 9457). */
+  readonly failures?: FailureFrameDecoder
 }
 
 /**
@@ -160,6 +163,7 @@ export function createChannel(options: ChannelOptions): Channel {
     clock = systemClock,
     random = systemRandom,
     delay = systemDelay,
+    failures = decodeFailureFrame,
   } = options
 
   if (!isNonNegativeInteger(maxRetries)) {
@@ -254,7 +258,7 @@ export function createChannel(options: ChannelOptions): Channel {
   const dispatch = (frame: StreamFrame): void => {
     const control = frame.type === "connected" || frame.type === "reset" || frame.type === "failure"
     if (control) {
-      validateControl(frame)
+      validateControl(frame, failures)
       hasBoundary = true
       if (frame.type === "reset") resetCursor()
     } else {
@@ -363,10 +367,7 @@ export function createChannel(options: ChannelOptions): Channel {
       // flap, or a failure before stabilizing) escalate backoff within the retry session.
       // A fatal failure always propagates to stop the loop.
       const endWithFailure = (error: unknown): void => {
-        if (
-          error instanceof RemoteFailure &&
-          (error.authentication !== undefined || error.reason === "AUTH_STORE_UNAVAILABLE")
-        ) {
+        if (error instanceof RemoteFailure && error.authentication !== undefined) {
           // Fence invalidation behind this attempt settling: a late auth rejection from an
           // already-closed or superseded attempt must not tear down a newer session.
           finish(() => {

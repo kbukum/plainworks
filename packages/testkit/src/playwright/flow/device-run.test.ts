@@ -4,6 +4,7 @@ import type { LayoutFacts } from "../checks/heuristics"
 import type { RuntimeError } from "../checks/runtime-errors"
 import { defineFlow, type Flow, type FlowCheckpoint } from "./definition"
 import { runFlowOnDevice } from "./device-run"
+import type { JourneyBudget } from "./journey"
 import { expandFlowMatrix } from "./matrix/expand"
 import { openFlowRun } from "./report/artifacts"
 import { memoryArtifactStore } from "./report/memory-store"
@@ -48,6 +49,8 @@ function fakeSession(overrides: Partial<FlowSession> = {}) {
     overlaysOutsideViewport: async () => [],
     focusProblems: async () => [],
     drainRuntimeErrors: () => errors.splice(0),
+    drainJourneyFindings: () => [],
+    journeyMetrics: () => ({ views: 0, typedFields: 0, picks: 0, activations: 0, focusMoves: 0 }),
     evidence: async () => ({ dom: "<html></html>", console: "[]", network: "[]" }),
     ...overrides,
   }
@@ -500,6 +503,95 @@ describe("runFlowOnDevice", () => {
     })
     expect(report.error?.message).toMatch(/evidence unavailable: evidence timed out after 5ms/)
     expect(held?.aborted).toBe(true)
+  })
+})
+
+describe("runFlowOnDevice journeys", () => {
+  const cost = { views: 3, typedFields: 2, picks: 0, activations: 4, focusMoves: 21 }
+  const journey = (budget: JourneyBudget): Flow =>
+    defineFlow({ name: "first-run", budget, checkpoints: [checkpoint("start"), checkpoint("end")] })
+
+  it("reports what the journey cost its user, with or without a budget", async () => {
+    const { session } = fakeSession({ journeyMetrics: () => cost })
+    const report = await runFlowOnDevice({
+      flow: twoStep,
+      plan: desktop,
+      session,
+      run: memoryRun().run,
+      mode: "assert",
+    })
+    expect(report.status).toBe("pass")
+    expect(report.journey).toEqual({ metrics: cost, budget: [] })
+  })
+
+  it("fails a completed journey over its budget, and passes a known overrun", async () => {
+    const { session } = fakeSession({ journeyMetrics: () => cost })
+    const run = (budget: JourneyBudget) =>
+      runFlowOnDevice({
+        flow: journey(budget),
+        plan: desktop,
+        session,
+        run: memoryRun().run,
+        mode: "assert",
+      })
+    expect((await run({ views: { max: 1 } })).status).toBe("fail")
+    const known = await run({ views: { max: 1, failsUntil: { step: "07", reason: "one page" } } })
+    expect(known.status).toBe("pass")
+    expect(known.journey?.budget).toEqual([
+      expect.objectContaining({ metric: "views", status: "expected-over" }),
+    ])
+    expect((await run({ views: { max: 3, failsUntil: { step: "07", reason: "r" } } })).status).toBe(
+      "fail",
+    )
+  })
+
+  it("does not judge the budget of a journey that stopped early", async () => {
+    const { session } = fakeSession({ journeyMetrics: () => cost, waitReady: async () => false })
+    const report = await runFlowOnDevice({
+      flow: journey({ views: { max: 0 } }),
+      plan: desktop,
+      session,
+      run: memoryRun().run,
+      mode: "assert",
+    })
+    expect(report.status).toBe("error")
+    expect(report.journey?.budget).toEqual([])
+  })
+
+  it("records the user's findings on the checkpoint that raised them, allowances included", async () => {
+    const pending = [
+      { check: "redundant-entry" as const, message: '"Credential" repeats "Name"' },
+      { check: "keyboard" as const, message: 'button "Run" is not reachable with Tab' },
+    ]
+    const { session } = fakeSession({ drainJourneyFindings: () => pending.splice(0) })
+    const flow = defineFlow({
+      name: "first-run",
+      checkpoints: [
+        checkpoint("start", {
+          allow: [{ check: "redundant-entry", reason: "the name is the credential's label" }],
+        }),
+        checkpoint("end"),
+      ],
+    })
+    const report = await runFlowOnDevice({
+      flow,
+      plan: desktop,
+      session,
+      run: memoryRun().run,
+      mode: "assert",
+    })
+    const [start, end] = report.checkpoints
+    expect(start?.findings).toEqual([
+      { check: "keyboard", message: 'button "Run" is not reachable with Tab' },
+    ])
+    expect(start?.allowed).toEqual([
+      expect.objectContaining({
+        check: "redundant-entry",
+        reason: "the name is the credential's label",
+      }),
+    ])
+    expect(end?.findings).toEqual([])
+    expect(report.status).toBe("fail")
   })
 })
 

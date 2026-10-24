@@ -1,6 +1,7 @@
 // Re-export-only barrel for the session concern: the client-safe identity snapshot and the
 // opaque browser session lifecycle.
 
+export { sessionFailureReasons, sessionFailures } from "./failures"
 export type { SessionResponse } from "./response"
 export { decodeSessionResponse, isSessionIdentity } from "./response"
 export type { AuthSnapshot } from "./snapshot"

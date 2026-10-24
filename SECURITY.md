@@ -28,7 +28,7 @@ plainworks follows [coordinated vulnerability disclosure](https://en.wikipedia.o
 
 ## Supported versions
 
-plainworks is pre-1.0. Only the latest published `0.x` line receives security fixes.
+plainworks is alpha and pre-1.0. Only the latest published `0.x` line receives security fixes.
 
 | Version | Supported |
 |---|---|
@@ -38,11 +38,11 @@ plainworks is pre-1.0. Only the latest published `0.x` line receives security fi
 ## Use plainworks securely
 
 - **Authentication:** Use Authorization Code with PKCE `S256`. Never use the implicit flow.
-- **Token storage:** Keep SPA access tokens in memory or use a BFF with `__Host-` cookies set to `Secure`, `HttpOnly`, and `SameSite=Strict`. Never use `localStorage`, `sessionStorage`, or URL parameters.
+- **Sessions:** Keep tokens on the server. The browser holds only an opaque `__Host-` session cookie (`Secure`, `HttpOnly`, `SameSite`) and sends CSRF protection on unsafe requests. Never put tokens in browser memory, `localStorage`, `sessionStorage`, or URLs.
 - **Transport:** Use TLS for HTTP and streaming transports. Never disable certificate verification in production.
 - **Secrets:** Use environment variables or a secret manager. Never commit secrets or embed a client secret in a browser bundle.
 - **Untrusted input:** Validate network responses, redirect targets, messages, and other values at each trust boundary.
-- **Dependencies:** Review advisories for new dependencies and run `bun run check-versions`.
+- **Dependencies:** Check maintenance, license, and advisories before adding a dependency, and pin it through the Bun catalog.
 - **Public types:** Keep public APIs free from `any` and expose typed errors so callers can handle failures safely.
 
 ## Supply-chain controls

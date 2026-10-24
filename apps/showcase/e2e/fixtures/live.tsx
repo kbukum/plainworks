@@ -1,6 +1,6 @@
 import "../../src/client/styles.css"
 
-import { createChannel } from "@plainworks/channel"
+import { type ChannelError, createChannel } from "@plainworks/channel"
 import { createEventRouter, protobufDecoder } from "@plainworks/channel/events"
 import { createSseTransport } from "@plainworks/channel/transport"
 import { Button } from "@plainworks/elements/button"
@@ -15,6 +15,10 @@ import { ThemeProvider } from "@plainworks/theme/client"
 import type { ThemePreference } from "@plainworks/theme/preference"
 import { type ReactElement, useEffect, useState } from "react"
 import { createRoot } from "react-dom/client"
+
+function describeFailure(error: ChannelError): string {
+  return error.authentication === "unauthenticated" ? "Sign in to continue" : error.message
+}
 
 function LiveJourney(): ReactElement {
   const [value, setValue] = useState("Waiting for a snapshot")
@@ -32,10 +36,7 @@ function LiveJourney(): ReactElement {
         transport: createSseTransport({ url: () => `/live-stream?mode=${mode.value}` }),
         minUptimeMs: 0,
         reconnect: false,
-        onError: (error) =>
-          setFailure(
-            error.authentication === "unauthenticated" ? "Sign in to continue" : error.message,
-          ),
+        onError: (error) => setFailure(describeFailure(error)),
       }),
     }
   })
@@ -62,7 +63,7 @@ function LiveJourney(): ReactElement {
       channel: composition.channel,
       decode: protobufDecoder(ProfileInputSchema),
       sinks: [live],
-      onError: (error) => setFailure(error.message),
+      onError: (error) => setFailure(describeFailure(error)),
     })
     composition.channel.connect()
     return () => {

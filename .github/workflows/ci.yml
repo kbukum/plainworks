@@ -36,9 +36,10 @@ jobs:
           node-version: ${{ matrix.node }}
 
       # The ordered gate list lives in `bun run verify` (`internal/verify`), so CI, the release
-      # workflow, and local runs never disagree about what "green" means.
+      # workflow, and local runs never disagree about what "green" means. CI streams every gate
+      # (`--verbose`) so a failure log is complete; local runs stay one line per gate.
       - name: Verify (every Definition-of-Done gate)
-        run: bun run verify
+        run: bun run verify --verbose
 
   # Proves the golden generator keeps producing gate-passing packages. Runs on a single
   # node (output is deterministic and the verify matrix already covers N/N-1); the tree it
@@ -67,7 +68,7 @@ jobs:
       - name: Gates on generated workspaces
         run: >-
           bun run verify --filter=@plainworks/smoke-server --filter=@plainworks/smoke-client
-          --filter=@plainworks/smoke-tool
+          --filter=@plainworks/smoke-tool --verbose
 
       - name: Assert "use client" directive is preserved
         run: |

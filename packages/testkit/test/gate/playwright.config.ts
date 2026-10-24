@@ -2,8 +2,11 @@ import { join } from "node:path"
 import { defineConfig, devices, type PlaywrightTestConfig } from "@playwright/test"
 import { browserGateUse } from "../../src/playwright/gate"
 
-// Driven only by `gate.test.ts`, which owns the data directory and reads the JSON report.
-const data = process.env.GATE_DATA_DIR ?? ".gate"
+// `gate.test.ts` drives it with its own data directory and reads the JSON report; `bun run e2e:pw`
+// runs one spec directly (`bun run e2e:pw journey.spec.ts`) and keeps its data in the ignored
+// package cache.
+const data =
+  process.env.GATE_DATA_DIR ?? join(import.meta.dirname, "../../node_modules/.cache/gate")
 
 const config: PlaywrightTestConfig = defineConfig({
   testDir: ".",

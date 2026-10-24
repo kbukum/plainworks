@@ -10,7 +10,6 @@ export default testConfig({
       "src/playwright/gate.ts",
       "src/playwright/checks/{animation,axe,focus,layout,layout-facts}.ts",
       "src/playwright/flow/{page-session,runner}.ts",
-      "src/playwright/ui-capture/node-runtime.ts",
     ],
   },
 })

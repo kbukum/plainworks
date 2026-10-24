@@ -4,6 +4,7 @@
 export { type EventCursor, parseEventCursor } from "./cursor"
 export type { EventDecoder } from "./event"
 export { jsonDecoder } from "./event"
+export { decodeFailureFrame, type FailureFrameDecoder } from "./failure"
 export { protobufDecoder } from "./protobuf"
 export { createEventRouter, type EventRouter, type EventRouterOptions } from "./router"
 export type { EventSink } from "./sink"

@@ -1,3 +1,4 @@
+import { isBudgetFailure } from "../journey/budget"
 import type { FlowDeviceReport, FlowReportSummary } from "./schema"
 
 /** Total a run's entries into its {@link FlowReportSummary}. */
@@ -6,7 +7,11 @@ export function summarizeFlowRuns(runs: readonly FlowDeviceReport[]): FlowReport
   const variants = checkpoints.flatMap((checkpoint) => checkpoint.variants)
   const failures =
     checkpoints.reduce((total, checkpoint) => total + checkpoint.findings.length, 0) +
-    variants.reduce((total, variant) => total + variant.findings.length, 0)
+    variants.reduce((total, variant) => total + variant.findings.length, 0) +
+    runs.reduce(
+      (total, run) => total + (run.journey?.budget.filter(isBudgetFailure).length ?? 0),
+      0,
+    )
   const allowed =
     checkpoints.reduce((total, checkpoint) => total + checkpoint.allowed.length, 0) +
     variants.reduce((total, variant) => total + variant.allowed.length, 0)

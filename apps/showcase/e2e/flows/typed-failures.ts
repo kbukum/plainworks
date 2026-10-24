@@ -1,20 +1,14 @@
+import { Code, ConnectError } from "@connectrpc/connect"
 import { connectFailureJson, createRpcFailureCases } from "@plainworks/connect/testing"
-import { wireFailures } from "@plainworks/mocks/failure"
 import { defineFlow } from "@plainworks/testkit/playwright"
 import { expect } from "@playwright/test"
 import { PAGE_FRAME } from "./frame"
 
 const invalid = createRpcFailureCases().find((fixture) => fixture.name === "descriptor-paths")
-const transient = wireFailures.find(
-  ({ wire }) => wire.name === "service_unavailable_retry_no_delay",
-)
-const unauthenticated = wireFailures.find(({ wire }) => wire.name === "unauthorized")
-if (invalid === undefined || transient === undefined || unauthenticated === undefined) {
-  throw new Error("Missing failure fixtures")
-}
+if (invalid === undefined) throw new Error("Missing failure fixtures")
 const invalidJson = connectFailureJson(invalid.error)
-const transientJson = transient.wire.connectJson
-const unauthenticatedJson = unauthenticated.wire.connectJson
+const transientJson = connectFailureJson(new ConnectError("Try again.", Code.Unavailable))
+const unauthenticatedJson = connectFailureJson(new ConnectError("Sign in.", Code.Unauthenticated))
 
 export const typedFailuresFlow = defineFlow({
   name: "typed-failures",

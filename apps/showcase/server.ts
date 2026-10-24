@@ -17,7 +17,7 @@ import {
   type IncomingMessage,
   type ServerResponse,
 } from "node:http"
-import { isAuthErrorKind } from "@plainworks/auth"
+import { AuthError, isAuthErrorKind } from "@plainworks/auth"
 import { sanitizeReturnTo } from "@plainworks/auth/redirect"
 import {
   authFailureResponse,
@@ -88,6 +88,9 @@ function redirect(
 ): Promise<void> {
   return sendWebResponse(res, redirectToPath({ origin: ORIGIN, path, cookies }))
 }
+
+// A rejected CSRF proof answers with the session problem the client's session decoder reads.
+const csrfRejected = () => authFailureResponse(new AuthError("auth/csrf", "CSRF proof rejected"))
 
 function sendStatus(res: ServerResponse, status: number, message: string): void {
   res.statusCode = status
@@ -215,13 +218,11 @@ async function main(): Promise<void> {
         methodNotAllowed(res, "POST")
         return
       }
-      if (!isSameOriginRequest(request, ORIGIN)) {
-        sendStatus(res, 403, "Forbidden")
-        return
-      }
-      const csrfToken = request.headers.get("x-csrf-token") ?? ""
-      if (!(await auth.session.verifyLogoutCsrf(jar, csrfToken))) {
-        sendStatus(res, 403, "Forbidden")
+      if (
+        !isSameOriginRequest(request, ORIGIN) ||
+        !(await auth.session.verifyLogoutCsrf(jar, request.headers.get("x-csrf-token") ?? ""))
+      ) {
+        await sendWebResponse(res, csrfRejected())
         return
       }
       await auth.session.logout(jar)
@@ -347,13 +348,10 @@ async function main(): Promise<void> {
           ),
         )
         .then(
-          (valid) => (valid ? dispatch() : sendStatus(res, 403, "Forbidden")),
-          (cause: unknown) => {
-            void sendWebResponse(res, authFailureResponse(cause)).catch(() =>
-              respondWithInternalError(res),
-            )
-          },
+          (valid) => (valid ? dispatch() : sendWebResponse(res, csrfRejected())),
+          (cause: unknown) => sendWebResponse(res, authFailureResponse(cause)),
         )
+        .catch(() => respondWithInternalError(res))
     } else dispatch()
   })
 

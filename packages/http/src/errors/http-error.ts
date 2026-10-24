@@ -1,4 +1,4 @@
-import { type Failure, failureCodeFor, RemoteFailure } from "@plainworks/std/failure"
+import { type Failure, failureCodeForStatus, RemoteFailure } from "@plainworks/std/failure"
 import { classifyStatus, type FailureCategory } from "@plainworks/std/resilience"
 import type { StandardSchemaIssue } from "@plainworks/std/seam"
 
@@ -46,12 +46,12 @@ export class HttpError extends RemoteFailure<HttpErrorKind> {
       failure ?? {
         code:
           fields.status !== undefined
-            ? failureCodeFor(fields.status, "http")
+            ? failureCodeForStatus(fields.status)
             : kind === "http/timeout"
-              ? "TIMEOUT"
+              ? "deadline_exceeded"
               : kind === "http/network"
-                ? "CONNECTION_FAILED"
-                : "EXTERNAL_SERVICE_ERROR",
+                ? "unavailable"
+                : "internal",
         message,
         violations: [],
         retryable: fields.retryable,

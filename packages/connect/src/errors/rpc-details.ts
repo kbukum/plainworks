@@ -8,10 +8,8 @@ import {
 import type { ConnectError } from "@connectrpc/connect"
 import {
   type Failure,
+  type FailureCode,
   FailureDecodeError,
-  failureCodeFor,
-  failureCodes,
-  isFailureCode,
   isViolationReason,
   type Violation,
 } from "@plainworks/std/failure"
@@ -26,28 +24,43 @@ import {
 
 type Detail = ConnectError["details"][number]
 
-/** Decode standard bytes, not Connect's optional debug JSON or lossy findDetails(). */
-export function decodeRpcFailure(
-  rawCode: number,
-  message: string,
-  details: readonly Detail[],
-): Failure {
-  if (!Number.isInteger(rawCode) || rawCode < 1 || rawCode > 16) {
-    throw new FailureDecodeError()
-  }
+/** A Connect error as received: its status code, message, and `google.rpc` detail messages. */
+export interface RpcFailureInput {
+  readonly code: FailureCode
+  readonly message: string
+  readonly details: readonly Detail[]
+}
+
+/**
+ * Turns a Connect error into a {@link Failure}. The default is {@link decodeRpcFailure}; an
+ * application passes its own to read a server's `ErrorInfo` domain and metadata.
+ *
+ * @throws {FailureDecodeError} When the details break the contract the decoder reads.
+ */
+export type RpcFailureDecoder = (input: RpcFailureInput) => Failure
+
+/**
+ * Decode the standard `google.rpc` error model from detail bytes, not Connect's optional debug JSON
+ * or lossy `findDetails()`. One `ErrorInfo` of any domain supplies reason, domain and metadata;
+ * `BadRequest` supplies violations; `RetryInfo` supplies the delay. A failure is retryable when the
+ * server sent `RetryInfo` or the code is `unavailable`, as Google's AIP-194 advises for RPC
+ * clients. This is RPC's standard, not HTTP's (`isRetryableStatus` in `@plainworks/std/failure`):
+ * an HTTP `500` or `429` is retryable by default, a Connect `internal` or `resource_exhausted`
+ * without `RetryInfo` is not. A server that wants one verdict on both sends it explicitly.
+ *
+ * @throws {FailureDecodeError} When a known detail repeats, does not decode, or is out of range.
+ */
+export function decodeRpcFailure({ code, message, details }: RpcFailureInput): Failure {
   let identity: ErrorInfo | undefined
   let retry: RetryInfo | undefined
   let badRequest: BadRequest | undefined
   for (const detail of details) {
     const type = "desc" in detail ? detail.desc.typeName : detail.type
     switch (type) {
-      case ErrorInfoSchema.typeName: {
-        const info = decodeDetail(ErrorInfoSchema, detail)
-        if (info.domain !== "gokit.dev") break
+      case ErrorInfoSchema.typeName:
         if (identity !== undefined) throw new FailureDecodeError()
-        identity = info
+        identity = decodeDetail(ErrorInfoSchema, detail)
         break
-      }
       case RetryInfoSchema.typeName:
         if (retry !== undefined) throw new FailureDecodeError()
         retry = decodeDetail(RetryInfoSchema, detail)
@@ -58,8 +71,7 @@ export function decodeRpcFailure(
         break
     }
   }
-  let code = failureCodeFor(rawCode, "rpc")
-  let retryable = retry !== undefined || failureCodes[code].retryable
+  const retryable = retry !== undefined || code === "unavailable"
   let retryAfterMs: number | undefined
   if (retry?.retryDelay !== undefined) {
     const { seconds, nanos } = retry.retryDelay
@@ -70,19 +82,6 @@ export function decodeRpcFailure(
     if (ms > BigInt(Number.MAX_SAFE_INTEGER)) throw new FailureDecodeError()
     retryAfterMs = ms === 0n ? undefined : Number(ms)
   }
-  let reason: string | undefined
-  let traceId: string | undefined
-  if (identity !== undefined && isFailureCode(identity.reason)) {
-    code = identity.reason
-    const verdict = identity.metadata.retryable
-    if (failureCodes[code].rpc !== rawCode || (verdict !== "true" && verdict !== "false")) {
-      throw new FailureDecodeError()
-    }
-    reason = identity.metadata.reason
-    if (reason !== undefined && !isViolationReason(reason)) throw new FailureDecodeError()
-    traceId = identity.metadata.traceId
-    retryable = verdict === "true"
-  }
   const violations: Violation[] = (badRequest?.fieldViolations ?? []).map((violation) => {
     const reason = violation.reason || "INVALID_VALUE"
     if (!isViolationReason(reason)) throw new FailureDecodeError()
@@ -91,8 +90,9 @@ export function decodeRpcFailure(
   return {
     code,
     message,
-    reason,
-    traceId,
+    reason: identity?.reason || undefined,
+    domain: identity?.domain || undefined,
+    metadata: { ...identity?.metadata },
     violations,
     retryable,
     retryAfterMs: retryable ? retryAfterMs : undefined,

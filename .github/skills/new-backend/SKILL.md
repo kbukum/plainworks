@@ -3,9 +3,9 @@ name: new-backend
 description: "plainworks: Add an opt-in, config-selected backend implementing the owning module's typed contract."
 ---
 
-# Adding a backend adapter to plainworks
+# New backend
 
-**Consumers bring adapters.** Core owns the contract and a lean default; alternative backends plug in through an explicitly created adapter. This mirrors the gokit/rskit backend-split principle, translated to idiomatic TS. Follow the [ownership baseline](../../engineering.md#product-and-ownership-boundary).
+**Consumers bring adapters.** Core owns the contract and a lean default; other backends plug in through an explicitly created adapter. Rules: [Ownership boundary](../../engineering.md#ownership-boundary), [Errors, async, and composition](../../engineering.md#errors-async-and-composition). Model: [dependency classification](../../../docs/architecture.md#dependency-classification).
 
 ## Where adapters live
 
@@ -20,19 +20,18 @@ Classify the concern first:
 | The same integration shipped by the kit for reuse | Its own package that owns the driver. Generate it with the existing tooling; change tooling only for what that package needs. |
 | App configuration, keys, routing, and integration selection | Consumer composition root |
 
-## The binding rules
+## What the adapter must do
 
-1. **Separate dependency ownership.** The integration owns its implementation and SDK/driver declarations. Core contains neither, including optional dependencies/peers and integration re-exports. A core subpath is not a separate owner.
-2. **Implements the core contract.** Do not duplicate contracts or export unrelated infrastructure from auth to make another package reuse it. Enhance the correct lower owner when a genuine shared need exists.
-3. **Explicit selection.** The consumer calls a typed `createX({...})` or registers into an injected registry. No environment reads, network, file access, or cross-package registration at import time.
-4. **Owned lifetime.** The host chooses process/request/browser-root scope; every resource has cancellation and teardown. Borrowers do not dispose their owners. Persistent data is not recreated per request.
-5. **Lean core.** Keep a bounded memory default when it serves the contract. A native database is not a lean default merely because it runs locally.
-6. **Runtime declaration.** A Node integration declares Node requirements with its owner (host or package) and compile profile. It must never enter core neutral/client graphs. Server credentials stay server-side; browser sessions remain opaque, without a browser token/refresh fallback.
-7. **Layering.** An integration depends downward on core contracts; core never depends on it. A packaged integration has explicit layer metadata and negative boundary tests.
+1. **Keep dependencies with their owner.** The integration owns its implementation and driver. Core holds neither, not even as an optional peer or re-export.
+2. **Implement the core contract.** Never duplicate a contract; enhance the lower owner when a real shared need exists.
+3. **Be selected explicitly.** A typed `createX({...})` or an injected registry. Nothing happens at import time.
+4. **Respect host lifetimes.** The host picks process, request, or browser scope. Every resource has cancellation and teardown; borrowers never dispose owners; persistent data is never recreated per request.
+5. **Declare its runtime.** A Node integration declares that with its owner and never enters core neutral or client graphs. Server credentials stay server-side; browser sessions stay opaque with no browser token fallback.
+6. **Point downward.** Core never depends on the integration. A packaged integration has layer metadata and negative boundary tests.
 
 Existing code is evidence, not permission to repeat a misplaced adapter. If the change replaces one, move all consumers and delete its old exports, driver declarations, tests in the wrong owner, and guidance. No compatibility aliases or forwarding subpaths.
 
-The shadcn atoms in `@plainworks/elements` are **not** a backend. They are **vendored** and **locked**, so they have no adapter seam to extend; refresh them with [`update-atoms`](../update-atoms/SKILL.md), and route a deviation through the deviation ladder in the [Vendored atoms](../../engineering.md#vendored-atoms) baseline.
+The shadcn atoms in `@plainworks/elements` are **not** a backend. They are **vendored** and **locked**, so they have no adapter seam to extend; refresh them with [`update-atoms`](../update-atoms/SKILL.md), and route a deviation through the [deviation ladder](../../engineering.md#vendored-atoms).
 
 ## Steps
 
@@ -40,7 +39,7 @@ The shadcn atoms in `@plainworks/elements` are **not** a backend. They are **ven
 2. **Choose the smallest owner.** Seam adapters stay beside their contract. A driver used by one consumer stays with that consumer. Create a package only when the kit genuinely ships the integration for reuse, through `bun run gen package` and its layer entry.
 3. **Implement test-first.** Run the owner's shared conformance cases (for example `@plainworks/auth/testing`) against memory, consumer-supplied, and integration implementations. Test invalid inputs, concurrency, cancellation, limits, and cleanup. Real native/filesystem/process proof belongs in integration tests.
 4. **Wire consumers explicitly.** Keep a core-only consumer working without the integration or driver. The starter installs only the integrations it deliberately selects.
-5. **Validate distribution.** Run affected gates and clean tarball consumption, including dependency absence in a core-only install and working native loading in an integration install. Audit/license-check dependencies and add the required Changeset; do not publish unless asked.
+5. **Validate distribution.** Run the affected gates and the [clean consumers](../validate/SKILL.md#clean-consumers) proof. Check dependency licenses and advisories, and add the Changeset. Never publish unless asked.
 
 ```bash
 bun run check-shape
@@ -57,4 +56,4 @@ bun run verify --filter=<owner>
 - [ ] Core-only and integration clean installs prove dependency isolation and runtime support
 - [ ] Superseded placement removed from code, manifests, consumers, and docs; Changeset covers the change
 
-Per repo workflow, **create the branch and make edits only** — the maintainer commits and pushes.
+Edit only; commits and pushes need the user's authorization.

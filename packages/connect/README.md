@@ -79,7 +79,7 @@ The per-attempt timeout uses `std` `withTimeout`, **not** Connect's `defaultTime
 
 ## Handle typed failures
 
-The transport surfaces `RpcError` automatically, outside Connect's interceptor normalization. Its shared application `code` is separate from the string `rpcCode` and numeric `rawCode`. Standard binary `ErrorInfo`, `RetryInfo`, and `BadRequest` details supply the application identity, retry verdict, and violations. Unknown identities preserve protocol classification; malformed known details are operational failures, never field prompts.
+The transport surfaces `RpcError` automatically, outside Connect's interceptor normalization. Its `code` is the canonical code the server sent, with the numeric `rawCode` alongside. The default decoder, `decodeRpcFailure`, reads the standard binary details: one `ErrorInfo` (reason, domain, metadata), `RetryInfo` (retry verdict and delay) and `BadRequest` (violations). A duplicate or malformed detail is an operational failure, never a field prompt. A backend with its own conventions passes a `failures` decoder to `createConnectRpcTransport`. To give another transport, such as an in-memory router in tests, the same typed failures and session handling, wrap it with `failureTransport(transport, { failures, session })`.
 
 ```ts
 import { isRpcError } from "@plainworks/connect"
@@ -159,4 +159,4 @@ const [schema] = useState(() => createProtobufForm(ProfileInputSchema))
 
 Numbers, enums, timestamps, nested messages, and repeated controls decode before real Protovalidate runs. Blank optional numeric values stay absent; empty strings stay present. Cross-field rules use the summary. Invalid input is a field issue; validator compilation/evaluation failures remain operational. Controls and repeated items are each capped at 1,000, nesting at 32. Map controls are rejected explicitly.
 
-The [showcase fixture](../../apps/showcase/e2e/fixtures/failures.tsx) is a complete composition. [Mocks](../mocks/README.md#wire-failure-fixtures) provides the pinned backend corpus; `createRpcFailureCases` and `connectFailureJson` from `./testing` add serialized malformed, reordered, foreign, and descriptor-path cases.
+The [showcase fixture](../../apps/showcase/e2e/fixtures/failures.tsx) is a complete composition. [Mocks](../mocks/README.md#standard-failures) builds standard Connect failures; `createRpcFailureCases` and `connectFailureJson` from `./testing` add serialized malformed, reordered, foreign, and descriptor-path cases.

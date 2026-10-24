@@ -8,11 +8,14 @@
 export { oidcAdapter, registerOidcAdapter } from "./adapter/oidc"
 export type {
   RefreshRotation,
+  RefreshStoreLimits,
   RefreshTokenStore,
   RefreshTokenStoreOptions,
 } from "./adapter/oidc/refresh-store"
 export {
   createRefreshTokenStore,
+  decideRefreshRotation,
+  refreshStoreLimits,
   validateRefreshHandle,
   validateRefreshToken,
 } from "./adapter/oidc/refresh-store"
@@ -35,17 +38,26 @@ export {
 export type { HmacSignerConfig } from "./server/hmac-signer"
 export { hmacSessionSigner } from "./server/hmac-signer"
 export type {
+  LiveGeneration,
   MemorySessionStoreOptions,
   OpaqueSessionStore,
+  SessionAdmission,
+  SessionStoreCapacity,
   StoredLogin,
   StoredSession,
 } from "./server/opaque-store"
 export {
+  admitLogin,
+  admitSession,
   createMemorySessionStore,
   decodeLoginRecord,
   decodeSessionMetadata,
   decodeSessionRecord,
   encodeSessionRecord,
+  MAX_LOGIN_LIFETIME_MS,
+  MAX_SESSION_LIFETIME_MS,
+  REVOCATION_RETENTION_MS,
+  sessionStoreCapacity,
 } from "./server/opaque-store"
 export type {
   ServerBeginLoginRequest,

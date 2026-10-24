@@ -35,6 +35,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "catalog:",
+    "@bufbuild/protovalidate": "catalog:",
     "@connectrpc/connect": "catalog:",
     "@plainworks/bundle-exclusion": "workspace:*",
     "@plainworks/connect": "workspace:*",

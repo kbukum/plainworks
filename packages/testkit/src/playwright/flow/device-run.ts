@@ -4,6 +4,7 @@ import { applyAllowances, capFindingsPerCheck, type Finding } from "../checks/fi
 import { judgeLayout, judgeLayoutShift } from "../checks/heuristics"
 import type { CheckpointChecks, Flow, FlowCheckpoint } from "./definition"
 import { FlowError, type FlowErrorKind } from "./errors"
+import { isBudgetFailure, judgeJourneyBudget } from "./journey/budget"
 import type { PageVariant } from "./matrix/axes"
 import type { DevicePlan } from "./matrix/expand"
 import { type CheckpointLocation, type FlowRunWriter, flowArtifactPaths } from "./report/artifacts"
@@ -61,6 +62,9 @@ export interface DeviceRunOptions {
  * cancel) ends the flow: the checkpoint records the typed error with its
  * evidence, and the checkpoints after it are skipped. It never throws for a flow failure; the
  * caller reads the returned report's `status`.
+ *
+ * The report also says what the journey cost its user. A budgeted flow that completes is judged
+ * against its budget, and a limit it breaks fails the flow.
  */
 export async function runFlowOnDevice(options: DeviceRunOptions): Promise<FlowDeviceReport> {
   const context: RunContext = {
@@ -78,14 +82,23 @@ export async function runFlowOnDevice(options: DeviceRunOptions): Promise<FlowDe
     checkpoints.push(report)
     error = report.error
   }
+  const metrics = options.session.journeyMetrics()
+  const { budget } = options.flow
+  const verdicts =
+    budget === undefined || error !== undefined ? [] : judgeJourneyBudget(budget, metrics)
   const statuses = checkpoints.map((checkpoint) => checkpoint.status)
   return {
     flow: options.flow.name,
     device: options.plan.device.id,
     mode: options.mode,
-    status: statuses.includes("error") ? "error" : statuses.includes("fail") ? "fail" : "pass",
+    status: statuses.includes("error")
+      ? "error"
+      : statuses.includes("fail") || verdicts.some(isBudgetFailure)
+        ? "fail"
+        : "pass",
     ...(error === undefined ? {} : { error }),
     checkpoints,
+    journey: { metrics, budget: verdicts },
   }
 }
 
@@ -166,6 +179,7 @@ async function runCheckpoint(
   for (const runtime of session.drainRuntimeErrors()) {
     findings.push({ check: "runtime", message: `${runtime.kind}: ${runtime.message}` })
   }
+  findings.push(...session.drainJourneyFindings())
 
   const judged = applyAllowances(findings, checkpoint.allow ?? [])
   let failures = judged.failures

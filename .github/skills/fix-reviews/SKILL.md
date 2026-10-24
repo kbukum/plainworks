@@ -3,7 +3,7 @@ name: fix-reviews
 description: "plainworks: Evaluate PR review comments and fix valid patterns across the affected change; only when asked."
 ---
 
-# Fixing PR reviews by pattern
+# Fix reviews
 
 A review comment points at one spot, but it almost always describes a *class* of problem. The value of this skill is **generalization**: treat each comment as a probe into a pattern, fix every instance of that pattern across the change set, and only then resolve the thread.
 
@@ -39,7 +39,7 @@ gh api graphql -f query='
 
 For every comment, decide before touching code:
 
-- **Valid?** Judge it against plainworks' baseline ([`../../copilot-instructions.md`](../../copilot-instructions.md)), not the reviewer's authority. If a suggestion conflicts with the baseline or is simply wrong, **do not apply it** — note why (leave the thread for the maintainer; never argue under their name).
+- **Valid?** Judge it against the [engineering standard](../../engineering.md), not the reviewer's authority. If a suggestion conflicts with the baseline or is simply wrong, **do not apply it** — note why (leave the thread for the maintainer; never argue under their name).
 - **What is the real pattern?** Look past the wording to the class of issue:
   - a typo/grammar note → *spelling & wording across all changed prose and TSDoc*
   - a missing timeout/cancellation on one call → *every remote call / stream in the change set*
@@ -61,16 +61,7 @@ git diff origin/main...HEAD --name-only     # the files in scope
 
 ## 4. Validate — scoped to what changed
 
-Run the smallest gates that cover the touched packages (see the [`validate`](../validate/SKILL.md) skill):
-
-```bash
-turbo run test --filter='...[origin/main]'
-bun run lint
-turbo run typecheck build --filter=@plainworks/<name>
-bun run check-boundaries && bun run check-versions
-```
-
-Docs/prose-only sweeps need no build/test gates. Never resolve a thread whose fix hasn't been validated.
+Run the smallest gates that cover the touched packages with the [validate](../validate/SKILL.md) skill, usually `bun run verify --filter='...[origin/main]'`. Prose-only sweeps need documentation checks only. Never resolve a thread whose fix hasn't been validated.
 
 ## 5. Commit, push, and resolve
 
@@ -87,6 +78,4 @@ gh api graphql -f query='
 
 Leave unresolved only the threads you deliberately rejected (baseline conflict) or that need a maintainer decision; briefly report those back rather than resolving them silently.
 
-## Baseline
-
-Every fix must still satisfy plainworks' baseline. If acting on a comment would push code below the baseline, reject the comment instead.
+Every fix must still meet the engineering standard. If acting on a comment would break it, reject the comment instead.

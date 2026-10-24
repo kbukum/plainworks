@@ -1,5 +1,6 @@
 import type { AllowedFinding, Finding } from "../../checks/findings"
 import type { FlowErrorKind } from "../errors"
+import type { BudgetVerdict, JourneyMetrics } from "../journey/budget"
 import type { FlowMode, PreferenceId } from "../matrix/axes"
 import type { DeviceId } from "../matrix/devices"
 import type { MatrixPresetName } from "../matrix/presets"
@@ -64,6 +65,15 @@ export interface CheckpointReport {
   readonly variants: readonly VariantReport[]
 }
 
+/**
+ * What a flow cost its user on one device. `budget` holds one verdict per limit of a budgeted flow
+ * that completed; it is empty for a flow without a budget or one that stopped early.
+ */
+export interface JourneyReport {
+  readonly metrics: JourneyMetrics
+  readonly budget: readonly BudgetVerdict[]
+}
+
 /** One flow replayed on one device. */
 export interface FlowDeviceReport {
   readonly flow: string
@@ -74,6 +84,8 @@ export interface FlowDeviceReport {
   /** Where the runner keeps this test's trace, when tracing is on. It holds cookies: never share it. */
   readonly trace?: string
   readonly checkpoints: readonly CheckpointReport[]
+  /** Written by every run; absent only in a report from before journeys were measured. */
+  readonly journey?: JourneyReport
 }
 
 /** Totals over a whole run. `verdict` is `fail` when any entry failed a check or errored. */
@@ -84,6 +96,7 @@ export interface FlowReportSummary {
   readonly checkpoints: number
   readonly variants: number
   readonly frames: number
+  /** Failed checks, and broken journey budget limits. */
   readonly failures: number
   readonly allowed: number
   readonly errors: number

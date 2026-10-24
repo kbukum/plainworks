@@ -32,7 +32,7 @@ export function isSessionIdentity(value: unknown): value is SessionIdentity {
   )
 }
 
-/** Validate the published gokit session response without application conversion. */
+/** Validate the session response contract without application conversion. */
 export function decodeSessionResponse(value: unknown): SessionResponse {
   if (
     !isRecord(value) ||

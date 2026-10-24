@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
-import { fixTsx } from "./format"
+import { fixSource } from "@plainworks/workspace"
 import { isRecord, readJson } from "./json"
 import { diffLines } from "./line-diff"
 import { lockAtom, type Upstream, verifyLock } from "./lock"
@@ -33,7 +33,7 @@ export interface AtomDiff {
  * The default seams: the shadcn CLI, Biome, and the installed CLI version. Tests inject offline
  * fakes for all three.
  */
-const DEFAULT_SEAMS: Seams = { pull: shadcnPull, fix: fixTsx, upstream: shadcnUpstream }
+const DEFAULT_SEAMS: Seams = { pull: shadcnPull, fix: fixSource, upstream: shadcnUpstream }
 
 function materializeAtom(root: string, name: string, seams: Seams): string {
   return seams.fix(applyCompatTransform(seams.pull(name, root)), join(root, shadcnPath(name)))

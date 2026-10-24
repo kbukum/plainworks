@@ -32,6 +32,11 @@ export function parseApiParams(params: Record<string, string>): FilterQuery {
   return { conditions }
 }
 
+/** Decode a URL query string (`status=eq.active&priority=gt.3`); a repeated key keeps its last value. */
+export function parseFilterString(queryString: string): FilterQuery {
+  return parseApiParams(Object.fromEntries(new URLSearchParams(queryString)))
+}
+
 /** Parse a single `field=op.value` API condition, returning `null` when it is not recognised. */
 function parseApiCondition(field: string, apiValue: string): FilterCondition | null {
   const resolved = splitOperatorToken(apiValue)

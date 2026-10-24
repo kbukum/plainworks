@@ -43,7 +43,7 @@ Each `request` runs a fixed pipeline:
 3. **Apply resilience** — a per-attempt timeout and bounded, jittered retry for idempotent methods.
 4. **Decode the body** to an untrusted `unknown`, then **validate** it with the request's `schema` to produce `HttpResponse<T>`, where `data` is `T | undefined` (a `204`/no-content response has no body).
 
-A non-2xx response or a network failure throws a typed `HttpError`. Namespaced `application/problem+json` failures expose the shared application `code`, semantic violations, and retry verdict while retaining HTTP `status`. Foreign or unknown identities retain status classification; malformed known failures stay operational. Body seconds and `Retry-After` become a minimum delay in milliseconds, never shortened to `backoff.maxMs`. The total `budgetMs` bounds admission, attempts, and waits; a minimum beyond it stops retries.
+A non-2xx response or a network failure throws a typed `HttpError`. An `application/problem+json` body is read as an RFC 9457 problem: the HTTP `status` sets the canonical `code` and retry verdict, a non-`about:blank` `type` becomes the `reason`, and string extension members become `metadata`. A malformed problem stays operational (`http/decode`). A backend with its own extension members passes a `failures` decoder in the client options. `Retry-After` becomes a minimum delay in milliseconds, never shortened to `backoff.maxMs`. The total `budgetMs` bounds admission, attempts, and waits; a minimum beyond it stops retries.
 
 ### Resource methods
 

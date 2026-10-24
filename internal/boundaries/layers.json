@@ -18,8 +18,8 @@
       "summary": "Authentication, OIDC with PKCE, forms, data, navigation, and UI composites."
     },
     {
-      "packages": ["app", "testkit", "mocks", "devtools"],
-      "summary": "Application composition, shared test tooling, reusable MSW mock-building primitives, and the development-only runtime inspector."
+      "packages": ["app", "testkit", "mocks", "devtools", "vite"],
+      "summary": "Application composition, shared test tooling, reusable MSW mock-building primitives, the development-only runtime inspector, and the Vite source link for consumer feedback loops."
     }
   ]
 }

@@ -48,6 +48,19 @@ describe("publishedManifest", () => {
     expect(publishedManifest(text)).toBe(text)
   })
 
+  it("publishes a source-linked asset as its plain dist path", () => {
+    const text = JSON.stringify({
+      exports: {
+        "./styles.css": { "@plainworks/source": "./src/styles.css", default: "./dist/styles.css" },
+        "./tokens.css": "./dist/tokens.css",
+      },
+    })
+    expect(JSON.parse(publishedManifest(text)).exports).toEqual({
+      "./styles.css": "./dist/styles.css",
+      "./tokens.css": "./dist/tokens.css",
+    })
+  })
+
   it("keeps the two-space layout npm shows on the registry", () => {
     const text = JSON.stringify({
       exports: { ".": { "@plainworks/source": "./src/a.ts", default: "./dist/a.js" } },

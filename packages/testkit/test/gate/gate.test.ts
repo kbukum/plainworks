@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from "vitest"
 
 // Runs the real Playwright runner over `gate.spec.ts` and inspects what the gate owned afterwards:
 // every worker's host process must be gone whether the run passed, failed, timed out, or was
-// cancelled.
+// cancelled. It also runs `journey.spec.ts`, which proves the flow user's verbs in real Chromium.
 
 const playwright = join(import.meta.dirname, "../../node_modules/.bin/playwright")
 const config = join(import.meta.dirname, "playwright.config.ts")
@@ -58,11 +58,12 @@ async function run(
     workers?: number
     env?: Record<string, string>
     cancel?: "SIGINT" | "SIGTERM"
+    spec?: string
   } = {},
 ): Promise<Run> {
   const data = mkdtempSync(join(tmpdir(), "gate-"))
   dirs.push(data)
-  const child = spawn(playwright, ["test", "-c", config, "gate.spec.ts"], {
+  const child = spawn(playwright, ["test", "-c", config, options.spec ?? "gate.spec.ts"], {
     cwd: import.meta.dirname,
     env: {
       ...process.env,
@@ -164,6 +165,13 @@ describe("browser gate in the real Playwright runner", { timeout: 120_000 }, () 
     expect(result.code, result.output).not.toBe(0)
     expect(workers(result.data)).toHaveLength(1)
     await expectReleased(result.data)
+  })
+
+  it("drives journeys the way a keyboard or touch user would", async () => {
+    const result = await run("none", { spec: "journey.spec.ts" })
+    expect(result.code, result.output).toBe(0)
+    expect(result.statuses).not.toHaveLength(0)
+    expect(new Set(result.statuses)).toEqual(new Set(["passed"]))
   })
 
   it("rejects sharing an external host across workers", async () => {

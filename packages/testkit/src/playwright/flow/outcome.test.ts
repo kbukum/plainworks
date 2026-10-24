@@ -25,6 +25,26 @@ describe("flowOutcomeError", () => {
     expect(error?.message).toContain("create-task › mobile")
   })
 
+  it("lists each broken budget limit after the failed checks", () => {
+    const failsUntil = { step: "07", reason: "one page" }
+    const error = flowOutcomeError({
+      ...base,
+      status: "fail",
+      journey: {
+        metrics: { views: 4, typedFields: 0, picks: 1, activations: 2, focusMoves: 9 },
+        budget: [
+          { metric: "views", max: 1, actual: 4, status: "over" },
+          { metric: "picks", max: 1, actual: 1, status: "unexpectedly-met", failsUntil },
+          { metric: "activations", max: 1, actual: 2, status: "expected-over", failsUntil },
+        ],
+      },
+    })
+    expect(error?.message.split("\n").slice(1)).toEqual([
+      "  budget › views: 4, over the limit of 1",
+      "  budget › picks: 1 now meets 1; remove its failsUntil (07)",
+    ])
+  })
+
   it("lists each failure by checkpoint and variant", () => {
     const error = flowOutcomeError({
       ...base,

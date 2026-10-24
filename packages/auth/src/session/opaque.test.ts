@@ -1,6 +1,6 @@
-import { fixedClock } from "@plainworks/std/time"
+import { fixedClock, manualClock } from "@plainworks/std/time"
 import type { WebFetch, WebRequestInit, WebResponse } from "@plainworks/std/web"
-import { deferred, flushMicrotasks, manualClock, manualDelay } from "@plainworks/testkit"
+import { deferred, flushMicrotasks, manualDelay } from "@plainworks/testkit"
 import { describe, expect, test, vi } from "vitest"
 import { createAuthStore } from "./store"
 

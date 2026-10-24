@@ -1,3 +1,4 @@
+import { decodeProblem } from "@plainworks/std/failure"
 import { AbortError } from "@plainworks/std/resilience"
 import type { AuthHeaders, StreamFrame, StreamTransportContext } from "@plainworks/std/seam"
 import type {
@@ -345,6 +346,36 @@ describe("createSseTransport", () => {
     expect(h.opened).toBe(0)
   })
 
+  test("reads a rejected stream request with the host's problem decoder", async () => {
+    const h = collect()
+    const transport = createSseTransport({
+      url: "https://example.test/stream",
+      fetch: h.fetchWith(
+        () =>
+          new Response(
+            JSON.stringify({ title: "Unavailable", status: 503, reason: "STORE_DOWN" }),
+            {
+              status: 503,
+              headers: { "content-type": "application/problem+json" },
+            },
+          ),
+      ),
+      failures: (input) => {
+        const failure = decodeProblem(input)
+        return failure.metadata?.reason === "STORE_DOWN"
+          ? { ...failure, authentication: "unavailable" }
+          : failure
+      },
+    })()
+
+    await expect(transport.open(h.context)).rejects.toMatchObject({
+      status: 503,
+      authentication: "unavailable",
+      retryable: false,
+    })
+    expect(h.opened).toBe(0)
+  })
+
   test("rejects a wrong content-type", async () => {
     const h = collect()
     const transport = createSseTransport({
@@ -353,6 +384,46 @@ describe("createSseTransport", () => {
     })()
 
     await expect(transport.open(h.context)).rejects.toBeInstanceOf(ChannelError)
+  })
+
+  test("cancels the unread body of a wrong content-type", async () => {
+    const h = collect()
+    const source = controlledBody()
+    const transport = createSseTransport({
+      url: "https://example.test/stream",
+      fetch: h.fetchWith(() => ({
+        ...source.response(),
+        headers: new Headers({ "content-type": "application/json" }),
+      })),
+    })()
+
+    await expect(transport.open(h.context)).rejects.toMatchObject({ kind: "channel/protocol" })
+    expect(source.cancelReasons).toHaveLength(1)
+    expect(source.locked).toBe(false)
+  })
+
+  test("keeps the protocol error when cancelling the unread body fails", async () => {
+    const h = collect()
+    const failure = new Error("cancel failed")
+    const body: WebReadableStream<Uint8Array> = {
+      cancel: () => Promise.reject(failure),
+      getReader: () => {
+        throw new Error("the unread body is never read")
+      },
+    }
+    const transport = createSseTransport({
+      url: "https://example.test/stream",
+      fetch: h.fetchWith(() => ({
+        ...controlledBody().response(),
+        headers: new Headers({ "content-type": "application/json" }),
+        body,
+      })),
+    })()
+
+    await expect(transport.open(h.context)).rejects.toMatchObject({
+      kind: "channel/protocol",
+      cause: failure,
+    })
   })
 
   test("bounds the decode buffer and ends with a protocol error on overflow", async () => {

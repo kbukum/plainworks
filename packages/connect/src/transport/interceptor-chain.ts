@@ -2,6 +2,7 @@ import type { Interceptor } from "@connectrpc/connect"
 import type { RandomSource } from "@plainworks/std/random"
 import type { Delay } from "@plainworks/std/resilience"
 import type { AuthHeaderProvider, ProtectedSession } from "@plainworks/std/seam"
+import type { RpcFailureDecoder } from "../errors"
 import { authHeaderInterceptor } from "../interceptor/auth-header"
 import { protectedSessionInterceptor } from "../interceptor/protected-session"
 import { type ConnectRetryPolicy, resilienceInterceptor } from "../interceptor/resilience"
@@ -24,6 +25,8 @@ export interface InterceptorChainOptions {
   readonly delay?: Delay
   /** Injectable jitter source for deterministic retry tests. */
   readonly random?: RandomSource
+  /** Reads Connect error details for the retry verdict. */
+  readonly failures?: RpcFailureDecoder
 }
 
 /**
@@ -39,12 +42,22 @@ export interface InterceptorChainOptions {
  * duplication of the resilience/auth logic.
  */
 export function buildInterceptorChain(options: InterceptorChainOptions): Interceptor[] {
-  const { baseUrl, interceptors = [], authProvider, timeoutMs, retry, delay, random } = options
+  const {
+    baseUrl,
+    interceptors = [],
+    authProvider,
+    timeoutMs,
+    retry,
+    delay,
+    random,
+    failures,
+  } = options
   const resilience = resilienceInterceptor({
     timeoutMs,
     ...(retry !== undefined ? { retry } : {}),
     ...(delay !== undefined ? { delay } : {}),
     ...(random !== undefined ? { random } : {}),
+    ...(failures !== undefined ? { failures } : {}),
   })
   const chain: Interceptor[] = [resilience, ...interceptors]
   if (authProvider !== undefined) {

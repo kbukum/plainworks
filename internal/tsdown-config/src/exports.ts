@@ -6,7 +6,9 @@ export type ExportTarget = string | Readonly<Record<string, string>>
 
 /**
  * The package `exports` map for a build: each entry under its subpath, source first for the repo,
- * then the `dist` types and module; each asset as its `dist` file.
+ * then the `dist` types and module. An asset copied from `src` also resolves to that file under the
+ * source condition, so a source-linked consumer reads live stylesheets; a generated asset exists
+ * only as its `dist` file.
  */
 export function renderExports(build: PackageBuild): Record<string, ExportTarget> {
   const exports: Record<string, ExportTarget> = {}
@@ -17,7 +19,11 @@ export function renderExports(build: PackageBuild): Record<string, ExportTarget>
       ? dist
       : { [SOURCE_CONDITION]: `./${source}`, ...dist }
   }
-  for (const name of Object.keys(build.assets ?? {})) exports[`./${name}`] = `./dist/${name}`
+  for (const [name, asset] of Object.entries(build.assets ?? {})) {
+    const dist = `./dist/${name}`
+    exports[`./${name}`] =
+      "from" in asset ? { [SOURCE_CONDITION]: `./${asset.from}`, default: dist } : dist
+  }
   return exports
 }
 

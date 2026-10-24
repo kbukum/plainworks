@@ -1,33 +1,29 @@
 import { isPositiveInteger } from "@plainworks/std"
 import { base64urlEncode } from "@plainworks/std/encoding"
 import type { AuthCrypto } from "../crypto"
-import { constantTimeEqual } from "../crypto/constant-time"
 import { AuthError } from "../errors"
 import type { SessionSigner } from "../signer/seam"
 
 /**
- * Anti-CSRF protection for the **signed, session-bound double-submit** pattern. `SameSite=Strict`
- * on the session cookie is the primary defense; this token is the enforced defense-in-depth on
- * every state-changing (`POST`/`PUT`/`PATCH`/`DELETE`) request.
+ * Anti-CSRF protection with a **signed, session-bound synchronizer token**. `SameSite=Strict` on
+ * the session cookie is the primary defense; this token is the enforced defense-in-depth on every
+ * state-changing (`POST`/`PUT`/`PATCH`/`DELETE`) request.
  *
- * A token is high-entropy CSPRNG output **bound to the current session** and signed with the same
- * {@link SessionSigner} that protects the session cookie: the random bytes and a session-binding
- * string are MAC'd together, so a token minted for one session cannot be replayed against another
- * (its MAC does not verify under the other session's binding), and neither side can be forged
- * without the server key. The package owns **both halves** — it mints the token (written to a
- * `__Host-` cookie by the server composition) and verifies the cookie value against the
- * header/field echo. Every comparison is constant-time so a mismatch cannot be probed byte by byte.
+ * A token is high-entropy CSPRNG output signed together with a per-session binding by the same
+ * {@link SessionSigner} that protects the session cookie. The server hands it to the page, the
+ * page echoes it in a header or form field, and the server checks it against the session it holds.
+ * No CSRF cookie is involved: a token minted for one session fails under another session's
+ * binding, and nobody can forge one without the server key.
  */
 export interface CsrfProtection {
   /** Mint a fresh token bound to `binding` (a stable, per-session identifier). */
   issue(binding: string): Promise<string>
   /**
-   * Verify a double-submit pair for `binding`: the token carried by the cookie against the token
-   * echoed in the request header/field. Returns `false` for an empty token on either side, a
-   * mismatch between the two, a malformed token, or a signature that does not bind the token to
-   * `binding` — an absent, tampered, or foreign-session token never satisfies the check.
+   * Verify the token echoed by a request against `binding`. Returns `false` for an empty token, one
+   * longer than {@link MAX_CSRF_TOKEN_LENGTH}, a malformed token, or a signature that does not bind
+   * the token to `binding`, so an absent, tampered, or foreign-session token never passes.
    */
-  verify(binding: string, cookieToken: string, requestToken: string): Promise<boolean>
+  verify(binding: string, token: string): Promise<boolean>
 }
 
 /** How to build a {@link CsrfProtection}. */
@@ -37,15 +33,18 @@ export interface CsrfConfig {
   /** CSPRNG source for the token's random half — never a seeded RNG. */
   readonly crypto: AuthCrypto
   /**
-   * Random bytes per token; defaults to 32. Must be an integer of at least 16 bytes for full
-   * cryptographic entropy.
+   * Random bytes per token; defaults to 32. Must be an integer from 16 (full cryptographic
+   * entropy) to 64 (so the token stays within {@link MAX_CSRF_TOKEN_LENGTH}).
    */
   readonly byteLength?: number
 }
 
+/** The longest token {@link CsrfProtection.verify} reads; anything longer is rejected unchecked. */
+export const MAX_CSRF_TOKEN_LENGTH = 256
+
 const DEFAULT_TOKEN_BYTES = 32
 const MIN_TOKEN_BYTES = 16
-const encoder = new TextEncoder()
+const MAX_TOKEN_BYTES = 64
 
 // The canonical message the MAC covers — the session binding and the token's random half — so a
 // token only verifies against the session it was minted for.
@@ -55,39 +54,48 @@ function bindingMessage(binding: string, random: string): string {
 
 /**
  * Build a {@link CsrfProtection}. A factory (no module-level state), so a per-request composition
- * shares the session signer with the cookie codec and both halves of the pattern live in the
- * package.
+ * shares the session signer with the cookie codec.
+ *
+ * @throws {AuthError} `auth/config` for a `byteLength` outside 16–64; `issue` rejects with
+ *   `auth/config` when the signer's signature makes the token longer than the verifier accepts.
  */
 export function createCsrf(config: CsrfConfig): CsrfProtection {
   const byteLength = config.byteLength ?? DEFAULT_TOKEN_BYTES
-  if (!isPositiveInteger(byteLength) || byteLength < MIN_TOKEN_BYTES) {
+  if (
+    !isPositiveInteger(byteLength) ||
+    byteLength < MIN_TOKEN_BYTES ||
+    byteLength > MAX_TOKEN_BYTES
+  ) {
     throw new AuthError(
       "auth/config",
-      `csrf byteLength must be a safe integer of at least ${MIN_TOKEN_BYTES} bytes, got ${byteLength}`,
+      `csrf byteLength must be an integer from ${MIN_TOKEN_BYTES} to ${MAX_TOKEN_BYTES}, got ${byteLength}`,
     )
   }
   return {
     async issue(binding: string): Promise<string> {
       const random = base64urlEncode(config.crypto.randomBytes(byteLength))
       const mac = await config.signer.sign(bindingMessage(binding, random))
-      return `${random}.${mac}`
+      const token = `${random}.${mac}`
+      if (token.length > MAX_CSRF_TOKEN_LENGTH) {
+        throw new AuthError(
+          "auth/config",
+          `csrf token is ${token.length} characters; the signer must keep it within ${MAX_CSRF_TOKEN_LENGTH}`,
+        )
+      }
+      return token
     },
-    async verify(binding: string, cookieToken: string, requestToken: string): Promise<boolean> {
-      if (cookieToken.length === 0 || requestToken.length === 0) {
+    async verify(binding: string, token: string): Promise<boolean> {
+      if (token.length === 0 || token.length > MAX_CSRF_TOKEN_LENGTH) {
         return false
       }
-      // Double-submit: the cookie value and the echoed value must match, constant-time.
-      if (!constantTimeEqual(encoder.encode(cookieToken), encoder.encode(requestToken))) {
+      const dot = token.indexOf(".")
+      if (dot <= 0 || dot !== token.lastIndexOf(".")) {
         return false
       }
-      const dot = cookieToken.indexOf(".")
-      if (dot <= 0 || dot !== cookieToken.lastIndexOf(".")) {
-        return false
-      }
-      const random = cookieToken.slice(0, dot)
-      const mac = cookieToken.slice(dot + 1)
-      // Session binding: the MAC must verify under THIS session's binding, so a token minted for a
-      // different session (or tampered) is rejected.
+      const random = token.slice(0, dot)
+      const mac = token.slice(dot + 1)
+      // The MAC must verify under THIS session's binding, so a token minted for a different session
+      // (or tampered) is rejected. The signer compares in constant time.
       return config.signer.verify(bindingMessage(binding, random), mac)
     },
   }

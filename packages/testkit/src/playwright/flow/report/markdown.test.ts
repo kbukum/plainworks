@@ -115,6 +115,55 @@ describe("renderFlowReportMarkdown", () => {
   })
 })
 
+describe("renderFlowReportMarkdown journeys", () => {
+  it("shows what each journey cost against its budget, and counts a broken limit as a failure", () => {
+    const journeyRun: FlowReport["runs"][number] = {
+      ...passing,
+      flow: "first-run",
+      status: "fail",
+      journey: {
+        metrics: { views: 5, typedFields: 7, picks: 0, activations: 9, focusMoves: 40 },
+        budget: [
+          {
+            metric: "views",
+            max: 1,
+            actual: 5,
+            status: "expected-over",
+            failsUntil: { step: "07", reason: "one evaluate page" },
+          },
+          { metric: "typedFields", max: 3, actual: 7, status: "over" },
+        ],
+      },
+    }
+    const markdown = renderFlowReportMarkdown(report([passing, journeyRun]))
+    expect(markdown).toContain("## Journeys")
+    expect(markdown).toContain(
+      "| first-run | desktop | 5 | 7 | 0 | 9 | 40 | views 5/1 expected until 07: one evaluate page; **typedFields 7/3 over** |",
+    )
+    expect(markdown).not.toContain("| create-task | desktop | 0 |")
+    expect(markdown).toContain("| first-run | desktop | fail | 1 | 0 | 1 |")
+    expect(markdown).toContain("**Verdict: fail** — 1 failures")
+  })
+
+  it("leaves the section out when no flow measured a journey", () => {
+    expect(renderFlowReportMarkdown(report([passing]))).not.toContain("## Journeys")
+  })
+
+  it("marks an errored journey's budget as not judged", () => {
+    const errored: FlowReport["runs"][number] = {
+      ...failing,
+      flow: "first-run",
+      journey: {
+        metrics: { views: 2, typedFields: 1, picks: 0, activations: 0, focusMoves: 3 },
+        budget: [],
+      },
+    }
+    expect(renderFlowReportMarkdown(report([errored]))).toContain(
+      "| first-run | mobile | 2 | 1 | 0 | 0 | 3 | not judged |",
+    )
+  })
+})
+
 describe("renderFlowReportMarkdown for ui:capture", () => {
   it("explains the selection, then the visual changes with their files and sheets", () => {
     const markdown = renderFlowReportMarkdown({

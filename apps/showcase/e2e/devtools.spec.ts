@@ -54,7 +54,8 @@ test("consumer discovers instances, isolates failure, reports overflow, and clea
     2,
   )
   await page.keyboard.press("Escape")
-  await rail.getByRole("button", { name: "Cache health: degraded" }).click()
+  // Chromium names a rail entry from its blockified parts, so label, colon and value are spaced.
+  await rail.getByRole("button", { name: "Cache health : degraded" }).click()
   const panel = inspector(page)
   await expect(panel.getByRole("tab", { name: "fixture", exact: true })).toHaveAttribute(
     "aria-selected",
@@ -68,7 +69,7 @@ test("consumer discovers instances, isolates failure, reports overflow, and clea
   await page.keyboard.press("Escape")
 
   await page.getByRole("button", { name: "Fail primary source" }).click()
-  await rail.getByRole("button", { name: "Primary cache: Failed" }).click()
+  await rail.getByRole("button", { name: "Primary cache : Failed" }).click()
   await panel.getByRole("combobox", { name: "Instance" }).selectOption({ label: "Primary cache" })
   await expect(panel.getByRole("alert")).toContainText("Fixture source unavailable")
   await expectNoPageAxeViolations(page)
@@ -78,7 +79,7 @@ test("consumer discovers instances, isolates failure, reports overflow, and clea
   await page.keyboard.press("Escape")
 
   await page.getByRole("button", { name: "Emit burst" }).click()
-  await rail.getByRole("button", { name: /Timeline: .* dropped/ }).click()
+  await rail.getByRole("button", { name: /Timeline : .* dropped/ }).click()
   await expect(panel.getByRole("tab", { name: "Timeline" })).toHaveAttribute(
     "aria-selected",
     "true",
@@ -116,7 +117,7 @@ test("rail, inspector, and custom commands are accessible and responsive", async
   await expect(trigger).toBeFocused()
   await page
     .getByRole("list", { name: "Diagnostics" })
-    .getByRole("button", { name: "Mock errors: on" })
+    .getByRole("button", { name: "Mock errors : on" })
     .click()
   await expect(panel.getByRole("tab", { name: "mock", exact: true })).toHaveAttribute(
     "aria-selected",

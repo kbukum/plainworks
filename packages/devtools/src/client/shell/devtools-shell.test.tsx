@@ -171,7 +171,7 @@ describe("DevtoolsShell", () => {
         labels={{
           bar: "Outils",
           inspect: "Inspecter",
-          railEntry: (label, value) => `${label} vaut ${value}`,
+          railStale: "(périmé)",
           showMore: (count) => `${count} de plus`,
           inspectorTitle: "Inspecteur",
           closeInspector: "Fermer",
@@ -180,7 +180,7 @@ describe("DevtoolsShell", () => {
       />,
     )
     expect(screen.getByRole("region", { name: "Outils" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Probe a vaut up" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Probe a: up" })).toBeTruthy()
     await user.click(screen.getByRole("button", { name: "2 de plus" }))
     expect(screen.getByRole("region", { name: "Inspecteur" })).toBeTruthy()
     expect(screen.getByRole("tab", { name: "Aperçu" })).toBeTruthy()

@@ -20,6 +20,7 @@
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",
+    "@plainworks/workspace": "workspace:*",
     "@testing-library/react": "catalog:",
     "@testing-library/user-event": "catalog:",
     "@types/node": "catalog:",
@@ -364,7 +365,10 @@
       "types": "./dist/data/use-list-query-state.d.ts",
       "default": "./dist/data/use-list-query-state.js"
     },
-    "./styles.css": "./dist/styles.css"
+    "./styles.css": {
+      "@plainworks/source": "./src/styles.css",
+      "default": "./dist/styles.css"
+    }
   },
   "files": [
     "dist",
@@ -397,7 +401,7 @@
   "scripts": {
     "build": "tsdown",
     "check-packaging": "plainworks-release check-packaging",
-    "codegen": "bun scripts/codegen/cli.ts",
+    "codegen": "bun --conditions=@plainworks/source scripts/codegen/cli.ts",
     "test": "vitest run --coverage",
     "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.scripts.json"
   }

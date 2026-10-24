@@ -2,9 +2,13 @@
 
 > A foundational, **host-independent** React and TypeScript kit with runtime-neutral cores and optional client bindings.
 
+## Status
+
+plainworks is **alpha** (`0.1.0-alpha.x`) and not yet published to npm. APIs change freely until the stable release; breaking changes are listed in each package's changelog. Only the latest line receives [security fixes](./SECURITY.md#supported-versions).
+
 ## Run the showcase
 
-plainworks is pre-release and is not published to npm. Run the workspace showcase to see the current packages work together through their public exports:
+Run the workspace showcase to see the current packages work together through their public exports:
 
 ```sh
 bun install
@@ -39,8 +43,9 @@ A second reference host, [`@plainworks/next-host`](./apps/next-host), assembles 
 | Shared test fakes and harnesses | [`@plainworks/testkit`](./packages/testkit) |
 | Reusable MSW mock-building primitives | [`@plainworks/mocks`](./packages/mocks) |
 | Development-only runtime inspector | [`@plainworks/devtools`](./packages/devtools) |
+| Vite source link to a local plainworks checkout | [`@plainworks/vite`](./packages/vite) |
 
-Each package exposes a neutral `.` entry. Packages with React or browser bindings expose them separately through `./client`.
+Each package works on its own: adopt one without the rest of the kit. Each exposes a neutral `.` entry; React bindings live separately in `./client`.
 
 To start a new app on these packages, [`create-plainworks`](./packages/create-plainworks) scaffolds a wired, runnable project over a local mock backend.
 
@@ -51,7 +56,7 @@ Each package owns one concern and imports only from a **strictly lower layer**.
 <!-- layer-map:diagram -->
 ```mermaid
 flowchart TD
-  L4["L4 · app · testkit · mocks · devtools"] --> L3["L3 · auth · ui"]
+  L4["L4 · app · testkit · mocks · devtools · vite"] --> L3["L3 · auth · ui"]
   L3 --> L2["L2 · channel · connect · query · elements"]
   L2 --> L1["L1 · state · http · theme · observability"]
   L1 --> L0["L0 · std"]
@@ -69,7 +74,7 @@ This structure keeps neutral code free from React, DOM, Node, and framework assu
 - **Assume no host.** Use universal web value types directly and inject host-varying behavior.
 - **Name one concern.** Use one plain word consistently. Keep `@plainworks/std` as the zero-dependency base.
 - **Import downward.** Define cross-layer seams low and implement them higher.
-- **Construct explicitly.** Use per-request factories and injected registries. Imports must not open handles, read environment state, or create global singletons.
+- **Construct explicitly.** Create resources with factories and injected registries; the host decides their lifetime. Imports never open handles, read environment state, or create global singletons.
 
 Versioned npm exports are the primary distribution surface. `elements` and `ui` also generate shadcn registry manifests so an app can copy a component's source and own its copy. Inside this repo, `elements` atoms stay **vendored** and **locked**; see [`@plainworks/elements`](./packages/elements/README.md).
 
@@ -77,28 +82,10 @@ Versioned npm exports are the primary distribution surface. `elements` and `ui` 
 
 ```sh
 bun install
-bun run verify          # every gate, in order (`--list` shows them)
+bun run verify          # every gate, in order (`--list` describes them)
 ```
 
-Use `bun run gen package` to scaffold a package from the golden template, and `bun run gen tool` for an internal tool. Read [Contributing](./CONTRIBUTING.md) before changing code.
-
-Workspace manifests are generated from their profile. Use `bun run check-shape` to verify the shape and `bun run sync-shape` after changing a package's `tsdown.config.ts`, adding a tool bin, or editing a generator template.
-
-## Tooling
-
-| Concern | Tool |
-|---|---|
-| Tasks and caching | Turborepo |
-| Package and tool generation | `@turbo/gen` |
-| Workspace shape | `plainworks-shape` |
-| Build | tsdown through `@plainworks/tsdown-config` |
-| Lint and format | Biome |
-| Boundaries and cycles | dependency-cruiser |
-| Version synchronization | Sherif and Syncpack |
-| Tests and coverage | Vitest through `@plainworks/vitest-config` |
-| Packaging and releases | `plainworks-release` and Changesets |
-
-Dependency versions live in the Bun catalog in the root `package.json`. Workspace manifests reference `catalog:` so version checks can reject inline or divergent versions.
+Read [Contributing](./CONTRIBUTING.md) before changing code. The rules every change follows are in the [engineering standard](./.github/engineering.md), including the [toolchain](./.github/engineering.md#toolchain).
 
 ## License
 

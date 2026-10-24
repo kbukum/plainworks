@@ -82,7 +82,6 @@
     "@bufbuild/buf": "catalog:",
     "@bufbuild/protoc-gen-es": "catalog:",
     "@connectrpc/connect-query": "catalog:",
-    "@plainworks/mocks": "workspace:*",
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",

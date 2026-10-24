@@ -3,7 +3,9 @@ import { join } from "node:path"
 import { expect } from "@playwright/test"
 import { createBrowserGate } from "../../src/playwright/gate"
 
-const data = process.env.GATE_DATA_DIR ?? ".gate"
+// A direct `bun run e2e:pw` run keeps its data in the ignored package cache.
+const data =
+  process.env.GATE_DATA_DIR ?? join(import.meta.dirname, "../../node_modules/.cache/gate")
 const scenario = process.env.GATE_SCENARIO ?? "success"
 
 const test = createBrowserGate({

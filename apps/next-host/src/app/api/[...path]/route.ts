@@ -6,6 +6,7 @@
 // harness, not a user resource, so it bypasses the session and is never served in production. A
 // real deployment swaps this route for the actual API origin; nothing above it changes.
 
+import { AuthError } from "@plainworks/auth"
 import { authFailureResponse, createRequestJar } from "@plainworks/auth/server"
 import { demoBackend } from "../../../server/backend"
 import { withHostAuth } from "../../../server/identity-provider"
@@ -26,7 +27,9 @@ async function handle(request: Request): Promise<Response> {
       return await withHostAuth(async ({ auth }) => {
         const { jar } = createRequestJar(request)
         if (!(await auth.session.verifyCsrf(jar, request.headers.get("x-csrf-token") ?? ""))) {
-          return new Response(null, { status: 403 })
+          return routeResponse(
+            authFailureResponse(new AuthError("auth/csrf", "CSRF token rejected")),
+          )
         }
         return demoBackend().dispatch(request)
       })

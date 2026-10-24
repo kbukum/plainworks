@@ -14,7 +14,7 @@ export interface Decision {
 
 /**
  * The `(subject, action, resource)` triple an {@link Authorizer} decides over — the same vocabulary
- * a policy engine (gokit `authz`, Cedar, OPA) speaks, without importing one.
+ * a policy engine (Cedar, OPA, a custom service) speaks, without importing one.
  *
  * `resource` is `unknown` on purpose: what is being acted on is app-defined, narrowed by the
  * policy, never framework-imposed.

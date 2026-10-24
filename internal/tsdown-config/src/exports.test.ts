@@ -21,12 +21,15 @@ describe("renderExports", () => {
     })
   })
 
-  it("exports each asset from dist", () => {
+  it("exports each asset from dist, with its source file for a copied asset", () => {
     const exports = renderExports({
       entry: { index: "src/index.ts" },
       assets: { "styles.css": { from: "src/styles.css" }, "extra.css": { generatedBy: "x.ts" } },
     })
-    expect(exports["./styles.css"]).toBe("./dist/styles.css")
+    expect(exports["./styles.css"]).toEqual({
+      "@plainworks/source": "./src/styles.css",
+      default: "./dist/styles.css",
+    })
     expect(exports["./extra.css"]).toBe("./dist/extra.css")
   })
 

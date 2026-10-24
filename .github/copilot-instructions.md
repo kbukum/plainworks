@@ -1,26 +1,40 @@
 # plainworks
 
-Host-independent React/TypeScript capabilities. Consumers choose hosts/backends. `packages/` publishes capabilities; `apps/` owns hosts; `internal/` owns dev tooling. Use Bun and the catalog/tool versions in `package.json`.
+Host-independent React and TypeScript capabilities. Consumers choose their hosts, backends, and adapters. `packages/` publishes capabilities, `apps/` holds reference hosts, and `internal/` holds dev tooling. Use Bun and the catalog versions in `package.json`.
 
 ## Invariants
 
-- Alpha: redesign root causes; no compatibility shims or parallel old/new models. Replace dependent consumers and remove superseded paths together. Breaking changes use a minor Changeset.
-- Imports point strictly downward. Reuse [concern owners](../docs/architecture.md#concern-owners); enhance them before consuming. Core never imports/re-exports a technology integration or declares its driver, including optional peers. A subpath is not a dependency boundary; prove clean core-only installs.
-- Typed APIs/errors; no `any`, unchecked assertions, swallowed errors, or success-shaped fallbacks. Concern-named modules; `index.ts` re-exports only. Named exports, one path per name.
-- Neutral cores are host-independent. Inject varying behavior; keep server custody out of client graphs. Preserve ES2023 portability and per-module `"use client"`. No import-time I/O, globals, or service locators; hosts own resource lifetimes.
-- Validate boundaries; never retain secrets or put credentials in URLs. Browser sessions use opaque Secure/HttpOnly/SameSite=Strict `__Host-` cookies with authoritative backend custody, not browser-token fallback. Preserve server-side OIDC/PKCE and CSRF.
-- Bound calls/retries/buffers and own cancellation/cleanup. Cancellation fences late effects; cleanup preserves the initiating failure and a retryable owner.
-- Test-first, deterministic behavior/failures; use testkit and mocks. Unit proof is not integration proof. WCAG 2.2 AA and responsive UI are defaults; UI acceptance requires passing flows and opened/judged captures.
-- Never hand-edit vendored shadcn atoms/locks. Use registry commands; deviations go theme -> call site -> UI wrapper. Never weaken the TS compiler boundary or generated manifest/layer gates.
-- Docs and agent instructions are concise, task-first, and organized for the reader. Explain capabilities at a high level; retain detail for correct use, contracts, safety, and verification. Changelogs summarize outcomes; skills link canonical procedures instead of repeating them.
+- **Alpha:** redesign root causes. No compatibility shims or parallel old and new models; move every consumer and delete the superseded path in the same change. Breaking changes use a `minor` Changeset.
+- **Ownership:** imports point strictly downward. Reuse or enhance the [concern owner](../docs/architecture.md#concern-owners) before adding code. Core never contains, re-exports, or declares a technology integration, even as an optional peer; a subpath is not a dependency boundary.
+- **Public API:** small and typed, named exports, one path per name, concern-named modules, re-export-only barrels. No `any`, unchecked assertions, string throws, swallowed errors, or success-shaped fallbacks.
+- **Runtime:** neutral cores assume no host and inject host-varying behavior. `"use client"` is per module. No import-time I/O, globals, or service locators; hosts own resource lifetimes. Bound calls, retries, and buffers; own cancellation and cleanup.
+- **Security:** validate trust boundaries; never put credentials in URLs or retain secrets. Browser sessions are opaque `__Host-` cookies with backend custody and no browser tokens. Keep server-side OIDC with PKCE, and CSRF protection.
+- **Proof:** test-first and deterministic, using testkit and mocks. Unit proof is not integration proof. WCAG 2.2 AA and responsive UI are defaults; app-visible changes need passing flows and opened, judged captures.
+- **Generated and locked:** never hand-edit vendored atoms, their lock, derived manifest fields, or layer-map blocks. Never weaken the TypeScript compiler boundary or any gate.
+- **Docs:** concise, task-first, written for the reader. Markdown is not hard-wrapped; TS comments wrap at 100 columns. Agent instructions state rules; skills state actions and link canonical detail.
 
 ## Work and validation
 
-Preserve worktree/index changes. Commit/amend/push/publish/open draft PRs only when authorized. Load only the matching [skill](skills/README.md) and required sections. Keep plans in `tmp/<plan>/`, reusing existing folders. Apply each selected step fully; record progress in the step, not routine handoffs.
+- Preserve worktree and index changes. Commit, amend, push, publish, or open draft PRs only when authorized, through the matching skill.
+- Load only the matching [skill](skills/README.md) and the sections it needs. Plans live in `tmp/<plan>/`, reusing existing folders; apply each selected step fully and record progress in the step.
+- `bun run verify --filter=@plainworks/<name>` scopes package gates, `bun run verify --list` describes them, and unscoped `bun run verify` is full acceptance. Use [validate](skills/validate/SKILL.md) for integration, UI, and generator checks. Prose-only edits need documentation checks only.
 
-`bun run verify --filter=@plainworks/<name>` scopes package gates; `bun run verify --list` lists them; unscoped `verify` is full acceptance. Use [validate](skills/validate/SKILL.md) for integration/UI/generator requirements. Prose-only edits need documentation checks. Markdown is not hard-wrapped; TS comments wrap at 100 columns.
+## Where to read
 
-Before implementation, read only applicable sections of [engineering](engineering.md): **Product and ownership boundary** for integrations; **Engineering principles** for runtime/test/security/UI; **Package structure** for exports/tooling; **TypeScript compiler boundary** for compiler updates; **Architecture invariants** for failures/forms/retries; **Build, Test, and Lint** for acceptance; **Vendored atoms** for primitives. Do not preload the whole reference.
+Read only the section the task needs; do not preload the whole reference.
+
+| Task | Read |
+|---|---|
+| Place code, choose an entry, find an owner | [Architecture](../docs/architecture.md) |
+| Any change, plan, or review | [Development stage](engineering.md#development-stage) |
+| Integrations, adapters, new packages | [Ownership boundary](engineering.md#ownership-boundary), [Code structure](engineering.md#code-structure) |
+| Exports, types, errors, release line | [Public API and stability](engineering.md#public-api-and-stability) |
+| Runtime, async, failures | [Host independence](engineering.md#host-independence), [Errors, async, and composition](engineering.md#errors-async-and-composition) |
+| Auth, crypto, untrusted input | [Security and privacy](engineering.md#security-and-privacy) |
+| UI, theme, atoms | [UI quality](engineering.md#ui-quality) |
+| Tests and acceptance | [Testing and proof](engineering.md#testing-and-proof), [Definition of Done](engineering.md#definition-of-done) |
+| Docs, comments, Changesets | [Documentation and consumer experience](engineering.md#documentation-and-consumer-experience) |
+| Dependencies, CI, compiler | [Dependencies and supply chain](engineering.md#dependencies-and-supply-chain), [Toolchain](engineering.md#toolchain) |
 
 ## Layer map
 
@@ -31,5 +45,5 @@ Before implementation, read only applicable sections of [engineering](engineerin
 | **L1** | `state`, `http`, `theme`, `observability` | Reactive state, typed HTTP, the design-token substrate, and logging, error reporting, telemetry, and Web Vitals. |
 | **L2** | `channel`, `connect`, `query`, `elements` | Streaming, RPC, TanStack Query integration, and vendored UI atoms. |
 | **L3** | `auth`, `ui` | Authentication, OIDC with PKCE, forms, data, navigation, and UI composites. |
-| **L4** | `app`, `testkit`, `mocks`, `devtools` | Application composition, shared test tooling, reusable MSW mock-building primitives, and the development-only runtime inspector. |
+| **L4** | `app`, `testkit`, `mocks`, `devtools`, `vite` | Application composition, shared test tooling, reusable MSW mock-building primitives, the development-only runtime inspector, and the Vite source link for consumer feedback loops. |
 <!-- /layer-map:table -->

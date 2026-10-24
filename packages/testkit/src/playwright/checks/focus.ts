@@ -40,10 +40,17 @@ export function judgeFocus(measurement: FocusMeasurement | null): string[] {
 
 /** Measure the focused control in the page. Runs in the browser. */
 function measureFocus(): FocusMeasurement | null {
-  const active = document.activeElement
+  let focused = document.activeElement
+  while (focused?.shadowRoot?.activeElement) focused = focused.shadowRoot.activeElement
+  const active = focused
   if (!(active instanceof HTMLElement) || active === document.body) return null
   // Read the settled indicator, not a frame of its transition.
-  for (const animation of document.getAnimations()) {
+  const root = active.getRootNode()
+  const animations = [
+    ...document.getAnimations(),
+    ...(root instanceof ShadowRoot ? root.getAnimations() : []),
+  ]
+  for (const animation of animations) {
     if (animation instanceof CSSTransition) animation.finish()
   }
   // A visually hidden input (a slider thumb's) shows focus on its visible host. Some controls draw
@@ -103,7 +110,14 @@ function measureFocus(): FocusMeasurement | null {
   if (right > left && bottom > top) {
     for (const x of [0.1, 0.5, 0.9]) {
       for (const y of [0.1, 0.5, 0.9]) {
-        const hit = document.elementFromPoint(left + (right - left) * x, top + (bottom - top) * y)
+        const px = left + (right - left) * x
+        const py = top + (bottom - top) * y
+        let hit = document.elementFromPoint(px, py)
+        while (hit?.shadowRoot) {
+          const inner = hit.shadowRoot.elementFromPoint(px, py)
+          if (inner === null || inner === hit) break
+          hit = inner
+        }
         if (hit !== null && (target.contains(hit) || hit.contains(active))) uncoveredSamples++
       }
     }

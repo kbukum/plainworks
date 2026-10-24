@@ -20,9 +20,9 @@ Follow the [Contributor Covenant](CODE_OF_CONDUCT.md). Be respectful, constructi
 3. Implement the smallest complete fix, then refactor while the test stays green. Keep unrelated refactors out of the change.
 4. Run the scoped gates for every affected package.
 5. Add a Changeset with `bun run changeset` for each publishable package change.
-6. Run the full Definition of Done before handoff.
+6. Run the full [Definition of Done](.github/engineering.md#definition-of-done) before handoff.
 
-Use deterministic tests. Inject clocks, use Vitest fake timers, seed random values, and fake external edges. Unit tests must not use a real network or filesystem. Reuse the shipped `@plainworks/testkit` package instead of creating package-local copies of shared fakes. Package tests may import `testkit` upward; `std` keeps local fakes because `testkit` depends on it.
+Every change follows the [engineering standard](.github/engineering.md). Read the section that matches your change; [Testing and proof](.github/engineering.md#testing-and-proof) covers deterministic tests and the shared `@plainworks/testkit` fakes.
 
 ## Validate the change
 
@@ -39,7 +39,7 @@ Run every repository gate before handoff. `verify` runs them in order and stops 
 bun run verify
 ```
 
-`bun run format` applies Biome fixes. Coverage must stay at or above **80% per package** and **85% for security-critical packages such as `auth`**.
+`bun run format` applies Biome fixes. Coverage floors are part of [Testing and proof](.github/engineering.md#testing-and-proof).
 
 ## Add a package
 
@@ -57,7 +57,7 @@ bun run gen package --args state "Reactive state primitives" false
 
 Then add the package to [`internal/boundaries/layers.json`](internal/boundaries/layers.json) and run `bun run sync-layer-map` to regenerate the layer maps in the docs. An unregistered package cannot import another `@plainworks/*` package.
 
-Use **one plain word** for one concern. Do not use names such as `core`, `engine`, `foundation`, or `utils`.
+Use **one plain word** for one concern; see [Code structure](.github/engineering.md#code-structure).
 
 Use the [`new-package` skill](.github/skills/new-package/SKILL.md) for the complete workflow. Use [`new-backend`](.github/skills/new-backend/SKILL.md) when adding a state store, channel transport, authentication mechanism, or query adapter behind an existing seam.
 
@@ -69,25 +69,11 @@ The shadcn atoms in `packages/elements/src/shadcn/` are **vendored** and **locke
 bun run --filter @plainworks/elements registry:update <atom>
 ```
 
-Need the atom to look or behave differently? Follow the **deviation ladder** and stop at the first rung that works: `@plainworks/theme` tokens and rules → the call site (props, `className`, `role`) → a `@plainworks/ui` wrapper. Primitives we write ourselves go in `packages/elements/src/atoms/`. Use the [`update-atoms` skill](.github/skills/update-atoms/SKILL.md) to bump the shadcn CLI or refresh every atom.
+To change how an atom looks or behaves, follow the [deviation ladder](.github/engineering.md#vendored-atoms). Use the [`update-atoms` skill](.github/skills/update-atoms/SKILL.md) to bump the shadcn CLI or refresh every atom.
 
-## Follow package boundaries
+## Follow the rules
 
-| Rule | Requirement |
-|---|---|
-| Dependency direction | Import only from a strictly lower layer. Define shared seams in the lower layer and implement them higher. |
-| Neutral entry | Keep `.` free from React, DOM globals, Node builtins, and framework assumptions. |
-| Client entry | Put React or browser bindings behind `./client`. Mark client-only modules with `"use client"`. |
-| Package manifest | Let `sync-shape` derive `exports`, `files`, `sideEffects`, scripts, and preset dependencies from the workspace profile. Never hand-edit those fields or commit `dist`. |
-| Public APIs | Use typed, minimal surfaces. Do not expose `any`, unchecked casts, or string throws. |
-| Errors | Preserve causes with typed errors. Do not swallow exceptions or return success-shaped fallbacks. |
-| Runtime behavior | Do not create import-time side effects or module-level singletons. |
-| Adapters | Register through an injected `register()` or `createX({...})` path. Do not use implicit `init()` behavior. |
-| Authentication | Keep tokens in headers or secure `__Host-` cookies. Never use URLs or web storage. |
-| Dependencies | Use `catalog:` and `workspace:*`; never inline dependency versions. |
-| Documentation | Add TSDoc to every public export and `@throws` for typed errors. Keep Markdown paragraphs on one source line. |
-
-[`internal/boundaries/layers.json`](internal/boundaries/layers.json) is authoritative. [Architecture](docs/architecture.md) explains package placement, host independence, and the runtime primitive contract.
+[Architecture](docs/architecture.md) says where code goes; [`internal/boundaries/layers.json`](internal/boundaries/layers.json) is the authoritative layer map. The [engineering standard](.github/engineering.md) holds the rules every change follows: ownership, public API, host independence, security, UI, tests, docs, and dependencies. The gates in `bun run verify` enforce what they can; reviewers check the rest.
 
 ## Submit the change
 
@@ -107,7 +93,7 @@ Make sure CI, including the generator smoke job, is green before review. Maintai
 
 ## Reference
 
-- [Engineering baseline](.github/copilot-instructions.md)
+- [Engineering standard](.github/engineering.md)
 - [Architecture](docs/architecture.md)
 - [Development skills](.github/skills/README.md)
 - [Security policy](SECURITY.md)

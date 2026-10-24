@@ -1,8 +1,8 @@
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, relative } from "node:path"
+import { formatSource } from "@plainworks/workspace"
 import { describe, expect, it } from "vitest"
-import { formatSource } from "./format"
 import {
   buildRegistry,
   buildTsdownEntry,

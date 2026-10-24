@@ -35,13 +35,18 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./connect": {
+      "@plainworks/source": "./src/connect/index.ts",
+      "types": "./dist/connect.d.ts",
+      "default": "./dist/connect.js"
+    },
     "./control": {
       "@plainworks/source": "./src/control/index.ts",
       "types": "./dist/control.d.ts",
       "default": "./dist/control.js"
     },
     "./data": {
-      "@plainworks/source": "./src/data/common/index.ts",
+      "@plainworks/source": "./src/data/index.ts",
       "types": "./dist/data.d.ts",
       "default": "./dist/data.js"
     },
@@ -66,7 +71,7 @@
       "default": "./dist/failure.js"
     },
     "./handlers": {
-      "@plainworks/source": "./src/handlers/common/index.ts",
+      "@plainworks/source": "./src/handlers/index.ts",
       "types": "./dist/handlers.d.ts",
       "default": "./dist/handlers.js"
     },
@@ -97,10 +102,6 @@
     }
   },
   "scripts": {
-    "fixtures:sync": "bun scripts/sync-failures.ts",
-    "fixtures:check": "bun scripts/sync-failures.ts --check",
-    "fixtures:live:sync": "bun scripts/sync-live.ts",
-    "fixtures:live:check": "bun scripts/sync-live.ts --check",
     "build": "tsdown",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
@@ -113,16 +114,23 @@
     "msw": "catalog:"
   },
   "peerDependencies": {
+    "@bufbuild/protobuf": "catalog:",
     "vite": "catalog:"
   },
   "peerDependenciesMeta": {
+    "@bufbuild/protobuf": {
+      "optional": true
+    },
     "vite": {
       "optional": true
     }
   },
   "devDependencies": {
+    "@bufbuild/protobuf": "catalog:",
+    "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",
+    "@plainworks/workspace": "workspace:*",
     "@types/node": "catalog:",
     "@vitest/coverage-v8": "catalog:",
     "tsdown": "catalog:",

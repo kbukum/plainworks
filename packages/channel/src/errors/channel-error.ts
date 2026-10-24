@@ -1,4 +1,4 @@
-import { type Failure, failureCodeFor, RemoteFailure } from "@plainworks/std/failure"
+import { type Failure, failureCodeForStatus, RemoteFailure } from "@plainworks/std/failure"
 import { classifyStatus } from "@plainworks/std/resilience"
 
 /**
@@ -36,10 +36,10 @@ export class ChannelError extends RemoteFailure<`channel/${ChannelErrorKind}`> {
       options?.failure ?? {
         code:
           options?.status !== undefined
-            ? failureCodeFor(options.status, "http")
+            ? failureCodeForStatus(options.status)
             : kind === "connect"
-              ? "CONNECTION_FAILED"
-              : "EXTERNAL_SERVICE_ERROR",
+              ? "unavailable"
+              : "internal",
         message,
         violations: [],
         retryable:

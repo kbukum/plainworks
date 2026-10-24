@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { formatSource } from "./format"
+import { formatSource } from "@plainworks/workspace"
 import { type AtomSource, atomSources } from "./sources"
 
 // registry.json, the tsdown build description, and the `.` manifest are derived from the atom files

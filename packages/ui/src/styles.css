@@ -6,8 +6,10 @@
  * package-manager layout — Tailwind never auto-detects sources inside node_modules, so an explicit
  * `@source` per package is the only layer-safe registration. Importing this one stylesheet pulls
  * in the elements atoms and the theme substrate beneath it.
+ * The same globs cover `src/` when a consumer links the kit source (`@plainworks/vite`).
  */
-@source "./**/*.js";
+@source "./**/*.{js,ts,tsx}";
+@source not "./**/*.test.{ts,tsx}";
 
 /*
  * The AppShell's header is sticky and 3.5rem tall. Focus and anchor scrolling stop below it, so a

@@ -1,8 +1,9 @@
 import { isRecord } from "@plainworks/std"
 import { base64urlEncode } from "@plainworks/std/encoding"
 import { guardSchema } from "@plainworks/std/seam"
+import { manualClock } from "@plainworks/std/time"
 import type { WebAbortSignal } from "@plainworks/std/web"
-import { deferred, manualClock } from "@plainworks/testkit"
+import { deferred } from "@plainworks/testkit"
 import { describe, expect, test, vi } from "vitest"
 import type { AuthAdapter } from "../adapter"
 import { defaultAuthCrypto } from "../crypto"
@@ -183,6 +184,49 @@ describe("opaque server session", () => {
     })
     await expect(session.logout(jar)).rejects.toMatchObject({ kind: "auth/store-unavailable" })
     expect(jar.entries).toEqual([])
+  })
+
+  test("snapshot maps a live session to the client-safe slice and anything else to anonymous", async () => {
+    const base = setup()
+    const session = createServerSession({
+      ...base.config,
+      toIdentity: (value: Value) => ({
+        subject: value.subject,
+        kind: "user" as const,
+        restrictions: { mode: "unrestricted" as const },
+        claims: { name: "Ada Lovelace" },
+      }),
+    })
+    const anonymous = { authenticated: false, subject: null, name: null }
+    expect(await session.snapshot(browserJar())).toEqual(anonymous)
+    const jar = await login(session)
+    jar.commit()
+    expect(await session.snapshot(jar)).toMatchObject({
+      authenticated: true,
+      subject: "ada",
+      name: "Ada Lovelace",
+      session: { status: "authenticated", expiresAt: "1970-01-01T01:00:00.000Z" },
+    })
+    base.clock.set(3_600_000)
+    expect(await session.snapshot(jar)).toEqual(anonymous)
+    const forged = browserJar()
+    forged.set("__Host-session=identity.signature; Secure")
+    forged.commit()
+    expect(await session.snapshot(forged)).toEqual(anonymous)
+  })
+
+  test("snapshot surfaces a store failure instead of reading it as anonymous", async () => {
+    const store: OpaqueSessionStore<Value> = {
+      ...createMemorySessionStore<Value>({ schema }),
+      read: async () => {
+        throw new AuthError("auth/store-unavailable", "writer down")
+      },
+    }
+    const { session } = setup(store)
+    const jar = browserJar()
+    jar.set(`__Host-session=${"A".repeat(43)}; Secure`)
+    jar.commit()
+    await expect(session.snapshot(jar)).rejects.toMatchObject({ kind: "auth/store-unavailable" })
   })
 
   test("malformed opaque credentials fail before storage; absent sessions are anonymous", async () => {

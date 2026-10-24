@@ -4,12 +4,19 @@ import { describe, expect, test } from "vitest"
 import { isConnectRetryable } from "./retry-classification"
 
 describe("isConnectRetryable", () => {
-  test("treats unavailable and resource_exhausted ConnectErrors as retryable", () => {
+  test("treats unavailable as retryable without RetryInfo", () => {
     expect(isConnectRetryable(new ConnectError("down", Code.Unavailable))).toBe(true)
-    expect(isConnectRetryable(new ConnectError("slow", Code.ResourceExhausted))).toBe(true)
   })
 
-  test("treats other ConnectError codes as fatal", () => {
+  test("uses the injected decoder's verdict", () => {
+    const failure = new ConnectError("down", Code.Unavailable)
+    expect(
+      isConnectRetryable(failure, (input) => ({ ...input, violations: [], retryable: false })),
+    ).toBe(false)
+  })
+
+  test("treats other ConnectError codes as fatal without RetryInfo", () => {
+    expect(isConnectRetryable(new ConnectError("slow", Code.ResourceExhausted))).toBe(false)
     expect(isConnectRetryable(new ConnectError("nope", Code.NotFound))).toBe(false)
     expect(isConnectRetryable(new ConnectError("bad", Code.InvalidArgument))).toBe(false)
     expect(isConnectRetryable(new ConnectError("stop", Code.Canceled))).toBe(false)

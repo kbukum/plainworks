@@ -1,7 +1,11 @@
 export {
+  decodeRpcFailure,
+  type RpcFailureDecoder,
+  type RpcFailureInput,
+} from "./rpc-details"
+export {
   isRpcError,
   mapConnectError,
   RpcError,
-  type RpcErrorCode,
   type RpcErrorInit,
 } from "./rpc-error"

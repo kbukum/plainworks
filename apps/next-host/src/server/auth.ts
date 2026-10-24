@@ -10,7 +10,6 @@
 
 import "server-only"
 
-import { isAuthErrorKind } from "@plainworks/auth"
 import { defaultAuthCrypto } from "@plainworks/auth/crypto"
 import {
   createRequestJar,
@@ -20,9 +19,8 @@ import {
   oidcAdapter,
   type RefreshTokenStore,
   type ServerSession,
-  type ServerSessionJar,
 } from "@plainworks/auth/server"
-import { ANONYMOUS_AUTH, type AuthSnapshot } from "@plainworks/auth/session"
+import type { AuthSnapshot } from "@plainworks/auth/session"
 import { isAbsentOr, isRecord } from "@plainworks/std"
 import { guardSchema, type StandardSchemaV1 } from "@plainworks/std/seam"
 import { systemClock } from "@plainworks/std/time"
@@ -107,30 +105,8 @@ export function createNextAuth(config: NextAuthConfig): NextAuth {
     guard: { loginPath: LOGIN_PATH },
   })
 
-  const read: ReadSession = async (cookieHeader) => {
-    try {
-      const status = await session.status(readOnlyJar(cookieHeader))
-      const name = status.identity.claims?.name
-      return {
-        authenticated: true,
-        subject: status.identity.subject,
-        name: typeof name === "string" ? name : null,
-        session: status,
-      }
-    } catch (cause) {
-      if (
-        isAuthErrorKind(cause, "auth/unauthenticated") ||
-        isAuthErrorKind(cause, "auth/session-invalid")
-      )
-        return ANONYMOUS_AUTH
-      throw cause
-    }
-  }
+  const read: ReadSession = (cookieHeader) =>
+    session.snapshot(createRequestJar({ headers: new Headers({ cookie: cookieHeader }) }).jar)
 
   return { session, read }
-}
-
-/** A read-only jar over a `Cookie` header; `set` is unreachable on the read path. */
-function readOnlyJar(cookieHeader: string): ServerSessionJar {
-  return createRequestJar({ headers: new Headers({ cookie: cookieHeader }) }).jar
 }

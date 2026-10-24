@@ -186,21 +186,10 @@ const browser = (name: string, args: readonly string[]): Promise<void> =>
     print: true,
   })
 await browser("public browser proof", ["test", "--config", "playwright.config.ts"])
-await browser("auth browser proof", ["test", "--config", "playwright.auth.config.ts"])
 await step(
   "ui capture",
   "bun",
   ["src/system/ui-capture.ts", "--flow", "public-host-outage-recovery"],
-  {
-    timeoutMs: STEP_TIMEOUT_MS,
-    cwd: integration,
-    print: true,
-  },
-)
-await step(
-  "auth ui capture",
-  "bun",
-  ["src/system/auth-ui-capture.ts", "--flow", "opaque-session"],
   {
     timeoutMs: STEP_TIMEOUT_MS,
     cwd: integration,

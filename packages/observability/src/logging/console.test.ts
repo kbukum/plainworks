@@ -1,4 +1,4 @@
-import { manualClock } from "@plainworks/testkit"
+import { manualClock } from "@plainworks/std/time"
 import { afterEach, describe, expect, test, vi } from "vitest"
 import { type ConsoleLike, consoleSink, createConsoleLogger } from "./console"
 

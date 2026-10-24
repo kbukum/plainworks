@@ -63,6 +63,13 @@ describe.each([
     expect(cache.isStale(["users", { id: 1 }])).toBe(false)
   })
 
+  it("treats an object field set to undefined as absent when exact", async () => {
+    const cache = harness()
+    cache.seed(["users", { id: undefined }])
+    await cache.invalidator.invalidate({ key: ["users", {}], exact: true })
+    expect(cache.isStale(["users", {}])).toBe(true)
+  })
+
   it("invalidates the whole cache when no key is given", async () => {
     const cache = seeded()
     await cache.invalidator.invalidate()

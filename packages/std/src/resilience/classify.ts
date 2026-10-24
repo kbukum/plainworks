@@ -1,5 +1,5 @@
 import { PlainError } from "../errors"
-import { RemoteFailure } from "../failure"
+import { isRetryableStatus, RemoteFailure } from "../failure"
 
 /**
  * Shared failure taxonomy: map any failure (an HTTP status or a thrown value) to a category and a
@@ -45,9 +45,9 @@ export interface Classification {
 
 /**
  * Classify an HTTP status code (only meaningful for `>= 400`). `401`/`403` are auth and fatal (a
- * retry with the same credential fails identically); `408`/`429` and all `5xx` are retryable
- * (timeout / rate-limit / server); every other `4xx` — and any non-integer or out-of-range value —
- * is a fatal protocol error.
+ * retry with the same credential fails identically); a status {@link isRetryableStatus} accepts is
+ * retryable (`408` as a timeout, `429` and `5xx` as transport); every other `4xx`, and any
+ * non-integer or out-of-range value, is a fatal protocol error.
  */
 export function classifyStatus(status: number): Classification {
   // A non-integer status is not a real HTTP code (e.g. `500.5`); treat it as a protocol fault
@@ -61,7 +61,7 @@ export function classifyStatus(status: number): Classification {
   if (status === 408) {
     return { category: "timeout", disposition: "retryable" }
   }
-  if (status === 429 || (status >= 500 && status < 600)) {
+  if (isRetryableStatus(status)) {
     return { category: "transport", disposition: "retryable" }
   }
   // Any other 4xx is a caller/protocol fault; a status below 400 is not a failure at all.

@@ -1,11 +1,12 @@
 import { isRecord } from "@plainworks/std"
-import { decodeFailure } from "@plainworks/std/failure"
+import { FailureDecodeError } from "@plainworks/std/failure"
 import type { StreamFrame } from "@plainworks/std/seam"
 import { ChannelError } from "../errors"
 import { parseEventCursor } from "./cursor"
+import type { FailureFrameDecoder } from "./failure"
 
 /** Controls never acknowledge application delivery, including inherited parser IDs. */
-export function validateControl(frame: StreamFrame): void {
+export function validateControl(frame: StreamFrame, failures: FailureFrameDecoder): void {
   let data: unknown
   try {
     data = JSON.parse(frame.data)
@@ -13,7 +14,14 @@ export function validateControl(frame: StreamFrame): void {
     throw ChannelError.protocol("Invalid event control.", { cause })
   }
   if (frame.type === "failure") {
-    throw ChannelError.failure(decodeFailure(data))
+    let failure: ReturnType<FailureFrameDecoder>
+    try {
+      failure = failures(data)
+    } catch (cause) {
+      if (!(cause instanceof FailureDecodeError)) throw cause
+      throw ChannelError.protocol("Invalid event control.", { cause })
+    }
+    throw ChannelError.failure(failure)
   }
   if (!isRecord(data) || typeof data.cursor !== "string") {
     throw ChannelError.protocol("Invalid event control.")

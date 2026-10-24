@@ -11,7 +11,7 @@ test("a late auth failure from a closed attempt does not invalidate a newer sess
   const lifetime = new AbortController()
   const invalidate = vi.fn()
   const authFailure = new RemoteFailure("rpc/unauthorized", {
-    code: "UNAUTHORIZED",
+    code: "unauthenticated",
     reason: "SESSION_INVALID",
     message: "signed out",
     retryable: false,

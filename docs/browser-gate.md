@@ -96,7 +96,7 @@ docker run --rm --init --network none --read-only \
   plainworks-system-proof:local
 ```
 
-Keep `--init`: it reaps browser descendants so process cleanup can return to baseline. The build needs network access for pinned public dependencies; execution does not. Each assertion or capture command has a 180 s deadline, and bootstrap commands have 30 s. Open the resulting public and auth contact sheets separately; a passing capture report is not visual acceptance.
+Keep `--init`: it reaps browser descendants so process cleanup can return to baseline. The build needs network access for pinned public dependencies; execution does not. Each assertion or capture command has a 180 s deadline, and bootstrap commands have 30 s. Open the resulting contact sheet; a passing capture report is not visual acceptance.
 
 ## Keep it deterministic
 

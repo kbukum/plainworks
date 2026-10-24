@@ -1,5 +1,5 @@
 import type { Identity } from "@plainworks/std/seam"
-import { manualClock } from "@plainworks/testkit"
+import { manualClock } from "@plainworks/std/time"
 import { describe, expect, test } from "vitest"
 import { defaultAuthCrypto } from "../crypto"
 import { AuthError } from "../errors"

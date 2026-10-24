@@ -7,18 +7,7 @@
  * - free-text search across fields
  */
 
-import type { FilterCondition } from "../filter"
-import { parseApiParams } from "../filter"
-
-/** Parse a query string into a flat params object. */
-function parseQueryString(queryString: string): Record<string, string> {
-  const params: Record<string, string> = {}
-  const searchParams = new URLSearchParams(queryString)
-  for (const [key, value] of searchParams.entries()) {
-    params[key] = value
-  }
-  return params
-}
+import { type FilterCondition, parseFilterString } from "../filter"
 
 /**
  * Filter data using PostgREST/Supabase style query params.
@@ -32,7 +21,7 @@ export function filterByApiParams<T extends Record<string, unknown>>(
 ): T[] {
   if (!queryString) return items
 
-  const query = parseApiParams(parseQueryString(queryString))
+  const query = parseFilterString(queryString)
   if (query.conditions.length === 0) return items
 
   return filterByConditions(items, query.conditions)

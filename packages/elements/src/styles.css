@@ -5,5 +5,7 @@
  * to this file inside the installed package, so it resolves to `dist/` under any package-manager
  * layout — Tailwind never auto-detects sources inside node_modules, so an explicit `@source` per
  * package is the only layer-safe registration.
+ * The same globs cover `src/` when a consumer links the kit source (`@plainworks/vite`).
  */
-@source "./**/*.js";
+@source "./**/*.{js,ts,tsx}";
+@source not "./**/*.test.{ts,tsx}";

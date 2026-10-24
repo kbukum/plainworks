@@ -17,6 +17,9 @@ import {
   withoutQuery,
 } from "./evidence"
 import { captureOptions, withCaptureFrame } from "./frame"
+import { guardJourneyPage } from "./journey/guard"
+import { createJourneyMeter } from "./journey/meter"
+import { createFlowUser, type FlowInput } from "./journey/user"
 import { FLOW_MODES, type PageVariant, PREFERENCES, type ThemeAxes } from "./matrix/axes"
 import type { EvidenceSnapshot, FlowSession } from "./session"
 
@@ -26,6 +29,13 @@ export interface PageFlowSessionOptions {
   /** The gate's runtime error watch, drained into each checkpoint's findings. */
   readonly runtimeErrors: RuntimeErrorWatch
   readonly axes: ThemeAxes
+  /** How the flow's user drives the page: by `keyboard` (the default), or by `touch`. */
+  readonly input?: FlowInput
+  /**
+   * The flow is a budgeted journey: its page is guarded so every step goes through the user, and
+   * a visit may only start it. Defaults to `false`.
+   */
+  readonly journey?: boolean
 }
 
 /** A {@link FlowSession} on a live page, with the listeners it must remove when the test ends. */
@@ -48,10 +58,18 @@ interface RootState {
  * app's theme provider does: it swaps the theme's classes and attributes on `<html>`, emulates the
  * preference's media features, and scales root text for 200% zoom. Nothing reloads, so a
  * checkpoint's state survives every variant. Each step's signal goes to the checkpoint's action
- * and to every Playwright call that takes one. Call `dispose` when the test ends.
+ * and to every Playwright call that takes one. The action gets a `FlowUser` on the session's
+ * input, and the session counts the journey's views from main-frame navigations. Call `dispose`
+ * when the test ends.
  */
 export function createPageFlowSession(options: PageFlowSessionOptions): PageFlowSession {
   const { page, runtimeErrors, axes } = options
+  const input = options.input ?? "keyboard"
+  const journey = options.journey ?? false
+  const meter = createJourneyMeter({ strict: journey })
+  const onNavigated = (frame: { url(): string }) => {
+    if (frame === page.mainFrame()) meter.view(frame.url())
+  }
   // Every stored string is bounded as well as the entry count, since the page controls them.
   const consoleLog = createEvidenceLog<{ type: string; text: string }>(EVIDENCE_LOG_LIMIT)
   const networkLog = createEvidenceLog<{ method: string; url: string; status: number | string }>(
@@ -81,6 +99,7 @@ export function createPageFlowSession(options: PageFlowSessionOptions): PageFlow
   page.on("console", onConsole)
   page.on("response", onResponse)
   page.on("requestfailed", onRequestFailed)
+  page.on("framenavigated", onNavigated)
 
   const themeRoots = FLOW_MODES.flatMap((mode) =>
     axes.themes.flatMap((theme) =>
@@ -99,7 +118,7 @@ export function createPageFlowSession(options: PageFlowSessionOptions): PageFlow
     textScale = undefined
   }
 
-  const shoot = (checkpoint: FlowCheckpoint, signal: AbortSignal): Promise<Uint8Array> =>
+  const shoot = (checkpoint: FlowCheckpoint): Promise<Uint8Array> =>
     withCaptureFrame(page, checkpoint.frame, () =>
       page.screenshot({
         ...captureOptions(checkpoint.frame),
@@ -108,17 +127,18 @@ export function createPageFlowSession(options: PageFlowSessionOptions): PageFlow
         caret: "hide",
         scale: "css",
         mask: [page.locator("[data-ui-private]"), ...(checkpoint.mask?.(page) ?? [])],
-        signal,
       }),
     )
 
   return {
     async act(checkpoint, signal) {
-      await checkpoint.act(page, { signal })
+      meter.start(page.url())
+      const user = createFlowUser({ page, input, meter, signal })
+      await checkpoint.act(journey ? guardJourneyPage(page) : page, { signal, user })
     },
-    async waitReady(checkpoint, timeoutMs, signal) {
+    async waitReady(checkpoint, timeoutMs) {
       try {
-        await checkpoint.ready(page).waitFor({ state: "visible", timeout: timeoutMs, signal })
+        await checkpoint.ready(page).waitFor({ state: "visible", timeout: timeoutMs })
       } catch (error) {
         if (error instanceof playwrightErrors.TimeoutError) return false
         throw error
@@ -166,9 +186,9 @@ export function createPageFlowSession(options: PageFlowSessionOptions): PageFlow
     settle: () => settleAnimations(page),
     measureLayout: () => measureLayoutFacts(page),
     screenshot: shoot,
-    async ariaSnapshot(signal) {
+    async ariaSnapshot() {
       const values = await page.evaluate(privateValues)
-      return redactPrivate(await page.ariaSnapshot({ signal }), values)
+      return redactPrivate(await page.ariaSnapshot(), values)
     },
     async scanAxe(axeOptions) {
       const violations = await scanBrowserAxe(page, axeOptions)
@@ -178,6 +198,8 @@ export function createPageFlowSession(options: PageFlowSessionOptions): PageFlow
     overlaysOutsideViewport: () => findOverlaysOutsideViewport(page),
     focusProblems: () => findFocusProblems(page),
     drainRuntimeErrors: () => runtimeErrors.drain(),
+    drainJourneyFindings: () => meter.drainFindings(),
+    journeyMetrics: () => meter.metrics(),
     async evidence(): Promise<EvidenceSnapshot> {
       const dom = await page.evaluate(snapshotDom, MAX_DOM_CHARS)
       const values = await page.evaluate(privateValues)
@@ -191,6 +213,7 @@ export function createPageFlowSession(options: PageFlowSessionOptions): PageFlow
       page.off("console", onConsole)
       page.off("response", onResponse)
       page.off("requestfailed", onRequestFailed)
+      page.off("framenavigated", onNavigated)
     },
   }
 }

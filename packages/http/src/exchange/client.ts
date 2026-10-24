@@ -1,5 +1,5 @@
 import { isErr } from "@plainworks/std"
-import { RemoteFailure } from "@plainworks/std/failure"
+import { type decodeProblem, type ProblemDecoder, RemoteFailure } from "@plainworks/std/failure"
 import { composeInterceptors } from "@plainworks/std/pipeline"
 import { type RandomSource, systemRandom } from "@plainworks/std/random"
 import {
@@ -76,6 +76,11 @@ export interface HttpClientOptions {
   readonly random?: RandomSource
   /** Clock for `Retry-After` date parsing; defaults to `systemClock`. */
   readonly clock?: Clock
+  /**
+   * Reads an `application/problem+json` rejection into the shared failure. Defaults to RFC 9457
+   * ({@link decodeProblem}); pass one that knows the server's extension members.
+   */
+  readonly failures?: ProblemDecoder
 }
 
 /**
@@ -203,7 +208,7 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
             // typed failure whether the transport produced it or an interceptor short-circuited
             // with one — a status error can never slip past by bypassing the terminal handler.
             if (!response.ok) {
-              throw await decodeResponseFailure(response, signal, clock.now())
+              throw await decodeResponseFailure(response, signal, clock.now(), options.failures)
             }
             // Decode under the attempt's timeout/abort signal so a response that sends headers and
             // then stalls its body cannot hang forever and post-headers cancellation is still
@@ -232,10 +237,7 @@ export function createHttpClient(options: HttpClientOptions = {}): HttpClient {
             running.catch(() => {})
             return await raceAbort(running, signal)
           } catch (cause) {
-            if (
-              cause instanceof RemoteFailure &&
-              (cause.authentication !== undefined || cause.reason === "AUTH_STORE_UNAVAILABLE")
-            ) {
+            if (cause instanceof RemoteFailure && cause.authentication !== undefined) {
               options.protectedSession?.invalidate(cause)
             }
             throw cause

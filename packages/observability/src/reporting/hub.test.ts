@@ -1,4 +1,4 @@
-import { manualClock } from "@plainworks/testkit"
+import { manualClock } from "@plainworks/std/time"
 import { describe, expect, test } from "vitest"
 import { createErrorReporter } from "./hub"
 import type { ReportEvent, ReporterBackend } from "./reporter"

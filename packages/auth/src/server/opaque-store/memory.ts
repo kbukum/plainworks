@@ -1,6 +1,6 @@
-import { isPositiveInteger } from "@plainworks/std"
 import { systemClock } from "@plainworks/std/time"
 import { AuthError } from "../../errors"
+import { admitLogin, admitSession, sessionStoreCapacity } from "./policy"
 import { decodeLoginRecord, decodeSessionRecord, encodeSessionRecord } from "./record"
 import type { MemorySessionStoreOptions, OpaqueSessionStore, StoredLogin } from "./seam"
 
@@ -9,11 +9,7 @@ export function createMemorySessionStore<Value>(
   options: MemorySessionStoreOptions<Value>,
 ): OpaqueSessionStore<Value> {
   const clock = options.clock ?? systemClock
-  const capacity = options.capacity ?? 1024
-  const transactionCapacity = options.transactionCapacity ?? 256
-  if (!isPositiveInteger(capacity) || !isPositiveInteger(transactionCapacity)) {
-    throw new AuthError("auth/config", "invalid session capacity")
-  }
+  const capacity = sessionStoreCapacity(options)
   interface Entry {
     readonly serialized: string
     readonly expiresAt: number
@@ -50,26 +46,16 @@ export function createMemorySessionStore<Value>(
       const serialized = encodeSessionRecord(owned)
       signal?.throwIfAborted()
       cleanup()
-      const old = previous === undefined ? undefined : records.get(previous)
-      if (
-        previous !== undefined &&
-        (old === undefined || !old.active || old.revoked || old.expiresAt <= clock.now())
-      ) {
-        throw new AuthError("auth/session-revoked", "login lost to a session mutation")
-      }
-      if (
-        owned.expiresAt <= clock.now() ||
-        owned.expiresAt > clock.now() + 3_600_000 ||
-        (old !== undefined && owned.expiresAt !== old.expiresAt)
-      ) {
-        throw new AuthError("auth/session-invalid", "invalid absolute session expiry")
-      }
-      if (records.size >= capacity || records.has(owned.reference)) {
+      const found = previous === undefined ? undefined : records.get(previous)
+      const old =
+        found?.active === true && !found.revoked && found.expiresAt > clock.now()
+          ? found
+          : undefined
+      const { family, retainUntil } = admitSession(owned, previous, old, clock.now())
+      if (records.size >= capacity.sessions || records.has(owned.reference)) {
         throw new AuthError("auth/store-unavailable", "session storage capacity exhausted")
       }
-      const family = old?.family ?? owned.reference
       if (old !== undefined) old.active = false
-      const retainUntil = owned.expiresAt + 600_000
       for (const entry of records.values()) {
         if (entry.family === family) entry.retainUntil = Math.max(entry.retainUntil, retainUntil)
       }
@@ -100,11 +86,9 @@ export function createMemorySessionStore<Value>(
     async createLogin(record, signal) {
       signal?.throwIfAborted()
       const owned = decodeLoginRecord(encodeSessionRecord(record))
-      if (owned.expiresAt <= clock.now() || owned.expiresAt > clock.now() + 600_000) {
-        throw new AuthError("auth/login-transaction", "invalid login transaction expiry")
-      }
+      admitLogin(owned.expiresAt, clock.now())
       cleanup()
-      if (transactions.size >= transactionCapacity || transactions.has(owned.reference)) {
+      if (transactions.size >= capacity.logins || transactions.has(owned.reference)) {
         throw new AuthError("auth/store-unavailable", "login transaction capacity exhausted")
       }
       transactions.set(owned.reference, owned)

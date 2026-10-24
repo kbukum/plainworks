@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
 import { dirname, join, relative } from "node:path"
 import { fileURLToPath } from "node:url"
-import { formatSource } from "./format"
+import { formatSource } from "@plainworks/workspace"
 
 // The tsdown build description and the shadcn `registry.json` are generated from the `CONCERNS`
 // manifest below. Each concern lists its published modules, and every module becomes its own

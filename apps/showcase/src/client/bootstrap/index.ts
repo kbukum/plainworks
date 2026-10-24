@@ -3,6 +3,7 @@
 // Re-export-only barrel for the client bootstrap: the root component, its capabilities, and the
 // state sources they read.
 export { buildClientCapabilities } from "./capabilities"
+export { type BrowserHttpClientOptions, createBrowserHttpClient } from "./http-client"
 export { createMotionSource } from "./motion-preference"
 export { Showcase } from "./showcase"
 export { createThemeSource } from "./sources"

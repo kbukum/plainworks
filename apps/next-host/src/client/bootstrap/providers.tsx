@@ -3,7 +3,7 @@
 import { type AppSnapshot, snapshotFor } from "@plainworks/app"
 import { AppProvider } from "@plainworks/app/client"
 import { useSessionOwner } from "@plainworks/auth/client"
-import { createAuthStore, sessionSnapshotOf } from "@plainworks/auth/session"
+import { createAuthStore, sessionFailures, sessionSnapshotOf } from "@plainworks/auth/session"
 import type { ChannelOptions } from "@plainworks/channel"
 import { type DevtoolsLauncher, launchDevtools } from "@plainworks/devtools/launch"
 import { createHttpClient } from "@plainworks/http"
@@ -75,12 +75,12 @@ export function Providers({ snapshot, origin, children }: ProvidersProps): React
           channel: { instance: "live", label: "Live tasks" },
         }),
   )
-  // Built on the server-resolved origin, so SSR and hydration share one base URL.
+  // Built on the server-resolved origin, so SSR and hydration share one base URL. The API route
+  // rejects a write with the session routes' problems, so the session decoder reads them.
   const [httpClient] = useState(() => {
     const seam = devtools?.http
-    return createHttpClient(
-      seam ? { baseUrl: origin, interceptors: [seam.interceptor] } : { baseUrl: origin },
-    )
+    const base = { baseUrl: origin, failures: sessionFailures }
+    return createHttpClient(seam ? { ...base, interceptors: [seam.interceptor] } : base)
   })
   const [queryClient] = useState(() => createQueryClient())
   const [themeSource] = useState(() => createThemeSource())

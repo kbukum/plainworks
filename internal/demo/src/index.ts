@@ -9,8 +9,10 @@
 export type { MockApi, MockApiOptions } from "./api"
 export { createMockApi } from "./api"
 
-// Seeded entity factories and settings storage for the demo domain.
-export { createContentFactory } from "./data/content"
+// Each demo concern's types, seeded factory and (for settings) storage, plus the shared response
+// envelope types.
+export { createContentFactory } from "./content/data"
+export type { ContentPage, CreateContentPageInput, UpdateContentPageInput } from "./content/types"
 export {
   createDashboardStats,
   createRevenueChartData,
@@ -18,38 +20,26 @@ export {
   generateDailySales,
   generateMonthlyRevenue,
   generateProductSales,
-} from "./data/dashboard"
-export { createNotificationFactory } from "./data/notifications"
-export { createOrderFactory } from "./data/orders"
-export { createProductFactory } from "./data/products"
-export type { SettingsStore } from "./data/settings"
-export { createSettingsStore, createUserSettings, updateUserSettings } from "./data/settings"
-export { createTaskFactory } from "./data/tasks"
-export { createUserFactory } from "./data/users"
-
-// Demo domain types.
+} from "./dashboard/data"
 export type {
-  ApiError,
-  ApiResponse,
   ChartDataPoint,
-  ContentPage,
-  CreateContentPageInput,
-  CreateNotificationInput,
-  CreateOrderInput,
-  CreateProductInput,
-  CreateTaskInput,
-  CreateUserInput,
   DailySales,
   DashboardStats,
   MonthlyRevenue,
-  Notification,
-  Order,
-  OrderItem,
-  PaginatedResponse,
-  PaginationInfo,
-  Product,
   ProductSales,
   RevenueChartData,
+  UserGrowthChartData,
+} from "./dashboard/types"
+export type { ApiError, ApiResponse, PaginatedResponse, PaginationInfo } from "./envelope"
+export { createNotificationFactory } from "./notifications/data"
+export type { CreateNotificationInput, Notification } from "./notifications/types"
+export { createOrderFactory } from "./orders/data"
+export type { CreateOrderInput, Order, OrderItem } from "./orders/types"
+export { createProductFactory } from "./products/data"
+export type { CreateProductInput, Product, UpdateProductInput } from "./products/types"
+export type { SettingsStore } from "./settings/data"
+export { createSettingsStore, createUserSettings, updateUserSettings } from "./settings/data"
+export type {
   SettingsLanguage,
   SettingsNotifications,
   SettingsPreferences,
@@ -61,20 +51,9 @@ export type {
   SettingsProfileIssue,
   SettingsRequestAuthorizer,
   SettingsTimezone,
-  Task,
-  TaskPriority,
-  UpdateContentPageInput,
-  UpdateProductInput,
   UpdateSettingsInput,
-  UpdateTaskInput,
-  UpdateUserInput,
-  User,
-  UserDepartment,
-  UserGrowthChartData,
-  UserRole,
   UserSettings,
-  UserStatus,
-} from "./types"
+} from "./settings/types"
 export {
   decodeSettingsPreferencesUpdate,
   decodeSettingsProfileUpdate,
@@ -85,6 +64,16 @@ export {
   SETTINGS_ITEMS_PER_PAGE_MIN,
   SETTINGS_LANGUAGE_VALUES,
   SETTINGS_TIMEZONE_VALUES,
-  TASK_PRIORITIES,
-  taskPriorityRank,
-} from "./types"
+} from "./settings/types"
+export { createTaskFactory } from "./tasks/data"
+export type { CreateTaskInput, Task, TaskPriority, UpdateTaskInput } from "./tasks/types"
+export { TASK_PRIORITIES, taskPriorityRank } from "./tasks/types"
+export { createUserFactory } from "./users/data"
+export type {
+  CreateUserInput,
+  UpdateUserInput,
+  User,
+  UserDepartment,
+  UserRole,
+  UserStatus,
+} from "./users/types"

@@ -28,7 +28,7 @@ The browser never receives access tokens, refresh tokens, or the session credent
 
 ### Session protocol
 
-The browser speaks the published gokit session contract directly, without application role conversion:
+The browser speaks the plainworks session contract directly, without application role conversion. Any server that implements it can back the store:
 
 | Operation | Contract | Budget |
 |---|---|---|
@@ -64,6 +64,8 @@ The required signer protects CSRF proofs and OIDC transactions, not identity coo
 
 The memory default bounds physical generations/tombstones to 1024 and pending login transactions to 256, with no live-session eviction. Retained expired generations support logout only: reads and replacement reject them. Replacement preserves the family's absolute expiry. Production multi-instance hosts inject transactional persistence implementing these same rules, family revocation and one-time login transaction consumption. Store failure must reject, never masquerade as a missing session.
 
+Custom stores reuse the same rules instead of copying them. `admitSession`, `admitLogin` and `sessionStoreCapacity` define session rotation, login lifetime and capacity. `refreshStoreLimits` and `decideRefreshRotation` define provider refresh custody. The `@plainworks/auth/testing` conformance suites prove that a store follows them. Hosts read the current session with `ServerSession.snapshot(jar)`, which returns the anonymous snapshot for a missing or invalid session and rejects on store failure.
+
 Only domain-separated credential digests are persisted. OIDC PKCE/provider transaction material stays server-side behind a separate opaque login cookie. Re-login uses compare-and-swap; an older generation can revoke its successor. Provider access/refresh tokens remain in server-only adapter custody, and `refreshProvider` preserves legitimate provider refresh without a browser refresh protocol. The standalone Next starter needs no Go service.
 
 ```mermaid
@@ -83,7 +85,7 @@ OIDC is server credential verification, not a second browser session model. The 
 
 ### Server boundary helpers
 
-`createRequestJar` collects outbound cookies and rejects duplicate session cookies or unsupported browser credential headers. `isSameOriginRequest` protects unsafe methods. Use `verifyCsrf` for active-session writes: it rejects missing, expired or revoked sessions, and returns `false` only for a bad proof on a live session. Pass rejected session checks to `authFailureResponse` so terminal authentication returns `401/SESSION_INVALID`, not a permission failure. Use `verifyLogoutCsrf` for family revocation through a retained generation. `authFailureResponse` also reports `AUTH_STORE_UNAVAILABLE` without exposing causes or credentials.
+`createRequestJar` collects outbound cookies and rejects duplicate session cookies or unsupported browser credential headers. `isSameOriginRequest` protects unsafe methods. Use `verifyCsrf` for active-session writes: it rejects missing, expired or revoked sessions, and returns `false` only for a bad proof on a live session. Pass rejected session checks to `authFailureResponse`: it returns an RFC 9457 problem whose `reason` extension member is `SESSION_INVALID` (401), `CSRF_INVALID` (403) or `AUTH_STORE_UNAVAILABLE` (503), without exposing causes or credentials. `sessionFailures` reads those problems on the client and is the store's default decoder; a host with a different failure contract passes its own `failures` decoder to `createAuthStore`. Other clients of routes that answer with `authFailureResponse` pass `sessionFailures` as their `failures` decoder too (`createHttpClient`, `createSseTransport`), so a store outage fails closed instead of being retried as a transient error. Use `verifyLogoutCsrf` for family revocation through a retained generation.
 
 `redirectToPath` sanitizes same-origin return paths, `redirectToUrl` accepts trusted provider URLs, and `readFormBody` bounds OIDC navigation forms to 16 KiB.
 

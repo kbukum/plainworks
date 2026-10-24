@@ -238,18 +238,21 @@
       "types": "./dist/tooltip.d.ts",
       "default": "./dist/tooltip.js"
     },
-    "./styles.css": "./dist/styles.css"
+    "./styles.css": {
+      "@plainworks/source": "./src/styles.css",
+      "default": "./dist/styles.css"
+    }
   },
   "scripts": {
     "build": "tsdown",
     "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.scripts.json && tsc --noEmit -p tsconfig.shadcn.json",
     "test": "vitest run --coverage",
     "check-packaging": "plainworks-release check-packaging",
-    "registry:add": "bun scripts/registry/cli.ts add",
-    "registry:update": "bun scripts/registry/cli.ts update",
-    "registry:diff": "bun scripts/registry/cli.ts diff",
-    "registry:validate": "bun scripts/registry/cli.ts validate",
-    "registry:codegen": "bun scripts/registry/cli.ts codegen"
+    "registry:add": "bun --conditions=@plainworks/source scripts/registry/cli.ts add",
+    "registry:update": "bun --conditions=@plainworks/source scripts/registry/cli.ts update",
+    "registry:diff": "bun --conditions=@plainworks/source scripts/registry/cli.ts diff",
+    "registry:validate": "bun --conditions=@plainworks/source scripts/registry/cli.ts validate",
+    "registry:codegen": "bun --conditions=@plainworks/source scripts/registry/cli.ts codegen"
   },
   "dependencies": {
     "@base-ui/react": "catalog:",
@@ -273,6 +276,7 @@
     "@plainworks/testkit": "workspace:*",
     "@plainworks/tsdown-config": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",
+    "@plainworks/workspace": "workspace:*",
     "@testing-library/react": "catalog:",
     "@testing-library/user-event": "catalog:",
     "@types/node": "catalog:",

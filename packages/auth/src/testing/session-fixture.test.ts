@@ -15,7 +15,7 @@ describe("createSessionFixture", () => {
 
   test("a signed-out fixture answers status like a host with no session", async () => {
     const store = createSessionFixture()
-    await expect(store.revalidate()).rejects.toMatchObject({ code: "UNAUTHORIZED" })
+    await expect(store.revalidate()).rejects.toMatchObject({ code: "unauthenticated" })
     expect(store.getSnapshot()).toMatchObject({ status: "unauthenticated", identity: null })
   })
 })

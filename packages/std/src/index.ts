@@ -26,4 +26,5 @@ export {
   isOneOf,
   isPositiveInteger,
   isRecord,
+  isStructurallyEqual,
 } from "./guard"

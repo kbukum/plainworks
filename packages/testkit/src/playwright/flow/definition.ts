@@ -3,6 +3,8 @@ import type { BrowserAxeOptions } from "../checks/axe"
 import type { Allowance } from "../checks/findings"
 import { FlowError } from "./errors"
 import type { VisualCapture } from "./frame"
+import { BUDGET_METRICS, type JourneyBudget } from "./journey/budget"
+import type { FlowUser } from "./journey/user"
 import { DEVICE_IDS, type DeviceId } from "./matrix/devices"
 
 /** Which checks a checkpoint runs. Runtime errors are always checked. */
@@ -33,6 +35,13 @@ export interface FlowActionContext {
    * timed-out action stops instead of changing the page under the steps after it.
    */
   readonly signal: AbortSignal
+  /**
+   * The person the action stands for: `visit`, `activate`, `type`, and `pick` drive the page the
+   * way the device's user does (by keyboard without touch, by tap with it) and count toward the
+   * flow's journey metrics. In a flow with a `budget`, the page is guarded: a raw Playwright action
+   * throws, so every step is driven and counted this way.
+   */
+  readonly user: FlowUser
 }
 
 /** One labeled step of a flow: an action, and the condition that says the page is ready. */
@@ -82,6 +91,12 @@ export interface Flow {
    */
   readonly extraDevices?: readonly DeviceId[]
   readonly checkpoints: readonly FlowCheckpoint[]
+  /**
+   * Makes the flow a journey: the most it may cost its user in views, typed fields, picks, and
+   * activations, judged when the flow completes. A journey's page is guarded so every step goes
+   * through `user`, and `user.visit` may only start it.
+   */
+  readonly budget?: JourneyBudget
 }
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -90,8 +105,10 @@ const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
  * Validate a flow and return it. Throws a `flow/definition` {@link FlowError} for a name that is
  * not a lowercase slug, a `covers` glob that is empty or leaves the repository, an unknown extra
  * device, no checkpoints, a repeated checkpoint name, a docs image name that is not a lowercase
- * slug or is repeated, an allowance with no reason, or an allowance pattern with the `g` or `y`
- * flag, whose `lastIndex` would make matching depend on what it matched before.
+ * slug or is repeated, an allowance with no reason, an allowance pattern with the `g` or `y`
+ * flag, whose `lastIndex` would make matching depend on what it matched before, or a budget with an
+ * unknown metric, a limit that is not a whole number of zero or more, or an expected overrun
+ * without a step and a reason.
  */
 export function defineFlow<const T extends Flow>(flow: T): T {
   slug("Flow", flow.name)
@@ -116,6 +133,7 @@ export function defineFlow<const T extends Flow>(flow: T): T {
       )
     }
   }
+  validateBudget(flow)
   if (flow.checkpoints.length === 0) {
     throw new FlowError("definition", `Flow "${flow.name}" needs at least one checkpoint`)
   }
@@ -154,6 +172,29 @@ export function defineFlow<const T extends Flow>(flow: T): T {
     }
   }
   return flow
+}
+
+function validateBudget(flow: Flow): void {
+  for (const [metric, limit] of Object.entries(flow.budget ?? {})) {
+    const where = `Flow "${flow.name}" budget "${metric}"`
+    if (!(BUDGET_METRICS as readonly string[]).includes(metric)) {
+      throw new FlowError(
+        "definition",
+        `${where} is not a budget metric; use one of ${BUDGET_METRICS.join(", ")}`,
+      )
+    }
+    if (limit === undefined) continue
+    if (!Number.isInteger(limit.max) || limit.max < 0) {
+      throw new FlowError("definition", `${where} needs a whole-number max of 0 or more`)
+    }
+    const { failsUntil } = limit
+    if (
+      failsUntil !== undefined &&
+      (failsUntil.step.trim() === "" || failsUntil.reason.trim() === "")
+    ) {
+      throw new FlowError("definition", `${where} expects an overrun without a step and a reason`)
+    }
+  }
 }
 
 function slug(what: string, name: string): void {

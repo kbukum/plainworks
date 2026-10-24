@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { guardSchema } from "@plainworks/std/seam"
-import { manualClock } from "@plainworks/testkit"
+import { manualClock } from "@plainworks/std/time"
 import Database from "better-sqlite3"
 import { afterEach, expect, test } from "vitest"
 import { createSqliteRefreshTokenStore } from "./refresh-store"

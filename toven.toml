@@ -1,0 +1,186 @@
+# Toven drives the plainworks gates: one task per package script, run through
+# Bun. `toven verify` runs the Definition-of-Done set; `toven run build` and
+# `toven --module js:<name> test` scope it. See docs at https://toven.dev.
+[project]
+name = "plainworks"
+base_ref = "origin/main"
+
+[ecosystems.js]
+roots = "auto"
+
+[ecosystems.js.coverage]
+changed_line = 85.0
+enforcement = "advisory"
+line = 80.0
+
+# Every package task reads the shared tsconfigs, the ambient `types/` shim, and
+# the root manifest and lockfile (catalog versions and installed tools), which
+# live outside each package.
+[ecosystems.js.tasks.build]
+argv = ["bun", "run", "--cwd", "{module.root}", "build", "{args}"]
+depends_on = ["^build"]
+fan_out = "per-module"
+outputs = ["dist"]
+requires = ["script:build"]
+shared_inputs = ["bun.lock", "package.json", "tsconfig.app.json", "tsconfig.base.json", "tsconfig.tool.json", "types"]
+
+[ecosystems.js.tasks.typecheck]
+argv = ["bun", "run", "--cwd", "{module.root}", "typecheck", "{args}"]
+depends_on = ["^build"]
+fan_out = "per-module"
+kind = "check"
+requires = ["script:typecheck"]
+shared_inputs = ["bun.lock", "package.json", "tsconfig.app.json", "tsconfig.base.json", "tsconfig.tool.json", "types"]
+
+[ecosystems.js.tasks.test]
+argv = ["bun", "run", "--cwd", "{module.root}", "test", "{args}"]
+depends_on = ["^build"]
+fan_out = "per-module"
+requires = ["script:test"]
+shared_inputs = ["bun.lock", "package.json", "tsconfig.app.json", "tsconfig.base.json", "tsconfig.tool.json", "types"]
+
+[ecosystems.js.tasks.coverage]
+argv = ["bun", "run", "--cwd", "{module.root}", "test", "--coverage.enabled", "--coverage.reporter=lcovonly", "--coverage.reportsDirectory={project.root}/target/toven/coverage/js-{module.name}", "{args}"]
+cacheable = false
+depends_on = ["^build"]
+fan_out = "per-module"
+kind = "coverage"
+requires = ["script:test"]
+
+# `check-packaging` packs this package's own `dist`, so it waits for its build.
+[ecosystems.js.tasks.check-packaging]
+argv = ["bun", "run", "--cwd", "{module.root}", "check-packaging", "{args}"]
+depends_on = ["build"]
+fan_out = "per-module"
+kind = "check"
+requires = ["script:check-packaging"]
+shared_inputs = ["bun.lock", "package.json"]
+
+# `check-production` runs the host's own analysis build against built
+# dependencies, so it is never replayed from cache.
+[ecosystems.js.tasks.check-production]
+argv = ["bun", "run", "--cwd", "{module.root}", "check-production", "{args}"]
+cacheable = false
+depends_on = ["^build"]
+fan_out = "per-module"
+kind = "check"
+requires = ["script:check-production"]
+
+# Repo-wide gates are scripts on the root package. The root module's hash covers
+# the whole tracked tree, so they replay from cache only when nothing changed.
+[ecosystems.js.tasks.lint]
+argv = ["bun", "run", "--cwd", "{module.root}", "lint", "{args}"]
+fan_out = "per-module"
+kind = "check"
+requires = ["script:lint"]
+
+[ecosystems.js.tasks.check-versions]
+argv = ["bun", "run", "--cwd", "{module.root}", "check-versions", "{args}"]
+fan_out = "per-module"
+kind = "check"
+requires = ["script:check-versions"]
+
+[ecosystems.js.tasks.check-comments]
+argv = ["bun", "run", "--cwd", "{module.root}", "check-comments", "{args}"]
+fan_out = "per-module"
+kind = "check"
+requires = ["script:check-comments"]
+
+[ecosystems.js.tasks.check-layer-map]
+argv = ["bun", "run", "--cwd", "{module.root}", "check-layer-map", "{args}"]
+fan_out = "per-module"
+kind = "check"
+requires = ["script:check-layer-map"]
+
+[ecosystems.js.tasks.check-registry]
+argv = ["bun", "run", "--cwd", "{module.root}", "check-registry", "{args}"]
+fan_out = "per-module"
+kind = "check"
+requires = ["script:check-registry"]
+
+[ecosystems.js.tasks.check-shape]
+argv = ["bun", "run", "--cwd", "{module.root}", "check-shape", "{args}"]
+fan_out = "per-module"
+kind = "check"
+requires = ["script:check-shape"]
+
+[ecosystems.js.tasks.check-axe-coverage]
+argv = ["bun", "run", "--cwd", "{module.root}", "check-axe-coverage", "{args}"]
+fan_out = "per-module"
+kind = "check"
+requires = ["script:check-axe-coverage"]
+
+[ecosystems.js.tasks.typecheck-generators]
+argv = ["bun", "run", "--cwd", "{module.root}", "typecheck-generators", "{args}"]
+fan_out = "per-module"
+kind = "check"
+requires = ["script:typecheck-generators"]
+
+[ecosystems.js.tasks.check-boundaries]
+argv = ["bun", "run", "--cwd", "{module.root}", "check-boundaries", "{args}"]
+fan_out = "per-module"
+kind = "check"
+requires = ["script:check-boundaries"]
+
+[ecosystems.js.tasks.format]
+argv = ["bun", "run", "--cwd", "{module.root}", "format", "{args}"]
+cacheable = false
+fan_out = "per-module"
+requires = ["script:format"]
+
+[ecosystems.js.tasks.dev]
+argv = ["bun", "run", "--cwd", "{module.root}", "dev", "{args}"]
+cacheable = false
+fan_out = "per-module"
+kind = "run"
+persistent = true
+requires = ["script:dev"]
+
+[ecosystems.js.tasks.install]
+argv = ["bun", "install", "--cwd", "{workspace.root}", "--frozen-lockfile"]
+cacheable = false
+fan_out = "whole-workspace"
+workspace_closure = true
+
+# The Definition-of-Done gates, the same set `bun run verify` runs.
+[sets.verify]
+tasks = ["check-versions", "lint", "check-comments", "check-layer-map", "check-registry", "check-shape", "check-axe-coverage", "typecheck", "typecheck-generators", "check-boundaries", "build", "test", "check-packaging", "check-production"]
+
+# The production-exclusion fixture builds real Vite consumers against the
+# devtools package's own `dist`, so its tests also wait for its own build.
+[groups.devtools-artifact]
+description = "Packages whose tests read their own build output"
+ecosystem = "js"
+modules = ["packages-devtools"]
+
+[groups.devtools-artifact.tasks.test]
+depends_on = ["^build", "build"]
+
+# These packages read source files of other packages, which are not their
+# dependencies: the boundaries tests compile every package's entries, and
+# create-plainworks derives pinned versions from every package manifest and
+# ejects `apps/next-host` during its build.
+[groups.cross-package-readers]
+description = "Packages whose tasks read other packages' sources"
+ecosystem = "js"
+modules = ["internal-boundaries", "packages-create-plainworks"]
+
+[groups.cross-package-readers.tasks.test]
+shared_inputs = ["packages"]
+
+[groups.ejects-next-host]
+description = "Packages whose build ejects apps/next-host"
+ecosystem = "js"
+modules = ["packages-create-plainworks"]
+
+[groups.ejects-next-host.tasks.build]
+shared_inputs = ["apps/next-host", "packages"]
+
+# Next.js hosts build into `.next`, not `dist`; `BUILD_ID` marks a finished build.
+[groups.next-hosts]
+description = "Next.js hosts"
+ecosystem = "js"
+modules = ["apps-next-host"]
+
+[groups.next-hosts.tasks.build]
+outputs = [".next/BUILD_ID"]

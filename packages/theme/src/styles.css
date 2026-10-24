@@ -2,7 +2,9 @@
 @import "tw-animate-css";
 @import "./tokens.css";
 
-@source "./**/*.js";
+/* Scans built `dist/` JS when installed and `src/` when a consumer links the kit source. */
+@source "./**/*.{js,ts,tsx}";
+@source not "./**/*.test.{ts,tsx}";
 
 /*
  * `dark:` matches inside a `dark` class and, in system mode (no `light` or `dark` root class), on a

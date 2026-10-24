@@ -56,7 +56,7 @@ jobs:
       # trusting an earlier run. `verify` includes the release-line check, so a prerelease version
       # can never be published while Changesets pre mode is off.
       - name: Verify (every Definition-of-Done gate)
-        run: bun run verify
+        run: bun run verify --verbose
 
       # Prove the derived publish set matches the publishable workspaces before touching the
       # registry, so a bug in the derivation fails the run instead of silently publishing the wrong

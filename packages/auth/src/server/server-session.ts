@@ -13,11 +13,16 @@ import { serializeCookieAttributes, type WebAbortSignal } from "@plainworks/std/
 import type { AuthAdapter, AuthSession, ProviderTokens } from "../adapter/seam"
 import { type AuthCrypto, defaultAuthCrypto } from "../crypto"
 import { createCsrf } from "../csrf"
-import { AuthError } from "../errors"
+import { AuthError, isAuthErrorKind } from "../errors"
 import { type AuthGuardConfig, sanitizeReturnTo, unauthenticatedRedirect } from "../redirect"
-import type { SessionResponse } from "../session"
+import { ANONYMOUS_AUTH, type AuthSnapshot, type SessionResponse } from "../session"
 import type { SessionSigner } from "../signer"
-import type { OpaqueSessionStore, StoredSession } from "./opaque-store"
+import {
+  MAX_LOGIN_LIFETIME_MS,
+  MAX_SESSION_LIFETIME_MS,
+  type OpaqueSessionStore,
+  type StoredSession,
+} from "./opaque-store"
 
 export interface ServerSessionConfig<Schema extends StandardSchemaV1> {
   readonly adapter: AuthAdapter
@@ -60,6 +65,11 @@ export interface ServerSession<Schema extends StandardSchemaV1> {
   read(jar: ServerSessionJar): Promise<InferSchemaOutput<Schema> | undefined>
   /** Published browser status response. Does not set or renew cookies. */
   status(jar: ServerSessionJar): Promise<SessionResponse>
+  /**
+   * The client-safe {@link AuthSnapshot} a host renders from. A missing, expired or invalid session
+   * reads as {@link ANONYMOUS_AUTH}; any other failure, such as an unavailable store, rejects.
+   */
+  snapshot(jar: ServerSessionJar): Promise<AuthSnapshot>
   guard(jar: ServerSessionJar, currentPath?: string): Promise<RedirectSignal | null>
   beginLogin(
     jar: ServerSessionJar,
@@ -86,13 +96,15 @@ export function createServerSession<Schema extends StandardSchemaV1>(
 ): ServerSession<Schema> {
   const clock = config.clock ?? systemClock
   const crypto = config.crypto ?? defaultAuthCrypto()
-  const ttl = config.ttlSeconds ?? 3600
-  const transactionTtl = config.transactionTtlSeconds ?? 600
+  const maxTtl = MAX_SESSION_LIFETIME_MS / 1000
+  const maxTransactionTtl = MAX_LOGIN_LIFETIME_MS / 1000
+  const ttl = config.ttlSeconds ?? maxTtl
+  const transactionTtl = config.transactionTtlSeconds ?? maxTransactionTtl
   if (
     !isPositiveInteger(ttl) ||
-    ttl > 3600 ||
+    ttl > maxTtl ||
     !isPositiveInteger(transactionTtl) ||
-    transactionTtl > 600
+    transactionTtl > maxTransactionTtl
   ) {
     throw new AuthError("auth/config", "invalid session or transaction lifetime")
   }
@@ -149,6 +161,19 @@ export function createServerSession<Schema extends StandardSchemaV1>(
     return found
   }
 
+  async function status(jar: ServerSessionJar): Promise<SessionResponse> {
+    return bounded(500, undefined, async (signal) => {
+      const found = await record(jar, signal)
+      if (found === undefined) throw new AuthError("auth/unauthenticated", "no active session")
+      return {
+        status: "authenticated",
+        identity: config.toIdentity(found.value),
+        expiresAt: new Date(found.expiresAt).toISOString(),
+        csrfToken: await csrf.issue(found.reference),
+      }
+    })
+  }
+
   // Release every provider slot of a revoked family; one failed release never skips the others.
   async function releaseProviders(
     handles: readonly string[],
@@ -176,17 +201,26 @@ export function createServerSession<Schema extends StandardSchemaV1>(
 
   return {
     read,
-    async status(jar) {
-      return bounded(500, undefined, async (signal) => {
-        const found = await record(jar, signal)
-        if (found === undefined) throw new AuthError("auth/unauthenticated", "no active session")
+    status,
+    async snapshot(jar) {
+      try {
+        const current = await status(jar)
+        const name = current.identity.claims?.name
         return {
-          status: "authenticated",
-          identity: config.toIdentity(found.value),
-          expiresAt: new Date(found.expiresAt).toISOString(),
-          csrfToken: await csrf.issue(found.reference),
+          authenticated: true,
+          subject: current.identity.subject,
+          name: typeof name === "string" ? name : null,
+          session: current,
         }
-      })
+      } catch (cause) {
+        if (
+          isAuthErrorKind(cause, "auth/unauthenticated") ||
+          isAuthErrorKind(cause, "auth/session-invalid")
+        ) {
+          return ANONYMOUS_AUTH
+        }
+        throw cause
+      }
     },
     async guard(jar, currentPath) {
       if (config.guard === undefined)
@@ -354,20 +388,13 @@ export function createServerSession<Schema extends StandardSchemaV1>(
       return bounded(500, undefined, async (signal) => {
         const found = await record(jar, signal)
         if (found === undefined) throw new AuthError("auth/unauthenticated", "no active session")
-        return (
-          requestToken.length <= 256 &&
-          (await csrf.verify(found.reference, requestToken, requestToken))
-        )
+        return csrf.verify(found.reference, requestToken)
       })
     },
     async verifyLogoutCsrf(jar, requestToken) {
       return bounded(500, undefined, async () => {
         const ref = await reference(jar)
-        return (
-          ref !== undefined &&
-          requestToken.length <= 256 &&
-          (await csrf.verify(ref, requestToken, requestToken))
-        )
+        return ref !== undefined && (await csrf.verify(ref, requestToken))
       })
     },
   }

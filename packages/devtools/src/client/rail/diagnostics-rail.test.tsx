@@ -83,6 +83,23 @@ describe("DiagnosticsRail", () => {
     expect(onOpen).toHaveBeenCalledWith("http")
   })
 
+  // WCAG 2.5.3 Label in Name: speech users say what they see, so the accessible name must contain
+  // the visible text. The name comes from the content itself rather than a separate aria-label.
+  it("names each entry from its own visible text", () => {
+    renderRail({
+      indicators: [
+        indicator(http, "2 in flight", "info", 1_000, "http"),
+        indicator(query, "3 tracked", "info", 0, "query"),
+      ],
+      clock: { now: () => 1_000 },
+    })
+    for (const name of ["HTTP: 2 in flight", "QUERY: 3 tracked (stale)"]) {
+      const entry = screen.getByRole("button", { name })
+      expect(entry.hasAttribute("aria-label")).toBe(false)
+      expect(entry.textContent).toBe(name)
+    }
+  })
+
   it("announces stale values", () => {
     renderRail({ clock: { now: () => 10_000 } })
     expect(screen.getByRole("button", { name: /HTTP: 2 in flight \(stale\)/ })).toBeTruthy()

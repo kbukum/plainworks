@@ -28,8 +28,7 @@ export const liveRecoveryFlow = defineFlow({
           const app = `id: ${cursor}\nevent: ${ProfileInputSchema.typeName}\ndata: {"label":"changed"}\n\n`
           wire += app + app
           if (mode === "auth")
-            wire =
-              'event: failure\ndata: {"code":"TOKEN_EXPIRED","message":"Sign in","retryable":false}\n\n'
+            wire = 'event: failure\ndata: {"type":"about:blank","status":401,"title":"Sign in"}\n\n'
           await route.fulfill({ contentType: "text/event-stream", body: wire })
         })
         await page.goto("/e2e/fixtures/live.html")

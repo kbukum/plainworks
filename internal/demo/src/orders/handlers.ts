@@ -1,0 +1,64 @@
+/**
+ * Order API handlers
+ */
+
+import type { LatencyController } from "@plainworks/mocks"
+import type { EntityFactory, EntityStore } from "@plainworks/mocks/data"
+import {
+  createCrudHandlers,
+  type InputSpec,
+  type MutationAuthorizer,
+} from "@plainworks/mocks/handlers"
+import type { Clock } from "@plainworks/std/time"
+import type { HttpHandler } from "msw"
+import type { CreateOrderInput, Order } from "./types"
+
+const ORDER_INPUT_SPEC: InputSpec<CreateOrderInput> = {
+  customerId: { kind: "string" },
+  customerName: { kind: "string" },
+  customerEmail: { kind: "string" },
+  status: { kind: "enum", values: ["pending", "processing", "shipped", "delivered", "cancelled"] },
+  items: {
+    kind: "objectArray",
+    item: {
+      productId: { kind: "string", required: true },
+      name: { kind: "string", required: true },
+      quantity: { kind: "number", required: true },
+      price: { kind: "number", required: true },
+    },
+  },
+}
+
+/** Build the `/api/orders` CRUD handlers against this server's store. */
+export function createOrderHandlers(
+  factory: EntityFactory<Order, CreateOrderInput>,
+  store: EntityStore<Order>,
+  latency: LatencyController,
+  clock: Clock,
+  authorize?: MutationAuthorizer,
+): HttpHandler[] {
+  return createCrudHandlers<Order, CreateOrderInput>({
+    basePath: "/api/orders",
+    entityName: "Order",
+    store,
+    createEntity: factory.create,
+    latency,
+    clock,
+    inputSpec: ORDER_INPUT_SPEC,
+    searchFields: ["customerName", "customerEmail"],
+    filterFields: ["status"],
+    facetFields: ["status"],
+    sortFields: ["customerName", "customerEmail", "total", "status", "createdAt"],
+    ...(authorize ? { authorize } : {}),
+    applyUpdate: (current, updates) => {
+      const merged = { ...current, ...updates }
+      // Derived invariant: patching items must recompute the total.
+      if (updates.items) {
+        merged.total = Number(
+          updates.items.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2),
+        )
+      }
+      return { ...merged, updatedAt: new Date(clock.now()).toISOString() }
+    },
+  })
+}

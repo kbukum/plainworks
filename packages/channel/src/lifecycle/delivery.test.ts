@@ -1,14 +1,9 @@
 import { convergenceFixture } from "@plainworks/mocks/stream"
-import {
-  deferred,
-  flushMicrotasks,
-  manualClock,
-  manualDelay,
-  seededRandom,
-} from "@plainworks/testkit"
+import { manualClock } from "@plainworks/std/time"
+import { deferred, flushMicrotasks, manualDelay, seededRandom } from "@plainworks/testkit"
 import { fakeFetch, fakeStreamTransport } from "@plainworks/testkit/fakes"
 import { describe, expect, it } from "vitest"
-import { createEventRouter, jsonDecoder } from "../events"
+import { createEventRouter, decodeFailureFrame, jsonDecoder } from "../events"
 import { createSseTransport } from "../transport/sse"
 import { createChannel } from "./channel"
 
@@ -54,6 +49,7 @@ describe("acknowledged delivery", () => {
       minUptimeMs: 0,
       retryBudgetMs: 200,
       backoff: { baseMs: 10, maxMs: 20, factor: 2, jitter: "none" },
+      failures: (data) => ({ ...decodeFailureFrame(data), retryAfterMs: 60 }),
     })
     const router = createEventRouter({
       channel,
@@ -71,12 +67,7 @@ describe("acknowledged delivery", () => {
     transport.current?.open()
     transport.current?.frame({
       type: "failure",
-      data: JSON.stringify({
-        code: "SERVICE_UNAVAILABLE",
-        message: "Wait",
-        retryable: true,
-        retryAfter: 0.06,
-      }),
+      data: JSON.stringify({ status: 503, title: "Wait" }),
     })
     await flushMicrotasks()
     expect(delay.pending.map(({ ms }) => ms)).toEqual([60])
@@ -277,11 +268,11 @@ describe("acknowledged delivery", () => {
     transport.current?.open()
     transport.current?.frame({
       type: "failure",
-      data: JSON.stringify({ code: "TOKEN_EXPIRED", message: "Sign in.", retryable: true }),
+      data: JSON.stringify({ status: 401, title: "Sign in." }),
     })
     await flushMicrotasks()
     expect(channel.status).toBe("closed")
-    expect(errors).toMatchObject([{ code: "TOKEN_EXPIRED", authentication: "unauthenticated" }])
+    expect(errors).toMatchObject([{ code: "unauthenticated", authentication: "unauthenticated" }])
     expect(channel.error).toBe(errors[0])
     transport.current?.endOk()
     delay.fireWhere(() => true)
@@ -305,11 +296,7 @@ describe("acknowledged delivery", () => {
       transport.current?.open()
       const failure = {
         type: "failure",
-        data: JSON.stringify({
-          code: retryable ? "SERVICE_UNAVAILABLE" : "TOKEN_EXPIRED",
-          message: "Failure",
-          retryable,
-        }),
+        data: JSON.stringify({ status: retryable ? 503 : 401, title: "Failure" }),
       }
       transport.current?.frame(failure)
       await flushMicrotasks()
@@ -333,18 +320,14 @@ describe("acknowledged delivery", () => {
       backoff: { baseMs: 10, maxMs: 20, factor: 2, jitter: "full" },
       random: seededRandom(1),
       delay: delay.delay,
+      failures: (data) => ({ ...decodeFailureFrame(data), retryAfterMs: 60_000 }),
     })
     channel.connect()
     await flushMicrotasks()
     transport.current?.open()
     transport.current?.frame({
       type: "failure",
-      data: JSON.stringify({
-        code: "SERVICE_UNAVAILABLE",
-        message: "Wait.",
-        retryable: true,
-        retryAfter: 60,
-      }),
+      data: JSON.stringify({ status: 503, title: "Wait." }),
     })
     await flushMicrotasks()
     expect(channel.status).toBe("closed")

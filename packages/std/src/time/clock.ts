@@ -68,7 +68,7 @@ export function parseTimestamp(timestamp: number | string): number {
 /**
  * A {@link Clock} pinned to one timestamp (see {@link parseTimestamp} for the accepted forms).
  * Use it where a running app needs a stable "now", such as a demo backend seeded for the browser
- * gate. Tests that must move time use `manualClock` from `@plainworks/testkit` instead.
+ * gate. Tests that must move time use {@link manualClock} instead.
  *
  * @throws {RangeError} When `timestamp` does not name exactly one moment.
  */

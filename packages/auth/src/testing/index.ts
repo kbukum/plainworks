@@ -1,7 +1,6 @@
 // Runner-neutral conformance cases for auth custody contracts. Run them against the memory
 // defaults and any consumer-supplied implementation using only public exports.
-export type { SteppedClock } from "./check"
-export { ConformanceFailure, steppedClock } from "./check"
+export { ConformanceFailure } from "./check"
 export type {
   ConformanceCase,
   OpaqueSessionStoreFactory,

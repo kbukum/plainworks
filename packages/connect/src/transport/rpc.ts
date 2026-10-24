@@ -4,6 +4,7 @@ import type { RandomSource } from "@plainworks/std/random"
 import type { Delay } from "@plainworks/std/resilience"
 import type { AuthHeaderProvider, ProtectedSession } from "@plainworks/std/seam"
 import type { WebFetch } from "@plainworks/std/web"
+import type { decodeRpcFailure, RpcFailureDecoder } from "../errors"
 import type { ConnectRetryPolicy } from "../interceptor/resilience"
 import { failureTransport } from "./failure-transport"
 import { buildInterceptorChain } from "./interceptor-chain"
@@ -66,6 +67,11 @@ export interface CreateConnectTransportOptions {
   readonly delay?: Delay
   /** Injectable jitter source for deterministic retry tests; defaults to the system RNG. */
   readonly random?: RandomSource
+  /**
+   * Reads Connect error details into the shared failure, for both the retry verdict and the error
+   * callers receive. Defaults to the standard `google.rpc` model ({@link decodeRpcFailure}).
+   */
+  readonly failures?: RpcFailureDecoder
 }
 
 /**
@@ -97,6 +103,7 @@ export function createConnectRpcTransport(options: CreateConnectTransportOptions
     fetch,
     delay,
     random,
+    failures,
   } = options
 
   const chain = buildInterceptorChain({
@@ -110,6 +117,7 @@ export function createConnectRpcTransport(options: CreateConnectTransportOptions
     ...(retry !== undefined ? { retry } : {}),
     ...(delay !== undefined ? { delay } : {}),
     ...(random !== undefined ? { random } : {}),
+    ...(failures !== undefined ? { failures } : {}),
   })
 
   const transportOptions = {
@@ -123,6 +131,6 @@ export function createConnectRpcTransport(options: CreateConnectTransportOptions
     protocol === "grpc-web"
       ? createGrpcWebTransport(transportOptions)
       : createConnectTransport(transportOptions),
-    options.protectedSession,
+    { session: options.protectedSession, failures },
   )
 }

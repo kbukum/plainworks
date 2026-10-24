@@ -1,7 +1,9 @@
 import type { BrowserAxeOptions } from "../checks/axe"
+import type { Finding } from "../checks/findings"
 import type { LayoutFacts } from "../checks/heuristics"
 import type { RuntimeError } from "../checks/runtime-errors"
 import type { FlowCheckpoint } from "./definition"
+import type { JourneyMetrics } from "./journey/budget"
 import type { PageVariant } from "./matrix/axes"
 
 /** What a failure's evidence bundle holds, before it is written to the run. */
@@ -24,7 +26,7 @@ export interface EvidenceSnapshot {
  * timed-out step stops rather than racing the steps after it.
  */
 export interface FlowSession {
-  /** Run the checkpoint's action. */
+  /** Run the checkpoint's action, handing it a `FlowUser` that counts toward the journey. */
   act(checkpoint: FlowCheckpoint, signal: AbortSignal): Promise<void>
   /** Wait for the checkpoint's ready element and web fonts; `false` when it never shows. */
   waitReady(checkpoint: FlowCheckpoint, timeoutMs: number, signal: AbortSignal): Promise<boolean>
@@ -50,5 +52,9 @@ export interface FlowSession {
   focusProblems(signal: AbortSignal): Promise<string[]>
   /** Take the runtime errors raised since the last call. */
   drainRuntimeErrors(): RuntimeError[]
+  /** Take the findings the flow's user raised since the last call: keyboard, focus, redundancy. */
+  drainJourneyFindings(): Finding[]
+  /** What the journey has cost its user so far. */
+  journeyMetrics(): JourneyMetrics
   evidence(signal: AbortSignal): Promise<EvidenceSnapshot>
 }

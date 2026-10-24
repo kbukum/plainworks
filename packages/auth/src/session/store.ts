@@ -1,6 +1,6 @@
 import { createJsonCodec, decodeResponseFailure, HttpError } from "@plainworks/http"
 import { createStore, type Store } from "@plainworks/state"
-import { FailureDecodeError, RemoteFailure } from "@plainworks/std/failure"
+import { FailureDecodeError, type ProblemDecoder, RemoteFailure } from "@plainworks/std/failure"
 import {
   AbortError,
   type Delay,
@@ -18,6 +18,7 @@ import {
   type WebRequestInit,
 } from "@plainworks/std/web"
 import { AuthError } from "../errors"
+import { sessionFailureReasons, sessionFailures } from "./failures"
 import { decodeSessionResponse, type SessionResponse } from "./response"
 
 /** Client-safe state. The HttpOnly credential is never represented here. */
@@ -45,6 +46,8 @@ export interface AuthStoreConfig {
    * signed-out seed is the server's answer, so {@link AuthStore.confirm} does not ask again.
    */
   readonly initialSnapshot?: SessionSnapshot
+  /** Reads a rejected session route. Defaults to {@link sessionFailures}. */
+  readonly failures?: ProblemDecoder
 }
 
 export interface AuthStore {
@@ -87,6 +90,7 @@ export function createAuthStore(config: AuthStoreConfig = {}): AuthStore {
   const fetch = resolveFetch(config.fetch, () => new AuthError("auth/config", "fetch is required"))
   const baseUrl = (config.baseUrl ?? "/auth").replace(/\/$/, "")
   const codec = createJsonCodec({ maxBytes: 16 * 1024 })
+  const failures = config.failures ?? sessionFailures
   const store = createStore<SessionSnapshot>(
     () => config.initialSnapshot ?? { status: "unauthenticated", identity: null },
   )
@@ -148,7 +152,9 @@ export function createAuthStore(config: AuthStoreConfig = {}): AuthStore {
           cache: "no-store",
           signal: bounded,
         })
-        if (!response.ok) throw await decodeResponseFailure(response, bounded, clock.now())
+        if (!response.ok) {
+          throw await decodeResponseFailure(response, bounded, clock.now(), failures)
+        }
         if (route === "logout") {
           if (response.status !== 204) throw new FailureDecodeError()
           return undefined
@@ -217,15 +223,14 @@ export function createAuthStore(config: AuthStoreConfig = {}): AuthStore {
         new RemoteFailure(
           "auth/session-ended",
           {
-            code:
-              cause === undefined || cause instanceof AuthError
-                ? "UNAUTHORIZED"
-                : "SERVICE_UNAVAILABLE",
+            ...(cause === undefined || cause instanceof AuthError
+              ? { code: "unauthenticated", reason: sessionFailureReasons.invalid }
+              : {
+                  code: "unavailable",
+                  reason: sessionFailureReasons.storeUnavailable,
+                  authentication: "unavailable",
+                }),
             message: cause === undefined ? "Sign in to continue." : cause.message,
-            reason:
-              cause === undefined || cause instanceof AuthError
-                ? "SESSION_INVALID"
-                : "AUTH_STORE_UNAVAILABLE",
             retryable: false,
             violations: [],
           },

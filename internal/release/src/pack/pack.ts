@@ -37,7 +37,8 @@ export interface PackedWorkspace {
 /**
  * Packs the workspace in `dir` and writes the tarball npm publishes into `destination`. Bun packs
  * it (resolving `catalog:` and `workspace:*`), then the manifest inside the tarball loses the
- * source condition. The workspace's own `package.json` is never touched.
+ * source condition and nested `node_modules` entries are dropped. The workspace's own
+ * `package.json` is never touched.
  */
 export async function packWorkspace(
   dir: string,
@@ -54,6 +55,11 @@ export async function packWorkspace(
   if (manifest === undefined) throw new ReleaseToolError(`${raw} has no ${MANIFEST_ENTRY}`)
   const published = publishedManifest(new TextDecoder().decode(manifest))
   files.set(MANIFEST_ENTRY, new TextEncoder().encode(published))
+  // A `files` entry such as `src` also matches local caches (`src/**/node_modules/.vite`).
+  // Installers never treat a nested node_modules as package content, so it is never published.
+  for (const path of files.keys()) {
+    if (path.split("/").includes("node_modules")) files.delete(path)
+  }
   const tarball = `${destination}/${raw.split("/").at(-1)}`
   await tools.writeFile(tarball, await tools.archive.write(files))
   return { tarball, manifest: published }

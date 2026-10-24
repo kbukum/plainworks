@@ -40,7 +40,7 @@ test("a task mutation without an active session reports terminal auth and change
   const response = await post("/api/tasks", { title: "forged" })
   expect(response.status).toBe(401)
   expect(await response.json()).toMatchObject({
-    code: "UNAUTHORIZED",
+    status: 401,
     reason: "SESSION_INVALID",
   })
   expect(await total()).toBe(before)

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { parseApiParams } from "./api"
+import { parseApiParams, parseFilterString } from "./api"
 
 describe("parseApiParams", () => {
   it("parses a simple op.value condition", () => {
@@ -70,5 +70,17 @@ describe("parseApiParams", () => {
 
   it("skips values that are not recognised conditions", () => {
     expect(parseApiParams({ a: "novalue", b: "bogus.x" }).conditions).toEqual([])
+  })
+})
+
+describe("parseFilterString", () => {
+  it("decodes a URL-encoded query string into the same conditions as its params", () => {
+    expect(parseFilterString("status=eq.active&name=ilike.%25a%20b%25")).toEqual(
+      parseApiParams({ status: "eq.active", name: "ilike.%a b%" }),
+    )
+  })
+
+  it("keeps the last value of a repeated key", () => {
+    expect(parseFilterString("status=eq.a&status=eq.b")).toEqual(parseApiParams({ status: "eq.b" }))
   })
 })

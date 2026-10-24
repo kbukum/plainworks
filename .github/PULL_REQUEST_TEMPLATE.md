@@ -34,7 +34,7 @@
 
 <!-- Confirm the Definition of Done gates pass locally, scoped to what changed. -->
 
-- [ ] `bun run verify` green, scoped to what changed (`--filter='...[origin/main]'`)
+- [ ] `bun run verify` green, scoped to what changed (`--filter='...[origin/main]'`); full `bun run verify` before ready-for-review
 - [ ] Coverage floors met (≥ 80% package / ≥ 85% security-critical)
 - [ ] Nothing under `packages/elements/src/shadcn/` edited by hand
 - [ ] New behavior was written test-first (a test that fails without this change)
@@ -44,20 +44,21 @@
 <!-- Optional: paste scoped output, e.g. `bun run verify --filter=@plainworks/<name>` -->
 
 ```
-$ turbo run test --filter=@plainworks/<name>
+$ bun run verify --filter=@plainworks/<name>
 ...
 ```
 
-## Host-independence & seams
+## Engineering invariants
 
-<!-- plainworks is host-independent and server/client split. Confirm the invariants this PR must uphold. -->
+<!-- See .github/engineering.md. Tick what this PR upholds; explain anything unticked. -->
 
-- [ ] No import-time side effects; no module-level singletons (per-request/per-caller factories)
-- [ ] Server-safe code stays in `.`; client-only code (`"use client"`) stays in `./client`
-- [ ] Adapters/backends register explicitly (`register()` / `createX({...})`) — no `init()`-style magic
-- [ ] No `any` in public APIs; errors are typed; tokens are header-only (never query string / localStorage)
-- [ ] No upward imports — the layer map (`internal/boundaries/layers.json`) is respected
-- [ ] Superseded code is deleted with every consumer migrated. No shim, alias, deprecated re-export, or parallel old/new model (alpha: no backward compatibility)
+- [ ] Imports point strictly downward; core contains no technology integration (not even an optional peer)
+- [ ] No import-time I/O, globals, or service locators; the host owns resource lifetimes
+- [ ] Neutral code stays in `.`; React bindings in `./client` with per-module `"use client"`
+- [ ] Public API is small and typed: named exports with TSDoc, typed errors with causes, no `any`
+- [ ] Browser sessions stay opaque `__Host-` cookies; no tokens in the browser or in URLs
+- [ ] Superseded code is deleted with every consumer moved; no shim, alias, or parallel old/new model
+- [ ] App-visible UI changes: flows pass and captures were opened and judged (WCAG 2.2 AA, responsive)
 
 ## Breaking Changes
 

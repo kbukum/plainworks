@@ -16,18 +16,18 @@ Like a language's standard library, `std` has a small **prelude** and a set of *
 
 | Import | What it gives you |
 |---|---|
-| `std` (prelude) | `PlainError` (a typed base that keeps `cause` and a `kind`), `ensureError`, `getErrorMessage`, `createErrorSnapshot` (safe to log), `Result` with `ok` / `err` / `isOk` / `isErr` / `unwrap` / `unwrapOr`, the guards `isDefined` / `isRecord` / `isNonEmptyString` / `hasProperty` / `isOneOf` / `isPositiveInteger` / `isNonNegativeInteger`, and `assert` / `assertNever`. |
+| `std` (prelude) | `PlainError` (a typed base that keeps `cause` and a `kind`), `ensureError`, `getErrorMessage`, `createErrorSnapshot` (safe to log), `Result` with `ok` / `err` / `isOk` / `isErr` / `unwrap` / `unwrapOr`, the guards `isDefined` / `isRecord` / `isNonEmptyString` / `hasProperty` / `isOneOf` / `isPositiveInteger` / `isNonNegativeInteger`, structural comparison with `isStructurallyEqual`, and `assert` / `assertNever`. |
 | `std/resilience` | One failure taxonomy (`classifyError`, `classifyStatus`, `NetworkError`, `StatusError`), bounded jittered backoff, `withTimeout` and deadlines, `runWithRetry` for idempotent calls, and `createBoundedQueue` (with an `onDrop` hook so loss is observable). |
-| `std/failure` | `RemoteFailure`, application `FailureCode`, semantic `Violation`, and operational `FailureDecodeError`. Transport status stays separate; delays use milliseconds. |
+| `std/failure` | `RemoteFailure`, the canonical `FailureCode`s with their HTTP mapping, semantic `Violation`, operational `FailureDecodeError`, and the RFC 9457 `decodeProblem` with its `ProblemDecoder` seam. Transport status stays separate; delays use milliseconds. |
 | `std/pipeline` | `composeInterceptors` and `pipeValues`. |
 | `std/privacy` | `redact` and `isSensitiveKey`, for stripping secrets before logging. |
 | `std/random` | `systemRandom`, seedable `createSeededRandom` for tests, `randomId` and `idempotencyKey`. |
-| `std/time` | The `Clock` seam with `systemClock` and `fixedClock`, `parseTimestamp`, and calendar-valid `parseRfc3339` (Unix milliseconds; leap-second notation is rejected). An API that reads time takes `clock?: Clock`, never a bare `now` function. |
+| `std/time` | The `Clock` seam with `systemClock`, `fixedClock` (pinned) and `manualClock` (moved by a test with `advance` and `set`), `parseTimestamp`, and calendar-valid `parseRfc3339` (Unix milliseconds; leap-second notation is rejected). An API that reads time takes `clock?: Clock`, never a bare `now` function. |
 | `std/encoding` | base64url, `utf8ByteLength`, and JSON: the `Json` type, `isJson`, `stringifyJson` (throws `JsonEncodeError` instead of dropping values), `escapeJsonForHtml`, and `toBoundedJson` for capped diagnostic copies. |
 | `std/web` | Body reads under a byte cap (`readBoundedBytes`, `readBoundedText`, `PayloadTooLargeError`), cookie parsing (`readCookie`, `parseCookieHeader`), `resolveFetch`, structural header copying with `createHeaders`, and the self-contained `Web*` platform types (`WebFetch`, `WebHeaders`, `WebAbortSignal`, …) that let a neutral package name `fetch` or `Headers` in its API. |
 | `std/list` | The protocol-independent list contract: `ListQueryParams`, the `ListFilter` union and operator vocabulary, and the `PaginatedResult` / `CursorResult` envelopes. `@plainworks/http` owns the REST wire dialect. |
 | `std/emitter` | `createEmitter`, the one in-memory listener set: subscribe, emit, `listenerCount`, and `clear`. A throwing listener never stops the others. |
-| `std/seam` | The shared seams higher layers implement: `AuthHeaderProvider`, the event shapes (`PlainEvent`, `Listener`, `Subscription`), `Telemetry` (operations and events, with `noopTelemetry` and `toTelemetryFailure`), `CacheInvalidator` with `CacheTarget`, `StateSource` with `createSourceReconciler`, and the [Standard Schema](https://standardschema.dev) seam with `validateWithSchema`. |
+| `std/seam` | The shared seams higher layers implement: `AuthHeaderProvider`, the event shapes (`PlainEvent`, `Listener`, `Subscription`), `Telemetry` (operations and events, with `noopTelemetry` and `toTelemetryFailure`), `CacheInvalidator` with `CacheTarget` and `matchesCacheTarget` (the one matching rule every invalidator uses), `StateSource` with `createSourceReconciler`, and the [Standard Schema](https://standardschema.dev) seam with `validateWithSchema`. |
 
 ## Runtime primitives
 

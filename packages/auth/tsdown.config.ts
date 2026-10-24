@@ -10,7 +10,6 @@ export const build: PackageBuild = {
     adapter: "src/adapter/index.ts",
     authz: "src/authz/index.ts",
     crypto: "src/crypto/index.ts",
-    csrf: "src/csrf/index.ts",
     redirect: "src/redirect/index.ts",
     session: "src/session/index.ts",
     signer: "src/signer/index.ts",

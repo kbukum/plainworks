@@ -5,40 +5,58 @@ description: "plainworks: Review a diff, package, or tree for architecture, corr
 
 # Review
 
-Apply the [baseline](../../copilot-instructions.md). Review code and evidence, not the author's rationale; plans define scope, not exceptions to requirements.
+Review code and evidence, not the author's reasoning. A plan defines scope; it never excuses a rule. Rules live in the [engineering standard](../../engineering.md); each lens below says what to look for and how severe it is.
 
-## Scope and execution
+## Execution
 
-Review directly by default. Launch an independent reviewer only when the user requests it; use one bounded reviewer unless distinct additional scopes are explicitly requested. Pass the scope, constraints, and relevant files, not the authoring transcript. Reevaluate returned findings against source before acting.
-
-For changes, include staged/unstaged/untracked work when requested, plus close callers, callees, and affected contracts. Report pre-existing defects in that impact area; do not silently widen into an unrelated audit. For project review, state the package/domain boundary.
-
-Reviews are read-only unless fixes are authorized. For each real defect choose **Redesign / Align / Enhance / Drop** with a one-line reason. Preserve user staging and unrelated work; do not commit, amend, push, resolve remote threads, or post replies implicitly.
-
-## Load checks by trigger
-
-Check placement and canonical reuse first for code changes. A blocker there stops acceptance; report any unperformed checks rather than claiming a complete review. Apply every relevant lens below, in order; load only its file, not the entire reference directory. For prose-only work, use documentation/claim checks rather than runtime test suites.
-
-| Trigger | Checklist |
-|---|---|
-| Code placement, imports, exports, or package wiring | [Pass 00 — Structure and placement](references/00-structure-placement.md) |
-| Shared behavior or a proposed helper/adapter | [Pass 01 — Canonical-owner reuse](references/01-canonical-reuse.md) |
-| Runtime APIs, errors, concurrency, or composition | [Pass 02 — Principle conformance](references/02-principles.md) |
-| Trust boundaries, auth, crypto, privacy, or external input | [Pass 03 — Security & privacy](references/03-security-privacy.md) |
-| Behavior, readability, maintainability, or dead code | [Pass 04 — Quality: simplicity, maintainability, current patterns](references/04-quality.md) |
-| Behavior changes, tests, fixtures, or coverage | [Pass 05 — Tests & TDD](references/05-tests-tdd.md) |
-| Documentation, dependencies, CI, or release | [Pass 06 — Docs & supply chain](references/06-docs-supply-chain.md) |
-| Comments and public API documentation | [Pass 07 — Comments & TSDoc](references/07-comments-tsdoc.md) |
-| Interactive UI/client changes | [Pass 08 — UI: accessibility, responsive, performance](references/08-ui-accessibility.md) |
+- Review directly. Launch an independent reviewer only when the user asks; give it the scope, constraints, and files, not the authoring transcript, and recheck its findings against source before acting.
+- Reviews are read-only unless fixes are authorized. Preserve user edits and staging. Never commit, amend, push, resolve threads, or post replies as part of a review.
+- For each real defect choose **Redesign, Align, Enhance, or Drop** with a one-line reason. Alpha owes no compatibility, so prefer the root-cause redesign.
 
 ## Modes
 
-- [Changes](references/review-changes.md): diff and affected contracts.
-- [Project](references/review-project.md): bounded tree audit.
-- [Review and fix](references/review-details.md): select only when fixes are requested; confirm the proposed fix scope before editing.
+**Changes** (a branch, range, or working tree). Read `git diff <base>...HEAD`, including staged, unstaged, and untracked work when asked. Review the diff plus its blast radius: the rest of each touched file, close callers and callees, and every package that implements or consumes a changed seam. Pre-existing defects there are in scope; anything wider is reported, not fixed.
+
+**Project** (the repo or a named package). State the boundary first, then sweep in this order, because each step makes the next reliable:
+
+1. Placement and reuse: wrong layer or owner invalidates everything else.
+2. Security and runtime: the defects that reach consumers.
+3. Public API and consumer experience: what must stay stable after alpha.
+4. Tests, UI, quality, docs and supply chain.
+5. Gates: is each rule enforced, or only documented? Compare with [Known gaps](../../engineering.md#known-gaps).
+
+A project review ends in a prioritized list, not a merge verdict.
+
+**Review and fix** (only when fixes are requested). Review first, confirm the fix scope when it is not obvious, then fix root causes test-first and validate. Commits still need separate authorization.
+
+## Lenses
+
+Run placement and reuse first for any code change; a blocker there stops acceptance. Then load only the lenses whose trigger applies. Prose-only work uses the docs lens alone.
+
+| Trigger | Lens |
+|---|---|
+| Packages, imports, entries, manifests, naming | [Placement](references/placement.md) |
+| New helper, type, fake, or adapter | [Reuse](references/reuse.md) |
+| Requests, streams, timers, effects, factories, errors | [Runtime](references/runtime.md) |
+| Auth, cookies, URLs, crypto, untrusted input, logging | [Security](references/security.md) |
+| Exports, types, errors, options, READMEs | [Public API](references/api.md) |
+| Any behavior change | [Tests](references/tests.md) |
+| Interactive client code or styles | [UI](references/ui.md) |
+| Any code change | [Quality](references/quality.md) |
+| Docs, dependencies, CI, release, atoms | [Docs and supply chain](references/docs-supply-chain.md) |
 
 ## Evidence and output
 
-Use [validate](../validate/SKILL.md) for scoped gates; reuse fresh evidence and retain required full acceptance gates. Green tooling is necessary, not proof of lifecycle/security correctness.
+Run gates through the [validate skill](../validate/SKILL.md), scoped for changes and full for project reviews. Reuse fresh evidence. Green gates are necessary, never proof of lifecycle, security, or API correctness; grep hits are leads, not findings.
 
-Report `severity | file:line | defect and impact | evidence | proposed action`. **Blocker** means broken behavior/contract or a hard-rule violation; **should-fix** means a substantiated maintainability defect; **nit** is optional style, never a gate. List incomplete/skipped checks and uncertainty. Do not invent findings or treat grep hits as proof.
+Report one line per finding, grouping repeated patterns:
+
+```text
+severity | file:line | defect and impact | rule | proposed action
+```
+
+- **Blocker:** broken behavior or contract, or a hard-rule violation.
+- **Should-fix:** a substantiated correctness, maintainability, or consumer-experience defect.
+- **Nit:** optional; never blocks.
+
+List skipped lenses, unrun gates, and open uncertainty. Never invent findings.

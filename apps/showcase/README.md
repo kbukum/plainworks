@@ -88,10 +88,10 @@ Vitest covers server rendering, hydration, query behavior, mutations, keyboard i
 
 ```bash
 bun run --filter @plainworks/showcase ui:capture --flow create-task   # frames of one flow
-bun run --filter @plainworks/showcase ui:host                        # optional: a warm, signed-in host
+bun run --filter @plainworks/showcase ui:host                        # optional: a warm host
 ```
 
-`ui:capture` replays the flows in `e2e/flows/` against a seeded, fixed-clock, signed-in host and writes a frame and an ARIA snapshot at every checkpoint under `.ui-artifacts/`, plus one contact sheet per checkpoint. Open them and look. Add `--base <snapshot|ref>` to also see what changed. `ui:capture --docs` regenerates the images at the top of this page into `docs/images/`. `ui:host` keeps a host running so each capture skips startup, and prints a Playwright MCP command for exploring the same app. See the [testkit guide](../../packages/testkit/README.md#the-ui-loop--uicapture) for the flags and exit codes.
+`ui:capture` replays the flows in `e2e/flows/` against a seeded, fixed-clock, signed-in host and writes a frame and an ARIA snapshot at every checkpoint under `.ui-artifacts/`, plus one contact sheet per checkpoint. Open them and look. Add `--base <snapshot|ref>` to also see what changed. `ui:capture --docs` regenerates the images at the top of this page into `docs/images/`. `ui:host` (`ui:capture serve`) keeps a host running so each capture skips startup; `ui:capture serve --explore` starts a separate signed-out host and prints a Playwright MCP command for exploring it. See the [testkit guide](../../packages/testkit/README.md#the-ui-loop--uicapture) for the flags and exit codes.
 
 ## Project map
 

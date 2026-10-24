@@ -11,14 +11,18 @@ import {
   type UnaryRequest,
   type UnaryResponse,
 } from "@connectrpc/connect"
-import type { WebAbortSignal, WebHeadersInit } from "@plainworks/std/web"
+
+// Typed by what Connect itself carries, so the builders compile under the consumer's host typings
+// (the universal Web shim, DOM, or Node) instead of only under the shim.
+type ConnectSignal = UnaryRequest["signal"]
+type ConnectHeadersInit = ConstructorParameters<typeof Headers>[0]
 
 /** Shared options for the interceptor request builders. */
 export interface FakeRequestOptions {
   /** Headers carried on the request (default: empty). */
-  readonly header?: WebHeadersInit
+  readonly header?: ConnectHeadersInit
   /** Abort signal for the call (default: a fresh, un-aborted signal). */
-  readonly signal?: WebAbortSignal
+  readonly signal?: ConnectSignal
   /** Request URL (default: a synthetic `https://fake.test/...` URL). */
   readonly url?: string
 }
@@ -59,7 +63,7 @@ export function fakeUnaryRequest<I extends DescMessage, O extends DescMessage>(
 export function fakeUnaryResponse<I extends DescMessage, O extends DescMessage>(
   method: DescMethodUnary<I, O>,
   message: MessageInitShape<O>,
-  options: { readonly header?: WebHeadersInit; readonly trailer?: WebHeadersInit } = {},
+  options: { readonly header?: ConnectHeadersInit; readonly trailer?: ConnectHeadersInit } = {},
 ): UnaryResponse<I, O> {
   return {
     stream: false,

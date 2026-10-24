@@ -3,9 +3,9 @@ name: update-atoms
 description: "plainworks: Update locked shadcn atoms through registry tooling and validate theme/UI behavior."
 ---
 
-# Updating the vendored shadcn atoms
+# Update atoms
 
-The atoms in `packages/elements/src/shadcn/` are **vendored** shadcn CLI output, **locked** by `shadcn.lock.json` (CLI version, style, per-atom hash). They are never hand-edited. This skill is the one way to change them. The model is in [`packages/elements/README.md`](../../../packages/elements/README.md) and the [Vendored atoms](../../engineering.md#vendored-atoms) baseline.
+The atoms in `packages/elements/src/shadcn/` are **vendored** shadcn CLI output, **locked** by `shadcn.lock.json` (CLI version, style, per-atom hash). They are never hand-edited. This skill is the one way to change them. The model is in [`packages/elements/README.md`](../../../packages/elements/README.md); the rules are in [Vendored atoms](../../engineering.md#vendored-atoms).
 
 ## Quick path
 
@@ -69,4 +69,4 @@ Add a Changeset for `@plainworks/elements` (and any package you reconciled). Nam
 - [ ] Fallout fixed on the deviation ladder, not in an atom; no re-added non-upstream variants
 - [ ] `registry:validate`, the scoped gates, and the gallery browser gate green; Changeset added
 
-Per repo workflow, **create the branch and make edits only** — the maintainer commits and pushes.
+Edit only; commits and pushes need the user's authorization.

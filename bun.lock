@@ -95,6 +95,7 @@
       },
       "devDependencies": {
         "@axe-core/playwright": "catalog:",
+        "@bufbuild/protovalidate": "catalog:",
         "@connectrpc/connect": "catalog:",
         "@plainworks/bundle-exclusion": "workspace:*",
         "@plainworks/connect": "workspace:*",
@@ -460,7 +461,6 @@
         "@bufbuild/buf": "catalog:",
         "@bufbuild/protoc-gen-es": "catalog:",
         "@connectrpc/connect-query": "catalog:",
-        "@plainworks/mocks": "workspace:*",
         "@plainworks/testkit": "workspace:*",
         "@plainworks/tsdown-config": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",
@@ -586,6 +586,7 @@
         "@plainworks/testkit": "workspace:*",
         "@plainworks/tsdown-config": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",
+        "@plainworks/workspace": "workspace:*",
         "@testing-library/react": "catalog:",
         "@testing-library/user-event": "catalog:",
         "@types/node": "catalog:",
@@ -648,8 +649,11 @@
         "msw": "catalog:",
       },
       "devDependencies": {
+        "@bufbuild/protobuf": "catalog:",
+        "@plainworks/testkit": "workspace:*",
         "@plainworks/tsdown-config": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",
+        "@plainworks/workspace": "workspace:*",
         "@types/node": "catalog:",
         "@vitest/coverage-v8": "catalog:",
         "tsdown": "catalog:",
@@ -658,9 +662,11 @@
         "vitest": "catalog:",
       },
       "peerDependencies": {
+        "@bufbuild/protobuf": "catalog:",
         "vite": "catalog:",
       },
       "optionalPeers": [
+        "@bufbuild/protobuf",
         "vite",
       ],
     },
@@ -774,7 +780,6 @@
       "name": "@plainworks/testkit",
       "version": "0.1.0-alpha.1",
       "dependencies": {
-        "@bufbuild/protovalidate": "catalog:",
         "@plainworks/std": "workspace:*",
         "@testing-library/react": "catalog:",
         "pixelmatch": "catalog:",
@@ -785,6 +790,7 @@
         "@bufbuild/buf": "catalog:",
         "@bufbuild/protobuf": "catalog:",
         "@bufbuild/protoc-gen-es": "catalog:",
+        "@bufbuild/protovalidate": "catalog:",
         "@connectrpc/connect": "catalog:",
         "@plainworks/tsdown-config": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",
@@ -803,6 +809,7 @@
       "peerDependencies": {
         "@axe-core/playwright": "catalog:",
         "@bufbuild/protobuf": "catalog:",
+        "@bufbuild/protovalidate": "catalog:",
         "@connectrpc/connect": "catalog:",
         "@playwright/test": "catalog:",
         "@tanstack/react-query": "catalog:",
@@ -813,6 +820,7 @@
       "optionalPeers": [
         "@axe-core/playwright",
         "@bufbuild/protobuf",
+        "@bufbuild/protovalidate",
         "@connectrpc/connect",
         "@playwright/test",
         "@tanstack/react-query",
@@ -867,6 +875,7 @@
         "@plainworks/testkit": "workspace:*",
         "@plainworks/tsdown-config": "workspace:*",
         "@plainworks/vitest-config": "workspace:*",
+        "@plainworks/workspace": "workspace:*",
         "@testing-library/react": "catalog:",
         "@testing-library/user-event": "catalog:",
         "@types/node": "catalog:",
@@ -888,17 +897,40 @@
         "react-dom",
       ],
     },
+    "packages/vite": {
+      "name": "@plainworks/vite",
+      "version": "0.1.0-alpha.1",
+      "dependencies": {
+        "@plainworks/std": "workspace:*",
+      },
+      "devDependencies": {
+        "@plainworks/tsdown-config": "workspace:*",
+        "@plainworks/vitest-config": "workspace:*",
+        "@types/node": "catalog:",
+        "@vitest/coverage-v8": "catalog:",
+        "tsdown": "catalog:",
+        "typescript": "catalog:",
+        "vite": "catalog:",
+        "vitest": "catalog:",
+      },
+      "peerDependencies": {
+        "vite": "catalog:",
+      },
+    },
   },
   "trustedDependencies": [
     "better-sqlite3",
   ],
+  "overrides": {
+    "playwright-core": "catalog:",
+  },
   "catalog": {
     "@arethetypeswrong/cli": "^0.18.5",
     "@axe-core/playwright": "^4.13.0",
     "@base-ui/react": "^1.8.0",
     "@biomejs/biome": "^2.5.12",
     "@bufbuild/buf": "^1.72.0",
-    "@bufbuild/protobuf": "^2.14.1",
+    "@bufbuild/protobuf": "^2.16.0",
     "@bufbuild/protoc-gen-es": "^2.14.1",
     "@bufbuild/protovalidate": "^1.3.0",
     "@changesets/cli": "^3.0.2",
@@ -906,7 +938,7 @@
     "@connectrpc/connect-query": "^2.3.1",
     "@connectrpc/connect-query-core": "^2.3.1",
     "@connectrpc/connect-web": "^2.2.0",
-    "@playwright/test": "^1.63.0",
+    "@playwright/test": "1.64.1",
     "@tailwindcss/oxide": "^4.3.3",
     "@tailwindcss/postcss": "^4.3.3",
     "@tailwindcss/vite": "^4.3.3",
@@ -940,6 +972,7 @@
     "next": "^16.3.6",
     "oauth4webapi": "^3.8.8",
     "pixelmatch": "^7.2.0",
+    "playwright-core": "1.64.1",
     "pngjs": "^7.0.0",
     "postcss": "^8.5.28",
     "postcss-selector-parser": "^7.1.6",
@@ -1082,7 +1115,7 @@
 
     "@bufbuild/cel-spec": ["@bufbuild/cel-spec@0.6.1", "", { "peerDependencies": { "@bufbuild/protobuf": "^2.6.2" } }, "sha512-m0Ac9qA669yxxC0Hy45qGsUZemjImVfxPl6r9jLbkJviEvv3R9hSYyH2ItGRbDguekX6eId0cb62ulNBK97ezg=="],
 
-    "@bufbuild/protobuf": ["@bufbuild/protobuf@2.14.1", "", {}, "sha512-agRJn3+EJDUe8AvxTx/LnHA/GErvLE62pSaSk7+MwFOtOv8eWBu/qCq2qoZjBjVZ3C2aiFJCveuSs17KMkYGOw=="],
+    "@bufbuild/protobuf": ["@bufbuild/protobuf@2.16.0", "", {}, "sha512-FWa0sPlqYGJgpTs6OxBRcL/AW4JT0OIO+W1ajerluoTVh8CV0B7XM1qsNCRgnkSCkRCgOICKHRQlY17jrsm0+Q=="],
 
     "@bufbuild/protoc-gen-es": ["@bufbuild/protoc-gen-es@2.14.1", "", { "dependencies": { "@bufbuild/protobuf": "2.14.1", "@bufbuild/protoplugin": "2.14.1" }, "bin": { "protoc-gen-es": "bin/protoc-gen-es" } }, "sha512-agiGxvA1VAzWPdtOiktK39BNvGgHc1jHBCI1XYQtCQDSpt/5pZ7jTRGKv0fYzExbovDVu+yxJq4Srpv8zCIvUQ=="],
 
@@ -1414,11 +1447,13 @@
 
     "@plainworks/verify": ["@plainworks/verify@workspace:internal/verify"],
 
+    "@plainworks/vite": ["@plainworks/vite@workspace:packages/vite"],
+
     "@plainworks/vitest-config": ["@plainworks/vitest-config@workspace:internal/vitest-config"],
 
     "@plainworks/workspace": ["@plainworks/workspace@workspace:internal/workspace"],
 
-    "@playwright/test": ["@playwright/test@1.63.0", "", { "dependencies": { "playwright": "1.63.0" }, "bin": { "playwright": "cli.js" } }, "sha512-oxMK4vllB9RK5NQ2l1pq1IfOf2AvnEuj/vYGDj0H2nMtmtZpKtCwt/l00GEO6xjGfpBNAvjovvYdCm50dRQkpQ=="],
+    "@playwright/test": ["@playwright/test@1.64.1", "", { "dependencies": { "playwright": "1.64.1" }, "bin": { "playwright": "cli.js" } }, "sha512-IaYGml/nSOiZWROfPtuIL7neuu9qDOZ3TNvNljUIrhDMxiGTgPjzj/g9p9RxpS2tSepPDRY+UwAaEeiKtUvIAg=="],
 
     "@pnpm/deps.graph-sequencer": ["@pnpm/deps.graph-sequencer@1100.0.1", "", {}, "sha512-pOr5+q1fLYKwFN3LAJuGZEnfXDcQ73zqgDHMtGy+K+uIoUqyY+6MeDCWFwfu+4EFuq76I5EPFofoNAI+Bmmq4A=="],
 
@@ -2256,9 +2291,9 @@
 
     "pkg-up": ["pkg-up@3.1.0", "", { "dependencies": { "find-up": "^3.0.0" } }, "sha512-nDywThFk1i4BQK4twPQ6TA4RT8bDY96yeuCVBWL3ePARCiEKDRSrNGbFIgUJpLp+XeIR65v8ra7WuJOFUBtkMA=="],
 
-    "playwright": ["playwright@1.63.0", "", { "dependencies": { "playwright-core": "1.63.0" }, "bin": { "playwright": "cli.js" } }, "sha512-+7ziBLidS4NaNCdt57SUDT+wYmmd5fmiQejUic/kb+YsYSCPyOOE9sebzMjNmQrsnNpDJqd4WHvV/8lfKfUDUg=="],
+    "playwright": ["playwright@1.64.1", "", { "dependencies": { "playwright-core": "1.64.1" }, "bin": { "playwright": "cli.js" } }, "sha512-HCrVhHr5QQuwYoswEUGTb7gGp522yflbv/ST8nF4sFWGuLjQCt17Q/EubpGGSNKYn1tsTCPZxqHhHCfVURu7UA=="],
 
-    "playwright-core": ["playwright-core@1.63.0", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-rYCsBF/M5HjUch52bbtVONEFjv6Xu8sm8h72dNlR5bzIE1fvC/bxgspzkjSfU+MweEMmPM8KJebG6nnyxo5mCg=="],
+    "playwright-core": ["playwright-core@1.64.1", "", { "bin": { "playwright-core": "cli.js" } }, "sha512-BC4s8y6SEVA6Q1rSxZTto8hI1KUI3xXlHGZgvGqP4IqPdI/a6FX9H29IDNz7vKo9l21b6LfYosScPL6M3xxyDQ=="],
 
     "pngjs": ["pngjs@7.0.0", "", {}, "sha512-LKWqWJRhstyYo9pGvgor/ivk2w94eSjE3RGVuzLGlr3NmD8bf7RcYGze1mNdEHRP6TRP6rMuDHk5t44hnTRyow=="],
 
@@ -2645,6 +2680,10 @@
     "@babel/helper-compilation-targets/semver": ["semver@6.3.1", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA=="],
 
     "@babel/helper-create-class-features-plugin/semver": ["semver@6.3.1", "", { "bin": { "semver": "bin/semver.js" } }, "sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA=="],
+
+    "@bufbuild/protoc-gen-es/@bufbuild/protobuf": ["@bufbuild/protobuf@2.14.1", "", {}, "sha512-agRJn3+EJDUe8AvxTx/LnHA/GErvLE62pSaSk7+MwFOtOv8eWBu/qCq2qoZjBjVZ3C2aiFJCveuSs17KMkYGOw=="],
+
+    "@bufbuild/protoplugin/@bufbuild/protobuf": ["@bufbuild/protobuf@2.14.1", "", {}, "sha512-agRJn3+EJDUe8AvxTx/LnHA/GErvLE62pSaSk7+MwFOtOv8eWBu/qCq2qoZjBjVZ3C2aiFJCveuSs17KMkYGOw=="],
 
     "@bufbuild/protoplugin/typescript": ["typescript@5.4.5", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-vcI4UpRgg81oIRUFwR0WSIHKt11nJ7SAVlYNIu+QpqeyXP+gpQJy/Z4+F0aGxSE4MqwjyXvW/TzgkLAx2AGHwQ=="],
 

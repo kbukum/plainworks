@@ -1,23 +1,7 @@
-import { isRecord } from "@plainworks/std"
+import { isStructurallyEqual } from "@plainworks/std"
 import { stringifyJson } from "@plainworks/std/encoding"
-import type { Clock } from "@plainworks/std/time"
 import type { WebAbortSignal } from "@plainworks/std/web"
 import { type AuthErrorCode, isAuthErrorKind } from "../errors"
-
-/** A clock the cases move explicitly, so expiry is deterministic for every implementation. */
-export interface SteppedClock extends Clock {
-  set(now: number): void
-}
-
-export function steppedClock(start = 0): SteppedClock {
-  let current = start
-  return {
-    now: () => current,
-    set(now) {
-      current = now
-    },
-  }
-}
 
 export function abortedSignal(): WebAbortSignal {
   const controller = new AbortController()
@@ -37,22 +21,8 @@ function render(value: unknown): string {
   }
 }
 
-function same(actual: unknown, expected: unknown): boolean {
-  if (Object.is(actual, expected)) return true
-  if (Array.isArray(actual) && Array.isArray(expected)) {
-    return actual.length === expected.length && actual.every((item, i) => same(item, expected[i]))
-  }
-  if (isRecord(actual) && isRecord(expected)) {
-    const keys = Object.keys(expected)
-    return (
-      keys.length === Object.keys(actual).length && keys.every((k) => same(actual[k], expected[k]))
-    )
-  }
-  return false
-}
-
 export function equal(actual: unknown, expected: unknown, what: string): void {
-  if (!same(actual, expected)) {
+  if (!isStructurallyEqual(actual, expected)) {
     throw new ConformanceFailure(`${what}: expected ${render(expected)}, got ${render(actual)}`)
   }
 }

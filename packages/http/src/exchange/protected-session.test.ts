@@ -1,6 +1,7 @@
+import { decodeProblem, type ProblemDecoder } from "@plainworks/std/failure"
 import type { ProtectedSession } from "@plainworks/std/seam"
 import type { WebRequestInit } from "@plainworks/std/web"
-import { deferred, flushMicrotasks, manualDelay } from "@plainworks/testkit"
+import { autoBackoffDelay, deferred, flushMicrotasks, manualDelay } from "@plainworks/testkit"
 import { expect, test, vi } from "vitest"
 import { createHttpClient } from "./client"
 
@@ -133,4 +134,45 @@ test("same-origin session proof disables automatic redirects", async () => {
   })
   await client.get("/protected")
   expect(fetch).toHaveBeenCalledOnce()
+})
+
+test("the host's problem decoder decides a session failure: it invalidates and is never retried", async () => {
+  // A host whose server marks a session-store outage with a `reason` extension member.
+  const failures: ProblemDecoder = (input) => {
+    const failure = decodeProblem(input)
+    return failure.metadata?.reason === "STORE_DOWN"
+      ? { ...failure, authentication: "unavailable" }
+      : failure
+  }
+  const outage = () =>
+    new Response(JSON.stringify({ title: "Unavailable", status: 503, reason: "STORE_DOWN" }), {
+      status: 503,
+      headers: { "content-type": "application/problem+json" },
+    })
+  const invalidate = vi.fn()
+  const fetch = vi.fn(async () => outage())
+  const client = createHttpClient({
+    baseUrl: "https://host.test",
+    protectedSession: {
+      acquire: async () => ({ signal: new AbortController().signal, headers: {}, release() {} }),
+      revalidate: async () => {},
+      invalidate,
+    },
+    retry: {
+      maxAttempts: 3,
+      backoff: { baseMs: 1, maxMs: 1, factor: 1, jitter: "none" },
+      idempotent: true,
+    },
+    delay: autoBackoffDelay().delay,
+    failures,
+    fetch,
+  })
+  await expect(client.get("/protected")).rejects.toMatchObject({
+    status: 503,
+    authentication: "unavailable",
+  })
+  expect(fetch).toHaveBeenCalledTimes(1)
+  expect(invalidate).toHaveBeenCalledWith(
+    expect.objectContaining({ authentication: "unavailable" }),
+  )
 })

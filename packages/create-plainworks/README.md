@@ -27,7 +27,7 @@ Bundled **demo sign-in** also works without another service. Ordinary `next dev`
 
 ## What you get
 
-A minimal but fully wired host: the composition kernel, `theme`, `query`, `channel`, `state`, `ui`, and `auth` (BFF `__Host-` cookie by default) over the generic `mocks` primitives, with a small starter domain. It follows the kit's rules by construction — per-request factories (no module-level singletons), the neutral/client/server three-bucket split, and server-only token custody kept out of the client graph. The config is plain and fully yours to edit; there is no black-box runtime.
+A minimal but fully wired host: the composition kernel, `theme`, `query`, `channel`, `state`, `ui`, and `auth` (BFF `__Host-` cookie by default) over the generic `mocks` primitives, with a small starter domain. It follows the kit's rules by construction — explicit factories whose lifetime the host owns (no module-level singletons), the neutral/client/server three-bucket split, and server-only token custody kept out of the client graph. The config is plain and fully yours to edit; there is no black-box runtime.
 
 ## Options
 

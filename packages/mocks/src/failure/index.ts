@@ -1,1 +1,1 @@
-export { failureSource, wireFailures } from "./gen/fixtures"
+export { type ProblemInit, problemFrame, problemJson } from "./problem"

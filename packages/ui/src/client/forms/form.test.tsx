@@ -44,7 +44,7 @@ describe("Form", () => {
         onFailure={onFailure}
         onSubmit={() =>
           new RemoteFailure("test", {
-            code: "INVALID_INPUT",
+            code: "invalid_argument",
             message: "Invalid",
             retryable: false,
             violations: [{ field: "unknown_field", reason: "INVALID_VALUE", message: "Invalid" }],
@@ -75,7 +75,7 @@ describe("Form", () => {
       fieldName: (field: string) => (field === "mail_address" ? "email" : field),
     }
     const failure = new RemoteFailure("test", {
-      code: "INVALID_INPUT",
+      code: "invalid_argument",
       message: "Invalid",
       retryable: false,
       violations: [
@@ -107,7 +107,7 @@ describe("Form", () => {
         onFailure={onFailure}
         onSubmit={() => {
           throw new RemoteFailure("test", {
-            code: "EXTERNAL_SERVICE_ERROR",
+            code: "internal",
             message: "Service unavailable",
             retryable: false,
             violations: [],

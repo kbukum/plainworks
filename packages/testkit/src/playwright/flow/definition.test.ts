@@ -27,6 +27,18 @@ describe("defineFlow", () => {
     expect(defineFlow(flow)).toBe(flow)
   })
 
+  it("accepts a journey budget with an expected overrun", () => {
+    const flow = {
+      name: "first-run",
+      budget: {
+        views: { max: 1, failsUntil: { step: "07", reason: "one evaluate page" } },
+        typedFields: { max: 0 },
+      },
+      checkpoints: [checkpoint("evaluate")],
+    }
+    expect(defineFlow(flow)).toBe(flow)
+  })
+
   it("accepts the repository paths a flow covers", () => {
     const flow = {
       name: "tasks",
@@ -94,6 +106,35 @@ describe("defineFlow", () => {
     [
       "a backslash covers pattern",
       { name: "f", covers: ["src\\a"], checkpoints: [checkpoint("a")] },
+    ],
+    [
+      "an unknown budget metric",
+      // A flow built outside TypeScript can name any metric.
+      { name: "f", budget: { focusMoves: { max: 1 } } as never, checkpoints: [checkpoint("a")] },
+    ],
+    [
+      "a negative budget limit",
+      { name: "f", budget: { views: { max: -1 } }, checkpoints: [checkpoint("a")] },
+    ],
+    [
+      "a fractional budget limit",
+      { name: "f", budget: { views: { max: 1.5 } }, checkpoints: [checkpoint("a")] },
+    ],
+    [
+      "an expected overrun with no reason",
+      {
+        name: "f",
+        budget: { views: { max: 1, failsUntil: { step: "07", reason: " " } } },
+        checkpoints: [checkpoint("a")],
+      },
+    ],
+    [
+      "an expected overrun with no step",
+      {
+        name: "f",
+        budget: { views: { max: 1, failsUntil: { step: "", reason: "one page" } } },
+        checkpoints: [checkpoint("a")],
+      },
     ],
     [
       "an unknown extra device",

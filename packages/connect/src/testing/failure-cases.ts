@@ -19,49 +19,39 @@ export interface RpcFailureCase {
 export function createRpcFailureCases(): readonly RpcFailureCase[] {
   const identity = {
     desc: ErrorInfoSchema,
-    value: { domain: "gokit.dev", reason: "SERVICE_UNAVAILABLE", metadata: { retryable: "false" } },
+    value: { domain: "example.test", reason: "QUOTA_PAUSED", metadata: { tier: "free" } },
   }
   const retry = { desc: RetryInfoSchema, value: { retryDelay: { seconds: 60n } } }
   const malformed = new ConnectError("Malformed", Code.InvalidArgument)
   malformed.details = [{ type: BadRequestSchema.typeName, value: new Uint8Array([255]) }]
-  const cases: RpcFailureCase[] = [
+  return [
     ...[false, true].map(
       (reverse): RpcFailureCase => ({
-        name: reverse ? "false-first" : "false-last",
+        name: reverse ? "retry-first" : "retry-last",
         error: new ConnectError(
-          "Unavailable",
-          Code.Unavailable,
+          "Exhausted",
+          Code.ResourceExhausted,
           undefined,
-          reverse ? [identity, retry] : [retry, identity],
+          reverse ? [retry, identity] : [identity, retry],
         ),
-        expected: { code: "SERVICE_UNAVAILABLE", retryable: false },
-      }),
-    ),
-    ...["foreign.example", "gokit.dev"].map(
-      (domain): RpcFailureCase => ({
-        name: domain === "gokit.dev" ? "unknown-identity" : "foreign-identity",
-        error: new ConnectError("Denied", Code.PermissionDenied, undefined, [
-          { desc: ErrorInfoSchema, value: { domain, reason: "FUTURE_IDENTITY" } },
-        ]),
-        expected: { code: "FORBIDDEN", retryable: false },
+        expected: { code: "resource_exhausted", retryable: true },
       }),
     ),
     {
+      name: "identity-without-retry",
+      error: new ConnectError("Denied", Code.PermissionDenied, undefined, [
+        { desc: ErrorInfoSchema, value: { domain: "example.test", reason: "FUTURE_IDENTITY" } },
+      ]),
+      expected: { code: "permission_denied", retryable: false },
+    },
+    {
       name: "malformed-detail",
       error: malformed,
-      expected: { code: "EXTERNAL_SERVICE_ERROR", retryable: false },
+      expected: { code: "internal", retryable: false },
     },
     {
       name: "descriptor-paths",
       error: new ConnectError("Check your profile", Code.InvalidArgument, undefined, [
-        {
-          desc: ErrorInfoSchema,
-          value: {
-            domain: "gokit.dev",
-            reason: "INVALID_INPUT",
-            metadata: { retryable: "false" },
-          },
-        },
         {
           desc: BadRequestSchema,
           value: {
@@ -85,10 +75,9 @@ export function createRpcFailureCases(): readonly RpcFailureCase[] {
           },
         },
       ]),
-      expected: { code: "INVALID_INPUT", retryable: false },
+      expected: { code: "invalid_argument", retryable: false },
     },
   ]
-  return cases
 }
 
 /** Actual Connect error JSON with base64 protobuf details, never debug data. */

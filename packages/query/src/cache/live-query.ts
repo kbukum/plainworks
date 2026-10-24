@@ -37,7 +37,7 @@ export class SnapshotStaleError extends RemoteFailure<"query/stale"> {
     super(
       "query/stale",
       {
-        code: "EXTERNAL_SERVICE_ERROR",
+        code: "internal",
         message: "Live data could not be synchronized. Refresh to try again.",
         retryable: false,
         violations: [],

@@ -1,5 +1,6 @@
 import { Code, ConnectError, type Interceptor } from "@connectrpc/connect"
-import { mapConnectError, type RpcErrorCode } from "@plainworks/connect"
+import { mapConnectError } from "@plainworks/connect"
+import type { FailureCode } from "@plainworks/std/failure"
 import { assertTimerMs } from "@plainworks/std/resilience"
 import { type Clock, systemClock } from "@plainworks/std/time"
 import type { WebAbortSignal } from "@plainworks/std/web"
@@ -356,13 +357,12 @@ function trackStream<T>(source: AsyncIterable<T>, ctx: StreamContext): AsyncIter
 }
 
 /**
- * A settled Connect exchange's shared {@link ExchangeOutcome} plus, on a failure, the typed Connect
- * {@link @plainworks/connect!RpcErrorCode} that produced it — the diagnostic code the public
- * adapter documentation promises.
+ * A settled Connect exchange's shared {@link ExchangeOutcome} plus, on a failure, the canonical
+ * code the server sent — the diagnostic code the public adapter documentation promises.
  */
 interface ConnectClassification {
   readonly outcome: ExchangeOutcome
-  readonly code?: RpcErrorCode
+  readonly code?: FailureCode
 }
 
 /**

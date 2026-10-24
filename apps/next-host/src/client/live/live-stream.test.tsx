@@ -51,7 +51,7 @@ describe("live stream", () => {
           transport.current?.open()
           transport.current?.frame({
             type: "failure",
-            data: JSON.stringify({ code: "TOKEN_EXPIRED", message: "Sign in.", retryable: false }),
+            data: JSON.stringify({ status: 401, title: "Sign in." }),
           })
         }
       })

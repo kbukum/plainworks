@@ -53,7 +53,7 @@ describe("createConnectRpcTransport", () => {
 
     const error = await promise
     expect(error).toBeInstanceOf(RpcError)
-    expect(error).toMatchObject({ code: "TIMEOUT", rawCode: Code.DeadlineExceeded })
+    expect(error).toMatchObject({ code: "deadline_exceeded", rawCode: Code.DeadlineExceeded })
   })
 
   test("never retries a non-idempotent write", async () => {
@@ -68,7 +68,7 @@ describe("createConnectRpcTransport", () => {
       .mutate({ message: "write" })
       .catch((reason: unknown) => reason)
 
-    expect(error).toMatchObject({ code: "SERVICE_UNAVAILABLE", rawCode: Code.Unavailable })
+    expect(error).toMatchObject({ code: "unavailable", rawCode: Code.Unavailable })
     expect(network.calls).toHaveLength(1)
   })
 
@@ -136,7 +136,7 @@ describe("createConnectRpcTransport", () => {
             })()
 
       await expect(call).rejects.toMatchObject({
-        code: "FORBIDDEN",
+        code: "permission_denied",
         rawCode: Code.PermissionDenied,
       })
       expect(fetch).not.toHaveBeenCalled()

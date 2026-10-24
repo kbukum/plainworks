@@ -15,10 +15,11 @@ export interface DevtoolsLabels {
 
   /** Accessible name of the diagnostics rail. */
   readonly diagnostics: string
-  /** Accessible name of a rail entry, from its label and value. */
-  readonly railEntry: (label: string, value: string) => string
-  /** Accessible name of a rail entry whose value is older than the freshness window. */
-  readonly staleRailEntry: (label: string, value: string) => string
+  /**
+   * Screen-reader note after a rail entry whose value is older than the freshness window. Each
+   * entry's name is its own visible label and value, so speech users can say what they see.
+   */
+  readonly railStale: string
   /** The rail's overflow button, from the number of entries it hides. */
   readonly showMore: (count: number) => string
   /** Rail value of a failed source. */
@@ -151,8 +152,7 @@ export const defaultDevtoolsLabels: DevtoolsLabels = {
   inspect: "Inspect",
 
   diagnostics: "Diagnostics",
-  railEntry: (label, value) => `${label}: ${value}`,
-  staleRailEntry: (label, value) => `${label}: ${value} (stale)`,
+  railStale: "(stale)",
   showMore: (count) => `Show ${plural(count, "more diagnostic", "more diagnostics")}`,
   failed: "Failed",
   railDropped: (count) => `${count} dropped`,

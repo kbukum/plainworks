@@ -1,7 +1,7 @@
-import { manualClock } from "@plainworks/testkit"
-import { describe, expect, it } from "vitest"
+import { manualClock } from "@plainworks/std/time"
+import { describe, expect, it, test } from "vitest"
 import { AuthError } from "../../errors"
-import { createRefreshTokenStore } from "./refresh-store"
+import { createRefreshTokenStore, decideRefreshRotation, refreshStoreLimits } from "./refresh-store"
 
 describe("createRefreshTokenStore custody", () => {
   it("issues, reads, and revokes a token by session handle", () => {
@@ -105,5 +105,35 @@ describe("createRefreshTokenStore rotation + reuse detection", () => {
     store.issue("sess-1", "rt-1")
     store.revoke("sess-1")
     expect(store.rotate("sess-1", "rt-1", "rt-2")).toEqual({ status: "reuse-detected" })
+  })
+})
+
+describe("refreshStoreLimits", () => {
+  test("defaults to one hour of custody and 10_000 entries", () => {
+    expect(refreshStoreLimits({})).toEqual({ ttlMs: 3_600_000, maxEntries: 10_000 })
+    expect(refreshStoreLimits({ ttlSeconds: 60, maxEntries: 2 })).toEqual({
+      ttlMs: 60_000,
+      maxEntries: 2,
+    })
+  })
+
+  test("rejects a lifetime or capacity that is not a positive integer", () => {
+    for (const options of [{ ttlSeconds: 0 }, { maxEntries: -1 }, { ttlSeconds: 1.5 }]) {
+      expect(() => refreshStoreLimits(options)).toThrow(
+        expect.objectContaining({ kind: "auth/config" }),
+      )
+    }
+  })
+})
+
+describe("decideRefreshRotation", () => {
+  test("rotates only when the presented token is the live one", () => {
+    expect(decideRefreshRotation("live", "live")).toEqual({ status: "rotated" })
+  })
+
+  test("reads a superseded, unknown or custody-less token as reuse", () => {
+    expect(decideRefreshRotation("live", "old")).toEqual({ status: "reuse-detected" })
+    expect(decideRefreshRotation("live", "")).toEqual({ status: "reuse-detected" })
+    expect(decideRefreshRotation(undefined, "live")).toEqual({ status: "reuse-detected" })
   })
 })

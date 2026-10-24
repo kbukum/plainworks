@@ -1,13 +1,7 @@
 import type { BackoffPolicy } from "@plainworks/std/resilience"
 import type { AuthHeaderProvider } from "@plainworks/std/seam"
-import {
-  flushMicrotasks,
-  type ManualClock,
-  type ManualDelay,
-  manualClock,
-  manualDelay,
-  seededRandom,
-} from "@plainworks/testkit"
+import { type ManualClock, manualClock } from "@plainworks/std/time"
+import { flushMicrotasks, type ManualDelay, manualDelay, seededRandom } from "@plainworks/testkit"
 import {
   type FakeStreamTransport,
   fakeAuthHeaderProvider,

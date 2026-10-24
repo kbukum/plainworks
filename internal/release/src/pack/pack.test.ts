@@ -14,6 +14,20 @@ describe("packWorkspace", () => {
     expect(text).not.toContain("@plainworks/source")
   })
 
+  it("drops dependency and tool caches nested under node_modules", async () => {
+    const tools = fakeTools()
+    const read = tools.archive.read
+    tools.archive.read = async (bytes) =>
+      new Map([
+        ...(await read(bytes)),
+        ["package/src/client/node_modules/.vite/vitest/results.json", new Uint8Array()],
+        ["package/node_modules/dep/index.js", new Uint8Array()],
+      ])
+    const { tarball } = await packWorkspace("packages/theme", "/out", tools)
+    const text = new TextDecoder().decode(tools.written.get(tarball))
+    expect(text.split("|")[0]).toBe("package/package.json,package/dist/index.js")
+  })
+
   it("fails when Bun cannot pack", async () => {
     const tools = fakeTools()
     tools.run = async () => ({ code: 1, output: "boom" })

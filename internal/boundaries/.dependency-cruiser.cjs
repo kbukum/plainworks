@@ -18,7 +18,7 @@
 //
 // Rule: a package in Ln may import @plainworks packages only in a strictly LOWER layer.
 // Same-layer ("sideways") and upward imports are forbidden. A cross-layer need defines the
-// seam in the lower layer and implements it higher (the gokit/rskit rule).
+// seam in the lower layer and implements it higher.
 //
 // Package imports resolve to `packages/<name>/src` through the `@plainworks/source` export
 // condition, and vendored atom subpaths through the aliases in `.dependency-cruiser.resolve.cjs`,

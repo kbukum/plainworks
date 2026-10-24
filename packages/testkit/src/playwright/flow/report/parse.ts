@@ -1,5 +1,11 @@
 import { CHECK_IDS, type CheckId } from "../../checks/findings"
 import { FLOW_ERROR_KINDS, FlowError } from "../errors"
+import {
+  BUDGET_METRICS,
+  type BudgetVerdict,
+  type ExpectedOverrun,
+  type JourneyMetrics,
+} from "../journey/budget"
 import { FLOW_MODES, PREFERENCE_IDS } from "../matrix/axes"
 import { DEVICE_IDS } from "../matrix/devices"
 import {
@@ -9,6 +15,7 @@ import {
   type FlowDeviceReport,
   type FlowReport,
   type FlowStatus,
+  type JourneyReport,
   type ReportedError,
   type VariantReport,
 } from "./schema"
@@ -118,6 +125,31 @@ const isCheckpoint = (value: unknown): value is CheckpointReport =>
   optional(isEvidence)(value.evidence) &&
   listOf(isVariant)(value.variants)
 
+const isCount = (value: unknown): value is number =>
+  typeof value === "number" && Number.isInteger(value) && value >= 0
+
+const isMetrics = (value: unknown): value is JourneyMetrics =>
+  isRecord(value) &&
+  isCount(value.views) &&
+  isCount(value.typedFields) &&
+  isCount(value.picks) &&
+  isCount(value.activations) &&
+  isCount(value.focusMoves)
+
+const isOverrun = (value: unknown): value is ExpectedOverrun =>
+  isRecord(value) && isString(value.step) && isString(value.reason)
+
+const isVerdict = (value: unknown): value is BudgetVerdict =>
+  isRecord(value) &&
+  oneOf(BUDGET_METRICS)(value.metric) &&
+  isCount(value.max) &&
+  isCount(value.actual) &&
+  oneOf(["met", "over", "expected-over", "unexpectedly-met"])(value.status) &&
+  optional(isOverrun)(value.failsUntil)
+
+const isJourney = (value: unknown): value is JourneyReport =>
+  isRecord(value) && isMetrics(value.metrics) && listOf(isVerdict)(value.budget)
+
 function isFlowDeviceReport(value: unknown): value is FlowDeviceReport {
   return (
     isRecord(value) &&
@@ -127,6 +159,7 @@ function isFlowDeviceReport(value: unknown): value is FlowDeviceReport {
     isStatus(value.status) &&
     optional(isError)(value.error) &&
     optional(isString)(value.trace) &&
-    listOf(isCheckpoint)(value.checkpoints)
+    listOf(isCheckpoint)(value.checkpoints) &&
+    optional(isJourney)(value.journey)
   )
 }

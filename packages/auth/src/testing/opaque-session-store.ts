@@ -1,8 +1,8 @@
 import { isRecord } from "@plainworks/std"
 import { guardSchema, type StandardSchemaV1 } from "@plainworks/std/seam"
-import type { Clock } from "@plainworks/std/time"
+import { type Clock, manualClock } from "@plainworks/std/time"
 import type { OpaqueSessionStore } from "../server/opaque-store"
-import { abortedSignal, equal, rejects, steppedClock } from "./check"
+import { abortedSignal, equal, rejects } from "./check"
 
 /** Options a conformance case passes to the implementation under test. */
 export interface OpaqueSessionStoreSubjectOptions<Value> {
@@ -64,7 +64,7 @@ export function createOpaqueSessionStoreCases(): readonly Case[] {
     {
       name: "owns nested values and metadata on write and read",
       run: (factory) =>
-        using(factory, { schema: profile, clock: steppedClock() }, async (store) => {
+        using(factory, { schema: profile, clock: manualClock() }, async (store) => {
           const record = {
             reference: "one",
             value: { profile: { name: "Ada" } },
@@ -87,7 +87,7 @@ export function createOpaqueSessionStoreCases(): readonly Case[] {
     {
       name: "pending login custody cannot be mutated after admission",
       run: (factory) =>
-        using(factory, { schema: text, clock: steppedClock() }, async (store) => {
+        using(factory, { schema: text, clock: manualClock() }, async (store) => {
           const pending = { ...login("login"), previous: "family" }
           await store.createLogin(pending)
           pending.previous = "other"
@@ -101,7 +101,7 @@ export function createOpaqueSessionStoreCases(): readonly Case[] {
       (value, index): Case => ({
         name: `rejects lossy value #${index} before replacing a live generation`,
         run: (factory) =>
-          using(factory, { schema: anything, clock: steppedClock() }, async (store) => {
+          using(factory, { schema: anything, clock: manualClock() }, async (store) => {
             await store.create({ reference: "one", value: "valid", expiresAt: 1000 })
             await rejects(
               () => store.create({ reference: "two", value, expiresAt: 1000 }, "one"),
@@ -115,7 +115,7 @@ export function createOpaqueSessionStoreCases(): readonly Case[] {
     {
       name: "rejects oversized values",
       run: (factory) =>
-        using(factory, { schema: anything, clock: steppedClock() }, async (store) => {
+        using(factory, { schema: anything, clock: manualClock() }, async (store) => {
           await rejects(
             () => store.create({ reference: "big", value: "x".repeat(70_000), expiresAt: 1000 }),
             "auth/session-invalid",
@@ -134,7 +134,7 @@ export function createOpaqueSessionStoreCases(): readonly Case[] {
       name: "schema failures and invalid expiry are explicit",
       run: (factory) => {
         const schema = guardSchema((v): v is string => typeof v === "string" && v !== "bad")
-        return using(factory, { schema, clock: steppedClock() }, async (store) => {
+        return using(factory, { schema, clock: manualClock() }, async (store) => {
           await rejects(
             () => store.create({ reference: "one", value: "bad", expiresAt: 1000 }),
             "auth/session-invalid",
@@ -161,7 +161,7 @@ export function createOpaqueSessionStoreCases(): readonly Case[] {
     {
       name: "replacement is single-winner and preserves absolute expiry",
       run: (factory) =>
-        using(factory, { schema: text, clock: steppedClock() }, async (store) => {
+        using(factory, { schema: text, clock: manualClock() }, async (store) => {
           await store.create({ reference: "one", value: "identity", expiresAt: 1000 })
           await rejects(
             () => store.create({ reference: "longer", value: "identity", expiresAt: 2000 }, "one"),
@@ -186,7 +186,7 @@ export function createOpaqueSessionStoreCases(): readonly Case[] {
     {
       name: "bounded storage keeps tombstones without evicting live sessions",
       run: (factory) => {
-        const clock = steppedClock()
+        const clock = manualClock()
         return using(factory, { schema: text, clock, capacity: 2 }, async (store) => {
           await store.create({ reference: "one", value: "first", expiresAt: 1000 })
           await store.create({ reference: "two", value: "second", expiresAt: 1000 }, "one")
@@ -214,7 +214,7 @@ export function createOpaqueSessionStoreCases(): readonly Case[] {
     {
       name: "login transactions are one-time, bounded, and release capacity",
       run: (factory) => {
-        const clock = steppedClock()
+        const clock = manualClock()
         return using(factory, { schema: text, clock, transactionCapacity: 1 }, async (store) => {
           for (let index = 0; index < 100; index++) {
             const pending = login(`protected-${index}`)
@@ -243,7 +243,7 @@ export function createOpaqueSessionStoreCases(): readonly Case[] {
     {
       name: "expiry denies reads and replacement but keeps provider custody for logout",
       run: (factory) => {
-        const clock = steppedClock()
+        const clock = manualClock()
         return using(factory, { schema: text, clock }, async (store) => {
           await store.create({
             reference: "expired",
@@ -266,7 +266,7 @@ export function createOpaqueSessionStoreCases(): readonly Case[] {
     {
       name: "an aborted signal rejects before any work",
       run: (factory) =>
-        using(factory, { schema: text, clock: steppedClock() }, async (store) => {
+        using(factory, { schema: text, clock: manualClock() }, async (store) => {
           const aborted = abortedSignal()
           await rejects(() => store.read("one", aborted), undefined, "read")
           await rejects(

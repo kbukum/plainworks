@@ -1,0 +1,60 @@
+{
+  "name": "@plainworks/vite",
+  "version": "0.1.0-alpha.1",
+  "description": "Vite and Vitest integration: resolve @plainworks packages from a local checkout's source for fast consumer feedback.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Plainworks",
+  "homepage": "https://github.com/kbukum/plainworks/tree/main/packages/vite#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kbukum/plainworks.git",
+    "directory": "packages/vite"
+  },
+  "bugs": "https://github.com/kbukum/plainworks/issues",
+  "keywords": [
+    "plainworks",
+    "typescript",
+    "esm",
+    "vite",
+    "vitest"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "@plainworks/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.*"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --coverage",
+    "check-packaging": "plainworks-release check-packaging"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@plainworks/tsdown-config": "workspace:*",
+    "@plainworks/vitest-config": "workspace:*",
+    "@types/node": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@plainworks/std": "workspace:*"
+  },
+  "peerDependencies": {
+    "vite": "catalog:"
+  }
+}

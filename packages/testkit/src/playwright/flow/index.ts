@@ -8,6 +8,18 @@ export type { FlowErrorKind } from "./errors"
 export { FLOW_ERROR_KINDS, FlowError } from "./errors"
 export type { VisualCapture } from "./frame"
 export type {
+  BudgetLimit,
+  BudgetMetric,
+  BudgetStatus,
+  BudgetVerdict,
+  ExpectedOverrun,
+  FlowInput,
+  FlowUser,
+  JourneyBudget,
+  JourneyMetrics,
+} from "./journey"
+export { BUDGET_METRICS, isBudgetFailure, judgeJourneyBudget } from "./journey"
+export type {
   DeviceContextOptions,
   DeviceId,
   DevicePlan,
@@ -61,6 +73,7 @@ export type {
   FlowSelection,
   FlowStatus,
   FrameChange,
+  JourneyReport,
   MemoryArtifactStore,
   ReportedError,
   RetentionPolicy,

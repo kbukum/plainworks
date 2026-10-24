@@ -144,7 +144,7 @@ Read the whole snapshot with `useAppSnapshot`, and catch render failures with `A
 import { createFailureHandler } from "@plainworks/app"
 
 const handleFailure = createFailureHandler({
-  messages: { SERVICE_UNAVAILABLE: "Try again later." },
+  messages: { unavailable: "Try again later." },
   reasons: { QUOTA_EXCEEDED: "Your quota is used up." },
   onFailure: ({ message }) => showNotice(message),
   onUnauthenticated: () => showSignIn(),

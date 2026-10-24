@@ -101,11 +101,6 @@ export function DiagnosticsRail({
               size="xs"
               data-severity={entry.severity}
               data-stale={entry.stale || undefined}
-              aria-label={
-                entry.stale
-                  ? labels.staleRailEntry(entry.label, entry.value)
-                  : labels.railEntry(entry.label, entry.value)
-              }
               onClick={() => onOpen(entry.target)}
               className={cn(RAIL_BUTTON, "gap-1.5", SEVERITY_STYLES[entry.severity])}
             >
@@ -118,10 +113,19 @@ export function DiagnosticsRail({
                   DOT_STYLES[entry.severity],
                 )}
               />
-              {/* Container-adaptive: at narrow rail widths the label yields to the value, which
-                  is the glanceable signal; the full name stays in the accessible label. */}
-              <span className="font-medium @max-md/rail:hidden">{entry.label}</span>
-              <span className="tabular-nums">{entry.value}</span>
+              {/* The name comes from this content, so it always contains the visible text (WCAG
+                  2.5.3). At narrow rail widths the label yields to the value, the glanceable
+                  signal, but stays in the name as screen-reader-only text. */}
+              <span className="font-medium @max-md/rail:sr-only">{entry.label}</span>
+              {/* Whitespace-only text nodes never render in this flex row; they only space the
+                  name's words. */}
+              <span className="sr-only">:</span> <span className="tabular-nums">{entry.value}</span>
+              {entry.stale ? (
+                <>
+                  {" "}
+                  <span className="sr-only">{labels.railStale}</span>
+                </>
+              ) : null}
             </Button>
           </li>
         ))}

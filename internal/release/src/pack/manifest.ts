@@ -11,7 +11,28 @@ export function publishedManifest(text: string): string {
   if (!isRecord(manifest))
     throw new ReleaseToolError("The packed package.json is not a JSON object")
   if (manifest.exports === undefined) return text
-  return `${JSON.stringify({ ...manifest, exports: withoutSource(manifest.exports) }, null, 2)}\n`
+  return `${JSON.stringify({ ...manifest, exports: publishedExports(manifest.exports) }, null, 2)}\n`
+}
+
+const CODE_TARGET = /\.(?:js|d\.ts)$/
+
+// A copied asset exported as `{ source, default }` publishes as its plain `dist` path, as it did
+// before the repo pointed the source condition at it. Code entries keep their condition object.
+function publishedExports(exports: unknown): unknown {
+  if (!isRecord(exports)) return withoutSource(exports)
+  return Object.fromEntries(
+    Object.entries(exports).map(([subpath, target]) => {
+      const kept = withoutSource(target)
+      const asset =
+        isRecord(target) &&
+        SOURCE_CONDITION in target &&
+        isRecord(kept) &&
+        Object.keys(kept).length === 1 &&
+        typeof kept.default === "string" &&
+        !CODE_TARGET.test(kept.default)
+      return [subpath, asset ? kept.default : kept]
+    }),
+  )
 }
 
 function withoutSource(target: unknown): unknown {
@@ -29,7 +50,7 @@ export function assetSubpaths(text: string): string[] {
   const manifest: unknown = JSON.parse(text)
   if (!isRecord(manifest) || !isRecord(manifest.exports)) return []
   return Object.entries(manifest.exports)
-    .filter(([, target]) => typeof target === "string" && !/\.(?:js|d\.ts)$/.test(target))
+    .filter(([, target]) => typeof target === "string" && !CODE_TARGET.test(target))
     .map(([subpath]) => subpath)
 }
 

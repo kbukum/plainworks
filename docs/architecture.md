@@ -71,7 +71,7 @@ These boundaries apply to shared helper code too. Do not export generic filesyst
 <!-- layer-map:diagram -->
 ```mermaid
 flowchart TD
-  L4["L4 · app · testkit · mocks · devtools"] --> L3["L3 · auth · ui"]
+  L4["L4 · app · testkit · mocks · devtools · vite"] --> L3["L3 · auth · ui"]
   L3 --> L2["L2 · channel · connect · query · elements"]
   L2 --> L1["L1 · state · http · theme · observability"]
   L1 --> L0["L0 · std"]
@@ -89,10 +89,12 @@ flowchart TD
 | **L1** | `state`, `http`, `theme`, `observability` | Reactive state, typed HTTP, the design-token substrate, and logging, error reporting, telemetry, and Web Vitals. |
 | **L2** | `channel`, `connect`, `query`, `elements` | Streaming, RPC, TanStack Query integration, and vendored UI atoms. |
 | **L3** | `auth`, `ui` | Authentication, OIDC with PKCE, forms, data, navigation, and UI composites. |
-| **L4** | `app`, `testkit`, `mocks`, `devtools` | Application composition, shared test tooling, reusable MSW mock-building primitives, and the development-only runtime inspector. |
+| **L4** | `app`, `testkit`, `mocks`, `devtools`, `vite` | Application composition, shared test tooling, reusable MSW mock-building primitives, the development-only runtime inspector, and the Vite source link for consumer feedback loops. |
 <!-- /layer-map:table -->
 
 [`internal/boundaries/layers.json`](../internal/boundaries/layers.json) is the single source of this map. The diagram and table here, in the README, and in the contributor instructions are generated from it with `bun run sync-layer-map`, and `bun run verify` fails when they drift. dependency-cruiser reads the same file and rejects upward imports, same-layer imports, cycles, and imports from packages missing from the map.
+
+### Workspace profiles
 
 The workspace has three roots and four generated profiles. `bun run check-shape` verifies them, and `bun run sync-shape` rewrites the derived manifest fields.
 
@@ -151,11 +153,12 @@ The neutral entry already gives React Server Components a server-safe build, so 
 
 ## Remote failures and forms
 
-`std/failure` owns application codes, semantic violations, and terminal authentication. HTTP and Connect decode their wire formats at the transport boundary and preserve transport status separately. Apps handle the resulting `RemoteFailure` through `createFailureHandler`; they never decode details themselves.
+`std/failure` owns the failure model: the canonical `google.rpc` codes, an optional reason, domain and metadata, violations, the retry verdict, and terminal authentication. Each transport decodes a published standard at its boundary: HTTP and SSE read RFC 9457 problems, Connect reads the `google.rpc` `ErrorInfo`, `RetryInfo` and `BadRequest` details. Every decoder is an injected seam (`failures`), so an application whose backend adds its own conventions passes an adapter; plainworks never depends on a particular backend. Apps handle the resulting `RemoteFailure` through `createFailureHandler`; they never decode details themselves.
 
 ```mermaid
 flowchart LR
-  Wire[Problem JSON / RPC details] --> Transport[HTTP / Connect]
+  Wire[RFC 9457 problem / google.rpc details] --> Decoder[failures decoder seam]
+  Decoder --> Transport[HTTP / Connect / channel]
   Transport --> Failure[std RemoteFailure]
   Failure --> App[app failure handler]
   Failure --> Form[ui Form]
@@ -165,7 +168,7 @@ flowchart LR
 
 The descriptor adapter lives in `connect/forms`; `ui` consumes only the lower-layer schema seam. Local and server violations use the same field/summary regions. Malformed upstream data stays operational, not a prompt to edit input.
 
-Connect transport owns retry attempts and the total budget; its Query options and hooks disable Query retries. Stream start, idle consumption, and cleanup are bounded independently. Tests consume a pinned backend corpus and serializer-backed adversarial cases.
+Connect transport owns retry attempts and the total budget; its Query options and hooks disable Query retries. Stream start, idle consumption, and cleanup are bounded independently. Tests build standard failures with `@plainworks/mocks` and serializer-backed adversarial cases.
 
 ## Distribution
 
@@ -182,9 +185,7 @@ Inside the monorepo, package exports include a private `"@plainworks/source"` co
 
 ## Naming and structure
 
-Each package owns **one concern with one plain-word name**. Do not create packages or folders named `core`, `engine`, `foundation`, `utils`, `helpers`, or `misc`.
-
-A concern that spans several modules uses a concern-named folder with a re-export-only `index.ts`. A single-module concern stays in a clearly named file. Paths and exports qualify ambiguous verbs, such as `pipeline/interceptor.ts` with `composeInterceptors`.
+Each package owns **one concern with one plain-word name**; naming and module rules are in [Code structure](../.github/engineering.md#code-structure).
 
 `@plainworks/std` is the zero-dependency base. Move a concern into its own package when it has a distinct responsibility rather than turning `std` into a catch-all.
 
@@ -254,9 +255,7 @@ React components are not neutral data seams. Pass component-valued extensions, s
 
 Imports must not read environment state, open handles, or dial a network. Factories create explicitly owned process-, request-, or browser-root resources as appropriate. Borrowers do not dispose their owner's resources. Request-local handling may use shared authoritative persistence; do not recreate that data for each request. Register adapters explicitly through an injected registry or `createX({...})`; do not use global mutable registries or string service locators.
 
-## Security and UI invariants
-
-### Development inspection
+## Development inspection
 
 [`@plainworks/devtools`](../packages/devtools/README.md) is an optional L4 inspector built only on public lower-layer seams. Each host keeps it out of its production build:
 
@@ -268,18 +267,6 @@ Imports must not read environment state, open handles, or dial a network. Factor
 
 The [showcase](../apps/showcase/README.md) mounts a Vite-gated shell with HTTP and query adapters plus a custom mock panel. The [Next host](../apps/next-host/README.md) inspects HTTP, query, and channel activity on the client under RSC. The `check-production` gate scans each host's source-mapped production build of JavaScript and CSS and fails if any inspector code remains. The embedded inspector does not cover cross-tab, server or RSC, browser-extension, standalone, React Native, auth, or time-travel inspection.
 
-### Shared acceptance bar
-
-| Invariant | Required behavior |
-|---|---|
-| **Authentication** | Send credentials in headers or secure `__Host-` cookies. Never put tokens in URLs, `localStorage`, or `sessionStorage`. Keep server token custody outside client graphs. |
-| **OIDC** | Use Authorization Code with PKCE `S256`. Reject insecure algorithms and validate redirects and state. |
-| **Errors** | Expose typed, actionable errors that preserve causes. Never throw strings, swallow failures, or return success-shaped fallbacks. |
-| **Async ownership** | Give streams, subscriptions, timers, queues, and abort controllers explicit cancellation and teardown. Bound buffers and retries. |
-| **Accessibility** | Interactive client code meets WCAG 2.2 AA, supports keyboard and visible focus, uses 24×24 CSS-pixel targets, and includes an axe assertion. |
-| **Responsive UI** | Use fluid, mobile-first layouts, container queries, and reduced-motion and color-scheme preferences. Avoid fixed-size traps. |
-| **Packaging** | Ship ESM-only `dist` plus source maps, correct generated exports and types, and no committed build output. |
-
 ## Testing
 
 | Scope | What runs | External edges | Location |
@@ -288,7 +275,7 @@ The [showcase](../apps/showcase/README.md) mounts a Vite-gated shell with HTTP a
 | **Integration** | Built public exports from several packages | MSW or in-memory doubles | [`internal/integration`](../internal/integration) |
 | **Browser** | Each reference host in real Chromium: flows with axe, reflow, focus, and layout checks, and no screenshot baselines | The host's seeded mock backend and a fixed clock | App `e2e/` suites; see [Browser gate](./browser-gate.md) |
 
-Unit tests assert behavior with deterministic clocks, seeded randomness, and no real network or filesystem. React tests query by role or label, use `user-event`, and assert accessibility. Integration tests run against built package exports so they exercise what a consumer installs.
+Integration tests run against built package exports so they exercise what a consumer installs. How to write tests is in [Testing and proof](../.github/engineering.md#testing-and-proof).
 
 Cross-package tests live outside published packages because a lower package cannot import higher-layer fixtures. The boundary gate prevents packages from importing `apps/` or `internal/`.
 
@@ -310,37 +297,6 @@ flowchart LR
 
 The integration suite verifies serialization, offset and cursor paging, cache keys, empty results, aborts, and typed server failures across these packages.
 
-## Repository governance
+## Enforcement
 
-| Concern | Tool or rule |
-|---|---|
-| Tasks and caching | Turborepo |
-| Package and tool generation | `@turbo/gen` through `bun run gen` |
-| Build | tsdown through `@plainworks/tsdown-config`, ESM-only |
-| Lint and format | Biome |
-| Boundaries and cycles | dependency-cruiser |
-| Workspace shape | `plainworks-shape check` and `plainworks-shape sync` |
-| Packaging | `plainworks-release check-packaging` with publint and are-the-types-wrong |
-| Portability | ES2023-only typecheck and boundary fixtures |
-| Version synchronization | Syncpack and Sherif against one Bun catalog |
-| Tests and coverage | Vitest through `@plainworks/vitest-config`; 80% per package and 85% for security-critical packages |
-| Releases | Changesets and npm trusted publishing with provenance |
-
-Every dependency version lives in the root Bun catalog. Package manifests use `catalog:` so Syncpack and Sherif can reject inline or divergent versions.
-
-### TypeScript 6 boundary
-
-The catalog pins TypeScript to `^6.0.3` because dependency-cruiser requires the JavaScript Compiler API. TypeScript 7 does not provide that API. Raising the catalog to TypeScript 7 would stop dependency-cruiser from extracting imports and silently disable the layer gate.
-
-`@plainworks/boundaries` tests enforce the TypeScript 6 line. Do not raise the catalog past TypeScript 6 unless the boundary package first receives a compiler implementation that can still extract and validate imports.
-
-## Definition of Done
-
-Run all gates from the repository root. `internal/verify` owns the gate list; CI and the release workflow call the same command:
-
-```sh
-bun run verify          # every gate, in order
-bun run verify --list   # the gates and what each enforces
-```
-
-`verify` has 13 gates: versions, lint, comments, layer map, atom lock, workspace shape, axe coverage, typecheck, boundaries, build, test, packaging, and production-bundle checks.
+The gates in `bun run verify` enforce these boundaries: layers and cycles, entry portability, workspace shape, the atom lock, packaging, and production exclusion. `bun run verify --list` describes each gate. The engineering rules, toolchain, and Definition of Done live in the [engineering standard](../.github/engineering.md).

@@ -13,7 +13,7 @@ export class ListDecodeError extends RemoteFailure<"list/decode"> {
   override readonly name: string = "ListDecodeError"
   constructor() {
     super("list/decode", {
-      code: "EXTERNAL_SERVICE_ERROR",
+      code: "internal",
       message: "The service returned invalid list pagination.",
       violations: [],
       retryable: false,

@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url"
 import postcss from "postcss"
 import { beforeAll, describe, expect, it } from "vitest"
-import { buildStylesheet, collectCandidates, SCOPE, SLOT } from "./pipeline"
+import { buildStylesheet, collectCandidates, resolveStylesheet, SCOPE, SLOT } from "./pipeline"
 
 const entry = fileURLToPath(new URL("../../src/styles/inspector.css", import.meta.url))
 const hostContract = fileURLToPath(new URL("../../src/styles/host-contract.css", import.meta.url))
@@ -10,6 +10,12 @@ describe("collectCandidates", () => {
   it("extracts utility candidates from bundled class strings", () => {
     const candidates = collectCandidates('cn("bg-popover px-2", open && "hover:bg-muted")')
     expect(candidates).toEqual(expect.arrayContaining(["bg-popover", "px-2", "hover:bg-muted"]))
+  })
+})
+
+describe("resolveStylesheet", () => {
+  it("resolves a kit stylesheet to its published file, not the source condition", () => {
+    expect(resolveStylesheet("@plainworks/ui/styles.css", entry)).toMatch(/ui\/dist\/styles\.css$/)
   })
 })
 

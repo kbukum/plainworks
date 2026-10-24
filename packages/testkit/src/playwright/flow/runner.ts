@@ -48,6 +48,8 @@ export async function runFlow(
     page: fixtures.page,
     runtimeErrors: fixtures.runtimeErrors,
     axes: planned.axes,
+    input: planned.plan.device.hasTouch ? "touch" : "keyboard",
+    journey: planned.flow.budget !== undefined,
   })
   let report: FlowDeviceReport
   try {

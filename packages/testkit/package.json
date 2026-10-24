@@ -67,11 +67,11 @@
     "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.playwright.json",
     "test": "vitest run --coverage",
     "e2e": "vitest run -c vitest.e2e.config.ts",
+    "e2e:pw": "playwright test -c test/gate/playwright.config.ts",
     "gen:proto": "buf generate",
     "check-packaging": "plainworks-release check-packaging"
   },
   "dependencies": {
-    "@bufbuild/protovalidate": "catalog:",
     "@plainworks/std": "workspace:*",
     "@testing-library/react": "catalog:",
     "pixelmatch": "catalog:",
@@ -82,6 +82,7 @@
     "@bufbuild/buf": "catalog:",
     "@bufbuild/protobuf": "catalog:",
     "@bufbuild/protoc-gen-es": "catalog:",
+    "@bufbuild/protovalidate": "catalog:",
     "@connectrpc/connect": "catalog:",
     "@plainworks/tsdown-config": "workspace:*",
     "@plainworks/vitest-config": "workspace:*",
@@ -100,6 +101,7 @@
   "peerDependencies": {
     "@axe-core/playwright": "catalog:",
     "@bufbuild/protobuf": "catalog:",
+    "@bufbuild/protovalidate": "catalog:",
     "@connectrpc/connect": "catalog:",
     "@playwright/test": "catalog:",
     "@tanstack/react-query": "catalog:",
@@ -112,6 +114,9 @@
       "optional": true
     },
     "@bufbuild/protobuf": {
+      "optional": true
+    },
+    "@bufbuild/protovalidate": {
       "optional": true
     },
     "@connectrpc/connect": {

@@ -1,44 +1,16 @@
-import { create, fromBinary, toBinary } from "@bufbuild/protobuf"
+import { create, toBinary } from "@bufbuild/protobuf"
 import { base64Decode } from "@bufbuild/protobuf/wire"
 import { Code, ConnectError } from "@connectrpc/connect"
-import { wireFailures } from "@plainworks/mocks/failure"
-import { decodeFailure, FailureDecodeError } from "@plainworks/std/failure"
-import { describe, expect, test } from "vitest"
+import { type Failure, FailureDecodeError } from "@plainworks/std/failure"
+import { expect, test } from "vitest"
 import { connectFailureJson, createRpcFailureCases } from "../testing"
 import {
   BadRequestSchema,
   ErrorInfoSchema,
   RetryInfoSchema,
 } from "./gen/google/rpc/error_details_pb"
-import { StatusSchema } from "./gen/google/rpc/status_pb"
-import { decodeRpcFailure } from "./rpc-details"
+import { decodeRpcFailure, type RpcFailureDecoder } from "./rpc-details"
 import { mapConnectError } from "./rpc-error"
-
-describe("gokit committed wire corpus", () => {
-  for (const fixture of wireFailures) {
-    test(fixture.wire.name, () => {
-      const status = fromBinary(StatusSchema, base64Decode(fixture.wire.grpcStatus))
-      const details = status.details.map((detail) => ({
-        type: detail.typeUrl.slice(detail.typeUrl.lastIndexOf("/") + 1),
-        value: detail.value,
-      }))
-      const expected = {
-        ...decodeFailure(fixture.wire.vocabulary),
-        ...("retryAfterMs" in fixture.wire.vocabulary
-          ? { retryAfterMs: fixture.wire.vocabulary.retryAfterMs }
-          : {}),
-      }
-      expect(decodeRpcFailure(status.code, status.message, details)).toEqual(expected)
-      const json = fixture.wire.connectJson
-      const error = new ConnectError(json.message, status.code)
-      error.details = json.details.map((detail) => ({
-        type: detail.type,
-        value: base64Decode(detail.value),
-      }))
-      expect(mapConnectError(error)).toMatchObject(expected)
-    })
-  }
-})
 
 test.each(createRpcFailureCases())("published adversarial case: $name", ({ error, expected }) => {
   const json = connectFailureJson(error)
@@ -50,6 +22,48 @@ test.each(createRpcFailureCases())("published adversarial case: $name", ({ error
   expect(mapConnectError(incoming)).toMatchObject(expected)
 })
 
+test("reads ErrorInfo of any domain, RetryInfo and BadRequest", () => {
+  expect(
+    decodeRpcFailure({
+      code: "resource_exhausted",
+      message: "Slow down",
+      details: [
+        {
+          desc: ErrorInfoSchema,
+          value: { domain: "example.test", reason: "QUOTA", metadata: { limit: "10" } },
+        },
+        { desc: RetryInfoSchema, value: { retryDelay: { seconds: 1n, nanos: 250_000_000 } } },
+        {
+          desc: BadRequestSchema,
+          value: { fieldViolations: [{ field: "size", description: "Too big" }] },
+        },
+      ],
+    }),
+  ).toEqual({
+    code: "resource_exhausted",
+    message: "Slow down",
+    reason: "QUOTA",
+    domain: "example.test",
+    metadata: { limit: "10" },
+    violations: [{ field: "size", reason: "INVALID_VALUE", message: "Too big" }],
+    retryable: true,
+    retryAfterMs: 1250,
+  })
+})
+
+test.each([
+  ["unavailable", true],
+  ["internal", false],
+  ["resource_exhausted", false],
+] as const)("without RetryInfo, %s retryable is %s", (code, retryable) => {
+  expect(decodeRpcFailure({ code, message: "x", details: [] })).toMatchObject({
+    retryable,
+    reason: undefined,
+    domain: undefined,
+    metadata: {},
+  })
+})
+
 test.each([
   { seconds: -1n },
   { seconds: 315_576_000_001n },
@@ -57,88 +71,84 @@ test.each([
   { nanos: 1_000_000_000 },
 ])("invalid RetryInfo duration is operational: %#", (retryDelay) => {
   expect(() =>
-    decodeRpcFailure(Code.Unavailable, "Unavailable", [
-      { desc: RetryInfoSchema, value: { retryDelay } },
-    ]),
+    decodeRpcFailure({
+      code: "unavailable",
+      message: "Unavailable",
+      details: [{ desc: RetryInfoSchema, value: { retryDelay } }],
+    }),
   ).toThrow(FailureDecodeError)
 })
 
 test("duplicate recognized details fail closed", () => {
-  const detail = { desc: RetryInfoSchema, value: { retryDelay: { seconds: 1n } } }
-  expect(() => decodeRpcFailure(Code.Unavailable, "Unavailable", [detail, detail])).toThrow(
-    FailureDecodeError,
-  )
+  const retry = { desc: RetryInfoSchema, value: { retryDelay: { seconds: 1n } } }
+  const info = { desc: ErrorInfoSchema, value: { domain: "a.test", reason: "A" } }
+  for (const detail of [retry, info]) {
+    expect(() =>
+      decodeRpcFailure({ code: "unavailable", message: "x", details: [detail, detail] }),
+    ).toThrow(FailureDecodeError)
+  }
 })
 
 test("terminal authentication ignores retry permission and delay", () => {
   const error = mapConnectError(
     new ConnectError("Sign in", Code.Unauthenticated, undefined, [
-      {
-        desc: ErrorInfoSchema,
-        value: {
-          domain: "gokit.dev",
-          reason: "UNAUTHORIZED",
-          metadata: { retryable: "true" },
-        },
-      },
       { desc: RetryInfoSchema, value: { retryDelay: { seconds: 1n } } },
     ]),
   )
   expect(error).toMatchObject({
-    code: "UNAUTHORIZED",
+    code: "unauthenticated",
     retryable: false,
     retryAfterMs: undefined,
     authentication: "unauthenticated",
   })
 })
 
-test("explicit false wins over a reordered standard hint", () => {
-  const info = create(ErrorInfoSchema, {
-    domain: "gokit.dev",
-    reason: "SERVICE_UNAVAILABLE",
-    metadata: { retryable: "false" },
+test("preserves protocol identity and serialized detail bytes", () => {
+  const info = create(ErrorInfoSchema, { domain: "example.test", reason: "LOCKED" })
+  const incoming = new ConnectError("Locked", Code.FailedPrecondition)
+  incoming.details = [{ type: ErrorInfoSchema.typeName, value: toBinary(ErrorInfoSchema, info) }]
+  const error = mapConnectError(incoming)
+  expect(error).toMatchObject({
+    code: "failed_precondition",
+    rpcCode: "failed_precondition",
+    rawCode: Code.FailedPrecondition,
+    reason: "LOCKED",
+    domain: "example.test",
   })
-  const retry = create(RetryInfoSchema, { retryDelay: { seconds: 60n } })
-  const details = [
-    { type: ErrorInfoSchema.typeName, value: toBinary(ErrorInfoSchema, info) },
-    { type: RetryInfoSchema.typeName, value: toBinary(RetryInfoSchema, retry) },
-  ]
-  for (const ordered of [details, [...details].reverse()]) {
-    expect(decodeRpcFailure(Code.Unavailable, "Unavailable", ordered)).toMatchObject({
-      code: "SERVICE_UNAVAILABLE",
-      retryable: false,
-      retryAfterMs: undefined,
-    })
-  }
-})
-
-test.each([
-  { domain: "foreign.example", reason: "NOT_FOUND" },
-  { domain: "gokit.dev", reason: "FUTURE_CODE" },
-])("preserves protocol identity for $domain/$reason", (identity) => {
-  const error = mapConnectError(
-    new ConnectError("External", Code.PermissionDenied, undefined, [
-      { desc: ErrorInfoSchema, value: identity },
-    ]),
-  )
-  expect(error).toMatchObject({ code: "FORBIDDEN", rawCode: Code.PermissionDenied })
 })
 
 test("malformed known details are operational failures", () => {
   expect(() =>
-    decodeRpcFailure(Code.InvalidArgument, "bad", [
-      { type: BadRequestSchema.typeName, value: new Uint8Array([255]) },
-    ]),
+    decodeRpcFailure({
+      code: "invalid_argument",
+      message: "bad",
+      details: [{ type: BadRequestSchema.typeName, value: new Uint8Array([255]) }],
+    }),
   ).toThrow(FailureDecodeError)
 })
 
-test("contradictory identity and missing retry verdict fail closed", () => {
-  for (const value of [
-    { domain: "gokit.dev", reason: "NOT_FOUND", metadata: { retryable: "false" } },
-    { domain: "gokit.dev", reason: "INVALID_INPUT" },
-  ]) {
-    expect(() =>
-      decodeRpcFailure(Code.InvalidArgument, "bad", [{ desc: ErrorInfoSchema, value }]),
-    ).toThrow(FailureDecodeError)
+test("an injected decoder refines the standard failure and keeps the wire status", () => {
+  const decode: RpcFailureDecoder = (input) => {
+    const failure: Failure = decodeRpcFailure(input)
+    return { ...failure, code: "not_found", reason: failure.metadata?.cause }
   }
+  const error = mapConnectError(
+    new ConnectError("Gone", Code.FailedPrecondition, undefined, [
+      {
+        desc: ErrorInfoSchema,
+        value: { domain: "a.test", reason: "X", metadata: { cause: "GONE" } },
+      },
+    ]),
+    decode,
+  )
+  expect(error).toMatchObject({ code: "not_found", rpcCode: "failed_precondition", reason: "GONE" })
+})
+
+test("a decoder that rejects the details yields an operational failure with its cause", () => {
+  const source = new ConnectError("x", Code.Internal)
+  const error = mapConnectError(source, () => {
+    throw new FailureDecodeError()
+  })
+  expect(error).toMatchObject({ code: "internal", retryable: false })
+  expect(error.cause).toBeInstanceOf(FailureDecodeError)
 })

@@ -1,6 +1,5 @@
 import { PlainError, type PlainErrorOptions } from "../errors"
-import { isRecord } from "../guard"
-import { type FailureCode, isFailureCode } from "./codes"
+import type { FailureCode } from "./codes"
 
 /** A safe message and semantic reason at a field path, or the whole request when empty. */
 export interface Violation {
@@ -9,15 +8,31 @@ export interface Violation {
   readonly message: string
 }
 
-/** Shared remote vocabulary. Delays are milliseconds, never wire seconds. */
+/**
+ * How a failure affects the borrowed session: `unauthenticated` ends it, `unavailable` means the
+ * session could not be checked. Either one fails every protected operation closed.
+ */
+export type FailureAuthentication = "unauthenticated" | "unavailable"
+
+/**
+ * A remote failure in protocol-neutral terms: a canonical {@link FailureCode}, a safe message, and
+ * the standard error details a server attached. Delays are milliseconds, never wire seconds.
+ */
 export interface Failure {
   readonly code: FailureCode
   readonly message: string
+  /** Machine-readable cause: the `ErrorInfo` reason or the problem `type` URI. */
   readonly reason?: string | undefined
+  /** Namespace of `reason`, such as the `ErrorInfo` domain. */
+  readonly domain?: string | undefined
+  /** String context the server attached, such as `ErrorInfo` metadata. */
+  readonly metadata?: Readonly<Record<string, string>> | undefined
   readonly traceId?: string | undefined
   readonly violations: readonly Violation[]
   readonly retryable: boolean
   readonly retryAfterMs?: number | undefined
+  /** Defaults to `unauthenticated` for that code; a decoder may report `unavailable`. */
+  readonly authentication?: FailureAuthentication | undefined
 }
 
 /** Remote data is for display/handling, not trusted onward public serialization. */
@@ -29,8 +44,12 @@ export class RemoteFailure<Kind extends string = string>
   readonly fieldPathFormat: "protobuf" | "json" = "json"
   readonly code: FailureCode
   readonly reason: string | undefined
+  readonly domain: string | undefined
+  readonly metadata: Readonly<Record<string, string>>
   readonly traceId: string | undefined
   readonly violations: readonly Violation[]
+  /** Terminal authentication outcome; never permission for credential refresh or retries. */
+  readonly authentication: FailureAuthentication | undefined
   readonly retryable: boolean
   readonly retryAfterMs: number | undefined
 
@@ -38,19 +57,14 @@ export class RemoteFailure<Kind extends string = string>
     super(kind, failure.message, options)
     this.code = failure.code
     this.reason = failure.reason
+    this.domain = failure.domain
+    this.metadata = failure.metadata ?? {}
     this.traceId = failure.traceId
     this.violations = failure.violations
+    this.authentication =
+      failure.authentication ?? (failure.code === "unauthenticated" ? "unauthenticated" : undefined)
     this.retryable = failure.retryable && this.authentication === undefined
     this.retryAfterMs = this.retryable ? failure.retryAfterMs : undefined
-  }
-
-  /** Terminal authentication outcome; never permission for credential refresh or retries. */
-  get authentication(): "unauthenticated" | undefined {
-    return this.code === "UNAUTHORIZED" ||
-      this.code === "TOKEN_EXPIRED" ||
-      this.code === "INVALID_TOKEN"
-      ? "unauthenticated"
-      : undefined
   }
 }
 
@@ -61,7 +75,7 @@ export class FailureDecodeError extends RemoteFailure<"failure/decode"> {
     super(
       "failure/decode",
       {
-        code: "EXTERNAL_SERVICE_ERROR",
+        code: "internal",
         message: "The service returned an invalid failure response.",
         retryable: false,
         violations: [],
@@ -71,56 +85,7 @@ export class FailureDecodeError extends RemoteFailure<"failure/decode"> {
   }
 }
 
+/** An `UPPER_SNAKE_CASE` reason, as `google.rpc` recommends for `ErrorInfo` and violations. */
 export function isViolationReason(value: unknown): value is string {
   return typeof value === "string" && /^[A-Z][A-Z0-9_]{0,62}$/.test(value)
-}
-
-/** Validate JSON failure fields; HTTP adapters supply `detail` as `message`. */
-export function decodeFailure(value: unknown): Failure {
-  if (
-    !isRecord(value) ||
-    !isFailureCode(value.code) ||
-    typeof value.message !== "string" ||
-    typeof value.retryable !== "boolean" ||
-    (value.reason !== undefined && !isViolationReason(value.reason)) ||
-    (value.traceId !== undefined && typeof value.traceId !== "string")
-  ) {
-    throw new FailureDecodeError()
-  }
-  const violations: Violation[] = []
-  if (value.violations !== undefined) {
-    if (!Array.isArray(value.violations)) throw new FailureDecodeError()
-    for (const entry of value.violations) {
-      if (
-        !isRecord(entry) ||
-        typeof entry.field !== "string" ||
-        !isViolationReason(entry.reason) ||
-        typeof entry.message !== "string"
-      ) {
-        throw new FailureDecodeError()
-      }
-      violations.push({ field: entry.field, reason: entry.reason, message: entry.message })
-    }
-  }
-  let retryAfterMs: number | undefined
-  if (value.retryAfter !== undefined) {
-    if (
-      typeof value.retryAfter !== "number" ||
-      !Number.isFinite(value.retryAfter) ||
-      value.retryAfter < 0 ||
-      value.retryAfter * 1000 > Number.MAX_SAFE_INTEGER
-    ) {
-      throw new FailureDecodeError()
-    }
-    retryAfterMs = value.retryable ? Math.ceil(value.retryAfter * 1000) : undefined
-  }
-  return {
-    code: value.code,
-    message: value.message,
-    retryable: value.retryable,
-    retryAfterMs,
-    reason: typeof value.reason === "string" ? value.reason : undefined,
-    traceId: typeof value.traceId === "string" ? value.traceId : undefined,
-    violations,
-  }
 }

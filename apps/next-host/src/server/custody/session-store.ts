@@ -1,13 +1,16 @@
 import { AuthError } from "@plainworks/auth"
 import {
+  admitLogin,
+  admitSession,
   decodeLoginRecord,
   decodeSessionMetadata,
   decodeSessionRecord,
   encodeSessionRecord,
   type MemorySessionStoreOptions,
   type OpaqueSessionStore,
+  sessionStoreCapacity,
 } from "@plainworks/auth/server"
-import { isPositiveInteger, isRecord } from "@plainworks/std"
+import { isRecord } from "@plainworks/std"
 import { systemClock } from "@plainworks/std/time"
 import type { WebAbortSignal } from "@plainworks/std/web"
 import { type CustodyDatabaseOptions, custodyFailure, openCustodyDatabase } from "./database"
@@ -51,11 +54,7 @@ export function createSqliteSessionStore<Value>(
   options: SqliteSessionStoreOptions<Value>,
 ): SqliteSessionStore<Value> {
   const clock = options.clock ?? systemClock
-  const capacity = options.capacity ?? 1024
-  const transactionCapacity = options.transactionCapacity ?? 256
-  if (!isPositiveInteger(capacity) || !isPositiveInteger(transactionCapacity)) {
-    throw new AuthError("auth/config", "invalid session capacity")
-  }
+  const capacity = sessionStoreCapacity(options)
   const custody = openCustodyDatabase(options)
   const db = custody.database
   const { cipher } = custody
@@ -122,21 +121,16 @@ export function createSqliteSessionStore<Value>(
           .transaction(() => {
             cleanup()
             const old = previous === undefined ? undefined : live(previous)
-            if (previous !== undefined && old === undefined) {
-              throw new AuthError("auth/session-revoked", "login lost to a session mutation")
-            }
-            if (
-              owned.expiresAt <= clock.now() ||
-              owned.expiresAt > clock.now() + 3_600_000 ||
-              (old !== undefined && old.expires !== owned.expiresAt)
-            ) {
-              throw new AuthError("auth/session-invalid", "invalid absolute session expiry")
-            }
+            const { family, retainUntil } = admitSession(
+              owned,
+              previous,
+              old === undefined ? undefined : { family: old.family, expiresAt: old.expires },
+              clock.now(),
+            )
             const count: unknown = db.prepare("SELECT COUNT(*) FROM auth_sessions").pluck().get()
-            if (typeof count !== "number" || count >= capacity) {
+            if (typeof count !== "number" || count >= capacity.sessions) {
               throw new AuthError("auth/store-unavailable", "session storage capacity exhausted")
             }
-            const family = old?.family ?? owned.reference
             if (old !== undefined) {
               db.prepare("UPDATE auth_sessions SET active = 0 WHERE reference = ?").run(
                 old.reference,
@@ -144,7 +138,7 @@ export function createSqliteSessionStore<Value>(
             }
             db.prepare(
               "INSERT INTO auth_sessions (reference, family, expires, payload, active, revoked, retain_until) VALUES (?, ?, ?, ?, 1, 0, ?)",
-            ).run(owned.reference, family, owned.expiresAt, payload, owned.expiresAt + 600_000)
+            ).run(owned.reference, family, owned.expiresAt, payload, retainUntil)
           })
           .immediate(),
       )
@@ -184,11 +178,9 @@ export function createSqliteSessionStore<Value>(
         db
           .transaction(() => {
             cleanup()
-            if (owned.expiresAt <= clock.now() || owned.expiresAt > clock.now() + 600_000) {
-              throw new AuthError("auth/login-transaction", "invalid login transaction expiry")
-            }
+            admitLogin(owned.expiresAt, clock.now())
             const count: unknown = db.prepare("SELECT COUNT(*) FROM auth_logins").pluck().get()
-            if (typeof count !== "number" || count >= transactionCapacity) {
+            if (typeof count !== "number" || count >= capacity.logins) {
               throw new AuthError("auth/store-unavailable", "login transaction capacity exhausted")
             }
             db.prepare(

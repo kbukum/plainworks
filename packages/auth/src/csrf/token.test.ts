@@ -30,6 +30,12 @@ describe("createCsrf issue", () => {
     expect(requested).toBe(16)
   })
 
+  test("refuses to mint a token the verifier would reject as too long", async () => {
+    const wide: SessionSigner = { ...signer, sign: async () => "m".repeat(256) }
+    const csrf = createCsrf({ signer: wide, crypto })
+    await expect(csrf.issue("session-1")).rejects.toMatchObject({ kind: "auth/config" })
+  })
+
   test("two mints for the same session do not collide", async () => {
     const csrf = createCsrf({ signer, crypto })
     expect(await csrf.issue("session-1")).not.toBe(await csrf.issue("session-1"))
@@ -37,54 +43,58 @@ describe("createCsrf issue", () => {
 })
 
 describe("createCsrf verify", () => {
-  test("accepts a valid double-submit pair bound to the session", async () => {
+  test("accepts a token minted for the same session", async () => {
     const csrf = createCsrf({ signer, crypto })
     const token = await csrf.issue("session-1")
-    await expect(csrf.verify("session-1", token, token)).resolves.toBe(true)
+    await expect(csrf.verify("session-1", token)).resolves.toBe(true)
   })
 
-  test("rejects a missing token on either side → false", async () => {
+  test("rejects an empty token → false", async () => {
     const csrf = createCsrf({ signer, crypto })
-    const token = await csrf.issue("session-1")
-    await expect(csrf.verify("session-1", "", token)).resolves.toBe(false)
-    await expect(csrf.verify("session-1", token, "")).resolves.toBe(false)
+    await expect(csrf.verify("session-1", "")).resolves.toBe(false)
   })
 
-  test("rejects a mismatched pair (cookie != header) → false", async () => {
-    const csrf = createCsrf({ signer, crypto })
-    const a = await csrf.issue("session-1")
-    const b = await csrf.issue("session-1")
-    await expect(csrf.verify("session-1", a, b)).resolves.toBe(false)
+  test("rejects a token longer than the bound before checking its signature → false", async () => {
+    let checked = false
+    const counting: SessionSigner = {
+      ...signer,
+      verify: (message, mac) => {
+        checked = true
+        return signer.verify(message, mac)
+      },
+    }
+    const csrf = createCsrf({ signer: counting, crypto })
+    await expect(csrf.verify("session-1", `${"a".repeat(256)}.b`)).resolves.toBe(false)
+    expect(checked).toBe(false)
   })
 
   test("rejects a token minted for a different (foreign) session → false", async () => {
     const csrf = createCsrf({ signer, crypto })
-    // A token issued while bound to session-2, replayed against session-1, must fail: its MAC does
-    // not verify under session-1's binding even though cookie and header match.
+    // A token issued for session-2 and replayed against session-1 fails: its MAC does not verify
+    // under session-1's binding.
     const foreign = await csrf.issue("session-2")
-    await expect(csrf.verify("session-1", foreign, foreign)).resolves.toBe(false)
-    // Sanity: it still verifies for its own session.
-    await expect(csrf.verify("session-2", foreign, foreign)).resolves.toBe(true)
+    await expect(csrf.verify("session-1", foreign)).resolves.toBe(false)
+    await expect(csrf.verify("session-2", foreign)).resolves.toBe(true)
   })
 
   test("rejects a tampered token whose signature no longer binds → false", async () => {
     const csrf = createCsrf({ signer, crypto })
     const token = await csrf.issue("session-1")
     const [random, mac] = token.split(".")
-    const tampered = `${random}x.${mac}`
-    await expect(csrf.verify("session-1", tampered, tampered)).resolves.toBe(false)
+    await expect(csrf.verify("session-1", `${random}x.${mac}`)).resolves.toBe(false)
   })
 
   test("rejects a token without a `random.mac` shape → false", async () => {
     const csrf = createCsrf({ signer, crypto })
-    await expect(csrf.verify("session-1", "nodot", "nodot")).resolves.toBe(false)
-    await expect(csrf.verify("session-1", "a.b.c", "a.b.c")).resolves.toBe(false)
+    await expect(csrf.verify("session-1", "nodot")).resolves.toBe(false)
+    await expect(csrf.verify("session-1", ".mac")).resolves.toBe(false)
+    await expect(csrf.verify("session-1", "a.b.c")).resolves.toBe(false)
   })
 })
 
 describe("createCsrf configuration", () => {
   test("rejects invalid or insufficient byteLength with auth/config error", () => {
-    for (const byteLength of [0, -1, 15, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 2 ** 53]) {
+    for (const byteLength of [0, -1, 15, 65, 1.5, Number.NaN, Number.POSITIVE_INFINITY, 2 ** 53]) {
       expect(() => createCsrf({ signer, crypto, byteLength })).toThrow(AuthError)
       try {
         createCsrf({ signer, crypto, byteLength })

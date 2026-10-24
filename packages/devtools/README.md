@@ -123,6 +123,8 @@ mountDevtools({
 })
 ```
 
+Rail entries take their accessible name from their visible label and value (WCAG 2.5.3 Label in Name), so only the stale note, `railStale`, needs translating.
+
 Custom renderers receive the resolved labels as `labels` in `SourcePanelProps`.
 
 ### Host space

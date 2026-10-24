@@ -32,9 +32,24 @@ const entry: FlowDeviceReport = {
   ],
 }
 
+const journey: FlowDeviceReport["journey"] = {
+  metrics: { views: 2, typedFields: 1, picks: 0, activations: 3, focusMoves: 12 },
+  budget: [
+    {
+      metric: "views",
+      max: 1,
+      actual: 2,
+      status: "expected-over",
+      failsUntil: { step: "07", reason: "r" },
+    },
+  ],
+}
+
 describe("parseFlowDeviceReport", () => {
   it("accepts a run entry written by this schema, through a JSON round trip", () => {
     expect(parseFlowDeviceReport(JSON.parse(JSON.stringify(entry)))).toEqual(entry)
+    const measured = { ...entry, journey }
+    expect(parseFlowDeviceReport(JSON.parse(JSON.stringify(measured)))).toEqual(measured)
   })
 
   it.each([
@@ -47,6 +62,17 @@ describe("parseFlowDeviceReport", () => {
       {
         ...entry,
         checkpoints: [{ ...entry.checkpoints[0], findings: [{ check: "vibes", message: "x" }] }],
+      },
+    ],
+    [
+      "a journey with a negative count",
+      { ...entry, journey: { ...journey, metrics: { ...journey?.metrics, views: -1 } } },
+    ],
+    [
+      "a budget verdict with an unknown status",
+      {
+        ...entry,
+        journey: { ...journey, budget: [{ metric: "views", max: 1, actual: 1, status: "close" }] },
       },
     ],
     [

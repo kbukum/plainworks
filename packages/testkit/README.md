@@ -16,8 +16,8 @@ bun add @plainworks/testkit
 
 ```ts
 import { ok } from "@plainworks/std"
+import { manualClock } from "@plainworks/std/time"
 import {
-  manualClock,
   seededRandom,
   expectOk,
   expectErr,
@@ -33,8 +33,8 @@ import {
   fakeCacheInvalidator,
 } from "@plainworks/testkit/fakes"
 
-// Deterministic time for anything that takes a `clock?: Clock` option. Use std's `fixedClock`
-// when time never needs to move.
+// Deterministic time for anything that takes a `clock?: Clock` option. std owns both clocks:
+// `fixedClock` when time never moves, `manualClock` when the test moves it.
 const clock = manualClock(0)
 clock.advance(1000)
 
@@ -86,7 +86,7 @@ render(
 
 ## Connect testing — `@plainworks/testkit/connect`
 
-A network-free, host-independent subpath for testing Connect-RPC usage. It ships the shared proto fixture plus an in-memory transport built on Connect's own `createRouterTransport`, so a test drives real RPC wiring without a server. The Connect/protobuf libraries are **optional peer dependencies**, and the subpath is a separate tsdown entry — so non-Connect consumers of `@plainworks/testkit` neither install nor bundle them.
+A network-free, host-independent subpath for testing Connect-RPC usage. It ships the shared proto fixture plus an in-memory transport built on Connect's own `createRouterTransport`, so a test drives real RPC wiring without a server. The Connect, protobuf and protovalidate libraries are **optional peer dependencies**, and the subpath is a separate tsdown entry — so non-Connect consumers of `@plainworks/testkit` neither install nor bundle them.
 
 ```ts
 import {
@@ -171,7 +171,7 @@ The host reads `PLAINWORKS_FIXED_NOW` to pin its own clock, so server-rendered a
 
 Commands run argv-only in a POSIX process group; descendants must not daemonize out of it. Cleanup waits for root output handles and the group. A `command` factory receives the same `{ port, origin }` as `env`.
 
-**Sessions and reset.** Supply `signIn(page)` to complete a real UI login after reset. The gate rejects supplied `storageState` for session suites: a cookie saved before reset is not a valid session afterwards. `test.use({ gateSignIn: false })` starts signed out. `PLAINWORKS_GATE_ORIGIN` selects an explicitly external host and requires one worker; that fixture does not claim stop/restart ownership. `bun run e2e` drives the gate itself through the real Playwright runner and checks every worker's host is released after success, sign-in failure, assertion failure, timeout, and cancellation.
+**Sessions and reset.** Supply `signIn(page)` to complete a real UI login after reset. The gate rejects supplied `storageState` for session suites: a cookie saved before reset is not a valid session afterwards. `test.use({ gateSignIn: false })` starts signed out. `PLAINWORKS_GATE_ORIGIN` selects an explicitly external host and requires one worker; that fixture does not claim stop/restart ownership. `bun run e2e` drives the gate itself through the real Playwright runner and checks every worker's host is released after success, sign-in failure, assertion failure, timeout, and cancellation. It also proves the journey `user` verbs in real Chromium. To iterate on one spec, run it directly with the Playwright runner: `bun run e2e:pw journey.spec.ts`.
 
 **Trusted HTTPS.** Set `origin: (port) => \`https://localhost:${port}\`` and install a test CA only in runner-owned trust stores. Set `NODE_EXTRA_CA_CERTS` before starting Node, and configure browser trust for the same CA. Keep keys and private fixture state outside reports. Never disable TLS checks. See the [browser gate guide](../../docs/browser-gate.md#real-system-hosts) for the disposable-container proof.
 
@@ -228,6 +228,40 @@ for (const planned of suite.runs) {
 | `FlowError` | Why a flow stopped: `action`, `readiness`, `timeout`, `session`, `aborted`, or `failed` checks. |
 
 Nothing is compared with a committed screenshot: every check is structural, so any machine gives the same verdict.
+
+#### Journeys and budgets
+
+A flow with a `budget` is a **journey**: it measures what the task costs its user and fails when the cost grows. Its `act` steps work through `user`, which drives the page the way the device's user does: Tab and Enter or Space on a desktop, taps on a touch device.
+
+```ts
+const firstRun = defineFlow({
+  name: "first-run",
+  budget: {
+    typedFields: { max: 3 },
+    // A known overrun passes until the named step fixes it, then fails until the marker goes.
+    views: { max: 1, failsUntil: { step: "07", reason: "setup still spans three pages" } },
+  },
+  checkpoints: [
+    { name: "evaluate", act: (_page, { user }) => user.visit("/evaluate"), ready: (page) => page.getByRole("heading", { name: "Evaluate" }) },
+    { name: "run", act: async (page, { user }) => {
+      await user.pick(page.getByRole("combobox", { name: "Model" }), "llama3")
+      await user.activate(page.getByRole("button", { name: "Run" }))
+    }, ready: (page) => page.getByRole("status") },
+  ],
+})
+```
+
+| Verb | What the user does | Counts |
+|---|---|---|
+| `visit(path)` | Opens the app at a URL. Only as the journey's first step: after that, the user navigates through the UI. | resets `views` |
+| `activate(target)` | Tab to the control, then Space for a checkbox, radio, or switch and Enter otherwise; a tap on touch. | `activations` |
+| `type(field, value)` | Reaches the field, then types. | `typedFields` |
+| `pick(control, option)` | Chooses from a native select, radio group, listbox, or combobox with the arrow keys; taps on touch. | `picks` |
+
+- **Views** count page path changes, from where the journey started; query and hash changes don't count. **Focus moves** (Tab presses) are reported, not budgeted.
+- In a journey, `act` gets a guarded page: reading and asserting work, but a raw action such as `page.click` or `page.goto` throws, so every step is counted.
+- The user's findings land on the checkpoint that raised them and can be allowed like any other: `keyboard` when Tab never reaches a control, `focus` when its focus ring is too faint, and `redundant-entry` when a value the user already typed is asked for again. Typed values are compared by hash and never reported.
+- Each limit's verdict is `met`, `over`, `expected-over` (within its `failsUntil`), or `unexpectedly-met` (remove the marker). A journey that stopped early is not judged. The report's Journeys table shows every count and verdict.
 
 A run lands in `<root>/runs/<id>/`, with `<root>/latest` pointing at the newest. Each failure gets an evidence bundle next to it: a frame, the ARIA tree, an inert DOM snapshot, and recent console and network entries. The snapshot has no scripts, redirects, or hidden and password values, and a policy that blocks script, so opening it never runs page code. Every page message is size-capped. When a bundle can't be collected, the report says why. Old runs are pruned: five runs, the current one included, within 1 GiB by default. Keep the root out of version control.
 

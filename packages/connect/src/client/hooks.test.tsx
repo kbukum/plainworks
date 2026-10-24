@@ -61,7 +61,7 @@ describe("client hooks", () => {
       return <output>{result.error?.code ?? "loading"}</output>
     }
     renderWithProviders(fake, <View />)
-    expect(await screen.findByText("NOT_FOUND")).toBeDefined()
+    expect(await screen.findByText("not_found")).toBeDefined()
     expect(fake.calls).toHaveLength(1)
   })
 
@@ -154,7 +154,7 @@ describe("client hooks", () => {
     }
     renderWithProviders(fake, <View />)
     await userEvent.setup().click(screen.getByRole("button", { name: "Save" }))
-    await waitFor(() => expect(screen.getByText("SERVICE_UNAVAILABLE")).toBeDefined())
+    await waitFor(() => expect(screen.getByText("unavailable")).toBeDefined())
     expect(fake.calls).toHaveLength(1)
   })
 

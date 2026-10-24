@@ -1,0 +1,11 @@
+import { type PackageBuild, preset } from "@plainworks/tsdown-config"
+
+// `index` is the prelude. Give each further concern its own entry
+// (`concern: "src/concern/index.ts"`) and run `bun run sync-shape` so `exports` follows.
+export const build: PackageBuild = {
+  entry: {
+    index: "src/index.ts",
+  },
+}
+
+export default preset(build)

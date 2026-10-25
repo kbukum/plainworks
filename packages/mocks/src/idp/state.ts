@@ -18,6 +18,12 @@ export interface MockIdpCode {
   readonly expiresAt: number
 }
 
+/**
+ * How many refresh grants the fixture keeps. A new grant past the bound evicts the oldest, the way
+ * a provider retires old grants, so a long-lived host that signs in many times stays usable.
+ */
+export const MOCK_IDP_REFRESH_CAPACITY = 128
+
 /** Serializable fixture state. Never use this fixture as a production identity system. */
 export interface MockIdpData {
   identity: string | null
@@ -96,7 +102,7 @@ export function decodeMockIdpData(encoded: string): MockIdpData {
         finite(code.expiresAt),
     ) ||
     !Array.isArray(data.refresh) ||
-    data.refresh.length > 128 ||
+    data.refresh.length > MOCK_IDP_REFRESH_CAPACITY ||
     !data.refresh.every(
       (token) =>
         isRecord(token) &&

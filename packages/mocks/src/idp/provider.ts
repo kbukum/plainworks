@@ -4,6 +4,7 @@ import type { WebFetch, WebResponse } from "@plainworks/std/web"
 import { exportJWK, generateKeyPair, importJWK, SignJWT } from "jose"
 import {
   createMemoryMockIdpState,
+  MOCK_IDP_REFRESH_CAPACITY,
   type MockIdpData,
   type MockIdpSigningKey,
   type MockIdpState,
@@ -210,7 +211,8 @@ export async function createMockIdp(options: MockIdpOptions = {}): Promise<MockI
     )
     const accessToken = await signToken({ scope: "openid profile email" }, accessTtl)
     const refreshToken = transact((data) => {
-      if (data.refresh.length >= 128) throw new Error("mock IdP refresh capacity exhausted")
+      // Grants are appended in issue order, so the first is the oldest.
+      if (data.refresh.length >= MOCK_IDP_REFRESH_CAPACITY) data.refresh.shift()
       const token = mint(data, "refresh")
       data.refresh.push({ token, expiresAt })
       return token

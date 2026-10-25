@@ -63,6 +63,11 @@ export interface MockControlClient {
   reset(signal?: WebAbortSignal): Promise<void>
   /** Restore data, errors, latency, and request logging to the clean gate state. */
   restore(signal?: WebAbortSignal): Promise<void>
+  /**
+   * Free the mock scope this client's requests name (see `@plainworks/mocks/scope`), so the host
+   * no longer holds its data. Send it through a transport that sets the scope header.
+   */
+  releaseScope(signal?: WebAbortSignal): Promise<void>
 }
 
 /**
@@ -116,6 +121,10 @@ export function createMockControlClient({ client }: MockControlClientOptions): M
       await reset(signal)
       await setError(false, signal)
       await setLatency(0, signal)
+    },
+    async releaseScope(signal) {
+      const path = MOCK_CONTROL_PATHS.scope
+      assertSuccess(await client.delete(path, withSignal(signal)), path)
     },
   }
 }

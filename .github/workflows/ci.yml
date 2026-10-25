@@ -214,8 +214,9 @@ jobs:
         run: bunx playwright install --with-deps chromium
 
       - name: Build the host's package dependencies
-        # Both hosts run their dev server, which serves the app from source, so they need only
-        # their workspace dependencies' dist; hence the dependency-only `^...` filter.
+        # The gate's own setup builds or compiles the app itself (the showcase bundle once per run,
+        # the Next host's one `next dev`), so CI builds only the workspace dependencies' dist;
+        # hence the dependency-only `^...` filter.
         run: bunx turbo run build --filter=@plainworks/${{ matrix.app }}^...
 
       - name: Run the browser gate

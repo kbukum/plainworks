@@ -15,3 +15,4 @@ Each record captures one settled decision: the context that forced a choice, the
 | [0009](./0009-generated-workspace-shape.md) | Workspace shape is generated, not hand-written | Accepted |
 | [0010](./0010-test-versus-runtime-ownership.md) | Test machinery and runtime capabilities have separate owners | Accepted |
 | [0011](./0011-opaque-browser-sessions.md) | Browser sessions are opaque; consumers choose the authority and persistence | Accepted |
+| [0012](./0012-shared-browser-gate-host.md) | One browser-gate host per run, with data scoped per test | Accepted |

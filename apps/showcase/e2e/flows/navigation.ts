@@ -16,7 +16,7 @@ export const navigationFlow = defineFlow({
     {
       name: "overview",
       act: (page, { signal }) => page.goto("/", { signal }),
-      ready: (page) => page.getByText("Revenue trend", { exact: true }),
+      ready: (page) => page.getByRole("heading", { level: 2, name: "Revenue trend" }),
       docs: "overview",
     },
     {

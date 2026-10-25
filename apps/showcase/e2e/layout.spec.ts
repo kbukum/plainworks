@@ -2,6 +2,10 @@ import { APP_ROUTES, appRoute, openPausedTasks, openRoute } from "./support/app"
 import { expect, test } from "./support/gate"
 import { signIn } from "./support/session"
 
+// The client entry, in the dev host (`/src/...`) and in the gate's bundle
+// (`/assets/...-<hash>.js`). Aborting it leaves the server markup unhydrated.
+const CLIENT_ENTRY = /\/(?:src\/client\/entry-client\.tsx|assets\/entry-client-[\w-]+\.js)$/
+
 const viewports = [
   ["desktop", 1440, 900],
   ["tablet", 768, 1024],
@@ -11,11 +15,11 @@ const viewports = [
 test("server markup is styled before client hydration", async ({ page, runtimeErrors }) => {
   runtimeErrors.allow(/Failed to load resource: net::ERR_FAILED/)
   await signIn(page)
-  await page.route("**/src/client/entry-client.tsx", (route) => route.abort())
+  await page.route(CLIENT_ENTRY, (route) => route.abort())
 
   await page.reload({ waitUntil: "domcontentloaded" })
 
-  await expect(page.locator('link[rel="stylesheet"][href="/src/client/styles.css"]')).toHaveCount(1)
+  await expect(page.locator('link[rel="stylesheet"][href*="styles"]')).toHaveCount(1)
   await expect(page.locator("[data-slot='app-shell']")).toHaveCSS("display", "grid")
   await expect(page.getByRole("banner")).toHaveCSS("position", "sticky")
 })
@@ -33,12 +37,12 @@ test("system mode paints dark on a dark OS before hydration, with no class chang
       scheme: getComputedStyle(root).colorScheme,
     }))
 
-  await page.route("**/src/client/entry-client.tsx", (route) => route.abort())
+  await page.route(CLIENT_ENTRY, (route) => route.abort())
   await page.reload({ waitUntil: "load" })
   const serverPaint = await rootTheme()
   expect(serverPaint).toEqual({ className: "theme-indigo", scheme: "dark" })
 
-  await page.unroute("**/src/client/entry-client.tsx")
+  await page.unroute(CLIENT_ENTRY)
   await openRoute(page, appRoute("overview"))
   expect(await rootTheme()).toEqual(serverPaint)
 })

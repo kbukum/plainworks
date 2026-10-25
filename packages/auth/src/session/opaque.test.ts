@@ -196,6 +196,35 @@ describe("opaque browser sessions", () => {
     session.close()
   })
 
+  test("keeps a fresh session when a busy server's Date header trails its expiry stamp", async () => {
+    // The server set a one-hour expiry at 00:00:01.900 but stamped a cached `Date` of 00:00:00.
+    const session = createAuthStore({
+      clock: fixedClock("2099-01-01T00:00:00Z"),
+      fetch: async () =>
+        Response.json(
+          { ...authenticated, expiresAt: "2099-01-01T01:00:01.900Z" },
+          { headers: { date: "Thu, 01 Jan 2099 00:00:00 GMT" } },
+        ),
+    })
+    await session.revalidate()
+    expect(session.getSnapshot().status).toBe("authenticated")
+    session.close()
+  })
+
+  test("rejects an expiry well beyond the session's one-hour lifetime", async () => {
+    const session = createAuthStore({
+      clock: fixedClock("2099-01-01T00:00:00Z"),
+      fetch: async () =>
+        Response.json(
+          { ...authenticated, expiresAt: "2099-01-01T01:00:06Z" },
+          { headers: { date: "Thu, 01 Jan 2099 00:00:00 GMT" } },
+        ),
+    })
+    await expect(session.revalidate()).rejects.toMatchObject({ kind: "auth/session-expired" })
+    expect(session.getSnapshot().status).toBe("unauthenticated")
+    session.close()
+  })
+
   test("caller cancellation never lets logout overtake an unconfirmed initial login", async () => {
     const held = deferred<WebResponse>()
     const requests: string[] = []

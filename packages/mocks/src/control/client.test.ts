@@ -105,6 +105,20 @@ describe("createMockControlClient", () => {
     ])
   })
 
+  it("releases the caller's mock scope and validates the answer", async () => {
+    const released = vi.fn()
+    server.use(
+      http.delete("*/mock/scope", () => {
+        released()
+        return HttpResponse.json({ success: true })
+      }),
+    )
+    await control.releaseScope()
+    expect(released).toHaveBeenCalledOnce()
+    server.use(http.delete("*/mock/scope", () => HttpResponse.json({ success: "yes" })))
+    await expect(control.releaseScope()).rejects.toMatchObject({ path: MOCK_CONTROL_PATHS.scope })
+  })
+
   it("rejects an out-of-range latency before sending anything", async () => {
     await expect(control.setLatency(MAX_LATENCY_MS + 1)).rejects.toBeInstanceOf(RangeError)
     await expect(control.setLatency(Number.NaN)).rejects.toBeInstanceOf(RangeError)

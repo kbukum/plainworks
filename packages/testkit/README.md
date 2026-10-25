@@ -116,7 +116,7 @@ The proto is the source of truth; regenerate the checked-in `*_pb.ts` with `bun 
 
 ## Playwright gate — `@plainworks/testkit/playwright`
 
-The shared Playwright harness the reference hosts run, and the **flow engine** on top of it. Each worker owns a host. Each test gets a fresh browser context, resets the backend, and only then signs in when configured. A fixed "now", locale, and time zone keep runs deterministic; runtime errors, hydration errors, and off-origin requests fail the test. Flows check axe, reflow, overlays, focus, and layout at each checkpoint, without committed screenshots. `@playwright/test` and `@axe-core/playwright` are **optional peers**, loaded only by this subpath.
+The shared Playwright harness the reference hosts run, and the **flow engine** on top of it. By default each worker owns a host; with a `dataScope`, every worker shares one host and each test gets its own data on it. Each test gets a fresh browser context, resets the backend, and only then signs in when configured. A fixed "now", locale, and time zone keep runs deterministic; runtime errors, hydration errors, and off-origin requests fail the test. Flows check axe, reflow, overlays, focus, and layout at each checkpoint, without committed screenshots. `@playwright/test` and `@axe-core/playwright` are **optional peers**, loaded only by this subpath.
 
 ```ts
 // playwright.config.ts: a fixed locale, time zone, and motion.
@@ -149,6 +149,7 @@ const test = createBrowserGate({
 | Export | What it gives you |
 |---|---|
 | `createBrowserGate` | The gated `test`: owns one host per worker (`basePort + n`), resets before per-test sign-in, pins `Date`, and watches runtime errors. `gateHost` exposes the owned lifecycle; `gateSignIn: false` selects a signed-out test. |
+| `setupSharedGateHost` | Starts one host for the whole run from a Playwright `globalSetup` and points every worker at it. Returns the teardown that stops it. Pair it with a `dataScope`. |
 | `startGateHost` / `RunningGateHost` | Strict readiness and owned `stop()` / same-origin `restart()`, also usable outside a fixture. |
 | `gateHostOrigin` | Resolves the same configured HTTP/HTTPS origin for startup, capture, and warm reuse. |
 | `HostShutdownError` | Graceful shutdown failed. `released` distinguishes completed forced termination from cleanup still owned by the caller. Repeated stop preserves the failure without signalling a released process. |
@@ -171,7 +172,21 @@ The host reads `PLAINWORKS_FIXED_NOW` to pin its own clock, so server-rendered a
 
 Commands run argv-only in a POSIX process group; descendants must not daemonize out of it. Cleanup waits for root output handles and the group. A `command` factory receives the same `{ port, origin }` as `env`.
 
-**Sessions and reset.** Supply `signIn(page)` to complete a real UI login after reset. The gate rejects supplied `storageState` for session suites: a cookie saved before reset is not a valid session afterwards. `test.use({ gateSignIn: false })` starts signed out. `PLAINWORKS_GATE_ORIGIN` selects an explicitly external host and requires one worker; that fixture does not claim stop/restart ownership. `bun run e2e` drives the gate itself through the real Playwright runner and checks every worker's host is released after success, sign-in failure, assertion failure, timeout, and cancellation. It also proves the journey `user` verbs in real Chromium. To iterate on one spec, run it directly with the Playwright runner: `bun run e2e:pw journey.spec.ts`.
+**Shared host and data scopes.** Give `createBrowserGate` a `dataScope: { header, release }` and start the host with `setupSharedGateHost` in `globalSetup`. Each test gets a random scope id (the `gateScope` fixture), and the gate sends it in `header` on every navigation, fetch, and API request. Page scripts can't read or change it. `release(request)` runs after the test, so the host can drop that scope's data. The host decides what a scope keeps apart; `@plainworks/mocks/scope` gives a mock backend per scope. testkit doesn't depend on mocks, so you pass the header name in.
+
+```ts
+// e2e/support/gate-host.ts, listed in the config's `globalSetup`.
+export default () => setupSharedGateHost(host)
+
+// e2e/support/gate.ts
+const test = createBrowserGate({
+  signIn,
+  dataScope: { header: MOCK_SCOPE_HEADER, release: (request) => control(request).releaseScope() },
+  resetHost: (request) => control(request).restore(),
+})
+```
+
+**Sessions and reset.** Supply `signIn(page)` to complete a real UI login after reset. The gate rejects supplied `storageState` for session suites: a cookie saved before reset is not a valid session afterwards. `test.use({ gateSignIn: false })` starts signed out. `PLAINWORKS_GATE_ORIGIN` selects an explicitly external host. Without a `dataScope` it requires one worker; that fixture does not claim stop/restart ownership. `bun run e2e` drives the gate itself through the real Playwright runner and checks every worker's host is released after success, sign-in failure, assertion failure, timeout, and cancellation. It also proves the journey `user` verbs in real Chromium. To iterate on one spec, run it directly with the Playwright runner: `bun run e2e:pw journey.spec.ts`.
 
 **Trusted HTTPS.** Set `origin: (port) => \`https://localhost:${port}\`` and install a test CA only in runner-owned trust stores. Set `NODE_EXTRA_CA_CERTS` before starting Node, and configure browser trust for the same CA. Keep keys and private fixture state outside reports. Never disable TLS checks. See the [browser gate guide](../../docs/browser-gate.md#real-system-hosts) for the disposable-container proof.
 

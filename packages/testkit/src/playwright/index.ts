@@ -163,6 +163,7 @@ export {
   summarizeFlowRuns,
 } from "./flow"
 export type {
+  BrowserGateDataScope,
   BrowserGateFixtures,
   BrowserGateOptions,
   BrowserGateTest,
@@ -174,6 +175,7 @@ export {
   createBrowserGate,
   FIXED_NOW_ENV,
   GATE_ORIGIN_ENV,
+  setupSharedGateHost,
 } from "./gate"
 export type { BrowserGateHost, GateHostRuntime, RunningGateHost, SpawnedHost } from "./host"
 export {

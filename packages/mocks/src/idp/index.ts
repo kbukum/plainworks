@@ -12,4 +12,9 @@ export type {
 } from "./provider"
 export { createMockIdp } from "./provider"
 export type { MockIdpCode, MockIdpData, MockIdpSigningKey, MockIdpState } from "./state"
-export { createMemoryMockIdpState, decodeMockIdpData, emptyMockIdpData } from "./state"
+export {
+  createMemoryMockIdpState,
+  decodeMockIdpData,
+  emptyMockIdpData,
+  MOCK_IDP_REFRESH_CAPACITY,
+} from "./state"

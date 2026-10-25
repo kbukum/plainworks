@@ -36,7 +36,7 @@ const CONTROL_PATHNAMES: ReadonlySet<string> = new Set(
 )
 
 /** Matches one control route by exact pathname, on any origin. */
-function controlRoute(path: string): HttpCustomPredicate<PathParams> {
+export function controlRoute(path: string): HttpCustomPredicate<PathParams> {
   const allowed = controlPathnames(path)
   return ({ request }) => allowed.includes(new URL(request.url).pathname)
 }

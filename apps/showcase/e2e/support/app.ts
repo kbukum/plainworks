@@ -10,6 +10,10 @@ export interface AppRoute {
   readonly heading: string
   /** The primary navigation link that reaches the page. */
   readonly nav: string
+  /**
+   * Content that proves the page rendered. Streamed SSR briefly keeps a hidden copy of resolved
+   * content beside the shown one, so match only visible elements: a role query, or `visible`.
+   */
   readonly ready: (page: Page) => Locator
 }
 
@@ -20,7 +24,7 @@ export const APP_ROUTES: readonly AppRoute[] = [
     path: "/",
     heading: "Overview",
     nav: "Overview",
-    ready: (page) => page.getByText("Revenue trend", { exact: true }),
+    ready: (page) => page.getByRole("heading", { level: 2, name: "Revenue trend" }),
   },
   {
     slug: "tasks",
@@ -62,14 +66,14 @@ export const APP_ROUTES: readonly AppRoute[] = [
     path: "/settings",
     heading: "Settings",
     nav: "Settings",
-    ready: (page) => page.getByLabel("Display name"),
+    ready: (page) => page.getByLabel("Display name").filter({ visible: true }),
   },
   {
     slug: "settings-preferences",
     path: "/settings/preferences",
     heading: "Settings",
     nav: "Settings",
-    ready: (page) => page.getByLabel("Rows per page"),
+    ready: (page) => page.getByLabel("Rows per page").filter({ visible: true }),
   },
   {
     slug: "settings-notifications",

@@ -90,6 +90,11 @@
       "types": "./dist/query.d.ts",
       "default": "./dist/query.js"
     },
+    "./scope": {
+      "@plainworks/source": "./src/scope/index.ts",
+      "types": "./dist/scope.d.ts",
+      "default": "./dist/scope.js"
+    },
     "./stream": {
       "@plainworks/source": "./src/stream/index.ts",
       "types": "./dist/stream.d.ts",

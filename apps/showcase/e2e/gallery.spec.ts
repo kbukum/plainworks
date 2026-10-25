@@ -1,40 +1,11 @@
-import {
-  expectNoPageAxeViolations,
-  expectPageFocusVisible,
-  settleAnimations,
-} from "@plainworks/testkit/playwright"
-import { COLOR_SCHEMES } from "@plainworks/theme/preference"
+import { expectPageFocusVisible, settleAnimations } from "@plainworks/testkit/playwright"
 import { GALLERY_GROUPS } from "./fixtures/gallery/groups"
 import { GALLERY_OVERLAYS, openGalleryGroup, openGalleryOverlay } from "./support/gallery"
 import { expect, test } from "./support/gate"
 
-// Component behavior on real layout: every accent scheme's contrast, a visible focus ring on every
-// keyboard stop, overlays that open and close, and no looping motion under reduced motion.
-
-// One test per group and scheme, so the scans spread across workers instead of queueing in one.
-for (const group of ["form-controls", "feedback"] as const) {
-  for (const scheme of COLOR_SCHEMES) {
-    test(`${group} meet WCAG AA in the ${scheme} scheme in both modes`, async ({ page }) => {
-      await openGalleryGroup(page, group)
-      for (const mode of ["light", "dark"] as const) {
-        await test.step(mode, async () => {
-          await page.evaluate(
-            ({ scheme, dark }) => {
-              const root = document.documentElement
-              for (const name of [...root.classList]) {
-                if (name.startsWith("theme-")) root.classList.remove(name)
-              }
-              root.classList.add(`theme-${scheme}`)
-              root.classList.toggle("dark", dark)
-            },
-            { scheme, dark: mode === "dark" },
-          )
-          await expectNoPageAxeViolations(page)
-        })
-      }
-    })
-  }
-}
+// Component behavior on real layout: a visible focus ring on every keyboard stop, overlays that
+// open and close, and no looping motion under reduced motion. Contrast is the gallery flow's job:
+// it scans every group in both modes on each PR, and the nightly run widens it to every scheme.
 
 for (const group of GALLERY_GROUPS) {
   test(`every keyboard stop in ${group.id} shows a visible focus indicator`, async ({ page }) => {

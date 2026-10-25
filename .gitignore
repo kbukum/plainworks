@@ -6,6 +6,8 @@ dist/
 *.tsbuildinfo
 # Source-mapped analysis builds the production-exclusion gate scans; never deployed or committed.
 .bundle-analysis/
+# The showcase browser gate's development bundle (`apps/showcase/vite.gate.config.ts`)
+.gate-build/
 
 # Generated eject payload — create-plainworks rebuilds examples/ from the apps/* source apps on
 # every build and ships it via `files`; the apps are the single source of truth, never this copy.

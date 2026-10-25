@@ -9,8 +9,8 @@ import type { NextConfig } from "next"
 // source maps let the exclusion gate read which modules each chunk bundled, and they land in their
 // own output directory so the deployable `.next` never ships them.
 const analysis = process.env.PLAINWORKS_BUNDLE_ANALYSIS === "1"
-// The browser gate runs one `next dev` per worker, and Next allows one dev server per output
-// directory, so each worker names its own.
+// Next allows one dev server per output directory, so the browser gate's `next dev` names its own
+// and runs beside a developer's.
 const e2eDistDir = process.env.PLAINWORKS_E2E_DIST_DIR
 
 const nextConfig: NextConfig = {

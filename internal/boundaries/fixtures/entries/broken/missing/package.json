@@ -1,0 +1,8 @@
+{
+  "name": "missing",
+  "exports": {
+    ".": {
+      "@plainworks/source": "./absent.ts"
+    }
+  }
+}

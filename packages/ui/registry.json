@@ -241,6 +241,10 @@
           "type": "registry:ui"
         },
         {
+          "path": "src/client/forms/combobox-field.tsx",
+          "type": "registry:ui"
+        },
+        {
           "path": "src/client/forms/date-field.tsx",
           "type": "registry:ui"
         },
@@ -326,6 +330,10 @@
       "type": "registry:ui",
       "dependencies": ["@plainworks/elements", "@plainworks/std", "@plainworks/theme"],
       "files": [
+        {
+          "path": "src/client/data/comparison-grid.tsx",
+          "type": "registry:ui"
+        },
         {
           "path": "src/client/data/data-table/columns.ts",
           "type": "registry:ui"

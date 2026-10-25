@@ -93,6 +93,10 @@
       "types": "./dist/collapsible.d.ts",
       "default": "./dist/collapsible.js"
     },
+    "./combobox": {
+      "types": "./dist/combobox.d.ts",
+      "default": "./dist/combobox.js"
+    },
     "./command": {
       "types": "./dist/command.d.ts",
       "default": "./dist/command.js"

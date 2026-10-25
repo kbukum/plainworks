@@ -148,6 +148,18 @@
       ]
     },
     {
+      "name": "combobox",
+      "type": "registry:ui",
+      "registryDependencies": ["button", "input-group"],
+      "dependencies": ["@base-ui/react", "lucide-react"],
+      "files": [
+        {
+          "path": "src/shadcn/combobox.tsx",
+          "type": "registry:ui"
+        }
+      ]
+    },
+    {
       "name": "command",
       "type": "registry:ui",
       "registryDependencies": ["dialog", "input-group"],

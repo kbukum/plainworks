@@ -51,7 +51,6 @@ Every upstream atom we don't vendor has a recorded decision, so "not needed yet"
 | Upstream atom | Decision |
 |---|---|
 | `sonner` | **Skip.** The vendored `toast` (Base UI) does the same job without a third-party dependency; `@plainworks/ui/feedback/toast` hosts it. |
-| `combobox` | **Vendor when the first searchable picker lands.** Don't build one from `command` + `popover`. |
 | `sidebar` | **Skip.** The `ui` `AppShell` and `Drawer` cover it with less surface. |
 | `drawer` (vaul) | **Skip.** The `ui` `Drawer` is built on `sheet`; add vaul only for a real bottom-sheet need. |
 | `chart` | **Skip.** It pulls in a heavy charting dependency; the `ui` `Sparkline` covers small trends with no dependency. |
@@ -95,7 +94,7 @@ An atom is never edited. A needed change follows the **deviation ladder** and go
 | One usage's props or classes | The call site (`className`, `role`, an array `defaultValue`) |
 | A reusable behavior or tone set | A wrapper in [`@plainworks/ui`](../ui/README.md) |
 
-Don't re-add a variant upstream doesn't ship; build it as a `ui` wrapper. An upstream bug is fixed the same way and noted for upstream reporting.
+Don't re-add a variant upstream doesn't ship; build it as a `ui` wrapper. An upstream bug is fixed the same way and noted for upstream reporting. Known gap: the `combobox` trigger and chip remove buttons have no accessible name, so `ComboboxField` hides the trigger and renders its own named remove buttons; `combobox.test.tsx` fails once upstream names them.
 
 ### Type-checking vendored code
 

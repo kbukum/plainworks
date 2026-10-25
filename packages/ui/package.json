@@ -65,6 +65,11 @@
       "types": "./dist/clipboard/use-clipboard.d.ts",
       "default": "./dist/clipboard/use-clipboard.js"
     },
+    "./clipboard/copy-button": {
+      "@plainworks/source": "./src/client/clipboard/copy-button.tsx",
+      "types": "./dist/clipboard/copy-button.d.ts",
+      "default": "./dist/clipboard/copy-button.js"
+    },
     "./keyboard/use-keyboard-shortcuts": {
       "@plainworks/source": "./src/client/keyboard/use-keyboard-shortcuts.ts",
       "types": "./dist/keyboard/use-keyboard-shortcuts.d.ts",
@@ -290,6 +295,11 @@
       "types": "./dist/forms/select-field.d.ts",
       "default": "./dist/forms/select-field.js"
     },
+    "./forms/combobox-field": {
+      "@plainworks/source": "./src/client/forms/combobox-field.tsx",
+      "types": "./dist/forms/combobox-field.d.ts",
+      "default": "./dist/forms/combobox-field.js"
+    },
     "./forms/checkbox-field": {
       "@plainworks/source": "./src/client/forms/checkbox-field.tsx",
       "types": "./dist/forms/checkbox-field.d.ts",
@@ -319,6 +329,11 @@
       "@plainworks/source": "./src/client/data/data-table/index.ts",
       "types": "./dist/data/data-table.d.ts",
       "default": "./dist/data/data-table.js"
+    },
+    "./data/comparison-grid": {
+      "@plainworks/source": "./src/client/data/comparison-grid.tsx",
+      "types": "./dist/data/comparison-grid.d.ts",
+      "default": "./dist/data/comparison-grid.js"
     },
     "./data/filter-bar": {
       "@plainworks/source": "./src/client/data/filter-bar.tsx",

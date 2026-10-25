@@ -65,7 +65,11 @@ export const CONCERNS: readonly Concern[] = [
     dirs: ["state"],
     modules: ["use-controllable-state", "use-disclosure", "use-list-state", "use-selection"],
   },
-  { name: "clipboard", dirs: ["client/clipboard"], modules: ["use-clipboard"] },
+  {
+    name: "clipboard",
+    dirs: ["client/clipboard"],
+    modules: ["use-clipboard", "copy-button"],
+  },
   { name: "keyboard", dirs: ["client/keyboard"], modules: ["use-keyboard-shortcuts"] },
   { name: "media", dirs: ["client/media"], modules: ["use-media-query"] },
   {
@@ -150,6 +154,7 @@ export const CONCERNS: readonly Concern[] = [
       "date-field",
       "textarea-field",
       "select-field",
+      "combobox-field",
       "checkbox-field",
       "switch-field",
       "radio-group-field",
@@ -163,6 +168,7 @@ export const CONCERNS: readonly Concern[] = [
     dirs: ["client/data"],
     modules: [
       "data-table",
+      "comparison-grid",
       "filter-bar",
       "filter-model",
       "pagination",

@@ -15,6 +15,7 @@ export const ELEMENT_NAMES = [
   "card",
   "checkbox",
   "collapsible",
+  "combobox",
   "command",
   "context-menu",
   "dialog",

@@ -43,7 +43,10 @@ export const GATES: readonly Gate[] = [
     "-p",
     "turbo/generators/tsconfig.json",
   ]),
-  repoGate("check-boundaries", "dependency-cruiser layers, cycles, and client/server split"),
+  repoGate(
+    "check-boundaries",
+    "dependency-cruiser layers, cycles, client/server split, and one import path per name",
+  ),
   turboGate("build", "tsdown ESM-only dist for every package"),
   turboGate("test", "Vitest with coverage thresholds"),
   turboGate("check-packaging", "publint + are-the-types-wrong over each packed tarball"),

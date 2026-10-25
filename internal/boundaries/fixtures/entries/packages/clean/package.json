@@ -1,0 +1,8 @@
+{
+  "name": "clean",
+  "exports": {
+    ".": {
+      "@plainworks/source": "../../shared.ts"
+    }
+  }
+}

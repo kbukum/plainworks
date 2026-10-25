@@ -1,0 +1,9 @@
+@import "@plainworks/ui/styles.css";
+
+/*
+ * Register the renderer with the consumer's Tailwind build. The path is relative to this file inside
+ * the installed package, so it resolves under any package-manager layout. Importing this stylesheet
+ * pulls in the ui composites, elements atoms and theme substrate beneath it.
+ */
+@source "./**/*.{js,ts,tsx}";
+@source not "./**/*.test.{ts,tsx}";

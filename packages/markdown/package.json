@@ -1,0 +1,86 @@
+{
+  "name": "@plainworks/markdown",
+  "version": "0.1.0-alpha.1",
+  "description": "Safe rendering of untrusted Markdown as React elements.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Plainworks",
+  "homepage": "https://github.com/kbukum/plainworks/tree/main/packages/markdown#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kbukum/plainworks.git",
+    "directory": "packages/markdown"
+  },
+  "bugs": "https://github.com/kbukum/plainworks/issues",
+  "keywords": [
+    "plainworks",
+    "typescript",
+    "esm",
+    "host-independent"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "exports": {
+    ".": {
+      "@plainworks/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./markdown": {
+      "@plainworks/source": "./src/client/markdown.tsx",
+      "types": "./dist/markdown.d.ts",
+      "default": "./dist/markdown.js"
+    },
+    "./styles.css": {
+      "@plainworks/source": "./src/styles.css",
+      "default": "./dist/styles.css"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "!src/**/*.test.*"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit -p tsconfig.src.json && tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run --coverage",
+    "check-packaging": "plainworks-release check-packaging"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@plainworks/theme": "workspace:*",
+    "@plainworks/ui": "workspace:*",
+    "react-markdown": "catalog:",
+    "remark-gfm": "catalog:"
+  },
+  "devDependencies": {
+    "@plainworks/testkit": "workspace:*",
+    "@plainworks/tsdown-config": "workspace:*",
+    "@plainworks/vitest-config": "workspace:*",
+    "@testing-library/react": "catalog:",
+    "@testing-library/user-event": "catalog:",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitest/coverage-v8": "catalog:",
+    "axe-core": "catalog:",
+    "jsdom": "catalog:",
+    "msw": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "react-dom": {
+      "optional": true
+    }
+  }
+}

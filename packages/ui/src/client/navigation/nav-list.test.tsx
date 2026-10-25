@@ -60,4 +60,16 @@ describe("NavList", () => {
     await user.tab()
     expect(document.activeElement).toBe(screen.getByRole("link", { name: "Tasks" }))
   })
+
+  it("shows icons only when collapsed, keeping each link's name and a tooltip", async () => {
+    const user = userEvent.setup()
+    const { container } = render(<NavList label="Primary" items={ITEMS} collapsed />)
+    const home = screen.getByRole("link", { name: "Home" })
+    expect(home.querySelector(".sr-only")?.textContent).toBe("Home")
+    expect(screen.getByRole("link", { name: "Tasks" }).getAttribute("aria-current")).toBe("page")
+    await user.tab()
+    expect(document.activeElement).toBe(home)
+    expect(await screen.findAllByText("Home")).toHaveLength(2)
+    await expectNoAxeViolations(container)
+  })
 })

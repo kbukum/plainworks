@@ -30,6 +30,28 @@ describe("AccountMenu", () => {
     await expectNoAxeViolations(screen.getByRole("menu"))
   })
 
+  it("shows only the avatar when compact and truncates a long name otherwise", () => {
+    const { rerender } = render(
+      <AccountMenu name="Ada" compact>
+        <AccountMenuItem onSelect={() => undefined}>Log out</AccountMenuItem>
+      </AccountMenu>,
+    )
+    const label = () =>
+      screen.getByText("Ada").closest("[data-slot=account-menu-name]") as HTMLElement
+    // Named for screen readers at every width, but never shown in a folded rail.
+    expect(screen.getByRole("button", { name: "Signed in as Ada" })).toBeDefined()
+    expect(label().className).toBe("sr-only")
+
+    rerender(
+      <AccountMenu name="Ada">
+        <AccountMenuItem onSelect={() => undefined}>Log out</AccountMenuItem>
+      </AccountMenu>,
+    )
+    expect(label().className).toContain("@lg/shell:not-sr-only")
+    expect(screen.getByText("Ada").parentElement?.className).toContain("truncate")
+    expect(screen.getByRole("button", { name: "Signed in as Ada" }).className).toContain("min-w-0")
+  })
+
   it("runs an action from the keyboard", async () => {
     const user = userEvent.setup()
     const logOut = vi.fn()
@@ -65,7 +87,7 @@ describe("AccountMenu", () => {
         <AccountMenuItem onSelect={() => undefined}>Log out</AccountMenuItem>
       </AccountMenu>,
     )
-    const name = screen.getByText("Ada").parentElement
+    const name = screen.getByText("Ada").closest("[data-slot=account-menu-name]")
     expect(name?.className).toContain("sr-only")
     expect(name?.className).toContain("@lg/shell:not-sr-only")
   })

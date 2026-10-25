@@ -82,6 +82,35 @@ export interface CommandPaletteProps {
   readonly className?: string
 }
 
+const ARIA_MODIFIERS: Readonly<Record<string, string>> = {
+  ctrl: "Control",
+  control: "Control",
+  meta: "Meta",
+  cmd: "Meta",
+  command: "Meta",
+  alt: "Alt",
+  option: "Alt",
+  shift: "Shift",
+}
+
+/** A combo in `aria-keyshortcuts` form; `mod` is listed as both ⌘ and Ctrl, since either fires it. */
+function ariaKeyShortcuts(combo: string): string {
+  const parts = combo.split("+").map((part) => part.trim().toLowerCase())
+  const key = parts.at(-1) ?? ""
+  const name =
+    key.length === 1 ? key.toUpperCase() : `${key.charAt(0).toUpperCase()}${key.slice(1)}`
+  const modifiers = parts.slice(0, -1)
+  const forms = modifiers.includes("mod") ? ["Meta", "Control"] : [""]
+  return forms
+    .map((mod) =>
+      [
+        ...modifiers.map((part) => (part === "mod" ? mod : (ARIA_MODIFIERS[part] ?? part))),
+        name,
+      ].join("+"),
+    )
+    .join(" ")
+}
+
 /**
  * A searchable dialog of navigation and actions, opened from its trigger or a global shortcut
  * (⌘K or Ctrl+K by default). Items come from plain descriptors, so the app decides what it offers.
@@ -128,6 +157,7 @@ export function CommandPalette({
       <button
         type="button"
         aria-label={copy.trigger}
+        aria-keyshortcuts={hotkey === false ? undefined : ariaKeyShortcuts(hotkey)}
         onClick={() => setOpen(true)}
         className={cn(
           buttonVariants({ variant: "outline", size: "icon" }),
@@ -139,8 +169,9 @@ export function CommandPalette({
         <span className="sr-only @2xl/shell:not-sr-only">{copy.triggerText}</span>
         {hotkey === false ? null : (
           <KbdGroup aria-hidden className="ml-auto hidden @2xl/shell:flex">
+            {/* CSS content, not text: visible text must stay part of the trigger's name. */}
             {hotkeyHint.map((key) => (
-              <Kbd key={key}>{key}</Kbd>
+              <Kbd key={key} data-key={key} className="after:content-[attr(data-key)]" />
             ))}
           </KbdGroup>
         )}

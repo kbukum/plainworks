@@ -187,6 +187,15 @@
   --color-border: var(--pw-border);
   --color-input: var(--pw-input);
   --color-ring: var(--pw-ring);
+  --color-series-1: var(--pw-series-1);
+  --color-series-2: var(--pw-series-2);
+  --color-series-3: var(--pw-series-3);
+  --color-series-4: var(--pw-series-4);
+  --color-series-5: var(--pw-series-5);
+  --color-series-6: var(--pw-series-6);
+  --color-series-7: var(--pw-series-7);
+  --color-series-8: var(--pw-series-8);
+  --color-series-foreground: var(--pw-series-foreground);
 
   --radius-sm: calc(var(--pw-radius) - 4px);
   --radius-md: calc(var(--pw-radius) - 2px);

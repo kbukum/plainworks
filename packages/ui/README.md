@@ -38,23 +38,23 @@ Every component has its own subpath, `@plainworks/ui/<concern>/<component>`, so 
 
 | Concern | Subpaths | You get |
 | --- | --- | --- |
-| `shell` | `app-shell`, `account-menu` | The app frame (header, navigation rail or drawer, skip link, main landmark) and the signed-in user's menu |
+| `shell` | `app-shell`, `account-menu`, `shortcuts-sheet` | The app frame (header, a navigation rail that collapses to icons or a drawer, skip link, main landmark), the signed-in user's menu, and a sheet listing the app's shortcuts |
 | `actions` | `icon-button` | An icon-only button that always has a name and a tooltip |
 | `command` | `command-palette` | A ⌘K / Ctrl+K palette of navigation and actions |
 | `layout` | `page`, `page-header`, `section`, `toolbar`, `stack`, `grid`, `split` | Page structure plus fluid, container-first layout primitives |
 | `feedback` | `async-state`, `loading-state`, `empty-state`, `error-state`, `spinner`, `callout`, `toast` | Region states, inline status, and toasts |
-| `display` | `date-value`, `number-value`, `status-badge`, `description-list`, `metric-card`, `sparkline` | SSR-stable `Intl` formatting, status labels, term/value lists, metric cards, and a dependency-free sparkline |
+| `display` | `date-value`, `number-value`, `metric-value`, `identifier`, `item-marker`, `status-badge`, `description-list`, `metric-card`, `sparkline` | SSR-stable `Intl` formatting, measured values that never show a missing value as zero, shortened copyable ids, lettered series markers, status labels, term/value lists, metric cards, and a dependency-free sparkline |
 | `navigation` | `breadcrumbs`, `nav-list` | An accessible trail and a primary nav list that marks the current page |
 | `overlays` | `modal`, `drawer` | Labelled, controllable overlays; a drawer body scrolls on its own |
 | `forms` | `form`, `form-submit`, `text-field`, `number-field`, `date-field`, `textarea-field`, `select-field`, `combobox-field`, `checkbox-field`, `switch-field`, `radio-group-field`, `field` | Schema-validated forms on React 19 Actions |
-| `data` | `data-table`, `comparison-grid`, `filter-bar`, `pagination`, `list-layout`, `list-search`, `facet-panel`, `range-filter`, `use-list-query-state`, `filter-model` | A controlled table, paging, and filtering over `std/list`, plus a full list-page layout and a side-by-side comparison |
+| `data` | `data-table`, `comparison-grid`, `selection-bar`, `filter-bar`, `pagination`, `list-layout`, `list-search`, `facet-panel`, `range-filter`, `use-list-query-state`, `filter-model` | A controlled table, paging, and filtering over `std/list`, plus a full list-page layout, a side-by-side comparison, and a bar for the current picks |
 | `theme` | `theme-mode-menu`, `theme-mode-group`, `theme-mode-options`, `accent-picker`, `motion-control`, `theme-preview`, `theme-studio` | Color-mode, accent, and motion controls, plus a full appearance editor |
-| `state` | `use-controllable-state`, `use-selection`, `use-disclosure`, `use-list-state` | DOM-free controlled/uncontrolled state hooks |
+| `state` | `use-controllable-state`, `use-selection`, `use-tray`, `use-disclosure`, `use-list-state` | DOM-free controlled/uncontrolled state hooks, and a small ordered tray of picks kept in any state source |
 | `clipboard` | `use-clipboard`, `copy-button` | Copy text with a timed "copied" state, and a button that copies and announces the result |
-| `keyboard` | `use-keyboard-shortcuts` | Global shortcuts; `mod` means ⌘ or Ctrl |
+| `keyboard` | `use-keyboard-shortcuts`, `shortcut-hint` | Global shortcuts (`mod` means ⌘ or Ctrl; character keys stay quiet in fields and can be turned off) and key caps |
 | `media` | `use-media-query` | An SSR-safe media query |
 
-`AppShell` frames the whole app. Navigation sits in a rail on wide screens and in a drawer behind a menu button on narrow ones, measured by the shell's own width. It adds a skip link and a named main landmark, and moves focus to main when the page changes. The rail and drawer copies of the navigation can both be mounted, so give each a unique label based on `placement`. Pass `renderLink` to `NavList` to use your router's link.
+`AppShell` frames the whole app. Navigation sits in a rail on wide screens and in a drawer behind a menu button on narrow ones, measured by the shell's own width. It adds a skip link and a named main landmark, and moves focus to main when the page changes. The rail and drawer copies of the navigation can both be mounted, so give each a unique label based on `placement`. The rail collapses to icons through a named toggle (control it with `collapsed`/`onCollapsedChange` to remember the choice); pass `collapsed` on to `NavList` so links show icons with tooltips. `railFooter` keeps settings, color mode and the account at the foot of the rail and the drawer. Pass `renderLink` to `NavList` to use your router's link.
 
 ```tsx
 import { NavList } from "@plainworks/ui/navigation/nav-list"

@@ -34,13 +34,16 @@ export interface AccountMenuProps {
   /** The menu's actions: {@link AccountMenuItem}s and {@link AccountMenuSeparator}s. */
   readonly children: ReactNode
   readonly labels?: Partial<AccountMenuLabels>
+  /** Shows only the avatar at every width, such as in a folded rail. The name stays for screen readers. */
+  readonly compact?: boolean
   readonly className?: string
 }
 
 /**
- * The header's account control: a menu named after the signed-in user, holding the actions you
- * pass. The trigger shows the name when the `AppShell` header has room and keeps it for screen
- * readers when it does not, so the button is named at every width. Authentication stays with the
+ * The account control for the header or rail: a menu named after the signed-in user, holding the
+ * actions you pass. The trigger shows the name, cut short to fit, when the `AppShell` has room, and
+ * keeps it for screen readers when it does not or when `compact`, so the button is named at every
+ * width. Authentication stays with the
  * caller: wire sign-out and gate items with your own session.
  */
 export function AccountMenu({
@@ -48,6 +51,7 @@ export function AccountMenu({
   avatar,
   children,
   labels,
+  compact = false,
   className,
 }: AccountMenuProps): ReactElement {
   const copy = { ...defaultAccountMenuLabels, ...labels }
@@ -56,7 +60,8 @@ export function AccountMenu({
       <DropdownMenuTrigger
         className={cn(
           buttonVariants({ variant: "ghost", size: "icon" }),
-          "shrink-0 gap-2 @lg/shell:w-auto @lg/shell:px-3",
+          "min-w-0 max-w-full shrink-0 gap-2",
+          !compact && "@lg/shell:w-auto @lg/shell:px-3",
           className,
         )}
       >
@@ -67,8 +72,13 @@ export function AccountMenu({
             </AvatarFallback>
           )}
         </Avatar>
-        <span className="sr-only @lg/shell:not-sr-only">
-          {copy.signedInAs} <strong>{name}</strong>
+        <span
+          data-slot="account-menu-name"
+          className={compact ? "sr-only" : "sr-only @lg/shell:not-sr-only @lg/shell:min-w-0"}
+        >
+          <span className="block truncate">
+            {copy.signedInAs} <strong>{name}</strong>
+          </span>
         </span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">

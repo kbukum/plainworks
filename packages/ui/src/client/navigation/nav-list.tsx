@@ -1,6 +1,7 @@
 "use client"
 
 import { buttonVariants } from "@plainworks/elements/button"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@plainworks/elements/tooltip"
 import { cn } from "@plainworks/theme"
 import type { AnchorHTMLAttributes, ReactElement, ReactNode } from "react"
 
@@ -31,6 +32,11 @@ export interface NavListProps {
   readonly renderLink?: LinkRender
   /** Called after any link is activated, for example to close the drawer that holds the list. */
   readonly onNavigate?: () => void
+  /**
+   * Shows only the icons, as in a collapsed rail. Each link keeps its label as its accessible name
+   * and shows it as a tooltip on hover and focus. Give every item an icon when you use it.
+   */
+  readonly collapsed?: boolean
   readonly className?: string
 }
 
@@ -46,31 +52,44 @@ export function NavList({
   items,
   renderLink = plainLink,
   onNavigate,
+  collapsed = false,
   className,
 }: NavListProps): ReactElement {
   return (
     <nav aria-label={label} className={className}>
       <ul className="flex flex-col gap-1">
-        {items.map((item) => (
-          <li key={item.id}>
-            {renderLink({
-              href: item.href,
-              "aria-current": item.current === true ? "page" : undefined,
-              onClick: onNavigate,
-              className: cn(
-                buttonVariants({ variant: item.current === true ? "secondary" : "ghost" }),
-                "h-control w-full justify-start gap-2",
-                item.current === true && "font-semibold",
-              ),
-              children: (
-                <>
-                  {item.icon}
-                  <span className="min-w-0 truncate">{item.label}</span>
-                </>
-              ),
-            })}
-          </li>
-        ))}
+        {items.map((item) => {
+          const link = renderLink({
+            href: item.href,
+            "aria-current": item.current === true ? "page" : undefined,
+            onClick: onNavigate,
+            className: cn(
+              buttonVariants({ variant: item.current === true ? "secondary" : "ghost" }),
+              collapsed
+                ? "size-control justify-center p-0"
+                : "h-control w-full justify-start gap-2",
+              item.current === true && "font-semibold",
+            ),
+            children: (
+              <>
+                {item.icon}
+                <span className={collapsed ? "sr-only" : "min-w-0 truncate"}>{item.label}</span>
+              </>
+            ),
+          })
+          return (
+            <li key={item.id}>
+              {collapsed ? (
+                <Tooltip>
+                  <TooltipTrigger render={link} />
+                  <TooltipContent side="right">{item.label}</TooltipContent>
+                </Tooltip>
+              ) : (
+                link
+              )}
+            </li>
+          )
+        })}
       </ul>
     </nav>
   )

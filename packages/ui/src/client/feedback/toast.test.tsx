@@ -59,6 +59,39 @@ describe("ToastProvider", () => {
     expect(await within(region).findByRole("button", { name: "Schließen" })).toBeDefined()
   })
 
+  it("runs a toast's action and closes it", async () => {
+    const user = userEvent.setup()
+    const picked: string[] = []
+    function Actor(): ReactElement {
+      const toast = useToast()
+      return (
+        <button
+          type="button"
+          onClick={() =>
+            toast.success({
+              title: "Comparison finished",
+              action: { label: "Open", onSelect: () => picked.push("open") },
+            })
+          }
+        >
+          Finish
+        </button>
+      )
+    }
+    render(
+      <ToastProvider>
+        <Actor />
+      </ToastProvider>,
+    )
+
+    await user.click(screen.getByRole("button", { name: "Finish" }))
+    const region = screen.getByRole("region", { name: "Notifications" })
+    await user.click(await within(region).findByRole("button", { name: "Open" }))
+
+    expect(picked).toEqual(["open"])
+    await expect.poll(() => screen.queryByText("Comparison finished")).toBeNull()
+  })
+
   it("dismisses a toast from its close button with the keyboard", async () => {
     const user = userEvent.setup()
     render(

@@ -1,7 +1,7 @@
 // Re-export-only barrel for the design-token contract (no logic here). Neutral/DOM-free, so it is
 // safe on the server `.` entry.
-export type { BrandColorRole, SemanticColorRole, StatusTone } from "./color"
-export { BRAND_COLOR_ROLES, SEMANTIC_COLOR_ROLES, STATUS_TONES } from "./color"
+export type { BrandColorRole, SemanticColorRole, SeriesColor, StatusTone } from "./color"
+export { BRAND_COLOR_ROLES, SEMANTIC_COLOR_ROLES, SERIES_COLORS, STATUS_TONES } from "./color"
 export type { Density, DensitySpace } from "./density"
 export { DENSITIES, DENSITY_SPACES } from "./density"
 export type { ElevationLevel } from "./elevation"

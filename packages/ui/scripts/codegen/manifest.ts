@@ -63,14 +63,24 @@ export const CONCERNS: readonly Concern[] = [
   {
     name: "state",
     dirs: ["state"],
-    modules: ["use-controllable-state", "use-disclosure", "use-list-state", "use-selection"],
+    modules: [
+      "use-controllable-state",
+      "use-disclosure",
+      "use-list-state",
+      "use-selection",
+      "use-tray",
+    ],
   },
   {
     name: "clipboard",
     dirs: ["client/clipboard"],
     modules: ["use-clipboard", "copy-button"],
   },
-  { name: "keyboard", dirs: ["client/keyboard"], modules: ["use-keyboard-shortcuts"] },
+  {
+    name: "keyboard",
+    dirs: ["client/keyboard"],
+    modules: ["use-keyboard-shortcuts", "shortcut-hint"],
+  },
   { name: "media", dirs: ["client/media"], modules: ["use-media-query"] },
   {
     name: "actions",
@@ -116,6 +126,9 @@ export const CONCERNS: readonly Concern[] = [
       "description-list",
       "metric-card",
       "sparkline",
+      "item-marker",
+      "metric-value",
+      "identifier",
     ],
     registry: "ui",
   },
@@ -162,7 +175,12 @@ export const CONCERNS: readonly Concern[] = [
     internal: ["client/forms/field-props.ts"],
     registry: "ui",
   },
-  { name: "shell", dirs: ["client/shell"], modules: ["app-shell", "account-menu"], registry: "ui" },
+  {
+    name: "shell",
+    dirs: ["client/shell"],
+    modules: ["app-shell", "account-menu", "shortcuts-sheet"],
+    registry: "ui",
+  },
   {
     name: "data",
     dirs: ["client/data"],
@@ -178,6 +196,7 @@ export const CONCERNS: readonly Concern[] = [
       "list-search",
       "range-filter",
       "use-list-query-state",
+      "selection-bar",
     ],
     registry: "ui",
   },

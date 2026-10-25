@@ -12,6 +12,25 @@ export const STATUS_TONES = ["info", "success", "warning", "destructive"] as con
 
 export type StatusTone = (typeof STATUS_TONES)[number]
 
+/**
+ * Categorical colors that tell items apart, such as the setups in a comparison. They are separate
+ * from the status tones and carry no meaning of their own: pair each with a letter or a name, since
+ * color is never the only cue. Each is a fill that `series-foreground` text reads on, and each
+ * meets 3:1 against the page and card surfaces.
+ */
+export const SERIES_COLORS = [
+  "series-1",
+  "series-2",
+  "series-3",
+  "series-4",
+  "series-5",
+  "series-6",
+  "series-7",
+  "series-8",
+] as const
+
+export type SeriesColor = (typeof SERIES_COLORS)[number]
+
 /** Every semantic color role, exposed to Tailwind as `--color-<role>` and at runtime as `--pw-<role>`. */
 export const SEMANTIC_COLOR_ROLES = [
   "background",
@@ -39,6 +58,15 @@ export const SEMANTIC_COLOR_ROLES = [
   "border",
   "input",
   "ring",
+  "series-1",
+  "series-2",
+  "series-3",
+  "series-4",
+  "series-5",
+  "series-6",
+  "series-7",
+  "series-8",
+  "series-foreground",
 ] as const
 
 export type SemanticColorRole = (typeof SEMANTIC_COLOR_ROLES)[number]

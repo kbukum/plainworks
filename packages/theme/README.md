@@ -29,6 +29,7 @@ Components style against **semantic tokens**, never raw palette values. A token 
 | --- | --- | --- |
 | Color | `background`, `card`, `primary`, `muted-foreground`, `border`, `input`, `ring` (focus), … | `bg-card`, `text-muted-foreground` |
 | Status | `info`, `success`, `warning`, `destructive`, each with `-foreground` | `bg-success`, `text-warning` |
+| Series | `series-1` → `series-8` and `series-foreground`, eight distinct hues for telling items apart in charts and markers; each meets 3:1 against the surfaces | `bg-series-3`, `text-series-foreground` |
 | Type | `text-caption` → `text-display`, `font-sans`, `font-mono` | `text-heading`, `font-mono` |
 | Density | `space-control`, `space-stack`, `space-inset`, `space-section` | `h-control`, `gap-stack`, `p-inset` |
 | Shape | `radius`, `shadow-raised`, `shadow-overlay` | `rounded-lg`, `shadow-overlay` |
@@ -36,7 +37,7 @@ Components style against **semantic tokens**, never raw palette values. A token 
 | Motion | `duration-fast/base/slow`, `ease-standard/enter/exit` | `transition`, `duration-fast`, `ease-enter` |
 | Stacking | `z-sticky`, `z-overlay`, `z-popover`, `z-toast` | `z-overlay` |
 
-The same names are exported as typed lists (`SEMANTIC_COLOR_ROLES`, `STATUS_TONES`, `STACKING_LAYERS`, …). Use `themeVar` for inline styles:
+The same names are exported as typed lists (`SEMANTIC_COLOR_ROLES`, `SERIES_COLORS`, `STATUS_TONES`, `STACKING_LAYERS`, …). Use `themeVar` for inline styles:
 
 ```ts
 import { themeVar } from "@plainworks/theme/tokens"

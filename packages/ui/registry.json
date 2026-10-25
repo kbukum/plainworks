@@ -118,8 +118,16 @@
     {
       "name": "display",
       "type": "registry:ui",
-      "dependencies": ["@plainworks/elements", "@plainworks/theme"],
+      "dependencies": ["@plainworks/elements", "@plainworks/std", "@plainworks/theme"],
       "files": [
+        {
+          "path": "src/client/actions/icon-button.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/clipboard/use-clipboard.ts",
+          "type": "registry:ui"
+        },
         {
           "path": "src/client/display/date-value.tsx",
           "type": "registry:ui"
@@ -129,7 +137,19 @@
           "type": "registry:ui"
         },
         {
+          "path": "src/client/display/identifier.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/display/item-marker.tsx",
+          "type": "registry:ui"
+        },
+        {
           "path": "src/client/display/metric-card.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/display/metric-value.tsx",
           "type": "registry:ui"
         },
         {
@@ -308,6 +328,14 @@
           "type": "registry:ui"
         },
         {
+          "path": "src/client/keyboard/shortcut-hint.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/keyboard/use-keyboard-shortcuts.ts",
+          "type": "registry:ui"
+        },
+        {
           "path": "src/client/overlays/body.tsx",
           "type": "registry:ui"
         },
@@ -322,6 +350,14 @@
         {
           "path": "src/client/shell/app-shell.tsx",
           "type": "registry:ui"
+        },
+        {
+          "path": "src/client/shell/shortcuts-sheet.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/state/use-controllable-state.ts",
+          "type": "registry:ui"
         }
       ]
     },
@@ -330,6 +366,10 @@
       "type": "registry:ui",
       "dependencies": ["@plainworks/elements", "@plainworks/std", "@plainworks/theme"],
       "files": [
+        {
+          "path": "src/client/actions/icon-button.tsx",
+          "type": "registry:ui"
+        },
         {
           "path": "src/client/data/comparison-grid.tsx",
           "type": "registry:ui"
@@ -383,7 +423,15 @@
           "type": "registry:ui"
         },
         {
+          "path": "src/client/data/selection-bar.tsx",
+          "type": "registry:ui"
+        },
+        {
           "path": "src/client/data/use-list-query-state.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/display/item-marker.tsx",
           "type": "registry:ui"
         },
         {

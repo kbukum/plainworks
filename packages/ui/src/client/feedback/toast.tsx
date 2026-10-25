@@ -36,8 +36,23 @@ export class ToastError extends PlainError<"toast/missing-provider"> {
 /** The kinds of feedback a toast carries; each maps to an optional icon. */
 export type ToastTone = "success" | "error" | "info" | "warning" | "loading"
 
-/** A raised message: a short title plus optional supporting text. A string is the title alone. */
-export type ToastMessage = string | { readonly title: string; readonly description?: string }
+/** A button on a toast. Picking it runs `onSelect` and closes the toast. */
+export interface ToastActionItem {
+  readonly label: string
+  readonly onSelect: () => void
+}
+
+/**
+ * A raised message: a short title, optional supporting text, and an optional action. A string is
+ * the title alone.
+ */
+export type ToastMessage =
+  | string
+  | {
+      readonly title: string
+      readonly description?: string
+      readonly action?: ToastActionItem
+    }
 
 /** The messages a promise toast shows while it is pending, when it resolves, and when it rejects. */
 export interface ToastPromiseMessages<T> {
@@ -89,8 +104,18 @@ const ToastContext = createContext<ToastApi | null>(null)
 
 type ToastManager = ReturnType<typeof createToastManager>
 
-function toastFields(message: ToastMessage): { title: string; description?: string } {
-  return typeof message === "string" ? { title: message } : message
+interface ToastData {
+  readonly action?: ToastActionItem
+}
+
+function toastFields(message: ToastMessage): {
+  title: string
+  description?: string
+  data?: ToastData
+} {
+  if (typeof message === "string") return { title: message }
+  const { action, ...text } = message
+  return action === undefined ? text : { ...text, data: { action } }
 }
 
 function toastApiFor(manager: ToastManager): ToastApi {
@@ -161,20 +186,32 @@ function ToastList({
   readonly labels: ToastLabels
   readonly icons: Partial<Record<ToastTone, ReactNode>>
 }): ReactNode {
-  const { toasts } = useToastManager()
-  return toasts.map((item) => (
-    <Toast key={item.id} toast={item}>
-      <ToastContent>
-        <ToastIcon type={item.type} icons={icons} />
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <ToastTitle />
-          <ToastDescription />
-        </div>
-        <ToastAction />
-        <ToastClose aria-label={labels.close} />
-      </ToastContent>
-    </Toast>
-  ))
+  const { toasts, close } = useToastManager()
+  return toasts.map((item) => {
+    const action = (item.data as ToastData | undefined)?.action
+    return (
+      <Toast key={item.id} toast={item}>
+        <ToastContent>
+          <ToastIcon type={item.type} icons={icons} />
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <ToastTitle />
+            <ToastDescription />
+          </div>
+          {action === undefined ? null : (
+            <ToastAction
+              onClick={() => {
+                action.onSelect()
+                close(item.id)
+              }}
+            >
+              {action.label}
+            </ToastAction>
+          )}
+          <ToastClose aria-label={labels.close} />
+        </ToastContent>
+      </Toast>
+    )
+  })
 }
 
 /**

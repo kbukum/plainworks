@@ -1,0 +1,55 @@
+name: Nightly
+
+# The wide browser matrices. Each PR runs every behavior once (the `browser e2e` job in CI); this
+# run widens the checks that only differ by theme to every color scheme, density, and mode.
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  themes:
+    name: showcase themes matrix
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Install Chromium
+        working-directory: apps/showcase
+        run: bunx playwright install --with-deps chromium
+
+      - name: Build the host's package dependencies
+        run: bunx turbo run build --filter=@plainworks/showcase^...
+
+      - name: Run the gallery flow over every theme
+        # The `themes` preset pairs every color scheme and density with both modes, and scans each
+        # gallery group with axe at every pairing.
+        working-directory: apps/showcase
+        env:
+          PLAINWORKS_FLOWS: gallery
+          PLAINWORKS_FLOW_PRESET: themes
+        run: bunx playwright test e2e/flows.spec.ts
+
+      - name: Upload traces and flow evidence
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: results-showcase-themes
+          path: |
+            apps/showcase/test-results/
+            apps/showcase/.ui-artifacts/runs/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: ignore

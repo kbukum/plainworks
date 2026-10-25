@@ -4,7 +4,7 @@ import { importJWK, type JWK, jwtVerify } from "jose"
 import { describe, expect, it, test } from "vitest"
 import { createMockIdpStateCases } from "./conformance"
 import { createMockIdp, type MockIdpOptions } from "./provider"
-import { createMemoryMockIdpState, type MockIdpState } from "./state"
+import { createMemoryMockIdpState, MOCK_IDP_REFRESH_CAPACITY, type MockIdpState } from "./state"
 
 // A stable millisecond clock so token `iat`/`exp` and minted identifiers are deterministic.
 const FIXED_NOW = 1_700_000_000_000
@@ -172,6 +172,31 @@ describe("createMockIdp", () => {
     )
     expect(replay.status).toBe(400)
     expect((await readJson(replay)).error).toBe("invalid_grant")
+  })
+
+  it("retires the oldest refresh grant instead of refusing a sign-in past capacity", async () => {
+    const idp = await build()
+    const signIn = async () => {
+      const { url, verifier } = await authorizationUrl(idp)
+      const { code } = idp.authorize(url)
+      const response = await idp.fetch(
+        `${idp.issuer}/token`,
+        tokenRequest({ grant_type: "authorization_code", code, code_verifier: verifier }),
+      )
+      expect(response.status).toBe(200)
+      return (await readJson(response)).refresh_token as string
+    }
+    const oldest = await signIn()
+    for (let grant = 1; grant < MOCK_IDP_REFRESH_CAPACITY; grant++) await signIn()
+    const newest = await signIn()
+
+    const refresh = (token: string) =>
+      idp.fetch(
+        `${idp.issuer}/token`,
+        tokenRequest({ grant_type: "refresh_token", refresh_token: token }),
+      )
+    expect((await refresh(oldest)).status).toBe(400)
+    expect((await refresh(newest)).status).toBe(200)
   })
 
   it("forces a nonce mismatch when idTokenNonceOverride is set", async () => {

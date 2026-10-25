@@ -21,6 +21,12 @@ import { AuthError } from "../errors"
 import { sessionFailureReasons, sessionFailures } from "./failures"
 import { decodeSessionResponse, type SessionResponse } from "./response"
 
+// The longest session the server issues, and how far its `Date` header may trail the moment it
+// set a fresh session's expiry. `Date` has one-second resolution, and servers cache it and refresh
+// it on their event loop, so a busy server can stamp a time more than a second old.
+const SESSION_LIFETIME_MS = 3_600_000
+const SERVER_DATE_LAG_MS = 5_000
+
 /** Client-safe state. The HttpOnly credential is never represented here. */
 export interface SessionSnapshot {
   readonly status: "authenticated" | "unauthenticated"
@@ -172,11 +178,11 @@ export function createAuthStore(config: AuthStoreConfig = {}): AuthStore {
   }
 
   // The server's clock is authoritative: lifetime is measured against its `Date`, so a skewed
-  // browser clock neither ends a valid session nor extends an expired one. `Date` has one-second
-  // resolution, hence the tolerance on the upper bound.
+  // browser clock neither ends a valid session nor extends an expired one. A lagging `Date` makes
+  // a fresh session look slightly longer than its lifetime, hence the tolerance on the upper bound.
   function adopt({ session: value, serverNow }: Received): void {
     const remaining = Date.parse(value.expiresAt) - serverNow
-    if (remaining <= 0 || remaining > 3_601_000) {
+    if (remaining <= 0 || remaining > SESSION_LIFETIME_MS + SERVER_DATE_LAG_MS) {
       throw new AuthError("auth/session-expired", "session expiry is outside its one-hour lifetime")
     }
     expiry?.abort()

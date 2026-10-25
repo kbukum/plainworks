@@ -4,7 +4,7 @@ import {
   FIXED_NOW_ENV,
 } from "@plainworks/testkit/playwright"
 
-/** One ordinary Next dev server per worker or capture, with isolated build output. */
+/** The one Next dev server a gate run or capture shares, with its own build output. */
 export const NEXT_HOST_SERVER: BrowserGateHost = {
   command: ["bunx", "next", "dev", "--hostname", "127.0.0.1"],
   cwd: new URL("../../", import.meta.url).pathname,

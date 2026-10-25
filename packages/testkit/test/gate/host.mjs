@@ -15,6 +15,23 @@ const page = `<!doctype html><html lang="en"><head><title>gate</title></head>
 <body><main><h1>Gate fixture</h1></main></body></html>`
 
 createServer((request, response) => {
+  const scope = request.headers["gate-scope"] ?? ""
+  if (request.url === "/scope") {
+    response.writeHead(200, { "content-type": "text/plain" })
+    response.end(scope)
+    return
+  }
+  if (request.method === "POST" && request.url === "/scope/release") {
+    record(`release ${scope}`)
+    response.writeHead(process.env.GATE_SCENARIO === "shared-release-failure" ? 500 : 204).end()
+    return
+  }
+  if (request.url === "/scoped") {
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8" })
+    response.end(`<!doctype html><html lang="en"><head><title>scoped</title></head>
+<body><main><h1>Scoped fixture</h1><p id="scope">${scope}</p></main></body></html>`)
+    return
+  }
   const signedIn = (request.headers.cookie ?? "").includes(`sid=${runId}`)
   if (request.url === "/ready") {
     if (process.env.GATE_SCENARIO === "startup-cancel") {

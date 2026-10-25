@@ -8,4 +8,5 @@ export const MOCK_CONTROL_PATHS = {
   error: "/mock/error",
   latency: "/mock/latency",
   reset: "/mock/reset",
+  scope: "/mock/scope",
 } as const

@@ -174,6 +174,42 @@ describe("browser gate in the real Playwright runner", { timeout: 120_000 }, () 
     expect(new Set(result.statuses)).toEqual(new Set(["passed"]))
   })
 
+  it("shares one host across workers and keeps each test's requests in its own scope", async () => {
+    const result = await run("shared", { workers: 2, spec: "scope.spec.ts" })
+    expect(result.code, result.output).toBe(0)
+    expect(result.statuses).toEqual(Array(4).fill("passed"))
+    const owned = workers(result.data)
+    expect(owned).toHaveLength(1)
+    const released = events(result.data, owned[0] ?? "").map((event) => event.split(" ")[1])
+    expect(released).toHaveLength(4)
+    for (const scope of released) expect(scope).toMatch(/^[0-9a-f-]{36}$/)
+    expect(new Set(released).size).toBe(4)
+    await expectReleased(result.data)
+  })
+
+  it("fails a test whose data scope cannot be released", async () => {
+    const result = await run("shared-release-failure", { spec: "scope.spec.ts" })
+    expect(result.code, result.output).toBe(1)
+    expect(result.statuses).toEqual(Array(4).fill("failed"))
+    expect(readFileSync(join(result.data, "report.json"), "utf8")).toContain(
+      "could not release this test's data scope",
+    )
+    await expectReleased(result.data)
+  })
+
+  it("releases a test's data scope when its setup fails", async () => {
+    const result = await run("shared-setup-failure", { spec: "scope.spec.ts" })
+    expect(result.code, result.output).toBe(1)
+    expect(result.statuses).toEqual(Array(4).fill("failed"))
+    expect(readFileSync(join(result.data, "report.json"), "utf8")).toContain(
+      "sign-in failed on purpose",
+    )
+    const owned = workers(result.data)
+    const released = events(result.data, owned[0] ?? "").map((event) => event.split(" ")[1])
+    expect(new Set(released).size).toBe(4)
+    await expectReleased(result.data)
+  })
+
   it("rejects sharing an external host across workers", async () => {
     const result = await run("success", {
       workers: 2,
@@ -181,7 +217,7 @@ describe("browser gate in the real Playwright runner", { timeout: 120_000 }, () 
     })
     expect(result.code).toBe(1)
     expect(readFileSync(join(result.data, "report.json"), "utf8")).toContain(
-      "An external/warm gate host requires exactly one worker.",
+      "An external/warm gate host requires exactly one worker, or a gate dataScope.",
     )
     expect(workers(result.data)).toHaveLength(0)
   })

@@ -12,7 +12,7 @@ bun add @plainworks/mocks
 
 ## What's here
 
-The root exports the latency prelude. Each larger concern has one named subpath: `./connect`, `./data`, `./handlers`, `./fixture`, `./query`, `./filter`, `./control`, `./dispatch`, `./lifecycle`, `./stream`, and `./idp`. The `./vite-plugin` entry serves any MSW handler set over real HTTP.
+The root exports the latency prelude. Each larger concern has one named subpath: `./connect`, `./data`, `./handlers`, `./fixture`, `./query`, `./filter`, `./control`, `./dispatch`, `./lifecycle`, `./stream`, `./idp`, and `./scope`. The `./vite-plugin` entry serves any MSW handler set over real HTTP.
 
 Want a worked example rather than building from scratch? The kit's dev-only `@plainworks/demo` fixtures package wires these primitives into a full commerce/SaaS mock graph (`createMockApi()`), and is what the showcase and integration tests run against.
 
@@ -131,6 +131,19 @@ const transport = createScheduledStream({
 
 With an `epoch`, the factory emits `connected` before application frames and uses canonical sequence IDs across attempts. A resumed connection sends `replayExpired` reset because this mock retains no replay. The frame callback may be async and receives the attempt signal, letting a demo update its authoritative backend before announcing a change.
 
+### Data scopes
+
+When many tests share one host, give each test its own mock backend. `createMockScopes` keeps one instance per scope, named by the `plainworks-mock-scope` request header (`MOCK_SCOPE_HEADER`). A request without the header uses one default instance, so local development is unchanged. A malformed scope id throws `MockScopeError`, never a fallback to shared data. It holds 32 scopes by default and evicts the least recently used.
+
+```ts
+import { createMockScopes, scopedMockHandlers } from "@plainworks/mocks/scope"
+
+const scopes = createMockScopes({ create: () => createMockApi() })
+mockServerPlugin(scopedMockHandlers(scopes, (api) => api.handlers))
+```
+
+`scopedMockHandlers` answers a malformed scope with a `400` problem and serves `DELETE /mock/scope` to release one. The control client's `releaseScope()` calls it. A host whose server code reads the mock backend over HTTP must forward the header on those reads. Don't honor the header in production.
+
 A few behaviors worth knowing:
 
 - **Input is validated at the boundary** — a malformed body or query param returns `400`.
@@ -155,4 +168,4 @@ Inject `createMemoryMockIdpState()` to share fixture data across independently c
 
 For state that survives restart, implement `MockIdpState` in your host. `decodeMockIdpData` validates a persisted document and `emptyMockIdpData` creates the initial one, so any storage can hold it. Mutations must be synchronous and atomic. Run `createMockIdpStateCases()` from your own test runner against your state to prove handles share signing identity, one-time codes, PKCE, refresh rotation and failure controls, and that failed transactions roll back. The Next reference host shows one example with encrypted local SQLite in `apps/next-host/src/server/custody`. This is fixture custody, never a production identity system.
 
-State is bounded to 128 pending codes (five minutes), 128 refresh grants (one-hour absolute lifetime), eight retained signing keys, and a 64KiB serialized document. Admission fails instead of evicting live grants. `state.reset()` clears grants and failure controls, fences pending token publication, and retains the signing identity and monotonic identifiers. Reset only the explicitly owned worker's state before sign-in; normal restart is not reset.
+State is bounded to 128 pending codes (five minutes), 128 refresh grants (one-hour absolute lifetime), eight retained signing keys, and a 64KiB serialized document. A new pending code fails when 128 are waiting. A new refresh grant evicts the oldest one when 128 are live, the way real providers retire old grants, so a long shared run never stops accepting sign-ins. `state.reset()` clears grants and failure controls, fences pending token publication, and retains the signing identity and monotonic identifiers. Reset only the explicitly owned worker's state before sign-in; normal restart is not reset.

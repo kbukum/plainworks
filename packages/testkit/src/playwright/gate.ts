@@ -26,8 +26,9 @@ export const FIXED_NOW_ENV = "PLAINWORKS_FIXED_NOW"
 
 /**
  * The environment variable that points every worker at a host that is already running, such as
- * the warm host `ui:capture` reuses or a base commit's host. No worker then starts its own. Run a
- * single worker against it, since each test resets that one backend.
+ * the shared host {@link setupSharedGateHost} starts, the warm host `ui:capture` reuses, or a base
+ * commit's host. No worker then starts its own. Without a {@link BrowserGateOptions.dataScope},
+ * run a single worker against it, since each test resets that one backend.
  */
 export const GATE_ORIGIN_ENV = "PLAINWORKS_GATE_ORIGIN"
 
@@ -56,6 +57,8 @@ export interface BrowserGateFixtures {
   readonly gateSignIn: boolean
   /** The page's runtime failures. Call `allow` for a failure the test provokes on purpose. */
   readonly runtimeErrors: RuntimeErrorWatch
+  /** This test's data scope id, or `undefined` when the gate has no `dataScope`. */
+  readonly gateScope: string | undefined
 }
 
 /** The per-worker fixtures the gate adds. */
@@ -94,6 +97,21 @@ export interface BrowserGateOptions {
    * sets `gateSignIn: false`; credential-bearing storage states are never reused.
    */
   readonly signIn?: (page: Page) => Promise<void>
+  /**
+   * Give each test its own data on a shared host. The gate sends a fresh scope id in `header` on
+   * every request the test's browser context and `request` fixture make, so the host can keep each
+   * test's data apart, and many workers can share one host. After the test, `release` (when set)
+   * tells the host to drop that data; a failed release fails the test.
+   */
+  readonly dataScope?: BrowserGateDataScope
+}
+
+/** How a gate keeps each test's data apart on a shared host. See {@link BrowserGateOptions}. */
+export interface BrowserGateDataScope {
+  /** The request header that names the scope, such as `@plainworks/mocks/scope`'s header. */
+  readonly header: string
+  /** Drop the scope's data on the host. Its requests already carry the scope header. */
+  readonly release?: (request: APIRequestContext) => Promise<void>
 }
 
 // Time for a worker to start its host and sign in: a cold dev-server compile plus the warm paths.
@@ -102,8 +120,9 @@ const WORKER_SETUP_TIMEOUT_MS = 300_000
 /**
  * Build the `test` for a gated browser suite.
  *
- * Each worker can start its own host, so workers run in parallel; with
- * {@link GATE_ORIGIN_ENV} set, every worker uses that running host instead. Before each test
+ * Each worker can start its own host, so workers run in parallel; with {@link GATE_ORIGIN_ENV}
+ * set, every worker uses that running host instead, and a `dataScope` keeps their data apart.
+ * Before each test
  * touches the page, the gate resets the host when asked, pins the page's `Date` to a fixed instant
  * (timers keep running, so the app still works), and starts watching for runtime errors, including
  * requests that leave the allowed origins. When the test ends, any recorded error fails it, so a
@@ -111,15 +130,29 @@ const WORKER_SETUP_TIMEOUT_MS = 300_000
  */
 export function createBrowserGate(options: BrowserGateOptions = {}): BrowserGateTest {
   const now = options.now === undefined ? BROWSER_GATE_NOW : options.now
+  const scoped = options.dataScope
   return base.extend<BrowserGateFixtures, BrowserGateWorkerFixtures>({
     gateSignIn: [options.signIn !== undefined, { option: true }],
+    // biome-ignore lint/correctness/noEmptyPattern: Playwright reads a fixture's dependencies from its destructured first argument, and this one has none.
+    gateScope: async ({}, use) => {
+      await use(scoped === undefined ? undefined : crypto.randomUUID())
+    },
+    extraHTTPHeaders: async ({ extraHTTPHeaders, gateScope }, use) => {
+      await use(
+        scoped === undefined || gateScope === undefined
+          ? extraHTTPHeaders
+          : { ...extraHTTPHeaders, [scoped.header]: gateScope },
+      )
+    },
     gateHost: [
       // biome-ignore lint/correctness/noEmptyPattern: Playwright reads a fixture's dependencies from its destructured first argument, and this one has none.
       async ({}, use, workerInfo) => {
         const running = process.env[GATE_ORIGIN_ENV]
         if (running !== undefined && running !== "") {
-          if (workerInfo.config.workers !== 1) {
-            throw new Error("An external/warm gate host requires exactly one worker.")
+          if (scoped === undefined && workerInfo.config.workers !== 1) {
+            throw new Error(
+              "An external/warm gate host requires exactly one worker, or a gate dataScope.",
+            )
           }
           await use(undefined)
           return
@@ -154,18 +187,50 @@ export function createBrowserGate(options: BrowserGateOptions = {}): BrowserGate
         if (options.signIn !== undefined && storageState !== undefined) {
           throw new Error("Session flows must sign in after reset, not reuse storageState.")
         }
-        await options.resetHost?.(request)
-        if (now !== null) await page.clock.setFixedTime(now)
-        const allowedOrigins = [
-          ...(baseURL === undefined ? [] : [baseURL]),
-          ...(options.allowedOrigins ?? []),
-        ]
-        const watch = await watchRuntimeErrors(page, { allowedOrigins })
-        if (gateSignIn) await options.signIn?.(page)
-        await use(watch)
-        watch.expectNone()
+        const failures: unknown[] = []
+        // The scope is released even when setup fails, so a failed test never holds host data.
+        try {
+          await options.resetHost?.(request)
+          if (now !== null) await page.clock.setFixedTime(now)
+          const allowedOrigins = [
+            ...(baseURL === undefined ? [] : [baseURL]),
+            ...(options.allowedOrigins ?? []),
+          ]
+          const watch = await watchRuntimeErrors(page, { allowedOrigins })
+          if (gateSignIn) await options.signIn?.(page)
+          await use(watch)
+          watch.expectNone()
+        } catch (error) {
+          failures.push(error)
+        }
+        try {
+          await scoped?.release?.(request)
+        } catch (error) {
+          failures.push(
+            new Error("The gate could not release this test's data scope.", { cause: error }),
+          )
+        }
+        if (failures.length === 1) throw failures[0]
+        if (failures.length > 1) throw new AggregateError(failures, "The gated test failed twice.")
       },
       { auto: true },
     ],
   })
+}
+
+/**
+ * Start one host for the whole run from a Playwright `globalSetup`, and point every worker at it
+ * through {@link GATE_ORIGIN_ENV}. Pair it with a gate `dataScope` so workers can share the host.
+ * When {@link GATE_ORIGIN_ENV} is already set, the run reuses that host and nothing starts. Returns
+ * the teardown Playwright runs after the run; it stops the host.
+ */
+export async function setupSharedGateHost(host: BrowserGateHost): Promise<() => Promise<void>> {
+  const running = process.env[GATE_ORIGIN_ENV]
+  if (running !== undefined && running !== "") return async () => {}
+  const started = await startGateHost(host, host.basePort)
+  process.env[GATE_ORIGIN_ENV] = started.origin
+  return async () => {
+    delete process.env[GATE_ORIGIN_ENV]
+    await started.stop()
+  }
 }

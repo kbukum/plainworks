@@ -8,6 +8,11 @@ import { SHOWCASE_THEME_AXES } from "./support/theme-axes"
 // picks the flows, preset, and capture mode through the environment.
 const suite = planFlowSuite(SHOWCASE_FLOWS, { axes: SHOWCASE_THEME_AXES })
 
+// A failure checkpoint shows its error state only after the app's query retries give up, which
+// takes about 7 s of backoff, so the default 10 s leaves too little room on a busy machine. A
+// passing checkpoint never waits longer for this.
+const TIMEOUTS = { ready: 20_000 } as const
+
 for (const planned of suite.runs) {
   test.describe(planned.title, () => {
     test.use(planned.use)
@@ -20,7 +25,11 @@ for (const planned of suite.runs) {
         (key) => window.localStorage.setItem(key, "off"),
         SHOWCASE_DEVTOOLS_KEY,
       )
-      await runFlow({ page, runtimeErrors }, planned, { mode: suite.mode, testInfo })
+      await runFlow({ page, runtimeErrors }, planned, {
+        mode: suite.mode,
+        testInfo,
+        timeouts: TIMEOUTS,
+      })
     })
   })
 }

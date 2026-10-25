@@ -11,6 +11,7 @@ const data =
 const config: PlaywrightTestConfig = defineConfig({
   testDir: ".",
   testMatch: "*.spec.ts",
+  globalSetup: join(import.meta.dirname, "shared-setup.ts"),
   fullyParallel: true,
   workers: Number(process.env.GATE_WORKERS ?? "1"),
   retries: 0,

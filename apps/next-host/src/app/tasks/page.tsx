@@ -2,12 +2,15 @@
 // request-scoped query client through `@plainworks/query` over `@plainworks/http`, and hands the
 // dehydrated cache to the client `HydrationBoundary` — so the browser mounts the list under the
 // identical key with no refetch flash. The app frame supplies the page title. Dynamic: the prefetch
-// reads the live mock backend per request.
+// reads the live mock backend per request, forwarding the request's mock data scope so a scoped
+// browser-gate test prefetches its own fixtures.
 
 import { createHttpClient } from "@plainworks/http"
+import { MOCK_SCOPE_HEADER } from "@plainworks/mocks/scope"
 import { createQueryClient } from "@plainworks/query"
 import { HydrationBoundary } from "@plainworks/query/client"
 import { dehydrateClient, prefetchQuery } from "@plainworks/query/hydration"
+import { headers } from "next/headers"
 import type { ReactElement } from "react"
 import { TaskList } from "../../client/tasks"
 import { TASK_LIST_PARAMS, TASKS_PATH } from "../../neutral/constants"
@@ -18,7 +21,11 @@ export const dynamic = "force-dynamic"
 
 export default async function TasksPage(): Promise<ReactElement> {
   await requireSession(TASKS_PATH)
-  const httpClient = createHttpClient({ baseUrl: requestOrigin() })
+  const scope = (await headers()).get(MOCK_SCOPE_HEADER)
+  const httpClient = createHttpClient({
+    baseUrl: requestOrigin(),
+    ...(scope === null ? {} : { headers: { [MOCK_SCOPE_HEADER]: scope } }),
+  })
   const queryClient = createQueryClient()
   await prefetchQuery(queryClient, taskList.options(httpClient, TASK_LIST_PARAMS))
   // Ship only successful queries across the RSC boundary: a failed prefetch caches an `HttpError`

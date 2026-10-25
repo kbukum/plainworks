@@ -71,6 +71,44 @@ describe("Page", () => {
     expect(screen.queryByRole("banner")).toBeNull()
   })
 
+  it("shows the object's identifier and its tabs as links with one current", async () => {
+    const { container } = render(
+      <PageHeader
+        title="Comparison"
+        identifier={<code>cmp_123</code>}
+        tabs={{
+          label: "Comparison views",
+          items: [
+            { id: "overview", label: "Overview", href: "#overview", current: true },
+            { id: "cases", label: "Cases", href: "#cases" },
+          ],
+        }}
+      />,
+    )
+    expect(container.querySelector('[data-slot="page-header-identifier"]')?.textContent).toBe(
+      "cmp_123",
+    )
+    const tabs = screen.getByRole("navigation", { name: "Comparison views" })
+    expect(tabs.querySelectorAll("a")).toHaveLength(2)
+    expect(screen.getByRole("link", { name: "Overview" }).getAttribute("aria-current")).toBe("page")
+    expect(screen.getByRole("link", { name: "Cases" }).hasAttribute("aria-current")).toBe(false)
+    await expectNoAxeViolations(container)
+  })
+
+  it("routes tab links through the host's link render", () => {
+    render(
+      <PageHeader
+        title="Run"
+        tabs={{
+          label: "Run views",
+          items: [{ id: "a", label: "A", href: "/a" }],
+          renderLink: (props) => <a {...props} data-routed="yes" />,
+        }}
+      />,
+    )
+    expect(screen.getByRole("link", { name: "A" }).getAttribute("data-routed")).toBe("yes")
+  })
+
   it("renders a nested section heading at the requested level", () => {
     render(
       <Section title="Billing" headingLevel={3}>

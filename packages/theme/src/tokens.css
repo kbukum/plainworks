@@ -34,6 +34,24 @@
   --pw-amber-300: oklch(0.8 0.14 80);
   --pw-red-600: oklch(0.46 0.21 27);
   --pw-red-200: oklch(0.85 0.1 22);
+
+  /* Categorical hues for series markers: the strong steps carry light text, the soft steps dark text. */
+  --pw-series-blue-strong: oklch(0.52 0.14 255);
+  --pw-series-blue-soft: oklch(0.78 0.12 255);
+  --pw-series-orange-strong: oklch(0.52 0.14 45);
+  --pw-series-orange-soft: oklch(0.78 0.12 45);
+  --pw-series-teal-strong: oklch(0.52 0.14 165);
+  --pw-series-teal-soft: oklch(0.78 0.12 165);
+  --pw-series-magenta-strong: oklch(0.52 0.14 320);
+  --pw-series-magenta-soft: oklch(0.78 0.12 320);
+  --pw-series-olive-strong: oklch(0.52 0.14 120);
+  --pw-series-olive-soft: oklch(0.78 0.12 120);
+  --pw-series-cyan-strong: oklch(0.52 0.14 205);
+  --pw-series-cyan-soft: oklch(0.78 0.12 205);
+  --pw-series-ochre-strong: oklch(0.52 0.14 75);
+  --pw-series-ochre-soft: oklch(0.78 0.12 75);
+  --pw-series-purple-strong: oklch(0.52 0.14 290);
+  --pw-series-purple-soft: oklch(0.78 0.12 290);
 }
 
 /* Tier 2: mode-independent scales. */
@@ -114,6 +132,16 @@
   --pw-primary-foreground: var(--pw-neutral-50);
   --pw-ring: var(--pw-neutral-900);
 
+  --pw-series-1: var(--pw-series-blue-strong);
+  --pw-series-2: var(--pw-series-orange-strong);
+  --pw-series-3: var(--pw-series-teal-strong);
+  --pw-series-4: var(--pw-series-magenta-strong);
+  --pw-series-5: var(--pw-series-olive-strong);
+  --pw-series-6: var(--pw-series-cyan-strong);
+  --pw-series-7: var(--pw-series-ochre-strong);
+  --pw-series-8: var(--pw-series-purple-strong);
+  --pw-series-foreground: var(--pw-neutral-50);
+
   --pw-shadow-raised: 0 1px 2px 0 oklch(0 0 0 / 0.06), 0 1px 3px 0 oklch(0 0 0 / 0.1);
   --pw-shadow-overlay: 0 4px 6px -2px oklch(0 0 0 / 0.08), 0 12px 24px -4px oklch(0 0 0 / 0.14);
 }
@@ -147,6 +175,16 @@
   --pw-primary: var(--pw-neutral-50);
   --pw-primary-foreground: var(--pw-neutral-900);
   --pw-ring: var(--pw-neutral-300);
+
+  --pw-series-1: var(--pw-series-blue-soft);
+  --pw-series-2: var(--pw-series-orange-soft);
+  --pw-series-3: var(--pw-series-teal-soft);
+  --pw-series-4: var(--pw-series-magenta-soft);
+  --pw-series-5: var(--pw-series-olive-soft);
+  --pw-series-6: var(--pw-series-cyan-soft);
+  --pw-series-7: var(--pw-series-ochre-soft);
+  --pw-series-8: var(--pw-series-purple-soft);
+  --pw-series-foreground: var(--pw-neutral-950);
 
   --pw-shadow-raised: 0 1px 2px 0 oklch(0 0 0 / 0.4), 0 1px 3px 0 oklch(0 0 0 / 0.5);
   --pw-shadow-overlay: 0 4px 6px -2px oklch(0 0 0 / 0.4), 0 16px 32px -8px oklch(0 0 0 / 0.6);
@@ -315,6 +353,16 @@
     --pw-primary: var(--pw-neutral-50);
     --pw-primary-foreground: var(--pw-neutral-900);
     --pw-ring: var(--pw-neutral-300);
+
+    --pw-series-1: var(--pw-series-blue-soft);
+    --pw-series-2: var(--pw-series-orange-soft);
+    --pw-series-3: var(--pw-series-teal-soft);
+    --pw-series-4: var(--pw-series-magenta-soft);
+    --pw-series-5: var(--pw-series-olive-soft);
+    --pw-series-6: var(--pw-series-cyan-soft);
+    --pw-series-7: var(--pw-series-ochre-soft);
+    --pw-series-8: var(--pw-series-purple-soft);
+    --pw-series-foreground: var(--pw-neutral-950);
 
     --pw-shadow-raised: 0 1px 2px 0 oklch(0 0 0 / 0.4), 0 1px 3px 0 oklch(0 0 0 / 0.5);
     --pw-shadow-overlay: 0 4px 6px -2px oklch(0 0 0 / 0.4), 0 16px 32px -8px oklch(0 0 0 / 0.6);

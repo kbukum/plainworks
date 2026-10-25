@@ -1,23 +1,17 @@
 // @vitest-environment jsdom
 
-import { expectNoAxeViolations } from "@plainworks/testkit/client"
+import { expectNoAxeViolations, installLayoutApis } from "@plainworks/testkit/client"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it } from "vitest"
 import {
   CommandPalette,
   type CommandPaletteGroup,
   type CommandPaletteProps,
 } from "./command-palette"
 
-// cmdk measures and scrolls its list; jsdom implements neither.
-class TestResizeObserver implements ResizeObserver {
-  observe(): void {}
-  unobserve(): void {}
-  disconnect(): void {}
-}
-globalThis.ResizeObserver = TestResizeObserver
-Element.prototype.scrollIntoView = vi.fn()
+// The list measures and scrolls itself; jsdom implements neither.
+installLayoutApis()
 
 afterEach(cleanup)
 
@@ -126,6 +120,24 @@ describe("CommandPalette", () => {
     renderPalette()
     const trigger = screen.getByRole("button", { name: "Search commands" })
     expect(trigger.className).toContain("@2xl/shell:w-56")
+  })
+
+  it("names its shortcut for assistive tech and draws the hint without text", () => {
+    renderPalette()
+    const trigger = screen.getByRole("button", { name: "Search commands" })
+    expect(trigger.getAttribute("aria-keyshortcuts")).toBe("Meta+K Control+K")
+    // Visible text must stay part of the name (WCAG 2.5.3), so the key caps are CSS content.
+    expect(trigger.textContent).toBe("Search")
+    const caps = [...trigger.querySelectorAll("[data-slot=kbd]")].map((cap) =>
+      cap.getAttribute("data-key"),
+    )
+    expect(caps).toEqual(["⌘", "K"])
+  })
+
+  it("lists a combo without mod once in assistive tech", () => {
+    renderPalette({ hotkey: "shift+ctrl+p" })
+    const trigger = screen.getByRole("button", { name: "Search commands" })
+    expect(trigger.getAttribute("aria-keyshortcuts")).toBe("Shift+Control+P")
   })
 
   it("has no accessibility violations closed or open", async () => {

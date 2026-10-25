@@ -19,11 +19,12 @@ function Shell(props: Partial<AppShellProps>) {
     <AppShell
       brand={<span>acme</span>}
       mainLabel="Home"
-      navigation={({ placement, onNavigate }) => (
+      navigation={({ placement, onNavigate, collapsed }) => (
         <NavList
           label={placement === "rail" ? "Primary" : "Sections"}
           items={ITEMS}
           onNavigate={onNavigate}
+          collapsed={collapsed}
         />
       )}
       actions={<button type="button">Search</button>}
@@ -53,7 +54,7 @@ describe("AppShell", () => {
       within(banner)
         .getAllByRole("button")
         .map((button) => button.getAttribute("aria-label")),
-    ).toEqual(["Open navigation"])
+    ).toEqual(["Open navigation", "Collapse navigation"])
   })
 
   it("offers a skip link as the first stop that targets main", async () => {
@@ -84,6 +85,11 @@ describe("AppShell", () => {
     expect(document.activeElement).toBe(screen.getByRole("main", { name: "Tasks" }))
   })
 
+  it("moves focus to main on mount when the host mounts it for a navigation", () => {
+    render(<Shell navigationKey="/b" mainLabel="Tasks" focusOnMount />)
+    expect(document.activeElement).toBe(screen.getByRole("main", { name: "Tasks" }))
+  })
+
   it("takes injected labels", () => {
     render(
       <Shell
@@ -92,5 +98,52 @@ describe("AppShell", () => {
     )
     expect(screen.getByRole("link", { name: "Zum Inhalt" })).toBeDefined()
     expect(screen.getByRole("button", { name: "Menü öffnen" })).toBeDefined()
+  })
+
+  it("collapses the rail to icons and back, keeping every link named", async () => {
+    const user = userEvent.setup()
+    const { container } = render(<Shell />)
+    const toggle = screen.getByRole("button", { name: "Collapse navigation" })
+    expect(toggle.getAttribute("aria-expanded")).toBe("true")
+
+    await user.click(toggle)
+    const expand = screen.getByRole("button", { name: "Expand navigation" })
+    expect(expand.getAttribute("aria-expanded")).toBe("false")
+    const rail = screen.getByRole("navigation", { name: "Primary" })
+    expect(within(rail).getByRole("link", { name: "Tasks" })).toBeDefined()
+    expect(
+      container.querySelector('[data-slot="app-shell-rail"]')?.getAttribute("data-collapsed"),
+    ).toBe("true")
+    await expectNoAxeViolations(container)
+
+    await user.click(expand)
+    expect(screen.getByRole("button", { name: "Collapse navigation" })).toBeDefined()
+  })
+
+  it("lets the host own the collapsed state", async () => {
+    const user = userEvent.setup()
+    const changes: boolean[] = []
+    render(<Shell collapsed onCollapsedChange={(next) => changes.push(next)} />)
+    await user.click(screen.getByRole("button", { name: "Expand navigation" }))
+    expect(changes).toEqual([false])
+    expect(screen.getByRole("button", { name: "Expand navigation" })).toBeDefined()
+  })
+
+  it("puts the rail footer at the bottom of the rail and the drawer", async () => {
+    const user = userEvent.setup()
+    render(
+      <Shell railFooter={({ placement }) => <button type="button">Settings {placement}</button>} />,
+    )
+    expect(screen.getByRole("button", { name: "Settings rail" })).toBeDefined()
+    await user.click(screen.getByRole("button", { name: "Open navigation" }))
+    const drawer = await screen.findByRole("dialog", { name: "Navigation" })
+    expect(within(drawer).getByRole("button", { name: "Settings drawer" })).toBeDefined()
+  })
+
+  it("paints an opaque header so content never shows through it", () => {
+    render(<Shell />)
+    const banner = screen.getByRole("banner")
+    expect(banner.className).toContain("bg-background")
+    expect(banner.className).not.toMatch(/bg-background\/|backdrop-blur/)
   })
 })

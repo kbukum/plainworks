@@ -60,6 +60,11 @@
       "types": "./dist/state/use-selection.d.ts",
       "default": "./dist/state/use-selection.js"
     },
+    "./state/use-tray": {
+      "@plainworks/source": "./src/state/use-tray.ts",
+      "types": "./dist/state/use-tray.d.ts",
+      "default": "./dist/state/use-tray.js"
+    },
     "./clipboard/use-clipboard": {
       "@plainworks/source": "./src/client/clipboard/use-clipboard.ts",
       "types": "./dist/clipboard/use-clipboard.d.ts",
@@ -74,6 +79,11 @@
       "@plainworks/source": "./src/client/keyboard/use-keyboard-shortcuts.ts",
       "types": "./dist/keyboard/use-keyboard-shortcuts.d.ts",
       "default": "./dist/keyboard/use-keyboard-shortcuts.js"
+    },
+    "./keyboard/shortcut-hint": {
+      "@plainworks/source": "./src/client/keyboard/shortcut-hint.tsx",
+      "types": "./dist/keyboard/shortcut-hint.d.ts",
+      "default": "./dist/keyboard/shortcut-hint.js"
     },
     "./media/use-media-query": {
       "@plainworks/source": "./src/client/media/use-media-query.ts",
@@ -194,6 +204,21 @@
       "@plainworks/source": "./src/client/display/sparkline.tsx",
       "types": "./dist/display/sparkline.d.ts",
       "default": "./dist/display/sparkline.js"
+    },
+    "./display/item-marker": {
+      "@plainworks/source": "./src/client/display/item-marker.tsx",
+      "types": "./dist/display/item-marker.d.ts",
+      "default": "./dist/display/item-marker.js"
+    },
+    "./display/metric-value": {
+      "@plainworks/source": "./src/client/display/metric-value.tsx",
+      "types": "./dist/display/metric-value.d.ts",
+      "default": "./dist/display/metric-value.js"
+    },
+    "./display/identifier": {
+      "@plainworks/source": "./src/client/display/identifier.tsx",
+      "types": "./dist/display/identifier.d.ts",
+      "default": "./dist/display/identifier.js"
     },
     "./navigation/breadcrumbs": {
       "@plainworks/source": "./src/client/navigation/breadcrumbs.tsx",
@@ -325,6 +350,11 @@
       "types": "./dist/shell/account-menu.d.ts",
       "default": "./dist/shell/account-menu.js"
     },
+    "./shell/shortcuts-sheet": {
+      "@plainworks/source": "./src/client/shell/shortcuts-sheet.tsx",
+      "types": "./dist/shell/shortcuts-sheet.d.ts",
+      "default": "./dist/shell/shortcuts-sheet.js"
+    },
     "./data/data-table": {
       "@plainworks/source": "./src/client/data/data-table/index.ts",
       "types": "./dist/data/data-table.d.ts",
@@ -379,6 +409,11 @@
       "@plainworks/source": "./src/client/data/use-list-query-state.ts",
       "types": "./dist/data/use-list-query-state.d.ts",
       "default": "./dist/data/use-list-query-state.js"
+    },
+    "./data/selection-bar": {
+      "@plainworks/source": "./src/client/data/selection-bar.tsx",
+      "types": "./dist/data/selection-bar.d.ts",
+      "default": "./dist/data/selection-bar.js"
     },
     "./styles.css": {
       "@plainworks/source": "./src/styles.css",

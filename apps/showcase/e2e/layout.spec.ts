@@ -111,7 +111,7 @@ for (const [viewport, width, height] of viewports) {
       expect(clippedSurfaces, `${viewport}/${section} clipped surfaces`).toEqual([])
 
       if (width >= 768) {
-        const rail = page.getByRole("navigation", { name: "Primary" }).locator("..")
+        const rail = page.locator('[data-slot="app-shell-rail"]')
         const railBox = await rail.boundingBox()
         expect(railBox?.y ?? 0).toBeGreaterThan(0)
         expect((railBox?.y ?? 0) + (railBox?.height ?? 0)).toBeGreaterThanOrEqual(height)

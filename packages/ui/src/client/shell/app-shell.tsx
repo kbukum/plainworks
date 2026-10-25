@@ -3,6 +3,7 @@
 import { buttonVariants } from "@plainworks/elements/button"
 import { cn } from "@plainworks/theme"
 import { type ReactElement, type ReactNode, useEffect, useRef, useState } from "react"
+import { useControllableState } from "../../state/use-controllable-state"
 import { IconButton } from "../actions/icon-button"
 import { Drawer } from "../overlays/drawer"
 
@@ -13,6 +14,10 @@ export interface AppShellLabels {
   readonly openNavigation: string
   /** Title of the navigation drawer. */
   readonly navigation: string
+  /** Names the rail toggle while the rail is expanded. */
+  readonly collapseNavigation: string
+  /** Names the rail toggle while the rail shows icons only. */
+  readonly expandNavigation: string
 }
 
 /** English defaults for every {@link AppShellLabels} field. */
@@ -20,6 +25,8 @@ export const defaultAppShellLabels: AppShellLabels = {
   skipToContent: "Skip to main content",
   openNavigation: "Open navigation",
   navigation: "Navigation",
+  collapseNavigation: "Collapse navigation",
+  expandNavigation: "Expand navigation",
 }
 
 /** Where the shell is rendering the navigation, passed to {@link AppShellProps.navigation}. */
@@ -28,6 +35,8 @@ export interface AppShellNavigationSlot {
   readonly placement: "rail" | "drawer"
   /** Call after a link is chosen, so the drawer closes. A no-op in the rail. */
   readonly onNavigate: () => void
+  /** True when the rail shows icons only; always false in the drawer. */
+  readonly collapsed: boolean
 }
 
 /** Props for {@link AppShell}. */
@@ -39,8 +48,20 @@ export interface AppShellProps {
    * for the drawer, so give each placement a unique landmark label.
    */
   readonly navigation: (slot: AppShellNavigationSlot) => ReactNode
+  /**
+   * Renders the bottom of the navigation for a placement, such as settings, color mode and the
+   * account. It stays at the foot of the rail and the drawer.
+   */
+  readonly railFooter?: (slot: AppShellNavigationSlot) => ReactNode
   /** Global actions at the end of the header: search, notifications, color mode, account. */
   readonly actions?: ReactNode
+  /** Whether the rail shows icons only, for a controlled rail. */
+  readonly collapsed?: boolean | undefined
+  readonly defaultCollapsed?: boolean
+  /** Called when the user toggles the rail; persist it to keep the choice across visits. */
+  readonly onCollapsedChange?: ((collapsed: boolean) => void) | undefined
+  /** Icon for the rail toggle (an SVG element); injected, never imported here. */
+  readonly railIcon?: ReactNode
   /** Accessible name of the main landmark, usually the current page title. */
   readonly mainLabel: string
   /**
@@ -48,6 +69,12 @@ export interface AppShellProps {
    * landmark so keyboard and screen-reader users start at the new page.
    */
   readonly navigationKey?: string
+  /**
+   * Move focus to the main landmark when the shell mounts. Set it when the host mounts a new shell
+   * as part of a navigation, such as a tenant switch that remounts the frame, so focus lands on the
+   * new page instead of falling back to the document body.
+   */
+  readonly focusOnMount?: boolean
   /** Icon for the drawer button (an SVG element); injected, never imported here. */
   readonly menuIcon?: ReactNode
   /** The main landmark's id, targeted by the skip link. Defaults to `"main-content"`. */
@@ -59,17 +86,25 @@ export interface AppShellProps {
 }
 
 /**
- * The frame of an application: a sticky one-row header, a navigation rail beside the content on
- * wide screens that becomes a drawer on narrow ones, and the main landmark. It adapts to its own
+ * The frame of an application: an opaque sticky one-row header, a navigation rail beside the
+ * content on wide screens that becomes a drawer on narrow ones, and the main landmark. The rail
+ * collapses to icons with a named toggle that reports `aria-expanded`, and keeps a footer at its
+ * foot. It adapts to its own
  * width through a container query, not the viewport. The header never wraps: keep `actions`
  * compact, such as icon buttons with accessible names. Routing stays with the host.
  */
 export function AppShell({
   brand,
   navigation,
+  railFooter,
   actions,
+  collapsed: collapsedProp,
+  defaultCollapsed = false,
+  onCollapsedChange,
+  railIcon,
   mainLabel,
   navigationKey,
+  focusOnMount = false,
   menuIcon,
   mainId = "main-content",
   labels,
@@ -78,8 +113,20 @@ export function AppShell({
 }: AppShellProps): ReactElement {
   const copy = { ...defaultAppShellLabels, ...labels }
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [collapsed, setCollapsed] = useControllableState({
+    value: collapsedProp,
+    defaultValue: defaultCollapsed,
+    onChange: onCollapsedChange,
+  })
+  const closeDrawer = {
+    placement: "drawer",
+    onNavigate: () => setDrawerOpen(false),
+    collapsed: false,
+  } as const
+  const rail = { placement: "rail", onNavigate: () => undefined, collapsed } as const
   const mainRef = useRef<HTMLElement>(null)
-  const previousKey = useRef(navigationKey)
+  // `null` never equals a key, so a shell mounted for a navigation moves focus on its first effect.
+  const previousKey = useRef<string | undefined | null>(focusOnMount ? null : navigationKey)
 
   useEffect(() => {
     if (previousKey.current === navigationKey) return
@@ -104,7 +151,7 @@ export function AppShell({
       >
         {copy.skipToContent}
       </a>
-      <header className="sticky top-0 z-sticky flex h-14 min-w-0 flex-nowrap items-center gap-1 border-b bg-background/95 px-2 backdrop-blur @sm/shell:gap-2 @sm/shell:px-4">
+      <header className="sticky top-0 z-sticky flex h-14 min-w-0 flex-nowrap items-center gap-1 border-b bg-background px-2 @sm/shell:gap-2 @sm/shell:px-4">
         <Drawer
           side="left"
           title={copy.navigation}
@@ -118,8 +165,18 @@ export function AppShell({
             />
           }
         >
-          {navigation({ placement: "drawer", onNavigate: () => setDrawerOpen(false) })}
+          <div className="flex min-h-full flex-col gap-4">
+            <div className="flex-1">{navigation(closeDrawer)}</div>
+            {railFooter?.(closeDrawer)}
+          </div>
         </Drawer>
+        <IconButton
+          label={collapsed ? copy.expandNavigation : copy.collapseNavigation}
+          aria-expanded={!collapsed}
+          icon={railIcon ?? (collapsed ? "»" : "«")}
+          className="hidden shrink-0 @3xl/shell:inline-flex"
+          onClick={() => setCollapsed(!collapsed)}
+        />
         <div className="min-w-0 flex-1 truncate font-semibold tracking-tight">{brand}</div>
         {actions === undefined ? null : (
           <div data-slot="app-shell-actions" className="flex shrink-0 items-center gap-1">
@@ -127,9 +184,21 @@ export function AppShell({
           </div>
         )}
       </header>
-      <div className="grid min-h-0 grid-cols-1 @3xl/shell:grid-cols-[15rem_minmax(0,1fr)]">
-        <aside className="hidden border-r bg-muted/30 p-3 @3xl/shell:block">
-          {navigation({ placement: "rail", onNavigate: () => undefined })}
+      <div
+        className={cn(
+          "grid min-h-0 grid-cols-1",
+          collapsed
+            ? "@3xl/shell:grid-cols-[3.75rem_minmax(0,1fr)]"
+            : "@3xl/shell:grid-cols-[15rem_minmax(0,1fr)]",
+        )}
+      >
+        <aside
+          data-slot="app-shell-rail"
+          data-collapsed={collapsed}
+          className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] flex-col gap-4 overflow-y-auto border-r bg-muted/30 p-3 @3xl/shell:flex"
+        >
+          <div className="flex-1">{navigation(rail)}</div>
+          {railFooter?.(rail)}
         </aside>
         <main
           ref={mainRef}

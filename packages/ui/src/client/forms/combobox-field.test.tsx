@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { expectNoAxeViolations } from "@plainworks/testkit/client"
+import { expectNoAxeViolations, installLayoutApis } from "@plainworks/testkit/client"
 import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
@@ -8,13 +8,8 @@ import { ComboboxField, type ComboboxOptionGroup, matchesOption } from "./combob
 import { Form } from "./form"
 import { FormSubmit } from "./form-submit"
 
-class TestResizeObserver implements ResizeObserver {
-  observe(): void {}
-  unobserve(): void {}
-  disconnect(): void {}
-}
-globalThis.ResizeObserver = TestResizeObserver
-Element.prototype.scrollIntoView = vi.fn()
+// The list measures and scrolls itself; jsdom implements neither.
+installLayoutApis()
 
 afterEach(cleanup)
 

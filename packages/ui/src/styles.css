@@ -12,11 +12,15 @@
 @source not "./**/*.test.{ts,tsx}";
 
 /*
- * The AppShell's header is sticky and 3.5rem tall. Focus and anchor scrolling stop below it, so a
- * focused control never lands hidden under the header (WCAG 2.4.11).
+ * The AppShell's header is sticky and 3.5rem tall, and a shown SelectionBar publishes the space it
+ * covers at the foot. Focus and anchor scrolling stop clear of both, so a focused control never
+ * lands hidden under them (WCAG 2.4.11).
  */
 @layer base {
   :root:has([data-slot="app-shell"]) {
     scroll-padding-block-start: 4rem;
+  }
+  :root:has([data-slot="selection-bar"]) {
+    scroll-padding-block-end: var(--plainworks-selection-bar-clearance, 0px);
   }
 }

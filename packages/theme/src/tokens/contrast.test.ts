@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { COLOR_SCHEMES } from "../preference"
 import { contrastRatio, type Tint } from "../testing/contrast"
 import { parseRules, readStylesheet, resolveTokens } from "../testing/stylesheet"
-import { STATUS_TONES } from "./index"
+import { SERIES_COLORS, STATUS_TONES } from "./index"
 
 // WCAG 2.2 AA: 4.5:1 for text (1.4.3) and 3:1 for control boundaries and focus indicators (1.4.11).
 const TEXT = 4.5
@@ -71,6 +71,14 @@ function failures(tokens: Map<string, string>, dark = false): string[] {
       [tone, "background", TEXT],
       [tone, "card", TEXT],
       [tone, { role: tone, tint: "card" }, TEXT],
+    ]),
+    // A series marker is a filled badge: a boundary against the surfaces it sits on, and a letter
+    // on it.
+    ...SERIES_COLORS.flatMap((series): [string, Backdrop, number][] => [
+      [series, "background", NON_TEXT],
+      [series, "card", NON_TEXT],
+      [series, "popover", NON_TEXT],
+      ["series-foreground", series, TEXT],
     ]),
     ...(dark ? (["foreground", "destructive"] as const) : []).flatMap(
       (role): [string, Backdrop, number][] =>
@@ -143,6 +151,12 @@ function failures(tokens: Map<string, string>, dark = false): string[] {
 describe("token contrast (WCAG 2.2 AA)", () => {
   it.each(conditions)("$scheme dark=$dark $media meets AA", (condition) => {
     expect(failures(resolveTokens(rules, condition), condition.dark)).toEqual([])
+  })
+
+  it("reports a series color too faint to tell from the page", () => {
+    const tokens = resolveTokens(rules)
+    tokens.set("--pw-series-3", "oklch(0.9 0.05 165)")
+    expect(failures(tokens)).toContainEqual(expect.stringMatching(/^series-3 on background:/))
   })
 
   it("reports a focus ring that is too faint as a half-opacity halo", () => {

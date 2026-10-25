@@ -1,0 +1,16 @@
+{
+  "name": "doubled",
+  "exports": {
+    ".": {
+      "@plainworks/source": "../../first.ts",
+      "default": "./dist/index.js"
+    },
+    "./second": {
+      "@plainworks/source": "../../second.ts"
+    },
+    "./styles.css": {
+      "@plainworks/source": "../../styles.css"
+    },
+    "./package.json": "./package.json"
+  }
+}

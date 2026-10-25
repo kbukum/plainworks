@@ -18,6 +18,7 @@ export const build: PackageBuild = {
     card: "src/shadcn/card.tsx",
     checkbox: "src/shadcn/checkbox.tsx",
     collapsible: "src/shadcn/collapsible.tsx",
+    combobox: "src/shadcn/combobox.tsx",
     command: "src/shadcn/command.tsx",
     "context-menu": "src/shadcn/context-menu.tsx",
     dialog: "src/shadcn/dialog.tsx",

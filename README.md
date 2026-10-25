@@ -40,6 +40,7 @@ A second reference host, [`@plainworks/next-host`](./apps/next-host), assembles 
 | Authentication and OIDC with PKCE | [`@plainworks/auth`](./packages/auth) |
 | Forms, data, navigation, and feedback composites | [`@plainworks/ui`](./packages/ui) |
 | Application composition | [`@plainworks/app`](./packages/app) |
+| Safe rendering of untrusted Markdown, such as model output | [`@plainworks/markdown`](./packages/markdown) |
 | Shared test fakes and harnesses | [`@plainworks/testkit`](./packages/testkit) |
 | Reusable MSW mock-building primitives | [`@plainworks/mocks`](./packages/mocks) |
 | Development-only runtime inspector | [`@plainworks/devtools`](./packages/devtools) |
@@ -56,7 +57,7 @@ Each package owns one concern and imports only from a **strictly lower layer**.
 <!-- layer-map:diagram -->
 ```mermaid
 flowchart TD
-  L4["L4 · app · testkit · mocks · devtools · vite"] --> L3["L3 · auth · ui"]
+  L4["L4 · app · markdown · testkit · mocks · devtools · vite"] --> L3["L3 · auth · ui"]
   L3 --> L2["L2 · channel · connect · query · elements"]
   L2 --> L1["L1 · state · http · theme · observability"]
   L1 --> L0["L0 · std"]

@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Client project: the renderer under `src/client/` emits DOM elements, so it — and only it — adds
+  // the DOM libs. The neutral project (`tsconfig.src.json`) excludes it, so `.` stays DOM-free.
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"]
+  },
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
+  "include": ["src/client"]
+}

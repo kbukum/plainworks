@@ -1,0 +1,7 @@
+{
+  // Editor routing only: an editor picks the nearest `tsconfig.json`, and the package's neutral
+  // project excludes this folder. The DOM client project owns the renderer and the DOM test project
+  // owns its tests, so this points at both. `typecheck` runs those projects directly.
+  "files": [],
+  "references": [{ "path": "../../tsconfig.client.json" }, { "path": "../../tsconfig.test.json" }]
+}

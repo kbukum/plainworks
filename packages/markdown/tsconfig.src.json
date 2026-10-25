@@ -1,0 +1,7 @@
+{
+  "extends": "../../tsconfig.base.json",
+  // Neutral project: the `.` entry and its tests stay DOM-free. The renderer under `src/client/`
+  // compiles in `tsconfig.client.json`, and its tests in `tsconfig.test.json`.
+  "exclude": ["src/client"],
+  "include": ["src", "../../types/universal-web.d.ts"]
+}

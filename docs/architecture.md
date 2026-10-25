@@ -71,7 +71,7 @@ These boundaries apply to shared helper code too. Do not export generic filesyst
 <!-- layer-map:diagram -->
 ```mermaid
 flowchart TD
-  L4["L4 · app · testkit · mocks · devtools · vite"] --> L3["L3 · auth · ui"]
+  L4["L4 · app · markdown · testkit · mocks · devtools · vite"] --> L3["L3 · auth · ui"]
   L3 --> L2["L2 · channel · connect · query · elements"]
   L2 --> L1["L1 · state · http · theme · observability"]
   L1 --> L0["L0 · std"]
@@ -89,7 +89,7 @@ flowchart TD
 | **L1** | `state`, `http`, `theme`, `observability` | Reactive state, typed HTTP, the design-token substrate, and logging, error reporting, telemetry, and Web Vitals. |
 | **L2** | `channel`, `connect`, `query`, `elements` | Streaming, RPC, TanStack Query integration, and vendored UI atoms. |
 | **L3** | `auth`, `ui` | Authentication, OIDC with PKCE, forms, data, navigation, and UI composites. |
-| **L4** | `app`, `testkit`, `mocks`, `devtools`, `vite` | Application composition, shared test tooling, reusable MSW mock-building primitives, the development-only runtime inspector, and the Vite source link for consumer feedback loops. |
+| **L4** | `app`, `markdown`, `testkit`, `mocks`, `devtools`, `vite` | Application composition, safe Markdown rendering, shared test tooling, reusable MSW mock-building primitives, the development-only runtime inspector, and the Vite source link for consumer feedback loops. |
 <!-- /layer-map:table -->
 
 [`internal/boundaries/layers.json`](../internal/boundaries/layers.json) is the single source of this map. The diagram and table here, in the README, and in the contributor instructions are generated from it with `bun run sync-layer-map`, and `bun run verify` fails when they drift. dependency-cruiser reads the same file and rejects upward imports, same-layer imports, cycles, and imports from packages missing from the map.

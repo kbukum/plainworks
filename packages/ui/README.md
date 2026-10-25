@@ -46,11 +46,11 @@ Every component has its own subpath, `@plainworks/ui/<concern>/<component>`, so 
 | `display` | `date-value`, `number-value`, `status-badge`, `description-list`, `metric-card`, `sparkline` | SSR-stable `Intl` formatting, status labels, term/value lists, metric cards, and a dependency-free sparkline |
 | `navigation` | `breadcrumbs`, `nav-list` | An accessible trail and a primary nav list that marks the current page |
 | `overlays` | `modal`, `drawer` | Labelled, controllable overlays; a drawer body scrolls on its own |
-| `forms` | `form`, `form-submit`, `text-field`, `number-field`, `date-field`, `textarea-field`, `select-field`, `checkbox-field`, `switch-field`, `radio-group-field`, `field` | Schema-validated forms on React 19 Actions |
-| `data` | `data-table`, `filter-bar`, `pagination`, `list-layout`, `list-search`, `facet-panel`, `range-filter`, `use-list-query-state`, `filter-model` | A controlled table, paging, and filtering over `std/list`, plus a full list-page layout |
+| `forms` | `form`, `form-submit`, `text-field`, `number-field`, `date-field`, `textarea-field`, `select-field`, `combobox-field`, `checkbox-field`, `switch-field`, `radio-group-field`, `field` | Schema-validated forms on React 19 Actions |
+| `data` | `data-table`, `comparison-grid`, `filter-bar`, `pagination`, `list-layout`, `list-search`, `facet-panel`, `range-filter`, `use-list-query-state`, `filter-model` | A controlled table, paging, and filtering over `std/list`, plus a full list-page layout and a side-by-side comparison |
 | `theme` | `theme-mode-menu`, `theme-mode-group`, `theme-mode-options`, `accent-picker`, `motion-control`, `theme-preview`, `theme-studio` | Color-mode, accent, and motion controls, plus a full appearance editor |
 | `state` | `use-controllable-state`, `use-selection`, `use-disclosure`, `use-list-state` | DOM-free controlled/uncontrolled state hooks |
-| `clipboard` | `use-clipboard` | Copy text with a timed "copied" state |
+| `clipboard` | `use-clipboard`, `copy-button` | Copy text with a timed "copied" state, and a button that copies and announces the result |
 | `keyboard` | `use-keyboard-shortcuts` | Global shortcuts; `mod` means ⌘ or Ctrl |
 | `media` | `use-media-query` | An SSR-safe media query |
 
@@ -146,6 +146,19 @@ import { TextField } from "@plainworks/ui/forms/text-field"
 </Form>
 ```
 
+`ComboboxField` is a searchable picker for long lists. Typing filters by label and `keywords`; options can be grouped and carry a description and trailing detail. A disabled option stays visible with its `disabledReason`, so people see why they can't pick it. With `multiple`, picks show as chips with named remove buttons, and Backspace removes the last one.
+
+```tsx
+import { ComboboxField } from "@plainworks/ui/forms/combobox-field"
+
+<ComboboxField
+  name="models"
+  label="Models"
+  multiple
+  options={[{ label: "Local", options: [{ value: "llama", label: "llama3.2", description: "3B" }] }]}
+/>
+```
+
 `Pagination` and `FilterBar` are controlled: they emit the same `std/list` request shape your query already holds, so paging and filtering key the cache and hit the backend with one contract. `FilterBar` stacks its controls when narrow, announces how many filters apply, offers **Clear all**, and keeps keyboard focus in place as rows come and go.
 
 ```tsx
@@ -180,6 +193,20 @@ const orders = useOrders(list.params)
 </ListLayout>
 ```
 
+`ComparisonGrid` puts items side by side: one column per item, one row per case. Headers stay in view while it scrolls, and focus never hides under them. On a narrow screen each row becomes a card with every item's value under its name.
+
+```tsx
+import { ComparisonGrid } from "@plainworks/ui/data/comparison-grid"
+
+<ComparisonGrid
+  label="Answers"
+  corner="Prompt"
+  columns={models.map((m) => ({ id: m.id, label: m.name }))}
+  rows={cases.map((c) => ({ id: c.id, header: c.prompt }))}
+  cell={(row, column) => answer(row.id, column.id)}
+/>
+```
+
 `CommandPalette` opens from its trigger or ⌘K / Ctrl+K. Give it groups of items; it closes before it runs the one you pick.
 
 ```tsx
@@ -195,6 +222,7 @@ import { CommandPalette } from "@plainworks/ui/command/command-palette"
 The DOM-free `state` hooks (`useControllableState`, `useSelection`, `useDisclosure`, `useListState`) are the controlled/uncontrolled base the composites build on. Browser capabilities each have their own concern: `clipboard`, `keyboard`, and `media`. They wrap DOM APIs with SSR-safe defaults and clean up after themselves.
 
 ```tsx
+import { CopyButton } from "@plainworks/ui/clipboard/copy-button"
 import { useClipboard } from "@plainworks/ui/clipboard/use-clipboard"
 import { useSelection } from "@plainworks/ui/state/use-selection"
 ```

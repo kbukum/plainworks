@@ -5,8 +5,9 @@ import { describe, expect, it } from "vitest"
 // The locked shadcn atoms reference a few shadcn variable names directly in arbitrary values (for
 // example `rounded-[calc(var(--radius)-3px)]`). Those names must come from the theme, or the
 // declaration silently falls back to nothing. Variables an atom sets itself are exempt, and so are
-// the ones a Base UI primitive writes inline at runtime (the toast's stacking and swipe state).
-const PRIMITIVE_RUNTIME = /^--toast-/
+// the ones a Base UI primitive writes inline at runtime: the toast's stacking and swipe state, and
+// a positioner's anchor and available size.
+const PRIMITIVE_RUNTIME = /^--(?:toast-|anchor-(?:width|height)$|available-(?:width|height)$)/
 const shadcnDir = new URL("./shadcn/", import.meta.url)
 const themeCss = ["styles.css", "tokens.css"]
   .map((file) =>

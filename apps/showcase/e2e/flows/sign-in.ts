@@ -17,6 +17,8 @@ export const signInFlow = defineFlow({
     {
       name: "login",
       act: async (page, { signal }) => {
+        // Leave the signed-in page first, so its session check can't 401 here.
+        await page.goto("about:blank", { signal })
         await page.context().clearCookies()
         await page.goto("/", { signal })
       },

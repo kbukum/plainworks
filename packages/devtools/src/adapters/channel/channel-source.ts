@@ -83,14 +83,20 @@ export function createChannelSource(options: ChannelSourceOptions): ChannelInstr
     lastEventId: undefined as string | undefined,
   }
   const observations = new Set<Subscription>()
+  // When the rail value last changed. Frames update only the context, so a live stream neither
+  // resizes nor reorders the rail.
+  let valueAt = clock.now()
 
-  function indicate(): void {
+  function indicate(changed: boolean): void {
+    if (changed) valueAt = clock.now()
+    const context = describeTraffic(state)
     relay.indicate({
       id: "channel",
       label,
-      value: describeState(state),
+      value: describeStatus(state),
+      ...(context === undefined ? {} : { context }),
       severity: statusSeverity(state.status),
-      updatedAt: clock.now(),
+      updatedAt: valueAt,
       target: "channel",
     })
   }
@@ -108,7 +114,7 @@ export function createChannelSource(options: ChannelSourceOptions): ChannelInstr
         at: clock.now(),
         summary: { status, reconnects: state.reconnects },
       })
-      indicate()
+      indicate(true)
     })
   }
 
@@ -122,7 +128,7 @@ export function createChannelSource(options: ChannelSourceOptions): ChannelInstr
         at: clock.now(),
         summary: { kind },
       })
-      indicate()
+      indicate(true)
     })
   }
 
@@ -131,7 +137,7 @@ export function createChannelSource(options: ChannelSourceOptions): ChannelInstr
     label,
     connect(observer) {
       const unbind = relay.bind(observer)
-      observeSafely(relay, indicate)
+      observeSafely(relay, () => indicate(false))
       const handle: SourceHandle = {
         dispose() {
           if (!unbind()) return
@@ -161,7 +167,7 @@ export function createChannelSource(options: ChannelSourceOptions): ChannelInstr
     observe(channel) {
       state.status = channel.status
       state.lastEventId = channel.lastEventId
-      observeSafely(relay, indicate)
+      observeSafely(relay, () => indicate(true))
       const sampler = createEventSampler({
         intervalMs: frameIntervalMs,
         mode: "coalesce",
@@ -181,7 +187,7 @@ export function createChannelSource(options: ChannelSourceOptions): ChannelInstr
             at: clock.now(),
             summary: summarizeFrame(metadata),
           })
-          indicate()
+          indicate(false)
         })
       })
       const observation = teardown(sampler, frames, observations)
@@ -251,16 +257,22 @@ function statusSeverity(status: ChannelStatus): Severity {
   }
 }
 
-function describeState(state: {
+/** The rail value: the connection status, plus reconnects once there are any. */
+function describeStatus(state: {
   readonly status: ChannelStatus
   readonly reconnects: number
+}): string {
+  if (state.reconnects === 0) return state.status
+  return `${state.status} · ${state.reconnects} reconnect${state.reconnects === 1 ? "" : "s"}`
+}
+
+/** The inspector context: the exact frame count and the reconnection cursor, once known. */
+function describeTraffic(state: {
   readonly frames: number
   readonly lastEventId: string | undefined
-}): string {
-  const parts: string[] = [state.status]
+}): string | undefined {
+  const parts: string[] = []
   if (state.frames > 0) parts.push(`${state.frames} event${state.frames === 1 ? "" : "s"}`)
-  if (state.reconnects > 0)
-    parts.push(`${state.reconnects} reconnect${state.reconnects === 1 ? "" : "s"}`)
   if (state.lastEventId !== undefined) parts.push(`last-event-id ${state.lastEventId}`)
-  return parts.join(" · ")
+  return parts.length === 0 ? undefined : parts.join(" · ")
 }

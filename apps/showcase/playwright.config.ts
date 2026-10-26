@@ -24,8 +24,7 @@ export default defineConfig({
   // Tests are independent (each resets its own data scope), so they run in parallel.
   fullyParallel: true,
   // Each worker adds a browser on the shared host, and more than half the cores only contends for
-  // CPU without finishing sooner. CI's 3 on a 4-core runner is a first choice for now; tune it from
-  // measured CI runs.
+  // CPU without finishing sooner. CI runs 3 on each of its two shard runners (`ci.yml`).
   workers: CI ? 3 : LOCAL_WORKERS,
   // No retries: a flaky result is a defect to fix, not to hide.
   retries: 0,

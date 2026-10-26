@@ -135,7 +135,9 @@ export function createDevtoolsSession(options: DevtoolsSessionOptions = {}): Dev
   }
 
   function sanitizeIndicator(indicator: StatusIndicator): StatusIndicator {
-    return { ...indicator, value: String(sanitize(indicator.value, sanitizeOptions)) }
+    const value = String(sanitize(indicator.value, sanitizeOptions))
+    if (indicator.context === undefined) return { ...indicator, value }
+    return { ...indicator, value, context: String(sanitize(indicator.context, sanitizeOptions)) }
   }
 
   function observerFor(entry: SourceEntry): SourceObserver {

@@ -40,6 +40,7 @@ describe("GenericSourcePanel", () => {
       id: "health",
       label: "HTTP",
       value: "2 in flight",
+      context: "14 requests since load",
       severity: "info",
       updatedAt: 1_000,
     })
@@ -47,6 +48,7 @@ describe("GenericSourcePanel", () => {
     const props = panelPropsFor(harness.store.getSnapshot(), http, harness.port)
     render(<GenericSourcePanel {...props} />)
     expect(screen.getByText("2 in flight")).toBeTruthy()
+    expect(screen.getByText("14 requests since load")).toBeTruthy()
     expect(screen.getByRole("button", { name: "Clear log" })).toBeTruthy()
     expect(screen.getByText("GET /tasks")).toBeTruthy()
   })

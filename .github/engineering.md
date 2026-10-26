@@ -176,7 +176,7 @@ plainworks succeeds only if someone new can adopt it. Docs, error messages, and 
 - Code comments wrap at 100 columns (`bun run check-comments`, `bun run format-comments`). Comments explain why, not what. No commented-out code; a `TODO` or `FIXME` links a tracked issue.
 - Every public export has TSDoc: a summary, `@param` and `@returns` when not obvious, `@throws` for typed errors, and `@example` for primary entry points. Client-only and security-sensitive exports state their constraint.
 
-**Release notes.** Changesets are written for consumers: what they gain or must change, not internal mechanics.
+**Release notes.** Changesets are written for consumers: what they gain or must change, not internal mechanics. Until the first release, each package has one note, `.changeset/first-alpha-<package>.md`, that describes the package as it is now. A change edits that note when the summary no longer fits; it never adds another note. Only a new package adds its own.
 
 ## Dependencies and supply chain
 

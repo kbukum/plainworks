@@ -66,7 +66,7 @@ $ bun run verify --filter=@plainworks/<name>
 
 ## Changeset
 
-- [ ] A changeset is included (`bun run changeset`) with the correct bump, **or** this PR changes nothing publishable (tooling/docs/CI only)
+- [ ] Each changed package's `.changeset/first-alpha-<package>.md` still describes it (updated, not a new note), a new package added its note, **or** this PR changes nothing publishable (tooling/docs/CI only)
 
 ## Checklist
 

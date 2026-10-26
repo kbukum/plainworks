@@ -134,9 +134,39 @@ describe("createChannelSource", () => {
     const event = eventsOf(port).find((entry) => entry.kind === "channel.event")
     expect(event?.summary).toMatchObject({ type: "message", bytes: 14, id: "e1" })
     expect(JSON.stringify(event?.summary)).not.toContain("secret-payload")
-    expect(indicatorOf(port)?.value).toContain("2 events")
-    // The indicator surfaces the reconnection cursor promised by the public adapter docs.
-    expect(indicatorOf(port)?.value).toContain("last-event-id e2")
+    // The rail value stays the connection status; the count and the reconnection cursor promised
+    // by the public adapter docs ride along as the indicator's context.
+    expect(indicatorOf(port)?.value).toBe("open")
+    expect(indicatorOf(port)?.context).toBe("2 events · last-event-id e2")
+  })
+
+  it("keeps the rail value and its freshness still while frames arrive", () => {
+    let now = 1
+    const { port, instrumentation } = setup({
+      instance: "feed",
+      frameIntervalMs: 0,
+      clock: { now: () => now },
+    })
+    const channel = fakeChannel("open")
+    instrumentation.observe(channel)
+    expect(indicatorOf(port)).toMatchObject({ value: "open", updatedAt: 1 })
+    expect(indicatorOf(port)?.context).toBeUndefined()
+
+    now = 2
+    channel.push(frame("tick", "", "e1"))
+    expect(indicatorOf(port)).toMatchObject({
+      value: "open",
+      updatedAt: 1,
+      context: "1 event · last-event-id e1",
+    })
+
+    now = 3
+    instrumentation.instrument({} as ChannelOptions).onStatusChange?.("reconnecting")
+    expect(indicatorOf(port)).toMatchObject({
+      value: "reconnecting · 1 reconnect",
+      updatedAt: 3,
+      severity: "warn",
+    })
   })
 
   it("reports the UTF-8 byte size of a frame, not its code-unit length", () => {
@@ -181,7 +211,7 @@ describe("createChannelSource", () => {
 
     const emitted = eventsOf(port).filter((event) => event.kind === "channel.event")
     expect(emitted.length).toBeLessThan(3)
-    expect(indicatorOf(port)?.value).toContain("3 events")
+    expect(indicatorOf(port)?.context).toBe("3 events")
     subscription.unsubscribe()
   })
 

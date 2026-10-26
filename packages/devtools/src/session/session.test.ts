@@ -158,11 +158,13 @@ describe("createDevtoolsSession", () => {
       id: "auth",
       label: "Auth",
       value: "Bearer secret",
+      context: "Bearer secret",
       severity: "warn",
       updatedAt: 5,
     })
     const indicator = messages.find((m) => m.type === "indicator")
     expect(indicator?.type === "indicator" && indicator.indicator.value).toBe("[REDACTED]")
+    expect(indicator?.type === "indicator" && indicator.indicator.context).toBe("[REDACTED]")
   })
 
   it("reports dropped events when retention overflows", () => {

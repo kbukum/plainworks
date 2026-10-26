@@ -39,7 +39,7 @@ The shadcn atoms in `@plainworks/elements` are **not** a backend. They are **ven
 2. **Choose the smallest owner.** Seam adapters stay beside their contract. A driver used by one consumer stays with that consumer. Create a package only when the kit genuinely ships the integration for reuse, through `bun run gen package` and its layer entry.
 3. **Implement test-first.** Run the owner's shared conformance cases (for example `@plainworks/auth/testing`) against memory, consumer-supplied, and integration implementations. Test invalid inputs, concurrency, cancellation, limits, and cleanup. Real native/filesystem/process proof belongs in integration tests.
 4. **Wire consumers explicitly.** Keep a core-only consumer working without the integration or driver. The starter installs only the integrations it deliberately selects.
-5. **Validate distribution.** Run the affected gates and the [clean consumers](../validate/SKILL.md#clean-consumers) proof. Check dependency licenses and advisories, and add the Changeset. Never publish unless asked.
+5. **Validate distribution.** Run the affected gates and the [clean consumers](../validate/SKILL.md#clean-consumers) proof. Check dependency licenses and advisories, and update the package's Changeset if needed. Never publish unless asked.
 
 ```bash
 bun run check-shape

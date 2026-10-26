@@ -60,13 +60,13 @@ turbo run typecheck build test --filter=@plainworks/elements...   # elements and
 
 The gallery gate checks contrast, visible focus, and reduced motion on real layout. Run the full showcase `e2e` too if `ui` wrappers or theme rules changed. See [`validate`](../validate/SKILL.md) for the rest of the gates.
 
-Add a Changeset for `@plainworks/elements` (and any package you reconciled). Name the CLI version in it when you bumped it.
+Update the `@plainworks/elements` Changeset (and any package you reconciled) if its summary no longer fits ([`.changeset/README.md`](../../../.changeset/README.md)).
 
 ## Checklist
 
 - [ ] Changes under `src/shadcn/` and `shadcn.lock.json` come only from `registry:update` / `registry:add`
 - [ ] After a CLI bump, every locked atom was refreshed; the lock's `cli` matches the catalog pin
 - [ ] Fallout fixed on the deviation ladder, not in an atom; no re-added non-upstream variants
-- [ ] `registry:validate`, the scoped gates, and the gallery browser gate green; Changeset added
+- [ ] `registry:validate`, the scoped gates, and the gallery browser gate green; Changeset still fits
 
 Edit only; commits and pushes need the user's authorization.

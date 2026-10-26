@@ -40,8 +40,9 @@ Write the README for a first-time consumer: concern, import, runnable example, t
 ```bash
 bun run check-shape
 bun run verify --filter=@plainworks/<name>
-bun run changeset
 ```
+
+Add `.changeset/first-alpha-<name>.md` with a `minor` bump ([`.changeset/README.md`](../../../.changeset/README.md)).
 
 Use the [validate](../validate/SKILL.md) skill for UI or integration proof.
 
@@ -52,6 +53,6 @@ Use the [validate](../validate/SKILL.md) skill for UI or integration proof.
 - [ ] Imports only lower layers; neutral `.` free of React, DOM, and Node
 - [ ] Small typed public surface with TSDoc; README leads with a runnable example
 - [ ] Tests written first; client code accessible and responsive
-- [ ] `bun run verify --filter=@plainworks/<name>` green and a Changeset added
+- [ ] `bun run verify --filter=@plainworks/<name>` green and its `first-alpha` Changeset added
 
 Edit only; commits and pushes need the user's authorization.

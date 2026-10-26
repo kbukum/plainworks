@@ -4,7 +4,7 @@ import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/cl
 import { fakeStateSource } from "@plainworks/testkit/fakes"
 import { ThemeProvider } from "@plainworks/theme/client"
 import type { ThemePreference } from "@plainworks/theme/preference"
-import { cleanup, render, screen, within } from "@testing-library/react"
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ReactElement } from "react"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
@@ -63,7 +63,9 @@ describe("ThemeStudio", () => {
     await user.click(screen.getByRole("button", { name: "Dark" }))
     await user.click(screen.getByRole("button", { name: "Cyan" }))
     expect(source.current).toEqual({ mode: "dark", colorScheme: "cyan" })
-    expect(document.documentElement.classList.contains("theme-cyan")).toBe(true)
+    await waitFor(() =>
+      expect(document.documentElement.classList.contains("theme-cyan")).toBe(true),
+    )
   })
 
   it("announces exactly one error when a change cannot be saved", async () => {

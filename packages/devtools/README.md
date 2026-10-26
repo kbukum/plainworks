@@ -244,7 +244,7 @@ mountDevtools({ sources: [http.source, connect.source] })
 | **Channel** | Apply `instrument(options)` and call `observe(channel)`. | Status, reconnect count, frame count, last-event ID, and `{ type, bytes, id? }` frame metadata. Frame data never crosses the boundary. |
 | **Observability** | Register the log sink, reporter backend, and vital reporter beside the operational pipeline. | Already-redacted log metadata, reports, and Web Vitals. Log fields require an explicit allowlist. |
 
-HTTP and Connect use the same `ok` / `error` / `timeout` / `canceled` outcomes. Their rail indicator reads `N requests · F failed · K in flight`; it turns red on an error and recovers on the next success. Every adapter requires an explicit `instance`, isolates devtools failures from the application path, and coalesces high-frequency events with a bounded interval.
+HTTP and Connect use the same `ok` / `error` / `timeout` / `canceled` outcomes. Their rail indicator reads `N requests · F failed · K in flight`; it turns red on an error and recovers on the next success. The channel's rail indicator shows only its status (and reconnects, once there are any); the frame count and last-event ID appear as the indicator's `context` in the inspector, so a live stream never resizes or reorders the rail. Every adapter requires an explicit `instance`, isolates devtools failures from the application path, and coalesces high-frequency events with a bounded interval.
 
 ## Custom sources and commands
 

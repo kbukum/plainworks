@@ -187,6 +187,18 @@ describe("browser gate in the real Playwright runner", { timeout: 120_000 }, () 
     await expectReleased(result.data)
   })
 
+  it("shares one host across workers when the suite keeps each test's data apart itself", async () => {
+    const result = await run("shared-owned", { workers: 2, spec: "scope.spec.ts" })
+    expect(result.code, result.output).toBe(0)
+    expect(result.statuses).toEqual(Array(4).fill("passed"))
+    const owned = workers(result.data)
+    expect(owned).toHaveLength(1)
+    // No scope header reaches the host, and every test is still released.
+    const released = events(result.data, owned[0] ?? "").map((event) => event.trim())
+    expect(released).toEqual(Array(4).fill("release"))
+    await expectReleased(result.data)
+  })
+
   it("fails a test whose data scope cannot be released", async () => {
     const result = await run("shared-release-failure", { spec: "scope.spec.ts" })
     expect(result.code, result.output).toBe(1)

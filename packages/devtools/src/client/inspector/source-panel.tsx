@@ -110,6 +110,11 @@ export function GenericSourcePanel({
               <dd className="wrap-anywhere font-medium text-sm tabular-nums">
                 {entry.indicator.value}
               </dd>
+              {entry.indicator.context === undefined ? null : (
+                <dd className="wrap-anywhere text-muted-foreground text-xs tabular-nums">
+                  {entry.indicator.context}
+                </dd>
+              )}
             </div>
           ))}
         </dl>

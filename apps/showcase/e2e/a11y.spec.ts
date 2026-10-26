@@ -37,6 +37,8 @@ test("logging out returns to the signed-out login page", async ({ page }) => {
 })
 
 test("a callback without its login cookie explains itself and signs in again", async ({ page }) => {
+  // Leave the signed-in page first, so its session check can't 401 here.
+  await page.goto("about:blank")
   await page.context().clearCookies()
   // Sign-in begun on another origin, or left open past the cookie's lifetime, arrives like this.
   await page.goto("/auth/callback?code=stale&state=stale")

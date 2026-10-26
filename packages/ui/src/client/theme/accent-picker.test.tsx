@@ -4,7 +4,7 @@ import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/cl
 import { fakeStateSource } from "@plainworks/testkit/fakes"
 import { ThemeProvider } from "@plainworks/theme/client"
 import { COLOR_SCHEMES, type ThemePreference } from "@plainworks/theme/preference"
-import { cleanup, render, screen } from "@testing-library/react"
+import { cleanup, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { AccentPicker, type AccentPickerProps, defaultAccentPickerLabels } from "./accent-picker"
@@ -50,7 +50,9 @@ describe("AccentPicker", () => {
     await user.keyboard("{ArrowRight}{Enter}")
 
     expect(source.current).toEqual({ mode: "light", colorScheme: "indigo" })
-    expect(document.documentElement.classList.contains("theme-indigo")).toBe(true)
+    await waitFor(() =>
+      expect(document.documentElement.classList.contains("theme-indigo")).toBe(true),
+    )
   })
 
   it("paints dark and neutral swatches from their theme selectors", () => {

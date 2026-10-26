@@ -56,12 +56,13 @@ Mark one-time secrets and other sensitive regions with `data-ui-private`. Captur
 
 ## How it runs in parallel
 
-Each run starts **one host**, and every worker shares it. Each test gets its own **data scope**: a random id the gate sends in the `plainworks-mock-scope` request header on every page, fetch, and API request. The host serves each scope from its own seeded mock backend, so a test's reset, error switch, or mutation never reaches another test. Each test gets a fresh context, **resets first, then signs in** when configured. No saved cookie is reused against reset state. When the test ends, the gate releases its scope. CI runs one job per app.
+Each run starts **one host**, and every worker shares it. Each test gets its own **data scope**: a random id the gate sends in the `plainworks-mock-scope` request header on every page, fetch, and API request. The host serves each scope from its own seeded mock backend, so a test's reset, error switch, or mutation never reaches another test. Each test gets a fresh context, **resets first, then signs in** when configured. No saved cookie is reused against reset state. When the test ends, the gate releases its scope. CI runs one job per app shard, each with its own host.
 
 | | Showcase | Next host |
 |---|---|---|
 | Host | a bundle built once per run, served by `server.ts` | one `next dev` |
 | Workers (local / CI) | half the cores, at most 8 / 3 | half the cores, at most 8 / 2 |
+| CI shards | 2 | 1 |
 | Port | `5199` | `5299` |
 | Build output | `.gate-build/e2e-<port>` | `.next/e2e-<port>` |
 
@@ -71,7 +72,7 @@ Set `E2E_BASE_PORT` to move the port, and pass `--workers` to change the worker 
 
 Sessions and the mock identity provider are shared by the host and keyed by cookie, so scopes don't need to split them. A host that reads its mock backend from server code must forward the scope header on those reads; the Next host's task prefetch does this. A request with a malformed scope gets a `400` problem, never the shared data. Without the header, a request uses the default backend, which is what local development uses.
 
-`PLAINWORKS_GATE_ORIGIN` points a run at an already running host, and no host starts. A gate with a `dataScope` can share it across workers; without one, use a single worker. `ui:capture` uses this with one worker. `ui:capture serve --explore` starts a separate host for signed-out MCP exploration; captures never reuse it or receive saved credentials.
+`PLAINWORKS_GATE_ORIGIN` points a run at an already running host, and no host starts. A gate with a `dataScope` can share it across workers; without one, use a single worker. A `dataScope` without a `header` declares that the tests keep their own data apart, such as with a fresh tenant each, so the gate sends no scope header. `ui:capture` uses this with one worker. `ui:capture serve --explore` starts a separate host for signed-out MCP exploration; captures never reuse it or receive saved credentials.
 
 The full gallery theme matrix (every color scheme and density) runs nightly in `.github/workflows/nightly.yml`, not on each pull request. Pull requests still check every gallery group in light and dark, and the theme token contrast tests cover every scheme.
 

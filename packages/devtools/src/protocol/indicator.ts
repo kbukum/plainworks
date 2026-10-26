@@ -12,9 +12,17 @@ export interface StatusIndicator {
   readonly label: string
   /** Concise current value (`"3 stale"`, `"connected"`). Kept short for the rail. */
   readonly value: string
+  /**
+   * Longer, faster-changing context for the inspector (counts, cursors). The rail never shows it,
+   * so it can change without resizing or reordering the rail.
+   */
+  readonly context?: string
   /** How urgent the value is, driving color and sort order. */
   readonly severity: Severity
-  /** Clock time the value was produced, so the client can show and fade staleness. */
+  /**
+   * Clock time the value was produced, so the client can show and fade staleness. A change to
+   * `context` alone keeps it.
+   */
   readonly updatedAt: number
   /** Inspector view this indicator opens when activated (a panel or timeline filter id). */
   readonly target?: string

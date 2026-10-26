@@ -29,7 +29,7 @@ ls .changeset/*.md            # pending changesets (excluding README.md/config.j
 bun run changeset status      # what would be versioned, and at what bump
 ```
 
-If there are no pending changesets, **refuse to release** — nothing to ship. Every merged change should have arrived with a changeset (the `create-pr` / `validate` gates require one); if one is missing, add it now with `bun run changeset` before versioning — written in the plain, benefit-first release-note voice (what a consumer gains, not internal mechanics; see [release notes](../../engineering.md#documentation-and-consumer-experience)).
+If there are no pending changesets, **refuse to release** — nothing to ship. Each package should have its one note ([`.changeset/README.md`](../../../.changeset/README.md)); if one is missing or out of date, fix it now before versioning — written in the plain, benefit-first release-note voice (what a consumer gains, not internal mechanics; see [release notes](../../engineering.md#documentation-and-consumer-experience)).
 
 ## Step 2 — Full pre-release gate
 

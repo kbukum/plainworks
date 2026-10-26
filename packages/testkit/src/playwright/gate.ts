@@ -98,9 +98,10 @@ export interface BrowserGateOptions {
    */
   readonly signIn?: (page: Page) => Promise<void>
   /**
-   * Give each test its own data on a shared host. The gate sends a fresh scope id in `header` on
-   * every request the test's browser context and `request` fixture make, so the host can keep each
-   * test's data apart, and many workers can share one host. After the test, `release` (when set)
+   * Give each test its own data on a shared host, so many workers can share one host. With a
+   * `header`, the gate sends a fresh scope id in it on every request the test's browser context and
+   * `request` fixture make, and the host keeps each test's data apart. Without one, the suite keeps
+   * it apart itself, for example with a fresh tenant per test. After the test, `release` (when set)
    * tells the host to drop that data; a failed release fails the test.
    */
   readonly dataScope?: BrowserGateDataScope
@@ -108,9 +109,12 @@ export interface BrowserGateOptions {
 
 /** How a gate keeps each test's data apart on a shared host. See {@link BrowserGateOptions}. */
 export interface BrowserGateDataScope {
-  /** The request header that names the scope, such as `@plainworks/mocks/scope`'s header. */
-  readonly header: string
-  /** Drop the scope's data on the host. Its requests already carry the scope header. */
+  /**
+   * The request header that names the scope, such as `@plainworks/mocks/scope`'s header. Omit it
+   * when the tests themselves keep their data apart on the host; the gate then sends no header.
+   */
+  readonly header?: string
+  /** Drop the scope's data on the host. Its requests carry the scope header, when there is one. */
   readonly release?: (request: APIRequestContext) => Promise<void>
 }
 
@@ -139,7 +143,7 @@ export function createBrowserGate(options: BrowserGateOptions = {}): BrowserGate
     },
     extraHTTPHeaders: async ({ extraHTTPHeaders, gateScope }, use) => {
       await use(
-        scoped === undefined || gateScope === undefined
+        scoped?.header === undefined || gateScope === undefined
           ? extraHTTPHeaders
           : { ...extraHTTPHeaders, [scoped.header]: gateScope },
       )

@@ -43,7 +43,7 @@ Fill every section of [`../../PULL_REQUEST_TEMPLATE.md`](../../PULL_REQUEST_TEMP
 - **Breaking Changes** — alpha, so breaking changes are welcome. Say what was redesigned and what was removed, never a migration shim or deprecation path. Check **Breaking change** honestly, and use a `minor` Changeset.
 - **Engineering invariants** — tick only what holds. If a public export, entry, or shared seam changed, say so in a line (e.g. "`./client` entry added").
 - **UI** — for a change an app user can see, name the flows you checked and captured, and give one line per intended visual change. Attach a frame or contact sheet from `ui:capture` if it helps the reviewer (see `github-pr-media`).
-- **Changeset** — confirm one is included; it is the release-note source of truth, so write it in the same plain, benefit-first voice (what a consumer gains, not the internal mechanics; see [release notes](../../engineering.md#documentation-and-consumer-experience)).
+- **Changeset** — confirm each changed package's note still fits, updated in place, never a new note ([`.changeset/README.md`](../../../.changeset/README.md)); it is the release-note source of truth, so write it in the same plain, benefit-first voice (what a consumer gains, not the internal mechanics; see [release notes](../../engineering.md#documentation-and-consumer-experience)).
 - **Checklist** — tick only what is genuinely true. An unchecked box is honest signal; a falsely checked one wastes reviewer trust.
 
 Keep prose tight: no process narration, no "previously we…", no restating the diff.

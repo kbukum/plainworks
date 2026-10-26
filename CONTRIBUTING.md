@@ -19,7 +19,7 @@ Follow the [Contributor Covenant](CODE_OF_CONDUCT.md). Be respectful, constructi
 2. Write a failing behavioral test.
 3. Implement the smallest complete fix, then refactor while the test stays green. Keep unrelated refactors out of the change.
 4. Run the scoped gates for every affected package.
-5. Add a Changeset with `bun run changeset` for each publishable package change.
+5. Update the package's Changeset if its summary no longer fits ([one note per package until the first release](.changeset/README.md)).
 6. Run the full [Definition of Done](.github/engineering.md#definition-of-done) before handoff.
 
 Every change follows the [engineering standard](.github/engineering.md). Read the section that matches your change; [Testing and proof](.github/engineering.md#testing-and-proof) covers deterministic tests and the shared `@plainworks/testkit` fakes.
@@ -87,7 +87,7 @@ Use `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, or `ci`. Keep **one comm
 
 Open the pull request against `main` as a **draft**. Complete the [pull request template](.github/PULL_REQUEST_TEMPLATE.md), keep the description high-level, and let the diff carry implementation detail. Treat review comments as patterns: fix every relevant instance across the change set.
 
-Pre-1.0 breaking changes use a **minor** Changeset. Non-breaking changes use a **patch** Changeset. Changesets own package versions and release notes.
+Changesets own package versions and release notes. Until the first release each package keeps one `minor` note. After it, pre-1.0 breaking changes use a **minor** Changeset and other changes a **patch** one.
 
 Make sure CI, including the generator smoke job, is green before review. Maintainers squash-merge approved changes and handle package versioning and publishing.
 

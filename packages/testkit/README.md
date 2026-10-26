@@ -172,7 +172,7 @@ The host reads `PLAINWORKS_FIXED_NOW` to pin its own clock, so server-rendered a
 
 Commands run argv-only in a POSIX process group; descendants must not daemonize out of it. Cleanup waits for root output handles and the group. A `command` factory receives the same `{ port, origin }` as `env`.
 
-**Shared host and data scopes.** Give `createBrowserGate` a `dataScope: { header, release }` and start the host with `setupSharedGateHost` in `globalSetup`. Each test gets a random scope id (the `gateScope` fixture), and the gate sends it in `header` on every navigation, fetch, and API request. Page scripts can't read or change it. `release(request)` runs after the test, so the host can drop that scope's data. The host decides what a scope keeps apart; `@plainworks/mocks/scope` gives a mock backend per scope. testkit doesn't depend on mocks, so you pass the header name in.
+**Shared host and data scopes.** Give `createBrowserGate` a `dataScope: { header, release }` and start the host with `setupSharedGateHost` in `globalSetup`. Each test gets a random scope id (the `gateScope` fixture), and the gate sends it in `header` on every navigation, fetch, and API request. Page scripts can't read or change it. `release(request)` runs after the test, so the host can drop that scope's data. The host decides what a scope keeps apart; `@plainworks/mocks/scope` gives a mock backend per scope. testkit doesn't depend on mocks, so you pass the header name in. A suite that keeps each test's data apart itself, such as one that creates a fresh tenant per test against a real backend, omits `header`: the gate then sends nothing, still releases each scope, and still lets workers share the host.
 
 ```ts
 // e2e/support/gate-host.ts, listed in the config's `globalSetup`.

@@ -107,6 +107,21 @@ describe("validateMessageEnvelope", () => {
         },
       },
     ],
+    [
+      "indicator context",
+      {
+        type: "indicator",
+        id,
+        indicator: {
+          id: "cache",
+          label: "Cache",
+          value: "healthy",
+          context: "",
+          severity: "ok",
+          updatedAt: 1,
+        },
+      },
+    ],
     ["drop count", { type: "dropped", id: null, count: -1 }],
     ["drop source", { type: "dropped", id: { kind: "", instance: "api" }, count: 1 }],
     ["successful detail", { type: "detail-result", requestId: "r1", ok: true, seq: 1 }],

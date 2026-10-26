@@ -214,6 +214,7 @@ function requireIndicator<T extends Record<string, unknown>>(value: T): Result<T
     !isNonEmptyString(indicator.id) ||
     !isNonEmptyString(indicator.label) ||
     typeof indicator.value !== "string" ||
+    (hasProperty(indicator, "context") && !isNonEmptyString(indicator.context)) ||
     !isSeverity(indicator.severity) ||
     !isFiniteNumber(indicator.updatedAt) ||
     (hasProperty(indicator, "target") && !isNonEmptyString(indicator.target))

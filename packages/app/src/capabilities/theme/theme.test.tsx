@@ -97,7 +97,8 @@ describe("createMotionCapability", () => {
       </AppProvider>,
     )
     expect(await screen.findByRole("button", { name: "motion:reduce" })).toBeDefined()
-    expect(document.documentElement.dataset.motion).toBe("reduce")
+    // The root attribute is written in a passive effect, which can run after the text commits.
+    await waitFor(() => expect(document.documentElement.dataset.motion).toBe("reduce"))
     await expectNoAxeViolations(container)
   })
 
@@ -112,7 +113,7 @@ describe("createMotionCapability", () => {
     await userEvent.click(screen.getByRole("button", { name: "motion:system" }))
     expect(await screen.findByRole("button", { name: "motion:reduce" })).toBeDefined()
     expect(source.current).toBe("reduce")
-    expect(document.documentElement.dataset.motion).toBe("reduce")
+    await waitFor(() => expect(document.documentElement.dataset.motion).toBe("reduce"))
   })
 
   it("reports a failed save and keeps the previous choice", async () => {

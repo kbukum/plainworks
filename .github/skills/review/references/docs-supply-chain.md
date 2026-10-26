@@ -23,7 +23,7 @@ Rules: [Documentation and consumer experience](../../../engineering.md#documenta
 |---|---|
 | Atom or lock change without a matching registry run, or a CLI bump leaving old-version atoms | blocker |
 | Action pinned by tag instead of a full SHA, or a job without least-privilege `permissions` | should-fix |
-| Publishable package change without a Changeset; hand-edited version or changelog | should-fix |
+| Package's Changeset no longer describes it, or a second note added for it ([`.changeset/README.md`](../../../../.changeset/README.md)); hand-edited version or changelog | should-fix |
 | Inline version range instead of `catalog:` or `workspace:*`; a duplicated dependency | should-fix |
 | Dependency change without a matching `bun.lock` update | should-fix |
 | New dependency without a reason, a maintained upstream, a compatible license, and no open advisory, or one the platform or `std` already covers | should-fix |

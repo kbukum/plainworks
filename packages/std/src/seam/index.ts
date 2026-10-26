@@ -11,7 +11,18 @@ export type { AuthorizationRequest, Authorizer, Decision } from "./authorization
 export type { CacheInvalidateOptions, CacheInvalidator, CacheKey, CacheTarget } from "./cache"
 export { isSameCacheKey, matchesCacheTarget } from "./cache"
 export type { EventSink, Listener, PlainEvent, Subscription } from "./events"
-export type { FormSchema } from "./form"
+export type {
+  FormArraySchema,
+  FormBooleanSchema,
+  FormChoice,
+  FormFieldSchema,
+  FormNumberSchema,
+  FormObjectSchema,
+  FormSchema,
+  FormStringSchema,
+} from "./form"
+export type { FormFieldMessage, FormFieldMessages, FormFieldsValue } from "./form-fields"
+export { createFieldsForm, FormFieldsError } from "./form-fields"
 export type { CredentialRestrictions, Identity, SessionIdentity } from "./identity"
 export type { RedirectSignal } from "./redirect"
 export type {

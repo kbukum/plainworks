@@ -340,6 +340,11 @@
       "types": "./dist/forms/radio-group-field.d.ts",
       "default": "./dist/forms/radio-group-field.js"
     },
+    "./forms/schema-fields": {
+      "@plainworks/source": "./src/client/forms/schema-fields.tsx",
+      "types": "./dist/forms/schema-fields.d.ts",
+      "default": "./dist/forms/schema-fields.js"
+    },
     "./shell/app-shell": {
       "@plainworks/source": "./src/client/shell/app-shell.tsx",
       "types": "./dist/shell/app-shell.d.ts",
@@ -414,6 +419,11 @@
       "@plainworks/source": "./src/client/data/selection-bar.tsx",
       "types": "./dist/data/selection-bar.d.ts",
       "default": "./dist/data/selection-bar.js"
+    },
+    "./data/inspector-layout": {
+      "@plainworks/source": "./src/client/data/inspector-layout.tsx",
+      "types": "./dist/data/inspector-layout.d.ts",
+      "default": "./dist/data/inspector-layout.js"
     },
     "./styles.css": {
       "@plainworks/source": "./src/styles.css",

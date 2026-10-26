@@ -301,6 +301,10 @@
           "type": "registry:ui"
         },
         {
+          "path": "src/client/forms/schema-fields.tsx",
+          "type": "registry:ui"
+        },
+        {
           "path": "src/client/forms/select-field.tsx",
           "type": "registry:ui"
         },
@@ -400,6 +404,10 @@
         },
         {
           "path": "src/client/data/filter-model.ts",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/data/inspector-layout.tsx",
           "type": "registry:ui"
         },
         {

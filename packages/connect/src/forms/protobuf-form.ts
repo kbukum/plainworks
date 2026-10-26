@@ -1,17 +1,19 @@
 import type { DescMessage, MessageShape } from "@bufbuild/protobuf"
 import { createValidator, type Validator } from "@bufbuild/protovalidate"
 import { FailureDecodeError } from "@plainworks/std/failure"
-import type { FormSchema } from "@plainworks/std/seam"
+import type { FormObjectSchema, FormSchema } from "@plainworks/std/seam"
 import { controlName, protobufControlName } from "./field-path"
 import { decodeFormValues, FormValueError } from "./form-values"
+import { protobufFields } from "./protobuf-fields"
 import { violationReason } from "./violation-reason"
 
 /** A request-descriptor adapter for Form; validators are instance-owned and replaceable in tests. */
 export function createProtobufForm<D extends DescMessage>(
   schema: D,
   validator: Validator = createValidator(),
-): FormSchema<MessageShape<D>> {
+): FormSchema<MessageShape<D>> & { readonly fields: FormObjectSchema } {
   return {
+    fields: protobufFields(schema),
     fieldName: (field, format) =>
       format === "protobuf" ? protobufControlName(schema, field) : field,
     "~standard": {

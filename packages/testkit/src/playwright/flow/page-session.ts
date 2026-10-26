@@ -165,9 +165,7 @@ export function createPageFlowSession(options: PageFlowSessionOptions): PageFlow
       })
       await clearTextScale()
       if (preference.textScale !== 1) {
-        textScale = await page.addStyleTag({
-          content: `html { font-size: ${preference.textScale * 100}% !important; }`,
-        })
+        textScale = await page.evaluateHandle(applyTextScale, preference.textScale)
       }
     },
     async restoreVariant() {
@@ -219,6 +217,18 @@ export function createPageFlowSession(options: PageFlowSessionOptions): PageFlow
 }
 
 // The functions below run in the page, so each is self-contained.
+
+/** Apply the text-size variant using the host's style nonce, without relaxing its CSP. */
+export function applyTextScale(scale: number): HTMLStyleElement {
+  const style = document.createElement("style")
+  const host = document.querySelector("style[nonce], script[nonce]")
+  if (host instanceof HTMLStyleElement || host instanceof HTMLScriptElement) {
+    style.nonce = host.nonce
+  }
+  style.textContent = `html { font-size: ${scale * 100}% !important; }`
+  document.head.append(style)
+  return style
+}
 
 function applyRootState(change: {
   strip: readonly string[]

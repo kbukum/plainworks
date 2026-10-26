@@ -159,4 +159,6 @@ const [schema] = useState(() => createProtobufForm(ProfileInputSchema))
 
 Numbers, enums, timestamps, nested messages, and repeated controls decode before real Protovalidate runs. Blank optional numeric values stay absent; empty strings stay present. Cross-field rules use the summary. Invalid input is a field issue; validator compilation/evaluation failures remain operational. Controls and repeated items are each capped at 1,000, nesting at 32. Map controls are rejected explicitly.
 
+The schema also carries `fields`, the request described for `SchemaFields` from `@plainworks/ui/forms/schema-fields`: scalars, enums, enum lists, and nested messages. Bytes, maps, message lists, scalar lists, and well-known types such as timestamps have no generated control; render those by hand.
+
 The [showcase fixture](../../apps/showcase/e2e/fixtures/failures.tsx) is a complete composition. [Mocks](../mocks/README.md#standard-failures) builds standard Connect failures; `createRpcFailureCases` and `connectFailureJson` from `./testing` add serialized malformed, reordered, foreign, and descriptor-path cases.

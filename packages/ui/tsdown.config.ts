@@ -66,6 +66,7 @@ export const build: PackageBuild = {
     "forms/checkbox-field": "src/client/forms/checkbox-field.tsx",
     "forms/switch-field": "src/client/forms/switch-field.tsx",
     "forms/radio-group-field": "src/client/forms/radio-group-field.tsx",
+    "forms/schema-fields": "src/client/forms/schema-fields.tsx",
     "shell/app-shell": "src/client/shell/app-shell.tsx",
     "shell/account-menu": "src/client/shell/account-menu.tsx",
     "shell/shortcuts-sheet": "src/client/shell/shortcuts-sheet.tsx",
@@ -81,6 +82,7 @@ export const build: PackageBuild = {
     "data/range-filter": "src/client/data/range-filter.tsx",
     "data/use-list-query-state": "src/client/data/use-list-query-state.ts",
     "data/selection-bar": "src/client/data/selection-bar.tsx",
+    "data/inspector-layout": "src/client/data/inspector-layout.tsx",
   },
   // A DOM-only package: its client components render into the browser DOM.
   dom: true,

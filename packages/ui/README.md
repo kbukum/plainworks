@@ -146,6 +146,20 @@ import { TextField } from "@plainworks/ui/forms/text-field"
 </Form>
 ```
 
+`SchemaFields` renders the controls a schema's `fields` describe, so one schema both draws and checks the form. Use `createFieldsForm` from `@plainworks/std/seam` for a JSON Schema subset, such as model parameters, or `createProtobufForm` for a request message. Nested fields are named `parent.child`.
+
+```tsx
+import { createFieldsForm } from "@plainworks/std/seam"
+import { SchemaFields } from "@plainworks/ui/forms/schema-fields"
+
+const [schema] = useState(() => createFieldsForm(parameters))
+
+<Form schema={schema} onSubmit={run}>
+  <SchemaFields fields={schema.fields} />
+  <FormSubmit>Run</FormSubmit>
+</Form>
+```
+
 `ComboboxField` is a searchable picker for long lists. Typing filters by label and `keywords`; options can be grouped and carry a description and trailing detail. A disabled option stays visible with its `disabledReason`, so people see why they can't pick it. With `multiple`, picks show as chips with named remove buttons, and Backspace removes the last one.
 
 ```tsx
@@ -205,6 +219,22 @@ import { ComparisonGrid } from "@plainworks/ui/data/comparison-grid"
   rows={cases.map((c) => ({ id: c.id, header: c.prompt }))}
   cell={(row, column) => answer(row.id, column.id)}
 />
+```
+
+`InspectorLayout` opens one item of a list in a side pane. On a narrow screen the pane replaces the list until closed. The open item is controlled, so you can keep it in the URL. Opening focuses the pane heading; closing returns focus to the row control marked `data-inspector-item`. Inside the pane, the left and right arrow keys step through `items` and Escape closes.
+
+```tsx
+import { InspectorLayout } from "@plainworks/ui/data/inspector-layout"
+
+<InspectorLayout
+  list={table}
+  items={models.map((m) => m.id)}
+  openId={openId}
+  onOpenChange={setOpenId}
+  title={open?.name}
+>
+  {details}
+</InspectorLayout>
 ```
 
 `CommandPalette` opens from its trigger or ⌘K / Ctrl+K. Give it groups of items; it closes before it runs the one you pick.

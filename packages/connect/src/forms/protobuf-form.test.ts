@@ -151,3 +151,47 @@ test("nested boolean parse errors retain their full control path", async () => {
   })
   expect(result).toMatchObject({ issues: [{ path: ["addresses[0].preferred"] }] })
 })
+
+test("describes the request as schema-form fields", () => {
+  const { fields } = createProtobufForm(ProfileInputSchema)
+  expect(fields).toEqual({
+    type: "object",
+    properties: {
+      label: { type: "string", title: "Display name" },
+      minimum: { type: "integer", title: "Minimum" },
+      maximum: { type: "integer", title: "Maximum" },
+      age: { type: "integer", title: "Age" },
+      mode: {
+        type: "string",
+        title: "Mode",
+        default: "PROFILE_MODE_UNSPECIFIED",
+        oneOf: [
+          { const: "PROFILE_MODE_UNSPECIFIED", title: "Unspecified" },
+          { const: "PROFILE_MODE_ACTIVE", title: "Active" },
+        ],
+      },
+      primaryAddress: {
+        type: "object",
+        title: "Primary address",
+        properties: {
+          zip: { type: "string", title: "Postal code" },
+          preferred: { type: "boolean", title: "Preferred" },
+        },
+      },
+      nickname: { type: "string", title: "Nickname" },
+      modes: {
+        type: "array",
+        title: "Modes",
+        items: {
+          type: "string",
+          oneOf: [
+            { const: "PROFILE_MODE_UNSPECIFIED", title: "Unspecified" },
+            { const: "PROFILE_MODE_ACTIVE", title: "Active" },
+          ],
+        },
+      },
+      email: { type: "string", title: "Email" },
+      phone: { type: "string", title: "Phone" },
+    },
+  })
+})

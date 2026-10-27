@@ -47,6 +47,11 @@ describe("AppShell", () => {
     await expectNoAxeViolations(container)
   })
 
+  it("keeps page chrome under the header by giving main its own stacking context", () => {
+    render(<Shell />)
+    expect(screen.getByRole("main").classList.contains("isolate")).toBe(true)
+  })
+
   it("keeps only the navigation trigger in the header when there are no actions", () => {
     render(<Shell actions={undefined} />)
     const banner = screen.getByRole("banner")

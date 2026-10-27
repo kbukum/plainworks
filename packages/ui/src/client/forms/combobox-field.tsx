@@ -16,7 +16,7 @@ import {
   ComboboxList,
   useComboboxAnchor,
 } from "@plainworks/elements/combobox"
-import { type ReactElement, type ReactNode, useMemo, useState } from "react"
+import { type ReactElement, type ReactNode, useMemo, useRef, useState } from "react"
 import { Field } from "./field"
 import type { BaseFieldProps } from "./field-props"
 
@@ -89,6 +89,32 @@ interface SharedRootProps {
   readonly itemToStringValue: (o: ComboboxOption) => string
   readonly isItemEqualToValue: (a: ComboboxOption, b: ComboboxOption) => boolean
   readonly filter: (o: ComboboxOption, query: string) => boolean
+  readonly open: boolean
+  readonly onOpenChange: (open: boolean, details: { readonly event: Event }) => void
+}
+
+interface ListOpen {
+  readonly open: boolean
+  readonly onOpenChange: (open: boolean, details: { readonly event: Event }) => void
+  readonly close: (event: Event) => void
+}
+
+// Base UI opens a tapped input after a short touch delay and does not cancel that delay when the
+// list closes first, so a tap made before a pick could reopen the list after it. A press older than
+// the event that last closed it is ignored; both timestamps come from the same clock.
+function useListOpen(): ListOpen {
+  const [open, setOpen] = useState(false)
+  const closedAt = useRef(Number.NEGATIVE_INFINITY)
+  const close = (event: Event) => {
+    closedAt.current = Math.max(closedAt.current, event.timeStamp)
+    setOpen(false)
+  }
+  const onOpenChange = (next: boolean, details: { readonly event: Event }) => {
+    if (!next) return close(details.event)
+    if (details.event.timeStamp < closedAt.current) return
+    setOpen(true)
+  }
+  return { open, onOpenChange, close }
 }
 
 function grouped(
@@ -142,6 +168,7 @@ interface MultipleComboboxProps {
   readonly inputProps: Record<string, unknown>
   readonly pick: (value: string) => ComboboxOption | undefined
   readonly removeLabel: (label: string) => string
+  readonly close: (event: Event) => void
   readonly value: readonly string[] | undefined
   readonly defaultValue: readonly string[] | undefined
   readonly onValueChange: ((value: string[]) => void) | undefined
@@ -156,6 +183,7 @@ function MultipleCombobox({
   inputProps,
   pick,
   removeLabel,
+  close,
   value,
   defaultValue,
   onValueChange,
@@ -172,7 +200,11 @@ function MultipleCombobox({
       {...shared}
       multiple
       value={selected}
-      onValueChange={(next) => change(next.map((o) => o.value))}
+      onValueChange={(next, details) => {
+        // Close after a pick, so on a phone the list never stays over the controls below it.
+        if (next.length > current.length) close(details.event)
+        change(next.map((o) => o.value))
+      }}
     >
       {/* Fits one row of h-7 chips (28px + py-1 + border), so preselected chips never change its height. */}
       <ComboboxChips ref={anchor} className="min-h-9.5">
@@ -222,6 +254,7 @@ export function ComboboxField(props: ComboboxFieldProps): ReactElement {
   } = props
   const names = { ...defaultComboboxFieldLabels, ...labels }
   const anchor = useComboboxAnchor()
+  const popup = useListOpen()
   const flat = useMemo(
     () => (grouped(options) ? options.flatMap((g) => g.options) : options),
     [options],
@@ -241,6 +274,8 @@ export function ComboboxField(props: ComboboxFieldProps): ReactElement {
     itemToStringValue: (o: ComboboxOption) => o.value,
     isItemEqualToValue: (a: ComboboxOption, b: ComboboxOption) => a.value === b.value,
     filter: (o: ComboboxOption, query: string) => matchesOption(o, query),
+    open: popup.open,
+    onOpenChange: popup.onOpenChange,
   }
   const list = (
     <ComboboxContent anchor={props.multiple ? anchor : undefined}>
@@ -289,6 +324,7 @@ export function ComboboxField(props: ComboboxFieldProps): ReactElement {
               inputProps={inputProps}
               pick={pick}
               removeLabel={names.remove}
+              close={popup.close}
               value={props.value}
               defaultValue={props.defaultValue}
               onValueChange={props.onValueChange}

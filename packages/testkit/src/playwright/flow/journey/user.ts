@@ -161,7 +161,9 @@ export function createFlowUser(options: FlowUserOptions): FlowUser {
 
   const pickFromPopup = async (box: Locator, what: Described, option: string): Promise<void> => {
     if (input === "touch") {
-      await tap(box)
+      // A person taps the box only to open its list. Tapping an open one can toggle it shut or, in
+      // Base UI, queue a late reopen that lands after the pick.
+      if ((await box.getAttribute("aria-expanded")) !== "true") await tap(box)
       return tap((await popupOptions(page, box)).getByRole("option", { name: option, exact: true }))
     }
     await reach(box, what)

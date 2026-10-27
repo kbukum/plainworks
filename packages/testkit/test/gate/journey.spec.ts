@@ -323,6 +323,18 @@ test.describe("touch", () => {
     await expect(page.getByRole("combobox", { name: "Model" })).toHaveText("qwen2")
     expect(meter.metrics()).toMatchObject({ picks: 2, focusMoves: 0 })
   })
+
+  test("taps the option straight away when the list is already open", async ({ page }) => {
+    await serve(page)
+    const { user } = journey(page, "touch")
+    await user.visit(`${ORIGIN}/pickers`)
+    const box = page.getByRole("combobox", { name: "Model" })
+    await box.tap()
+    await expect(box).toHaveAttribute("aria-expanded", "true")
+    await user.pick(box, "phi4")
+    await expect(box).toHaveText("phi4")
+    await expect(box).toHaveAttribute("aria-expanded", "false")
+  })
 })
 
 test.describe("guarded journey page", () => {

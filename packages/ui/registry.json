@@ -301,6 +301,10 @@
           "type": "registry:ui"
         },
         {
+          "path": "src/client/forms/rating-control.tsx",
+          "type": "registry:ui"
+        },
+        {
           "path": "src/client/forms/schema-fields.tsx",
           "type": "registry:ui"
         },
@@ -318,6 +322,14 @@
         },
         {
           "path": "src/client/forms/textarea-field.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/keyboard/shortcut-hint.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/keyboard/use-keyboard-shortcuts.ts",
           "type": "registry:ui"
         }
       ]

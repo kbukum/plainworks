@@ -171,6 +171,7 @@ export const CONCERNS: readonly Concern[] = [
       "checkbox-field",
       "switch-field",
       "radio-group-field",
+      "rating-control",
       "schema-fields",
     ],
     internal: ["client/forms/field-props.ts"],

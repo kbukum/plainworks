@@ -66,6 +66,7 @@ export const build: PackageBuild = {
     "forms/checkbox-field": "src/client/forms/checkbox-field.tsx",
     "forms/switch-field": "src/client/forms/switch-field.tsx",
     "forms/radio-group-field": "src/client/forms/radio-group-field.tsx",
+    "forms/rating-control": "src/client/forms/rating-control.tsx",
     "forms/schema-fields": "src/client/forms/schema-fields.tsx",
     "shell/app-shell": "src/client/shell/app-shell.tsx",
     "shell/account-menu": "src/client/shell/account-menu.tsx",

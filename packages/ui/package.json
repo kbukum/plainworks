@@ -340,6 +340,11 @@
       "types": "./dist/forms/radio-group-field.d.ts",
       "default": "./dist/forms/radio-group-field.js"
     },
+    "./forms/rating-control": {
+      "@plainworks/source": "./src/client/forms/rating-control.tsx",
+      "types": "./dist/forms/rating-control.d.ts",
+      "default": "./dist/forms/rating-control.js"
+    },
     "./forms/schema-fields": {
       "@plainworks/source": "./src/client/forms/schema-fields.tsx",
       "types": "./dist/forms/schema-fields.d.ts",

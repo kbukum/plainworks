@@ -205,7 +205,9 @@ export function AppShell({
           id={mainId}
           tabIndex={-1}
           aria-label={mainLabel}
-          className="min-w-0 px-4 py-6 outline-none @sm/shell:px-6"
+          // Its own stacking context: sticky page chrome, such as a selection bar, scrolls under
+          // the header.
+          className="isolate min-w-0 px-4 py-6 outline-none @sm/shell:px-6"
         >
           {children}
         </main>

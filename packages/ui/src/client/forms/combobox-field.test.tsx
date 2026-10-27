@@ -184,6 +184,29 @@ describe("ComboboxField", () => {
     expect(onValueChange).toHaveBeenLastCalledWith(["qwen"])
   })
 
+  it("closes the list after a pick in multiple mode", async () => {
+    const user = userEvent.setup()
+    render(<ComboboxField name="models" label="Models" multiple options={groups} />)
+    const input = screen.getByRole("combobox", { name: "Models" })
+    await user.click(input)
+    await user.click(await screen.findByRole("option", { name: /qwen2\.5/ }))
+    await waitFor(() => expect(screen.queryByRole("listbox")).toBeNull())
+    expect(input.getAttribute("aria-expanded")).toBe("false")
+    await user.click(input)
+    expect(await screen.findByRole("option", { name: /llama/ })).toBeDefined()
+  })
+
+  it("stays closed after a pick when a touch press made before it would reopen it late", async () => {
+    const user = userEvent.setup()
+    render(<ComboboxField name="models" label="Models" multiple options={groups} />)
+    const input = screen.getByRole("combobox", { name: "Models" })
+    await user.type(input, "qwen")
+    await user.pointer({ keys: "[TouchA]", target: input })
+    await user.click(await screen.findByRole("option", { name: /qwen2\.5/ }))
+    await new Promise((resolve) => setTimeout(resolve, 200))
+    expect(screen.queryByRole("listbox")).toBeNull()
+  })
+
   it("removes the last chip with Backspace in an empty input", async () => {
     const user = userEvent.setup()
     const onValueChange = vi.fn()

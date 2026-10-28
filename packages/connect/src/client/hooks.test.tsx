@@ -14,6 +14,7 @@ import {
   TransportProvider,
   useInfiniteQuery,
   useMutation,
+  useQueries,
   useQuery,
   useSuspenseInfiniteQuery,
   useSuspenseQuery,
@@ -156,6 +157,22 @@ describe("client hooks", () => {
     await userEvent.setup().click(screen.getByRole("button", { name: "Save" }))
     await waitFor(() => expect(screen.getByText("unavailable")).toBeDefined())
     expect(fake.calls).toHaveLength(1)
+  })
+
+  test("useQueries reads each input once, in order, without Query retries", async () => {
+    const fake = createFakeConnectTransport(EchoService).unary(echo, (req) => {
+      if (req.message === "b") throw new ConnectError("Missing", Code.NotFound)
+      return { message: req.message.toUpperCase() }
+    })
+    function View() {
+      const results = useQueries(echo, [{ message: "a" }, { message: "b" }, { message: "c" }])
+      return (
+        <output>{results.map((r) => r.data?.message ?? r.error?.code ?? "…").join(" ")}</output>
+      )
+    }
+    renderWithProviders(fake, <View />)
+    expect(await screen.findByText("A not_found C")).toBeDefined()
+    expect(fake.calls).toHaveLength(3)
   })
 
   test("useQuery resolves against the fake transport through TransportProvider", async () => {

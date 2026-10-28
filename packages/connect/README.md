@@ -124,6 +124,8 @@ function Echo() {
 // Wrap with <TransportProvider transport={transport}> and TanStack Query's <QueryClientProvider>.
 ```
 
+`useQueries(method, inputs)` reads one method for each input, in order, with the same no-retry rule; use it for per-item reads whose count is known only at render time, and bound the inputs yourself.
+
 `TransportProvider` is connect-query's own DI context — provide the kit's transport through it, never a module-level client.
 
 ## Testing

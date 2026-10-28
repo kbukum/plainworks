@@ -9,7 +9,7 @@ export default testConfig({
       "src/connect/gen/**",
       "src/playwright/gate.ts",
       "src/playwright/checks/{animation,axe,focus,layout,layout-facts}.ts",
-      "src/playwright/flow/{page-session,runner}.ts",
+      "src/playwright/flow/{page-session,runner,journey/user}.ts",
     ],
   },
 })

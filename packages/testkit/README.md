@@ -246,7 +246,7 @@ Nothing is compared with a committed screenshot: every check is structural, so a
 
 #### Journeys and budgets
 
-A flow with a `budget` is a **journey**: it measures what the task costs its user and fails when the cost grows. Its `act` steps work through `user`, which drives the page the way the device's user does: Tab and Enter or Space on a desktop, taps on a touch device.
+A flow with a `budget` is a **journey**: it measures what the task costs its user and fails when the cost grows. Its `act` steps work through `user`, which drives the page the way the device's user does: Tab and Enter or Space on a desktop, with the arrow keys inside a roving-focus group such as a toolbar, and taps on a touch device.
 
 ```ts
 const firstRun = defineFlow({

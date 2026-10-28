@@ -130,7 +130,7 @@ import { DataTable } from "@plainworks/ui/data/data-table"
 
 `DataTable` owns only view state (sort, selection, open row details) and never reorders `rows`, so remote or paged data stays a prop you control. On a narrow container, `priority: "low"` columns move into a per-row **details** disclosure, so no value is lost on a phone. Name rows with `getRowLabel`; copy and icons are injected through `labels`/`icons`.
 
-`Form` validates on submit with any Standard Schema validator and passes the validated value to `onSubmit`; each field wires its own label, description, and error state.
+`Form` validates on submit with any Standard Schema validator and passes the validated value to `onSubmit`; each field wires its own label, description, and error state. Give the form a `label` to make it a named landmark.
 
 Actions may return or throw `RemoteFailure`. Field violations and request-level errors render without clearing entered values; operational failures use the summary. `onFailure` connects to the app's shared handler. For generated protobuf requests, pass [`createProtobufForm`](../connect/README.md#protobuf-forms) as the schema: it runs real Protovalidate and translates server paths through the descriptor. `ui` depends only on the lower `FormSchema` seam, not the validator library.
 

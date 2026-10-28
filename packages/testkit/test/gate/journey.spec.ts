@@ -101,6 +101,16 @@ const WIDGETS = `
     <label><input type="radio" name="env" value="local" checked> Local</label>
     <label><input type="radio" name="env" value="ci"> CI</label>
   </fieldset>
+  <div role="group" aria-label="Rate" id="rate">
+    <button type="button" aria-pressed="false">Bad</button>
+    <button type="button" aria-pressed="false" tabindex="-1">Okay</button>
+    <button type="button" aria-pressed="false" tabindex="-1">Good</button>
+  </div>
+  <div role="toolbar" aria-label="Wrap" id="wrap">
+    <button type="button">First</button>
+    <button type="button" tabindex="-1">Last</button>
+    <button type="button" tabindex="-1">Off the ring</button>
+  </div>
 </main>
 <script>
   customElements.define("shadow-tools", class extends HTMLElement {
@@ -154,6 +164,30 @@ const WIDGETS = `
     } else return
     event.preventDefault()
     gateOptions.forEach((opt, i) => opt.toggleAttribute("data-highlighted", i === gateActive))
+  })
+  // A roving-focus button group: one Tab stop, the arrow keys move between its buttons.
+  const rates = [...document.querySelectorAll("#rate button")]
+  rates.forEach((rate, i) => {
+    rate.addEventListener("click", () => rates.forEach((r) => r.setAttribute("aria-pressed", String(r === rate))))
+    rate.addEventListener("keydown", (event) => {
+      const next = event.key === "ArrowRight" ? Math.min(i + 1, rates.length - 1)
+        : event.key === "ArrowLeft" ? Math.max(i - 1, 0) : -1
+      if (next === -1) return
+      event.preventDefault()
+      rates.forEach((r, j) => r.tabIndex = j === next ? 0 : -1)
+      rates[next].focus()
+    })
+  })
+  // A toolbar whose arrows wrap around its first two buttons and never reach the third.
+  const ring = [...document.querySelectorAll("#wrap button")].slice(0, 2)
+  ring.forEach((item, i) => {
+    item.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return
+      event.preventDefault()
+      const next = ring[(i + (event.key === "ArrowRight" ? 1 : ring.length - 1)) % ring.length]
+      ring.forEach((r) => r.tabIndex = r === next ? 0 : -1)
+      next.focus()
+    })
   })
 </script>`
 
@@ -298,6 +332,38 @@ test.describe("keyboard", () => {
     )
     await expect(page.getByRole("radio", { name: "CI" })).toBeChecked()
     expect(findingChecks(meter)).toEqual([])
+  })
+
+  test("reaches a button of a roving-focus group with the arrow keys from the group's Tab stop", async ({
+    page,
+  }) => {
+    await serve(page)
+    const { user, meter } = journey(page, "keyboard")
+    await user.visit(`${ORIGIN}/widgets`)
+    await user.activate(
+      page.getByRole("group", { name: "Rate" }).getByRole("button", { name: "Good" }),
+    )
+    await expect(page.getByRole("button", { name: "Good" })).toHaveAttribute("aria-pressed", "true")
+    expect(findingChecks(meter)).toEqual([])
+    await user.activate(
+      page.getByRole("group", { name: "Rate" }).getByRole("button", { name: "Bad" }),
+    )
+    await expect(page.getByRole("button", { name: "Bad" })).toHaveAttribute("aria-pressed", "true")
+    expect(findingChecks(meter)).toEqual([])
+  })
+
+  test("stops arrowing once a wrapping group comes back around without reaching the target", async ({
+    page,
+  }) => {
+    await serve(page)
+    const { user, meter } = journey(page, "keyboard")
+    await user.visit(`${ORIGIN}/widgets`)
+    await user.activate(page.getByRole("button", { name: "Off the ring" }))
+    expect(findingChecks(meter)).toEqual([
+      'keyboard: button "Off the ring" is not reachable with Tab',
+    ])
+    // Every Tab stop once, plus one lap of the two-button ring; not a press per remaining budget.
+    expect(meter.metrics().focusMoves).toBeLessThan(40)
   })
 
   test("refuses to pick from a control that offers no options", async ({ page }) => {

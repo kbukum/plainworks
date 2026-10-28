@@ -6,8 +6,8 @@ import type { JourneyMeter } from "./meter"
 
 /**
  * How the device's user drives the page: `keyboard` on a device without touch, where every control
- * is reached with Tab and used with Enter, Space, and the arrow keys; `touch` on a phone or tablet,
- * where controls are tapped.
+ * is reached with Tab (and the arrow keys inside a roving-focus group) and used with Enter, Space,
+ * and the arrow keys; `touch` on a phone or tablet, where controls are tapped.
  */
 export type FlowInput = "keyboard" | "touch"
 
@@ -41,7 +41,8 @@ export interface FlowUserOptions {
   readonly signal: AbortSignal
 }
 
-// A safety cap on one Tab walk; the walk normally ends when focus comes back to where it began.
+// A safety cap on one Tab or arrow walk; a walk normally ends when focus comes back to where it
+// began or stops moving.
 const MAX_TAB_STOPS = 1_000
 
 // Space toggles these; Enter activates the rest (WAI-ARIA APG keyboard interface).
@@ -63,6 +64,40 @@ export function createFlowUser(options: FlowUserOptions): FlowUser {
     if (focusMove) meter.moveFocus(1)
   }
 
+  // Inside a roving-focus composite (a toolbar, a toggle group, a tab list) only one item is a Tab
+  // stop; a keyboard user lands on it and moves with the arrow keys (WAI-ARIA APG). From focus in
+  // the target's composite, press toward the target until it holds focus, focus stops moving, or a
+  // wrapping group brings focus back to where the walk began.
+  const arrowWithin = async (target: Locator): Promise<boolean> => {
+    if ((await target.evaluate(rovingKey)) === null) return false
+    const start = await page.evaluateHandle(deepActiveElement)
+    try {
+      for (let moves = 0; moves < MAX_TAB_STOPS; moves++) {
+        const key = await target.evaluate(rovingKey)
+        if (key === null) return false
+        const before = await page.evaluateHandle(deepActiveElement)
+        let after: JSHandle | undefined
+        try {
+          await press(key, true)
+          if (await holdsFocus(target)) return true
+          after = await page.evaluateHandle(deepActiveElement)
+          const [still, lapped] = await page.evaluate(([a, b, s]) => [a === b, b === s], [
+            before,
+            after,
+            start,
+          ] as const)
+          if (still || lapped) return false
+        } finally {
+          await before.dispose()
+          await after?.dispose()
+        }
+      }
+      return false
+    } finally {
+      await start.dispose()
+    }
+  }
+
   // Walk Tab forward from wherever focus is until the target holds focus, or focus comes back to
   // the first stop: one full cycle, shadow trees and focus traps included.
   const tabTo = async (target: Locator): Promise<boolean> => {
@@ -70,7 +105,7 @@ export function createFlowUser(options: FlowUserOptions): FlowUser {
     try {
       for (let moves = 0; moves < MAX_TAB_STOPS; moves++) {
         await press("Tab", true)
-        if (await holdsFocus(target)) return true
+        if ((await holdsFocus(target)) || (await arrowWithin(target))) return true
         const here = await page.evaluateHandle(deepActiveElement)
         if (first === undefined) {
           first = here
@@ -280,6 +315,36 @@ function deepActiveElement(): Element | null {
   let focused = document.activeElement
   while (focused?.shadowRoot?.activeElement) focused = focused.shadowRoot.activeElement
   return focused
+}
+
+/**
+ * The arrow key that moves focus toward `element` when focus sits on another item of the same
+ * roving-focus composite and `element` is not a Tab stop itself; null otherwise.
+ */
+function rovingKey(element: Element): string | null {
+  if (!(element instanceof HTMLElement || element instanceof SVGElement) || element.tabIndex >= 0) {
+    return null
+  }
+  let focused = document.activeElement
+  while (focused?.shadowRoot?.activeElement) focused = focused.shadowRoot.activeElement
+  const composite = element.closest(
+    "[role=toolbar], [role=group], [role=radiogroup], [role=tablist], [role=menubar], [role=menu]",
+  )
+  if (
+    focused === null ||
+    focused === element ||
+    composite === null ||
+    !composite.contains(focused)
+  ) {
+    return null
+  }
+  const after = (focused.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
+  const orientation =
+    composite.getAttribute("aria-orientation") ??
+    (composite.getAttribute("role") === "menu" ? "vertical" : "horizontal")
+  if (orientation === "vertical") return after ? "ArrowDown" : "ArrowUp"
+  const rtl = getComputedStyle(composite).direction === "rtl"
+  return after !== rtl ? "ArrowRight" : "ArrowLeft"
 }
 
 /** Where the active option and the wanted one sit among `options`; -1 when absent. */

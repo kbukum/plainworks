@@ -191,9 +191,39 @@ function collectLayoutFacts(limits: { maxElements: number; maxTracked: number })
       y: scroller.scrollHeight - scroller.scrollTop - height,
     },
   })
+  // A sticky element is pinned only while it is stuck at one of its inset edges of the scrollport
+  // it sticks in; otherwise it moves with that scrollport like any other content.
+  // Hidden, auto and scroll make a scrollport sticky elements stick in; clip only clips.
+  const scrollport = (overflow: string): boolean => overflow !== "visible" && overflow !== "clip"
+  const stuck = (node: Element, style: CSSStyleDeclaration): boolean => {
+    let port = { top: 0, left: 0, bottom: viewportHeight, right: viewportWidth }
+    for (let up = node.parentElement; up !== null; up = up.parentElement) {
+      if (up === document.body || up === document.documentElement) break
+      const own = getComputedStyle(up)
+      if (scrollport(own.overflowX) || scrollport(own.overflowY)) {
+        const box = up.getBoundingClientRect()
+        port = {
+          top: box.top + up.clientTop,
+          left: box.left + up.clientLeft,
+          bottom: box.top + up.clientTop + up.clientHeight,
+          right: box.left + up.clientLeft + up.clientWidth,
+        }
+        break
+      }
+    }
+    const box = node.getBoundingClientRect()
+    const at = (inset: string, edge: number, from: number): boolean =>
+      inset !== "auto" && Math.abs(edge - from) <= SLACK
+    return (
+      at(style.top, box.top, port.top + px(style.top)) ||
+      at(style.bottom, box.bottom, port.bottom - px(style.bottom)) ||
+      at(style.left, box.left, port.left + px(style.left)) ||
+      at(style.right, box.right, port.right - px(style.right))
+    )
+  }
   // Every scroller focus moves to bring the control into view, nearest first: each scrolling
-  // ancestor, then the document. Fixed or sticky chrome does not move with the scrollers outside
-  // it, so the chain stops there.
+  // ancestor, then the document. Fixed chrome, and sticky chrome while stuck, does not move with
+  // the scrollers outside it, so the chain stops there.
   const scrollportsOf = (element: Element): Scrollport[] => {
     const ports: Scrollport[] = []
     for (let node = element.parentElement; node !== null; node = node.parentElement) {
@@ -214,7 +244,9 @@ function collectLayoutFacts(limits: { maxElements: number; maxTracked: number })
           ),
         )
       }
-      if (style.position === "fixed" || style.position === "sticky") return ports
+      if (style.position === "fixed" || (style.position === "sticky" && stuck(node, style))) {
+        return ports
+      }
     }
     const scroller = document.scrollingElement ?? document.documentElement
     ports.push(

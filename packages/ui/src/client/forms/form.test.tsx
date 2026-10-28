@@ -222,6 +222,15 @@ describe("Form", () => {
     await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({ email: "hi" }))
   })
 
+  it("is a named form landmark when given a label", () => {
+    render(
+      <Form label="Sign in" onSubmit={vi.fn()}>
+        <TextField name="email" label="Email" />
+      </Form>,
+    )
+    expect(screen.getByRole("form", { name: "Sign in" })).toBeDefined()
+  })
+
   it("has no accessibility violations", async () => {
     const { container } = render(
       <Form onSubmit={vi.fn()}>

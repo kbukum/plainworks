@@ -30,6 +30,8 @@ export const defaultFormLabels: FormLabels = {
 
 /** Props common to both {@link Form} variants. */
 interface FormBaseProps {
+  /** Accessible name; a named form is a `form` landmark that assistive technology can jump to. */
+  readonly label?: string | undefined
   /** App-level reporting/terminal-auth handling; field violations stay in the form. */
   readonly onFailure?: (failure: RemoteFailure) => void
   /** Overrides for any subset of the user-facing strings. */
@@ -80,7 +82,7 @@ export type FormProps<Output = FormValues> = SchemaFormProps<Output> | Schemales
  * errors, and no module-level state, so two forms never share validation.
  */
 export function Form<Output = FormValues>(props: FormProps<Output>): ReactElement {
-  const { labels: labelOverrides, children, className, ref } = props
+  const { label, labels: labelOverrides, children, className, ref } = props
   const labels = { ...defaultFormLabels, ...labelOverrides }
 
   const [errors, setErrors] = useState<FieldErrors>({})
@@ -159,6 +161,7 @@ export function Form<Output = FormValues>(props: FormProps<Output>): ReactElemen
     <FormContext value={{ errors, pending }}>
       <form
         ref={ref}
+        aria-label={label}
         onSubmit={handleSubmit}
         noValidate
         className={cn("flex flex-col gap-6", className)}

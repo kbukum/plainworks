@@ -126,6 +126,7 @@ export const CONCERNS: readonly Concern[] = [
       "description-list",
       "metric-card",
       "sparkline",
+      "bar-chart",
       "item-marker",
       "metric-value",
       "identifier",

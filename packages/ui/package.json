@@ -205,6 +205,11 @@
       "types": "./dist/display/sparkline.d.ts",
       "default": "./dist/display/sparkline.js"
     },
+    "./display/bar-chart": {
+      "@plainworks/source": "./src/client/display/bar-chart.tsx",
+      "types": "./dist/display/bar-chart.d.ts",
+      "default": "./dist/display/bar-chart.js"
+    },
     "./display/item-marker": {
       "@plainworks/source": "./src/client/display/item-marker.tsx",
       "types": "./dist/display/item-marker.d.ts",

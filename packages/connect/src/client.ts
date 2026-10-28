@@ -8,6 +8,7 @@ export {
   TransportProvider,
   useInfiniteQuery,
   useMutation,
+  useQueries,
   useQuery,
   useSuspenseInfiniteQuery,
   useSuspenseQuery,

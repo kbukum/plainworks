@@ -129,6 +129,10 @@
           "type": "registry:ui"
         },
         {
+          "path": "src/client/display/bar-chart.tsx",
+          "type": "registry:ui"
+        },
+        {
           "path": "src/client/display/date-value.tsx",
           "type": "registry:ui"
         },

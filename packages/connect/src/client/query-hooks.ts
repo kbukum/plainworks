@@ -15,6 +15,7 @@ import {
   type UseQueryResult,
   type UseSuspenseQueryOptions,
   type UseSuspenseQueryResult,
+  useQueries as useTanStackQueries,
   useQuery as useTanStackQuery,
   useSuspenseQuery as useTanStackSuspenseQuery,
 } from "@tanstack/react-query"
@@ -57,4 +58,25 @@ export function useSuspenseQuery<I extends DescMessage, O extends DescMessage, S
     ...createQueryOptions(schema, input, { ...options, transport }),
     retry: false,
   })
+}
+
+/**
+ * Reads one unary method for each input, in input order: one result per input, each cached under
+ * its own key and never retried by Query, the same as {@link useQuery}. For a list of per-item
+ * reads whose length is only known at render time; the caller bounds how many inputs it passes.
+ */
+export function useQueries<I extends DescMessage, O extends DescMessage, S = MessageShape<O>>(
+  schema: DescMethodUnary<I, O>,
+  inputs: readonly MessageInitShape<I>[],
+  options: QueryOptions<O, S> = {},
+): UseQueryResult<S, RpcError>[] {
+  const contextTransport = useTransport()
+  const transport = options.transport ?? contextTransport
+  return useTanStackQueries({
+    queries: inputs.map((input) => ({
+      ...options,
+      ...createQueryOptions(schema, input, { ...options, transport }),
+      retry: false as const,
+    })),
+  }) as UseQueryResult<S, RpcError>[]
 }

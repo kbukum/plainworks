@@ -39,6 +39,7 @@ export const build: PackageBuild = {
     "display/description-list": "src/client/display/description-list.tsx",
     "display/metric-card": "src/client/display/metric-card.tsx",
     "display/sparkline": "src/client/display/sparkline.tsx",
+    "display/bar-chart": "src/client/display/bar-chart.tsx",
     "display/item-marker": "src/client/display/item-marker.tsx",
     "display/metric-value": "src/client/display/metric-value.tsx",
     "display/identifier": "src/client/display/identifier.tsx",

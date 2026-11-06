@@ -155,6 +155,11 @@
       "types": "./dist/feedback/loading-state.d.ts",
       "default": "./dist/feedback/loading-state.js"
     },
+    "./feedback/progress-tray": {
+      "@plainworks/source": "./src/client/feedback/progress-tray.tsx",
+      "types": "./dist/feedback/progress-tray.d.ts",
+      "default": "./dist/feedback/progress-tray.js"
+    },
     "./feedback/spinner": {
       "@plainworks/source": "./src/client/feedback/spinner.tsx",
       "types": "./dist/feedback/spinner.d.ts",
@@ -344,6 +349,11 @@
       "@plainworks/source": "./src/client/forms/radio-group-field.tsx",
       "types": "./dist/forms/radio-group-field.d.ts",
       "default": "./dist/forms/radio-group-field.js"
+    },
+    "./forms/option-picker": {
+      "@plainworks/source": "./src/client/forms/option-picker.tsx",
+      "types": "./dist/forms/option-picker.d.ts",
+      "default": "./dist/forms/option-picker.js"
     },
     "./forms/rating-control": {
       "@plainworks/source": "./src/client/forms/rating-control.tsx",

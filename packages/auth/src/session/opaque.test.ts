@@ -2,13 +2,20 @@ import { fixedClock, manualClock } from "@plainworks/std/time"
 import type { WebFetch, WebRequestInit, WebResponse } from "@plainworks/std/web"
 import { deferred, flushMicrotasks, manualDelay } from "@plainworks/testkit"
 import { describe, expect, test, vi } from "vitest"
-import { createAuthStore } from "./store"
+import { AuthError } from "../errors"
+import { authFailureResponse } from "../server/bff/failure"
+import { createAuthStore, type SessionSnapshot } from "./store"
 
 const authenticated = {
   status: "authenticated",
   identity: { subject: "user-123", kind: "user", restrictions: { mode: "unrestricted" } },
   expiresAt: "2099-01-01T01:00:00Z",
   csrfToken: "csrf-proof",
+}
+
+const signedIn: SessionSnapshot = {
+  status: "authenticated",
+  identity: { subject: "user-123", kind: "user", restrictions: { mode: "unrestricted" } },
 }
 
 describe("opaque browser sessions", () => {
@@ -94,10 +101,11 @@ describe("opaque browser sessions", () => {
     session.close()
   })
 
-  test("operational status failure fails closed and cancels protected work", async () => {
+  test("an operational status failure cancels protected work but keeps the user, unconfirmed", async () => {
     let unavailable = false
     const session = createAuthStore({
       clock: fixedClock("2099-01-01T00:00:00Z"),
+      random: { next: () => 0 },
       fetch: async () => {
         if (unavailable) return new Response(null, { status: 503 })
         return Response.json(authenticated)
@@ -108,8 +116,99 @@ describe("opaque browser sessions", () => {
     unavailable = true
     await expect(session.revalidate()).rejects.toThrow()
     expect(lease.signal.aborted).toBe(true)
-    expect(session.getSnapshot().status).toBe("unauthenticated")
+    expect(session.getSnapshot()).toMatchObject({
+      status: "unconfirmed",
+      identity: authenticated.identity,
+    })
+    expect(session.getSnapshot().expiresAt).toBeUndefined()
     lease.release()
+    session.close()
+  })
+
+  test("a status check that times out once is retried and keeps the user signed in", async () => {
+    const delay = manualDelay()
+    const first = deferred<WebResponse>()
+    const fetch = vi
+      .fn<WebFetch>()
+      .mockImplementationOnce(async () => first.promise)
+      .mockImplementation(async () => Response.json(authenticated))
+    const session = createAuthStore({
+      clock: fixedClock("2099-01-01T00:00:00Z"),
+      delay: delay.delay,
+      random: { next: () => 0.5 },
+      fetch,
+      initialSnapshot: signedIn,
+    })
+    const confirmed = session.confirm()
+    await flushMicrotasks()
+    delay.fireWhere((ms) => ms === 1000)
+    await flushMicrotasks()
+    expect(session.getSnapshot().status).toBe("authenticated")
+    delay.fireWhere((ms) => ms < 1000)
+    await confirmed
+    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(session.getSnapshot().status).toBe("authenticated")
+    await expect(session.getAuthHeader()).resolves.toEqual({ "X-CSRF-Token": "csrf-proof" })
+    session.close()
+  })
+
+  test("an unconfirmed session recovers when a later status check answers", async () => {
+    let down = true
+    const fetch = vi.fn<WebFetch>(async () => {
+      if (down) throw new TypeError("network down")
+      return Response.json(authenticated)
+    })
+    const session = createAuthStore({
+      clock: fixedClock("2099-01-01T00:00:00Z"),
+      random: { next: () => 0 },
+      fetch,
+      initialSnapshot: signedIn,
+    })
+    await expect(session.confirm()).rejects.toThrow()
+    expect(fetch).toHaveBeenCalledTimes(3)
+    expect(session.getSnapshot()).toMatchObject({
+      status: "unconfirmed",
+      identity: authenticated.identity,
+    })
+    down = false
+    await expect(session.protectedSession.acquire()).resolves.toMatchObject({
+      headers: { "X-CSRF-Token": "csrf-proof" },
+    })
+    expect(session.getSnapshot().status).toBe("authenticated")
+    session.close()
+  })
+
+  test("a store outage is not retried", async () => {
+    const fetch = vi.fn<WebFetch>(async () =>
+      authFailureResponse(new AuthError("auth/store-unavailable", "store down")),
+    )
+    const session = createAuthStore({
+      clock: fixedClock("2099-01-01T00:00:00Z"),
+      random: { next: () => 0 },
+      fetch,
+      initialSnapshot: signedIn,
+    })
+    await expect(session.confirm()).rejects.toThrow()
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(session.getSnapshot().status).toBe("unconfirmed")
+    session.close()
+  })
+
+  test("a rejected session ends it, even from a signed-in seed", async () => {
+    const fetch = vi.fn<WebFetch>(async () =>
+      authFailureResponse(new AuthError("auth/session-invalid", "unknown session")),
+    )
+    const session = createAuthStore({
+      clock: fixedClock("2099-01-01T00:00:00Z"),
+      random: { next: () => 0 },
+      fetch,
+      initialSnapshot: signedIn,
+    })
+    await expect(session.confirm()).rejects.toThrow()
+    expect(fetch).toHaveBeenCalledOnce()
+    expect(session.getSnapshot()).toMatchObject({ status: "unauthenticated", identity: null })
+    await expect(session.protectedSession.acquire()).rejects.toThrow()
+    expect(fetch).toHaveBeenCalledOnce()
     session.close()
   })
 
@@ -133,17 +232,24 @@ describe("opaque browser sessions", () => {
     }
   })
 
-  test("status is bounded at one second even when the source ignores its signal", async () => {
+  test("status tries three times, one second each, even when the source ignores its signal", async () => {
     const delay = manualDelay()
     const held = deferred<WebResponse>()
+    const fetch = vi.fn<WebFetch>(async () => held.promise)
     const session = createAuthStore({
       delay: delay.delay,
-      fetch: async () => held.promise,
+      random: { next: () => 0.5 },
+      fetch,
     })
     const status = session.revalidate()
-    await flushMicrotasks()
-    delay.fireWhere((ms) => ms === 1000)
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await flushMicrotasks()
+      delay.fireWhere((ms) => ms === 1000)
+      await flushMicrotasks()
+      delay.fireWhere((ms) => ms < 1000)
+    }
     await expect(status).rejects.toThrow()
+    expect(fetch).toHaveBeenCalledTimes(3)
     expect(session.getSnapshot().status).toBe("unauthenticated")
     held.resolve(Response.json(authenticated))
     await flushMicrotasks()

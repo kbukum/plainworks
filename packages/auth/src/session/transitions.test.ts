@@ -73,7 +73,7 @@ describe("per-operation protection with clients that already exist", () => {
     const { api, runtime, protectedClient, publicClient } = harness(async () => {
       throw new TypeError("network down")
     })
-    await expect(protectedClient.get("/api/private")).rejects.toThrow("network down")
+    await expect(protectedClient.get("/api/private")).rejects.toThrow()
     await expect(publicClient.get("/api/public")).resolves.toEqual({ ok: true })
     expect(api).toEqual([{ url: "/api/public", csrf: null }])
     expect(runtime.getSnapshot().status).toBe("unauthenticated")

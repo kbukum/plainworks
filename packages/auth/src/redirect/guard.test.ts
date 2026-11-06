@@ -51,6 +51,11 @@ describe("guardSession", () => {
     expect(guardSession({ loginPath: "/login" }, authed, "/tasks")).toBeNull()
   })
 
+  test("keeps an unconfirmed user on the route instead of sending them to login", () => {
+    const unconfirmed: SessionSnapshot = { ...authed, status: "unconfirmed" }
+    expect(guardSession({ loginPath: "/login" }, unconfirmed, "/tasks")).toBeNull()
+  })
+
   test("returns a login redirect for an unauthenticated snapshot", () => {
     const signal = guardSession({ loginPath: "/login" }, anon, "/tasks")
     expect(signal).toEqual({

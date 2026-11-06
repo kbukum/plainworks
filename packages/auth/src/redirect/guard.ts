@@ -33,8 +33,9 @@ export function unauthenticatedRedirect(
 }
 
 /**
- * A route guard over a {@link SessionSnapshot}: returns `null` when the caller is authenticated
- * (let the route render), or an {@link unauthenticatedRedirect} signal when they are not.
+ * A route guard over a {@link SessionSnapshot}: returns `null` when the caller is authenticated or
+ * unconfirmed (let the route render; protected work re-checks the session), or an
+ * {@link unauthenticatedRedirect} signal when they are signed out.
  * The one place a consumer wires the redirect contract into an actual route.
  */
 export function guardSession(
@@ -42,7 +43,7 @@ export function guardSession(
   snapshot: SessionSnapshot,
   currentPath?: string,
 ): RedirectSignal | null {
-  if (snapshot.status === "authenticated") {
+  if (snapshot.status !== "unauthenticated") {
     return null
   }
   return unauthenticatedRedirect(config, currentPath)

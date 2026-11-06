@@ -11,27 +11,20 @@ import {
 import { useRouter } from "next/navigation"
 import type { ReactElement } from "react"
 import { ACCOUNT_PATH, TASKS_PATH } from "../../neutral/constants"
-import {
-  Can,
-  canManageAccount,
-  useIdentity,
-  useIsAuthenticated,
-  useSession,
-  useSessionRuntime,
-} from "../auth"
+import { Can, canManageAccount, useIdentity, useSession, useSessionRuntime } from "../auth"
 
 /**
  * The header's account control. A guest gets a Sign in button. A signed-in user gets the kit
- * account menu, holding the authorization-gated account link and log out.
+ * account menu, holding the authorization-gated account link and log out. A user whose session
+ * could not be confirmed (a slow or failed check) keeps the menu, with a way to check again.
  */
 export function AccountMenu(): ReactElement {
   const identity = useIdentity()
-  const authenticated = useIsAuthenticated()
   const runtime = useSessionRuntime()
   const snapshot = useSession()
   const router = useRouter()
 
-  if (!authenticated) {
+  if (snapshot.status === "unauthenticated") {
     return (
       <div>
         <Button
@@ -54,6 +47,14 @@ export function AccountMenu(): ReactElement {
 
   return (
     <KitAccountMenu name={name}>
+      {snapshot.status === "unconfirmed" ? (
+        <>
+          <AccountMenuItem onSelect={() => void runtime.revalidate().catch(() => {})}>
+            Couldn't confirm your sign-in. Check again
+          </AccountMenuItem>
+          <AccountMenuSeparator />
+        </>
+      ) : null}
       <Can authorizer={canManageAccount} action="account:manage">
         <AccountMenuItem onSelect={() => router.push(ACCOUNT_PATH)}>
           Account settings

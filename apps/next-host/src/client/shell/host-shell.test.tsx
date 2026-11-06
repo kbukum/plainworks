@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { SessionSnapshot } from "@plainworks/auth/session"
+import { type AuthStore, createAuthStore, type SessionSnapshot } from "@plainworks/auth/session"
 import { createQueryClient } from "@plainworks/query"
 import type { StateSource } from "@plainworks/std/seam"
 import { expectNoAxeViolations, installMatchMedia } from "@plainworks/testkit/client"
@@ -44,10 +44,11 @@ afterEach(() => {
 function renderShell(
   session: SessionSnapshot = AUTHENTICATED,
   themeSource: StateSource<ThemePreference> = createThemeSource(),
+  runtime: AuthStore = createSessionFixture(session),
 ): RenderResult {
   return render(
     <ThemeProvider source={themeSource} initialTheme={DEFAULT_THEME}>
-      <SessionProvider runtime={createSessionFixture(session)}>
+      <SessionProvider runtime={runtime}>
         <HostShell liveSource={createLiveTasksSource(createQueryClient())}>
           <p>Page content</p>
         </HostShell>
@@ -120,6 +121,40 @@ describe("host shell", () => {
     const alert = await screen.findByRole("alert")
     expect(alert.textContent).toBe("The color mode could not be changed. Try again.")
     expect(screen.getByRole("button", { name: "Color mode: System" })).toBeDefined()
+  })
+
+  it("keeps an unconfirmed user signed in and lets them check again", async () => {
+    const user = userEvent.setup()
+    let reachable = false
+    const runtime = createAuthStore({
+      random: { next: () => 0 },
+      initialSnapshot: AUTHENTICATED,
+      fetch: async () =>
+        reachable
+          ? Response.json({
+              status: "authenticated",
+              identity: {
+                ...AUTHENTICATED.identity,
+                kind: "user",
+                restrictions: { mode: "unrestricted" },
+              },
+              expiresAt: new Date(Date.now() + 60_000).toISOString(),
+              csrfToken: "csrf",
+            })
+          : new Response(null, { status: 503 }),
+    })
+    renderShell(AUTHENTICATED, createThemeSource(), runtime)
+    await expect(runtime.confirm()).rejects.toThrow()
+    const banner = screen.getByRole("banner")
+    expect(within(banner).queryByRole("button", { name: "Sign in" })).toBeNull()
+
+    await user.click(within(banner).getByRole("button", { name: "Signed in as Ada" }))
+    reachable = true
+    await user.click(
+      await screen.findByRole("menuitem", { name: "Couldn't confirm your sign-in. Check again" }),
+    )
+    await vi.waitFor(() => expect(runtime.getSnapshot().status).toBe("authenticated"))
+    runtime.close()
   })
 
   it("offers sign in to a guest", () => {

@@ -1,10 +1,16 @@
 import { createJsonCodec, decodeResponseFailure, HttpError } from "@plainworks/http"
 import { createStore, type Store } from "@plainworks/state"
 import { FailureDecodeError, type ProblemDecoder, RemoteFailure } from "@plainworks/std/failure"
+import type { RandomSource } from "@plainworks/std/random"
 import {
   AbortError,
   type Delay,
+  isRetryable,
+  NetworkError,
+  RetryError,
+  type RetryPolicy,
   raceAbort,
+  runWithRetry,
   systemDelay,
   withTimeout,
 } from "@plainworks/std/resilience"
@@ -27,9 +33,24 @@ import { decodeSessionResponse, type SessionResponse } from "./response"
 const SESSION_LIFETIME_MS = 3_600_000
 const SERVER_DATE_LAG_MS = 5_000
 
-/** Client-safe state. The HttpOnly credential is never represented here. */
+// A status check is a read, so a slow or failed one is retried a few times before the session is
+// marked unconfirmed. Each attempt keeps its one-second bound.
+const STATUS_ATTEMPT_MS = 1000
+const STATUS_RETRY: RetryPolicy = {
+  maxAttempts: 3,
+  budgetMs: 5000,
+  idempotent: true,
+  backoff: { baseMs: 100, maxMs: 400, factor: 2, jitter: "full" },
+}
+
+/**
+ * Client-safe state. The HttpOnly credential is never represented here. `unconfirmed` means a
+ * status check failed without the server rejecting the session (timeout, network, outage):
+ * protected work is stopped, the last known identity stays for display, and the next status check
+ * can confirm it again.
+ */
 export interface SessionSnapshot {
-  readonly status: "authenticated" | "unauthenticated"
+  readonly status: "authenticated" | "unconfirmed" | "unauthenticated"
   readonly identity: Identity | null
   readonly expiresAt?: string
   readonly error?: Error
@@ -47,6 +68,8 @@ export interface AuthStoreConfig {
   readonly baseUrl?: string
   readonly clock?: Clock
   readonly delay?: Delay
+  /** Jitter for status-check retries; defaults to the system RNG. */
+  readonly random?: RandomSource
   /**
    * The server-rendered state, for hydration only; it never certifies a protected operation. A
    * signed-out seed is the server's answer, so {@link AuthStore.confirm} does not ask again.
@@ -112,27 +135,43 @@ export function createAuthStore(config: AuthStoreConfig = {}): AuthStore {
   let mutations: Promise<void> = Promise.resolve()
   let pendingMutations = 0
 
-  function clear(error?: unknown, revocation?: "confirmed" | "unconfirmed"): void {
+  function stopProtectedWork(error?: unknown): void {
     credential = undefined
     lifetime.abort(error)
     expiry?.abort()
     expiry = undefined
+  }
+
+  function asError(error: unknown): Error {
+    return error instanceof Error
+      ? error
+      : new AuthError("auth/adapter", "session operation failed", { cause: error })
+  }
+
+  function clear(error?: unknown, revocation?: "confirmed" | "unconfirmed"): void {
+    stopProtectedWork(error)
     store.setState(
       {
         status: "unauthenticated",
         identity: null,
-        ...(error === undefined
-          ? {}
-          : {
-              error:
-                error instanceof Error
-                  ? error
-                  : new AuthError("auth/adapter", "session operation failed", { cause: error }),
-            }),
+        ...(error === undefined ? {} : { error: asError(error) }),
         ...(revocation === undefined ? {} : { revocation }),
       },
       true,
     )
+  }
+
+  // Only the server rejecting the session, or an answer we cannot trust, ends it. A check that
+  // could not reach an answer keeps a known user as unconfirmed and leaves later checks allowed.
+  function settleFailedStatus(cause: unknown): void {
+    const identity = store.getState().identity
+    if (identity !== null && couldNotConfirm(cause)) {
+      stopProtectedWork(cause)
+      store.setState({ status: "unconfirmed", identity, error: asError(cause) }, true)
+      return
+    }
+    blocked = true
+    clear(cause)
   }
 
   function fence(revocation?: "confirmed" | "unconfirmed"): number {
@@ -248,24 +287,40 @@ export function createAuthStore(config: AuthStoreConfig = {}): AuthStore {
       const epoch = generation
       const controller = new AbortController()
       statusController = controller
-      const flight = withTimeout(
-        async (bounded) => {
-          await raceAbort(mutations, bounded)
-          if (epoch !== generation) throw new AbortError()
-          const value = await request("session", 1000, { method: "GET" }, bounded)
+      const flight = runWithRetry(
+        (_attempt, retrySignal) =>
+          withTimeout(
+            async (bounded) => {
+              await raceAbort(mutations, bounded)
+              if (epoch !== generation) throw new AbortError()
+              return request("session", STATUS_ATTEMPT_MS, { method: "GET" }, bounded).catch(
+                (cause: unknown) => {
+                  if (cause instanceof TypeError && !bounded.aborted) {
+                    throw new NetworkError("session status request failed", { cause })
+                  }
+                  throw cause
+                },
+              )
+            },
+            STATUS_ATTEMPT_MS,
+            { signal: retrySignal, delay },
+          ),
+        STATUS_RETRY,
+        {
+          signal: controller.signal,
+          delay,
+          ...(config.random === undefined ? {} : { random: config.random }),
+        },
+      )
+        .then((value) => {
           if (epoch !== generation) throw new AbortError()
           if (value === undefined) throw new FailureDecodeError()
           adopt(value)
-        },
-        1000,
-        { signal: controller.signal, delay },
-      ).catch((cause: unknown) => {
-        if (epoch === generation) {
-          blocked = true
-          clear(cause)
-        }
-        throw cause
-      })
+        })
+        .catch((cause: unknown) => {
+          if (epoch === generation) settleFailedStatus(cause)
+          throw cause
+        })
       statusFlight = flight
       void flight
         .finally(() => {
@@ -419,4 +474,11 @@ export function createAuthStore(config: AuthStoreConfig = {}): AuthStore {
       expiry = undefined
     },
   }
+}
+
+function couldNotConfirm(cause: unknown): boolean {
+  const last = cause instanceof RetryError ? cause.cause : cause
+  return (
+    (last instanceof RemoteFailure && last.authentication === "unavailable") || isRetryable(last)
+  )
 }

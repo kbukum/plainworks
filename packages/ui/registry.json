@@ -79,6 +79,10 @@
           "type": "registry:ui"
         },
         {
+          "path": "src/client/feedback/progress-tray.tsx",
+          "type": "registry:ui"
+        },
+        {
           "path": "src/client/feedback/spinner.tsx",
           "type": "registry:ui"
         },
@@ -298,6 +302,10 @@
         },
         {
           "path": "src/client/forms/number-field.tsx",
+          "type": "registry:ui"
+        },
+        {
+          "path": "src/client/forms/option-picker.tsx",
           "type": "registry:ui"
         },
         {

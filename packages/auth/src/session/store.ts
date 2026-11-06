@@ -46,8 +46,8 @@ const STATUS_RETRY: RetryPolicy = {
 /**
  * Client-safe state. The HttpOnly credential is never represented here. `unconfirmed` means a
  * status check failed without the server rejecting the session (timeout, network, outage):
- * protected work is stopped, the last known identity stays for display, and the next status check
- * can confirm it again.
+ * protected work is stopped, the last known identity stays for display (`null` when no check has
+ * answered yet), and the next status check can confirm it again.
  */
 export interface SessionSnapshot {
   readonly status: "authenticated" | "unconfirmed" | "unauthenticated"
@@ -162,10 +162,11 @@ export function createAuthStore(config: AuthStoreConfig = {}): AuthStore {
   }
 
   // Only the server rejecting the session, or an answer we cannot trust, ends it. A check that
-  // could not reach an answer keeps a known user as unconfirmed and leaves later checks allowed.
+  // could not reach an answer is unconfirmed, keeps whatever identity is known (none before the
+  // first answer) and leaves later checks allowed.
   function settleFailedStatus(cause: unknown): void {
     const identity = store.getState().identity
-    if (identity !== null && couldNotConfirm(cause)) {
+    if (couldNotConfirm(cause)) {
       stopProtectedWork(cause)
       store.setState({ status: "unconfirmed", identity, error: asError(cause) }, true)
       return

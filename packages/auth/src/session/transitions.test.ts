@@ -76,7 +76,7 @@ describe("per-operation protection with clients that already exist", () => {
     await expect(protectedClient.get("/api/private")).rejects.toThrow()
     await expect(publicClient.get("/api/public")).resolves.toEqual({ ok: true })
     expect(api).toEqual([{ url: "/api/public", csrf: null }])
-    expect(runtime.getSnapshot().status).toBe("unauthenticated")
+    expect(runtime.getSnapshot().status).toBe("unconfirmed")
     runtime.close()
   })
 

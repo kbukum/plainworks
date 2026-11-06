@@ -178,6 +178,29 @@ describe("opaque browser sessions", () => {
     session.close()
   })
 
+  test("a first status check with no answer is unconfirmed, not signed out, and can be checked again", async () => {
+    let down = true
+    const fetch = vi.fn<WebFetch>(async () => {
+      if (down) throw new TypeError("network down")
+      return Response.json(authenticated)
+    })
+    const session = createAuthStore({
+      clock: fixedClock("2099-01-01T00:00:00Z"),
+      random: { next: () => 0 },
+      fetch,
+    })
+    await expect(session.confirm()).rejects.toThrow()
+    expect(session.getSnapshot()).toMatchObject({ status: "unconfirmed", identity: null })
+    down = false
+    await session.revalidate()
+    expect(fetch).toHaveBeenCalledTimes(4)
+    expect(session.getSnapshot()).toMatchObject({
+      status: "authenticated",
+      identity: authenticated.identity,
+    })
+    session.close()
+  })
+
   test("a store outage is not retried", async () => {
     const fetch = vi.fn<WebFetch>(async () =>
       authFailureResponse(new AuthError("auth/store-unavailable", "store down")),
@@ -250,10 +273,10 @@ describe("opaque browser sessions", () => {
     }
     await expect(status).rejects.toThrow()
     expect(fetch).toHaveBeenCalledTimes(3)
-    expect(session.getSnapshot().status).toBe("unauthenticated")
+    expect(session.getSnapshot().status).toBe("unconfirmed")
     held.resolve(Response.json(authenticated))
     await flushMicrotasks()
-    expect(session.getSnapshot().status).toBe("unauthenticated")
+    expect(session.getSnapshot().status).toBe("unconfirmed")
     session.close()
     expect(delay.pending).toHaveLength(0)
   })

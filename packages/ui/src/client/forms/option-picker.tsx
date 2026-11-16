@@ -13,8 +13,8 @@ export interface PickerOption<T extends string = string> {
   readonly label: string
   /** A fact shown under the label and read with the choice, such as its size. */
   readonly detail?: ReactNode
-  /** A short tag shown and read with the choice, such as "Recommended". */
-  readonly badge?: ReactNode
+  /** Short tags shown and read with the choice, such as "Recommended", each its own badge. */
+  readonly badges?: readonly string[]
   /** Why the choice can't be picked; when set the choice is disabled and the reason is shown. */
   readonly disabledReason?: string
 }
@@ -36,10 +36,10 @@ export interface OptionPickerProps<T extends string = string> {
 
 /**
  * A row of choice cards that picks one value, such as a size or quality. Each card shows its label,
- * an optional detail and badge, and, when it can't be picked, why. Unlike `RadioGroupField` it is
+ * an optional detail and badges, and, when it can't be picked, why. Unlike `RadioGroupField` it is
  * not a form field: it submits nothing and is meant for choices that change what a page shows.
  * Arrow keys move the pick and skip disabled choices; every detail, badge and reason is read with
- * its choice.
+ * its choice. Badges wrap within a narrow card rather than overflow it.
  */
 export function OptionPicker<T extends string>({
   label,
@@ -76,7 +76,7 @@ export function OptionPicker<T extends string>({
           const optionId = `${baseId}${index}`
           const described = [
             option.detail === undefined ? null : `${optionId}-detail`,
-            option.badge === undefined ? null : `${optionId}-badge`,
+            ...(option.badges ?? []).map((_, b) => `${optionId}-badge${b}`),
             option.disabledReason === undefined ? null : `${optionId}-reason`,
           ].filter((id) => id !== null)
           return (
@@ -102,14 +102,21 @@ export function OptionPicker<T extends string>({
                     {option.detail}
                   </span>
                 )}
-                {option.badge === undefined ? null : (
-                  <Badge
-                    id={`${optionId}-badge`}
-                    variant="secondary"
-                    className="justify-self-start"
-                  >
-                    {option.badge}
-                  </Badge>
+                {(option.badges?.length ?? 0) === 0 ? null : (
+                  <span className="flex flex-wrap gap-1">
+                    {option.badges?.map((badge, b) => (
+                      // The atom never wraps; a tag longer than the card must, so it never spills
+                      // out.
+                      <Badge
+                        key={badge}
+                        id={`${optionId}-badge${b}`}
+                        variant="secondary"
+                        className="h-auto max-w-full whitespace-normal"
+                      >
+                        {badge}
+                      </Badge>
+                    ))}
+                  </span>
                 )}
                 {option.disabledReason === undefined ? null : (
                   <span id={`${optionId}-reason`} className="text-sm text-muted-foreground">

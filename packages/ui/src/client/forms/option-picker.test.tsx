@@ -17,7 +17,12 @@ const description = (element: HTMLElement) =>
     .join(" ")
 
 const SIZES: readonly PickerOption[] = [
-  { value: "small", label: "Small", detail: "1.2 GB", badge: "Recommended" },
+  {
+    value: "small",
+    label: "Small",
+    detail: "1.2 GB",
+    badges: ["Recommended", "On your machine"],
+  },
   { value: "medium", label: "Medium", detail: "5.0 GB" },
   { value: "large", label: "Large", detail: "40 GB", disabledReason: "Can't run here: needs MLX" },
 ]
@@ -39,13 +44,17 @@ function Picker({ onChange }: { onChange: (value: string) => void }) {
 }
 
 describe("OptionPicker", () => {
-  it("names the group and each choice, with its detail, badge and why it can't be picked", async () => {
+  it("names the group and each choice, with its detail, badges and why it can't be picked", async () => {
     const { container } = render(<Picker onChange={() => undefined} />)
     const group = screen.getByRole("radiogroup", { name: "Size" })
     expect(description(group)).toBe("Bigger models answer better and need more memory.")
     const small = within(group).getByRole("radio", { name: /Small/ })
     expect(small.getAttribute("aria-checked")).toBe("true")
-    expect(description(small)).toBe("1.2 GB Recommended")
+    expect(description(small)).toBe("1.2 GB Recommended On your machine")
+    // Each tag is its own badge, so a narrow card wraps between them instead of overflowing.
+    const card = small.closest("label") ?? group
+    expect(within(card).getByText("Recommended").textContent).toBe("Recommended")
+    expect(within(card).getByText("On your machine").textContent).toBe("On your machine")
     const large = within(group).getByRole("radio", { name: /Large/ })
     expect(large.getAttribute("aria-disabled")).toBe("true")
     expect(description(large)).toBe("40 GB Can't run here: needs MLX")
